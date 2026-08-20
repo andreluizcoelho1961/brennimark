@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+/*
+ * Tokens-base da interface. A instância ativa sobrescreve os valores
+ * sem exigir mudanças nos componentes.
+ */
+@theme {
+  /* Primitive */
+  --color-primitive-black: #000000;
+  --color-primitive-white: #f6f2ef;
+  --color-primitive-cyan: #2ee6c8;
+  --color-primitive-turquoise: #01a48f;
+  --color-primitive-blue: #3aa6d4;
+  --color-primitive-gray: #9aa3ad;
+
+  /* Release-specific (Call Me Analog Man) */
+  --color-release-analog-black: var(--color-primitive-black);
+  --color-release-analog-white: var(--color-primitive-white);
+  --color-release-analog-turquoise: var(--color-primitive-turquoise);
+  --color-release-analog-blue: var(--color-primitive-blue);
+
+  /* Semantic */
+  --color-background-primary: var(--color-release-analog-black);
+  --color-background-secondary: #0c0e11;
+  --color-surface-primary: #101317;
+  --color-surface-light: #1a1e23;
+  --color-text-primary: var(--color-release-analog-white);
+  --color-text-secondary: var(--color-primitive-gray);
+  --color-text-inverse: var(--color-release-analog-black);
+  --color-accent-primary: var(--color-release-analog-turquoise);
+  --color-accent-secondary: var(--color-release-analog-blue);
+  --color-border-default: #2a2f36;
+  --color-border-strong: var(--color-release-analog-white);
+  --color-focus-ring: var(--color-primitive-cyan);
+
+  /* Véu de overlay: deriva do fundo da instância, para não virar preto duro em tema claro. */
+  --color-scrim: color-mix(in srgb, var(--color-background-primary) 72%, transparent);
+
+  --font-display: var(--brand-font-display, var(--font-gotham), "Avenir Next", "Montserrat", "Helvetica Neue", Arial, sans-serif);
+  --font-body: var(--brand-font-display, var(--font-gotham), "Avenir Next", "Montserrat", "Helvetica Neue", Arial, sans-serif);
+  --font-mono: "SF Mono", "Menlo", monospace;
+
+  --spacing-page-inline: 1.5rem;
+  --spacing-section-sm: 3rem;
+  --spacing-section-md: 5rem;
+  --spacing-section-lg: 8rem;
+
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --spacing-page-inline: 3rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --spacing-page-inline: 5rem;
+  }
+}
+
+body {
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Never leave a widow word alone on the last line, or an orphan
+ * pronoun/article stranded at the end of a line. Headings balance
+ * across lines; body copy/quotes avoid single-word trailing lines.
+ */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+p, blockquote, li {
+  text-wrap: pretty;
+}
+
+.brand-scrollbar {
+  scrollbar-color: var(--color-border-default) var(--color-background-secondary);
+}
+
+.brand-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.brand-scrollbar::-webkit-scrollbar-track {
+  background: var(--color-background-secondary);
+}
+
+.brand-scrollbar::-webkit-scrollbar-thumb {
+  background-color: var(--color-border-default);
+  border-radius: 9999px;
+  border: 2px solid var(--color-background-secondary);
+}

@@ -1,0 +1,45 @@
+{
+  "name": "brandville-scaffold",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "brandville:new": "node scripts/create-brandville-instance.mjs",
+    "brandville:import": "node scripts/import-brand-book.mjs",
+    "brandville:curate": "node scripts/curate-brandville-import.mjs",
+    "brandville:references": "node scripts/index-brandville-references.mjs",
+    "test:brandville-scaffold": "node --test scripts/brandville-instance-generator.test.mjs",
+    "test:brandville-import": "node --test scripts/brandville-pdf-importer.test.mjs",
+    "test:brand-context": "tsc --module commonjs --moduleResolution node --target ES2022 --outDir .tmp/brand-context-test --esModuleInterop --skipLibCheck --types node src/brandville/config.test.ts src/content/doc-blocks.test.ts src/lib/ai/analysis-result.test.ts src/lib/ai/brand-context.test.ts src/lib/ai/citations.test.ts src/lib/ai/provider.test.ts src/lib/ai/stream-fallback.test.ts && node --test .tmp/brand-context-test/brandville/*.test.js .tmp/brand-context-test/content/*.test.js .tmp/brand-context-test/lib/ai/*.test.js",
+    "evaluate:brand-chat": "node scripts/evaluate-brand-chat.mjs"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.16",
+    "@ai-sdk/google": "^4.0.18",
+    "@ai-sdk/groq": "^4.0.12",
+    "@ai-sdk/openai": "^4.0.16",
+    "@ai-sdk/react": "^4.0.34",
+    "@openrouter/ai-sdk-provider": "^3.0.0",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.110.7",
+    "ai": "^7.0.31",
+    "next": "16.2.10",
+    "pdf-lib": "1.17.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.10",
+    "pdfjs-dist": "^6.1.200",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

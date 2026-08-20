@@ -1,0 +1,397 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  PROVIDERS,
+  PROVIDER_MODELS,
+  getModelCommercialInfo,
+  requiresBillingConsent,
+  type AIProvider,
+  type AIRole,
+  type AIRoutingPolicy,
+} from "@/lib/ai/provider";
+import { AIRoutingPanel } from "@/components/ai/AIRoutingPanel";
+import { brandvilleInstance } from "@/brandville/config";
+
+const isEnglish = brandvilleInstance.metadata.language === "en";
+
+type StoredAISetting = {
+  id: string;
+  provider: AIProvider;
+  model: string;
+  role: AIRole;
+  apiKeyLast4: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const ROLE_LABEL: Record<AIRole, string> = isEnglish
+  ? { chat: "Chat", analysis: "Review", both: "Chat + Review" }
+  : { chat: "Chat", analysis: "Análise", both: "Chat + Análise" };
+
+function DemoBadge({ role, settings }: { role: "chat" | "analysis"; settings: StoredAISetting[] }) {
+  const hasActive = settings.some((s) => s.isActive && (s.role === role || s.role === "both"));
+  if (hasActive) return null;
+  const roleLabel = isEnglish ? (role === "chat" ? "Chat" : "Review") : (role === "chat" ? "Chat" : "Análise");
+  return (
+    <span className="inline-flex items-center gap-2 border border-border-default px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+      <span className="h-1.5 w-1.5 rounded-full bg-release-analog-blue" />
+      {isEnglish
+        ? `${roleLabel} in demo mode (shared Groq) — request limits may apply`
+        : `${roleLabel} em modo demo (Groq compartilhado) — limites de requisição podem se aplicar`}
+    </span>
+  );
+}
+
+export default function AISettingsPage() {
+  const [settings, setSettings] = useState<StoredAISetting[]>([]);
+  const [policies, setPolicies] = useState<AIRoutingPolicy[]>([]);
+  const [routingEditable, setRoutingEditable] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [provider, setProvider] = useState<AIProvider>("groq");
+  const [model, setModel] = useState(PROVIDER_MODELS.groq[0]);
+  const [apiKey, setApiKey] = useState("");
+  const [role, setRole] = useState<AIRole>("chat");
+  const [testState, setTestState] = useState<"idle" | "testing" | "ok" | "error">("idle");
+  const [testMessage, setTestMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [billingAuthorized, setBillingAuthorized] = useState(false);
+
+  const needsBillingAuthorization = requiresBillingConsent(provider, model);
+  const commercialInfo = getModelCommercialInfo(provider, model);
+  const canUseModel = !needsBillingAuthorization || billingAuthorized;
+  const canSave = testState === "ok" && canUseModel;
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  async function refresh() {
+    setLoading(true);
+    const [settingsRes, routingRes] = await Promise.all([
+      fetch("/api/ai/settings"),
+      fetch("/api/ai/routing"),
+    ]);
+    const [settingsData, routingData] = await Promise.all([settingsRes.json(), routingRes.json()]);
+    setSettings(settingsData.settings ?? []);
+    setPolicies(routingData.policies ?? []);
+    setRoutingEditable(Boolean(routingData.editable));
+    setLoading(false);
+  }
+
+  async function handleSaveRouting(policy: AIRoutingPolicy) {
+    const res = await fetch("/api/ai/routing", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(policy),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      setPolicies(data.policies ?? policies);
+      return { ok: true };
+    }
+    const messages: Record<string, string> = isEnglish
+      ? {
+          cross_provider_consent_required: "Authorize switching providers to use this fallback.",
+          invalid_setting_for_feature: "One of the connections isn't available for this feature.",
+          not_authenticated: "Sign in to save this setting.",
+        }
+      : {
+          cross_provider_consent_required: "Autorize a troca entre fornecedores para usar esta reserva.",
+          invalid_setting_for_feature: "Uma das conexões não está disponível para este recurso.",
+          not_authenticated: "Entre na sua conta para salvar esta configuração.",
+        };
+    return { ok: false, message: messages[data.error] ?? (isEnglish ? "Couldn't save the policy." : "Não foi possível salvar a política.") };
+  }
+
+  function handleProviderChange(next: AIProvider) {
+    setProvider(next);
+    setModel(PROVIDER_MODELS[next][0]);
+    setTestState("idle");
+    setBillingAuthorized(false);
+  }
+
+  function markDirty() {
+    if (testState !== "idle") {
+      setTestState("idle");
+      setTestMessage("");
+    }
+  }
+
+  async function handleTest() {
+    if (!canUseModel) return;
+    setTestState("testing");
+    setTestMessage("");
+    try {
+      const res = await fetch("/api/ai/test-connection", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider, model, apiKey }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setTestState("ok");
+      } else {
+        setTestState("error");
+        setTestMessage(data.message ?? (isEnglish ? "Failed to connect." : "Falha ao conectar."));
+      }
+    } catch {
+      setTestState("error");
+      setTestMessage(isEnglish ? "Network failure while testing the connection." : "Falha de rede ao testar a conexão.");
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    const res = await fetch("/api/ai/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, model, apiKey, role }),
+    });
+    setSaving(false);
+    if (res.ok) {
+      setApiKey("");
+      setTestState("idle");
+      await refresh();
+    }
+  }
+
+  async function handleToggleActive(id: string, isActive: boolean) {
+    await fetch(`/api/ai/settings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive }),
+    });
+    await refresh();
+  }
+
+  async function handleDelete(id: string) {
+    await fetch(`/api/ai/settings/${id}`, { method: "DELETE" });
+    await refresh();
+  }
+
+  const models = useMemo(() => PROVIDER_MODELS[provider], [provider]);
+
+  return (
+    <article className="px-page-inline py-12 md:py-16">
+      <div className="max-w-3xl">
+        <div className="mb-6 inline-flex w-fit items-center gap-3 bg-release-analog-turquoise px-4 py-1.5">
+          <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-release-analog-black">
+            {isEnglish ? "Settings" : "Configurações"}
+          </span>
+        </div>
+
+        <h1
+          className="break-words font-display font-black uppercase leading-[0.9] tracking-tight text-release-analog-white"
+          style={{ fontSize: "clamp(2rem, 4.5vw, 4rem)", overflowWrap: "anywhere" }}
+        >
+          {isEnglish ? <>Connect Your <span className="text-release-analog-turquoise">AI</span></> : <>Conecte sua <span className="text-release-analog-turquoise">IA</span></>}
+        </h1>
+
+        <p className="mt-6 max-w-xl text-sm leading-relaxed text-text-secondary">
+          {isEnglish
+            ? "Configure your own API key for the brand chat and application review. Without configuration, the app uses a shared demo provider (Groq) with request limits."
+            : "Configure sua própria chave de API para o chat da marca e a análise de aplicações. Sem configuração, o app usa um provedor compartilhado de demonstração (Groq) com limites de requisição."}
+        </p>
+
+        <div className="mt-8 flex flex-wrap gap-3">
+          {!loading && <DemoBadge role="chat" settings={settings} />}
+          {!loading && <DemoBadge role="analysis" settings={settings} />}
+        </div>
+
+        {/* Existing configs */}
+        <div className="mt-12 border-l-2 border-release-analog-turquoise pl-8">
+          <p className="font-display text-xs font-bold uppercase tracking-wide text-release-analog-white">
+            {isEnglish ? "Saved settings" : "Configurações salvas"}
+          </p>
+
+          {loading ? (
+            <p className="mt-4 text-sm text-text-secondary">{isEnglish ? "Loading…" : "Carregando…"}</p>
+          ) : settings.length === 0 ? (
+            <p className="mt-4 text-sm text-text-secondary">{isEnglish ? "No settings saved yet." : "Nenhuma configuração salva ainda."}</p>
+          ) : (
+            <ul className="mt-4 divide-y divide-border-default border-t border-border-default">
+              {settings.map((s) => (
+                <li key={s.id} className="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div>
+                    <p className="text-sm text-release-analog-white">
+                      {PROVIDERS.find((p) => p.value === s.provider)?.label ?? s.provider}{" "}
+                      <span className="text-text-secondary">— {s.model}</span>
+                    </p>
+                    <p className="mt-1 font-mono text-[11px] text-text-secondary">
+                      •••• {s.apiKeyLast4} · {ROLE_LABEL[s.role]}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(s.id, !s.isActive)}
+                      className={`font-display text-[10px] font-bold uppercase tracking-wide ${
+                        s.isActive ? "text-release-analog-turquoise" : "text-text-secondary hover:text-release-analog-white"
+                      }`}
+                    >
+                      {s.isActive ? (isEnglish ? "Available" : "Disponível") : (isEnglish ? "Enable" : "Disponibilizar")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(s.id)}
+                      className="font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary hover:text-release-analog-white"
+                    >
+                      {isEnglish ? "Remove" : "Remover"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {!loading && (
+          <AIRoutingPanel
+            settings={settings}
+            policies={policies}
+            editable={routingEditable}
+            onSave={handleSaveRouting}
+          />
+        )}
+
+        {/* New config form */}
+        <div className="mt-16 border-t border-border-default pt-10">
+          <p className="font-display text-xs font-bold uppercase tracking-wide text-release-analog-white">
+            {isEnglish ? "New setting" : "Nova configuração"}
+          </p>
+
+          <div className="mt-6 grid gap-5 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-text-secondary">
+                {isEnglish ? "Provider" : "Provedor"}
+              </label>
+              <select
+                value={provider}
+                onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
+                className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white focus:border-release-analog-white"
+              >
+                {PROVIDERS.map((p) => (
+                  <option key={p.value} value={p.value} className="bg-surface-primary">
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-text-secondary">
+                {isEnglish ? "Model" : "Modelo"}
+              </label>
+              <input
+                list={`models-${provider}`}
+                value={model}
+                onChange={(e) => {
+                  setModel(e.target.value);
+                  setBillingAuthorized(false);
+                  markDirty();
+                }}
+                placeholder={provider === "openrouter" ? "author/model:free" : (isEnglish ? "Choose or enter a model" : "Escolha ou informe o modelo")}
+                className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white focus:border-release-analog-white"
+              />
+              <datalist id={`models-${provider}`}>
+                {models.map((m) => (
+                  <option key={m} value={m} />
+                ))}
+              </datalist>
+              {provider === "openrouter" && (
+                <p className="mt-2 text-[11px] leading-relaxed text-text-secondary">
+                  {isEnglish ? "Choose a suggestion or enter any current OpenRouter identifier." : "Escolha uma sugestão ou informe qualquer identificador atual da OpenRouter."}
+                </p>
+              )}
+              <div className={`mt-3 border-l-2 pl-3 text-[11px] leading-relaxed ${commercialInfo.billing === "free" ? "border-release-analog-turquoise text-text-secondary" : "border-release-analog-blue text-text-secondary"}`}>
+                <p className="font-display font-bold uppercase tracking-wide text-release-analog-white">{commercialInfo.label}</p>
+                {commercialInfo.pricing && <p className="mt-1">{commercialInfo.pricing}</p>}
+                {commercialInfo.note && <p className="mt-1">{commercialInfo.note}</p>}
+              </div>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-text-secondary">
+                {isEnglish ? "API key" : "Chave de API"}
+              </label>
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => {
+                  setApiKey(e.target.value);
+                  markDirty();
+                }}
+                autoComplete="off"
+                placeholder="sk-…"
+                className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white focus:border-release-analog-white"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-text-secondary">
+                {isEnglish ? "Authorized features" : "Recursos autorizados"}
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as AIRole)}
+                className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white focus:border-release-analog-white"
+              >
+                <option value="chat" className="bg-surface-primary">Chat</option>
+                <option value="analysis" className="bg-surface-primary">{isEnglish ? "Review" : "Análise"}</option>
+                <option value="both" className="bg-surface-primary">{isEnglish ? "Chat + Review" : "Chat + Análise"}</option>
+              </select>
+            </div>
+          </div>
+
+          {needsBillingAuthorization && (
+            <label className="mt-6 flex max-w-2xl gap-3 border border-release-analog-blue p-4 text-xs leading-relaxed text-release-analog-white">
+              <input
+                type="checkbox"
+                checked={billingAuthorized}
+                onChange={(event) => setBillingAuthorized(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-release-analog-turquoise"
+              />
+              <span>
+                {isEnglish
+                  ? "I understand that testing and using this model may consume credits on my account. Saving the connection doesn't automatically change the primary AI; activation happens in the feature's routing policy."
+                  : "Entendo que testar e usar este modelo pode consumir créditos da minha conta. Salvar a conexão não altera automaticamente a IA principal; a ativação é feita na política do recurso."}
+              </span>
+            </label>
+          )}
+
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={handleTest}
+              disabled={!apiKey || !canUseModel || testState === "testing"}
+              className="border border-release-analog-white px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wide text-release-analog-white transition-colors duration-150 hover:bg-release-analog-white hover:text-release-analog-black disabled:opacity-40"
+            >
+              {testState === "testing" ? (isEnglish ? "Testing…" : "Testando…") : (isEnglish ? "Test connection" : "Testar conexão")}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={!canSave || saving}
+              className="bg-release-analog-turquoise px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wide text-release-analog-black transition-opacity duration-150 disabled:opacity-40"
+            >
+              {saving ? (isEnglish ? "Saving…" : "Salvando…") : (isEnglish ? "Save" : "Salvar")}
+            </button>
+
+            {testState === "ok" && (
+              <span className="font-display text-xs font-bold uppercase tracking-wide text-release-analog-turquoise">
+                {isEnglish ? "Connection verified" : "Conexão validada"}
+              </span>
+            )}
+            {testState === "error" && (
+              <span className="text-sm text-release-analog-blue">{testMessage}</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
