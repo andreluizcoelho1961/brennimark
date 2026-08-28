@@ -9,7 +9,7 @@ export function BlockHeader({ eyebrow, title }: { eyebrow?: string; title?: stri
         </p>
       )}
       {title && (
-        <h2 className="mt-3 font-display text-2xl font-black uppercase leading-tight tracking-tight text-release-analog-white md:text-3xl">
+        <h2 className="mt-3 font-brand text-2xl font-black uppercase leading-tight tracking-tight text-release-analog-white md:text-3xl">
           {title}
         </h2>
       )}

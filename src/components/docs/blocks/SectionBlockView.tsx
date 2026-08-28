@@ -17,7 +17,7 @@ export function SectionBlockView({ block, children }: { block: SectionBlock; chi
               aria-hidden
             />
           )}
-          <h2 className="font-display font-black uppercase leading-none tracking-tight text-release-analog-white text-[clamp(1.5rem,3.5vw,2.5rem)]">
+          <h2 className="font-brand font-black uppercase leading-none tracking-tight text-release-analog-white text-[clamp(1.5rem,3.5vw,2.5rem)]">
             {block.title}
           </h2>
         </div>

@@ -19,7 +19,7 @@ export function CalloutBlockView({ block }: { block: CalloutBlock }) {
       <p
         className={
           isHero
-            ? "mt-4 font-display font-black uppercase leading-[1.05] tracking-tight text-release-analog-white text-[clamp(1.75rem,4vw,3rem)]"
+            ? "mt-4 font-brand font-black uppercase leading-[1.05] tracking-tight text-release-analog-white text-[clamp(1.75rem,4vw,3rem)]"
             : "mt-3 text-lg leading-relaxed text-release-analog-white md:text-xl"
         }
       >

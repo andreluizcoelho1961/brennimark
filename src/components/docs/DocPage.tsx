@@ -12,7 +12,7 @@ function Title({ title }: { title: string }) {
 
   return (
     <h1
-      className="break-words font-display font-black uppercase leading-[0.9] tracking-tight text-release-analog-white"
+      className="break-words font-brand font-black uppercase leading-[0.9] tracking-tight text-release-analog-white"
       style={{ fontSize: "clamp(2rem, 4.5vw, 4rem)", overflowWrap: "anywhere" }}
     >
       {rest && `${rest} `}

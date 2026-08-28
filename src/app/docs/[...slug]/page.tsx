@@ -1,3 +1,4 @@
+import { BrandCanvas } from "@/components/BrandCanvas";
 import { notFound } from "next/navigation";
 import { getResolvedBrandDoc } from "@/lib/brandville/server";
 import { DocPage } from "@/components/docs/DocPage";
@@ -38,15 +39,17 @@ export default async function DocSlugPage({ params }: { params: Promise<{ slug: 
   const displayEntry = isHairlineCustom ? { ...entry, body: undefined, images: undefined } : entry;
 
   return (
-    <DocPage entry={displayEntry}>
-      {CustomComponent && (
-        <div className="mt-8">
-          <CustomComponent />
-        </div>
-      )}
-      {isHairlineVisual && <HairlineBrandSection slug={path} />}
-      {isHairlineStrategy && <HairlineStrategySection slug={path} />}
-      {isHairlineVoice && <HairlineVoiceSection slug={path} />}
-    </DocPage>
+    <BrandCanvas>
+      <DocPage entry={displayEntry}>
+        {CustomComponent && (
+          <div className="mt-8">
+            <CustomComponent />
+          </div>
+        )}
+        {isHairlineVisual && <HairlineBrandSection slug={path} />}
+        {isHairlineStrategy && <HairlineStrategySection slug={path} />}
+        {isHairlineVoice && <HairlineVoiceSection slug={path} />}
+      </DocPage>
+    </BrandCanvas>
   );
 }

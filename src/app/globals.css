@@ -36,9 +36,29 @@
   /* Véu de overlay: deriva do fundo da instância, para não virar preto duro em tema claro. */
   --color-scrim: color-mix(in srgb, var(--color-background-primary) 72%, transparent);
 
-  --font-display: var(--brand-font-display, var(--font-gotham), "Avenir Next", "Montserrat", "Helvetica Neue", Arial, sans-serif);
-  --font-body: var(--brand-font-display, var(--font-gotham), "Avenir Next", "Montserrat", "Helvetica Neue", Arial, sans-serif);
+  /*
+   * Tipografia da INTERFACE. O aplicativo é um ambiente de trabalho e tem
+   * tipografia própria, escolhida para leitura em tela e uso prolongado —
+   * independente de qual marca está sendo consultada.
+   *
+   * PROVISÓRIA: pilha de sistema enquanto a identidade do produto não existe.
+   * Quando existir, a fonte entra aqui e em mais nenhum lugar.
+   */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-ui);
+  --font-body: var(--font-ui);
   --font-mono: "SF Mono", "Menlo", monospace;
+
+  /*
+   * Tipografia da MARCA consultada. Só existe dentro do BrandCanvas, onde a
+   * instância a redefine. Precisa ser sobrescrita no próprio canvas: uma
+   * custom property é resolvida onde é DECLARADA, então herdar do :root
+   * congelaria o valor antes de a marca existir. Usada apenas onde demonstra
+   * a marca:
+   * títulos das páginas do manual e blocos de espécime. Nunca em controle,
+   * legenda ou corpo de leitura — isso é interface, não material da marca.
+   */
+  --font-brand: var(--font-ui);
 
   --spacing-page-inline: 1.5rem;
   --spacing-section-sm: 3rem;
