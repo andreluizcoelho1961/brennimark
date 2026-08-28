@@ -55,6 +55,37 @@
   --color-platform-warning: #f0bb52;
   --color-platform-danger: #ff8a82;
 
+  /*
+   * Geometria da plataforma. Escala pequena e deliberada, não valores livres:
+   * campo e controle compacto, painel e menu, superfície de entrada. Card não é
+   * a unidade de layout — agrupamento vem antes de contorno.
+   */
+  --radius-control: 6px;
+  --radius-panel: 10px;
+  --radius-entry: 16px;
+
+  /* Passo de espaçamento da moldura. O canvas tem o seu próprio ritmo. */
+  --space-shell-1: 4px;
+  --space-shell-2: 8px;
+  --space-shell-3: 12px;
+  --space-shell-4: 16px;
+  --space-shell-5: 24px;
+  --space-shell-6: 32px;
+
+  /* Medidas fixas da moldura. */
+  --shell-topbar: 56px;
+  --shell-sidebar: 224px;
+  --shell-rail: 72px;
+
+  /* Movimento contido: controle, menu, painel. */
+  --motion-control: 120ms;
+  --motion-menu: 160ms;
+  --motion-panel: 200ms;
+  --ease-shell: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Elevação discreta. A moldura separa por superfície, não por sombra forte. */
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.28), 0 8px 24px rgb(0 0 0 / 0.18);
+
   --color-brand-bg: transparent;
   --color-brand-bg-secondary: transparent;
   --color-brand-surface: transparent;
