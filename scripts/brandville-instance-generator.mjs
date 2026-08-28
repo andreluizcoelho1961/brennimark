@@ -159,6 +159,11 @@ export function validateBrandvilleManifest(input) {
   if (ai.knowledgeMode !== "docs" && ai.knowledgeMode !== "full") errors.push("ai.knowledgeMode deve ser docs ou full.");
   if (!text(ai.chatRole)) errors.push("ai.chatRole e obrigatorio.");
   if (!text(ai.analysisRole)) errors.push("ai.analysisRole e obrigatorio.");
+  if (manifest.statusLabels !== undefined) {
+    const l = manifest.statusLabels;
+    const ok = l && typeof l === "object" && ["ready", "draft", "pending"].every((k) => text(l[k]));
+    if (!ok) errors.push("statusLabels, quando presente, precisa de ready, draft e pending.");
+  }
   if (!text(legal.footerNotice)) errors.push("legal.footerNotice e obrigatorio.");
   if (docs.some((doc) => doc.status !== "ready")) warnings.push("Existem paginas ainda nao aprovadas editorialmente.");
 
@@ -192,6 +197,7 @@ function normalizedInstance(manifest) {
       ...(Array.isArray(doc.images) && doc.images.length ? { images: doc.images } : {}),
       ...(Array.isArray(doc.blocks) && doc.blocks.length ? { blocks: doc.blocks } : {}),
     })),
+    ...(manifest.statusLabels ? { statusLabels: manifest.statusLabels } : {}),
     theme: manifest.theme,
     ai: manifest.ai,
     legal: manifest.legal,

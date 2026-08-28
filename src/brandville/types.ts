@@ -1,4 +1,4 @@
-import type { DocPageEntry } from "../content/docs";
+import type { DocPageEntry, DocStatus } from "../content/docs";
 
 export type BrandvilleUtilityKey = "chat" | "analysis" | "history" | "ai-settings";
 
@@ -35,6 +35,8 @@ export interface BrandvilleInstance {
     utilityLinks: readonly BrandvilleUtilityKey[];
   };
   docs: readonly DocPageEntry[];
+  /** Vocabulário editorial próprio da instância. Ausente = rótulos do produto. */
+  statusLabels?: Readonly<Record<DocStatus, string>>;
   theme: BrandvilleTheme;
   ai: {
     knowledgeMode: "full" | "docs";

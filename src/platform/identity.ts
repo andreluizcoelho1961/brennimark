@@ -27,14 +27,28 @@ export const platformTheme = {
    *  aqui só como documentação de que a plataforma tem fonte própria e não
    *  herda a da marca consultada. */
   uiFontNote: "system-ui — provisória, ver --font-ui em globals.css",
-  background: "#14161a",
-  backgroundSecondary: "#0f1115",
-  surface: "#1b1e24",
-  surfaceLight: "#242830",
-  foreground: "#f4f5f7",
-  muted: "#9099a8",
-  accent: "#7c8aa0",
-  accentSecondary: "#5d6b80",
+
+  bg: "#14161a",
+  panel: "#1b1e24",
+  panelMuted: "#242830",
+  text: "#f4f5f7",
+  textMuted: "#9099a8",
   border: "#2b3038",
-  focus: "#a8b4c6",
+
+  /**
+   * Sinal de localização e ação. ACROMÁTICO nesta fase, por decisão: o produto
+   * ainda não tem identidade aprovada, e consolidar uma cor proprietária agora
+   * criaria relação com todas as marcas que a moldura precisa emoldurar.
+   * O contrato do token permanece, para receber cor quando a identidade existir.
+   */
+  signal: "#f4f5f7",
+  signalSoft: "#242830",
+
+  /** Alta visibilidade por acessibilidade. Não é cor de marca do produto. */
+  focus: "#ffffff",
+
+  /** Semânticos. Sempre acompanhados de texto ou ícone, nunca só cor. */
+  success: "#62c68a",
+  warning: "#f0bb52",
+  danger: "#ff8a82",
 } as const;

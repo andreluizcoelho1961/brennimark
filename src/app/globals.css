@@ -33,6 +33,39 @@
   --color-border-strong: var(--color-release-analog-white);
   --color-focus-ring: var(--color-primitive-cyan);
 
+  /*
+   * Namespaces explícitos. Os valores chegam em tempo de execução: os da
+   * plataforma no <html>, os da marca no BrandCanvas. As declarações abaixo
+   * só registram os nomes, para o Tailwind gerar `bg-platform-panel`,
+   * `text-brand-accent` e afins.
+   *
+   * O fallback existe para o caso de um token ser lido antes de a camada
+   * correspondente o definir — nunca deve acontecer em uso normal.
+   */
+  --color-platform-bg: #14161a;
+  --color-platform-panel: #1b1e24;
+  --color-platform-panel-muted: #242830;
+  --color-platform-text: #f4f5f7;
+  --color-platform-text-muted: #9099a8;
+  --color-platform-border: #2b3038;
+  --color-platform-signal: #f4f5f7;
+  --color-platform-signal-soft: #242830;
+  --color-platform-focus: #ffffff;
+  --color-platform-success: #62c68a;
+  --color-platform-warning: #f0bb52;
+  --color-platform-danger: #ff8a82;
+
+  --color-brand-bg: transparent;
+  --color-brand-bg-secondary: transparent;
+  --color-brand-surface: transparent;
+  --color-brand-surface-light: transparent;
+  --color-brand-text: currentColor;
+  --color-brand-text-muted: currentColor;
+  --color-brand-accent: currentColor;
+  --color-brand-accent-secondary: currentColor;
+  --color-brand-border: currentColor;
+  --color-brand-focus: currentColor;
+
   /* Véu de overlay: deriva do fundo da instância, para não virar preto duro em tema claro. */
   --color-scrim: color-mix(in srgb, var(--color-background-primary) 72%, transparent);
 

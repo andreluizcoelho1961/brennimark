@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { exampleInstance } from "./instances/example";
 import { generatedBrandvilleInstances } from "./instances/generated";
 import { theBluesMakerInstance } from "./instances/the-bluesmaker";
-import { platformTheme } from "../platform/identity";
+import { brandAliasVars, brandCssVars, platformAliasVars, platformCssVars } from "../platform/tokens";
 import type { BrandvilleInstance, BrandvilleUtilityKey } from "./types";
 
 export const brandvilleInstances = {
@@ -25,47 +25,23 @@ export function resolveBrandvilleInstance(key?: string): BrandvilleInstance {
 export const brandvilleInstance = resolveBrandvilleInstance(process.env.NEXT_PUBLIC_BRANDVILLE_INSTANCE);
 
 /**
- * Mapeia uma paleta para as variáveis CSS que os componentes já consomem.
- * O mesmo componente usa `bg-surface-primary` na moldura e no conteúdo; o que
- * muda é o escopo em que a variável foi definida.
+ * Duas camadas, dois namespaces.
+ *
+ * A moldura recebe `--platform-*` mais os aliases legados, no <html>. O canvas
+ * recebe `--brand-*` e reaponta os aliases para a marca, no seu próprio escopo.
+ * Assim um componente não migrado continua funcionando nos dois lados, e um
+ * componente migrado escolhe explicitamente de qual camada quer a cor.
  */
-function toThemeStyle(theme: {
-  background: string; backgroundSecondary: string; surface: string; surfaceLight: string;
-  foreground: string; muted: string; accent: string; accentSecondary: string;
-  border: string; focus: string; fontStack?: string;
-}): CSSProperties {
-  return {
-    "--color-primitive-black": theme.background,
-    "--color-primitive-white": theme.foreground,
-    "--color-primitive-gray": theme.muted,
-    "--color-primitive-cyan": theme.focus,
-    "--color-primitive-turquoise": theme.accent,
-    "--color-primitive-blue": theme.accentSecondary,
-    "--color-release-analog-black": theme.background,
-    "--color-release-analog-white": theme.foreground,
-    "--color-release-analog-turquoise": theme.accent,
-    "--color-release-analog-blue": theme.accentSecondary,
-    "--color-background-primary": theme.background,
-    "--color-background-secondary": theme.backgroundSecondary,
-    "--color-surface-primary": theme.surface,
-    "--color-surface-light": theme.surfaceLight,
-    "--color-text-primary": theme.foreground,
-    "--color-text-secondary": theme.muted,
-    "--color-text-inverse": theme.background,
-    "--color-accent-primary": theme.accent,
-    "--color-accent-secondary": theme.accentSecondary,
-    "--color-border-default": theme.border,
-    "--color-border-strong": theme.foreground,
-    "--color-focus-ring": theme.focus,
-    ...(theme.fontStack ? { "--font-brand": theme.fontStack } : {}),
-  } as CSSProperties;
-}
+export const platformThemeStyle = {
+  ...platformCssVars(),
+  ...platformAliasVars(),
+} as CSSProperties;
 
-/** Moldura do produto: login, navegação, administração, configurações, rodapé. */
-export const platformThemeStyle = toThemeStyle(platformTheme);
-
-/** Conteúdo da marca: páginas do manual, blocos, galerias. Escopo do BrandCanvas. */
-export const brandThemeStyle = toThemeStyle(brandvilleInstance.theme);
+/** Conteúdo da marca. Escopo do BrandCanvas, nunca do documento. */
+export const brandThemeStyle = {
+  ...brandCssVars(brandvilleInstance.theme),
+  ...brandAliasVars(),
+} as CSSProperties;
 
 const utilityCatalog: Record<BrandvilleUtilityKey, { href: string; code: string; label: string }> = {
   chat: { href: "/docs/chat", code: "CH", label: "Chat da marca" },
