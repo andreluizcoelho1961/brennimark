@@ -30,7 +30,6 @@ const exampleDocs = [
 
 export const exampleInstance = {
   key: "example",
-  productName: "Brandville",
   brand: {
     name: "Empresa X",
     shortName: "Empresa X",

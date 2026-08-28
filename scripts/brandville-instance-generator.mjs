@@ -170,7 +170,6 @@ function normalizedInstance(manifest) {
   const groupCodes = Object.fromEntries(manifest.navigation.groups.map((group) => [group.name.trim(), group.code.trim().toUpperCase()]));
   return {
     key: manifest.key.trim(),
-    productName: "Brandville",
     brand: {
       name: manifest.brand.name.trim(),
       shortName: manifest.brand.shortName.trim(),

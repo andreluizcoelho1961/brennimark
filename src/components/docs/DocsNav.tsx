@@ -9,6 +9,7 @@ import {
   brandvilleUtilityLinks as UTILITY_LINKS,
 } from "@/brandville/config";
 import type { DocPageEntry } from "@/content/docs";
+import { platformIdentity } from "@/platform/identity";
 
 const GROUPS = brandvilleInstance.navigation.groups;
 const GROUP_CODES = brandvilleInstance.navigation.groupCodes;
@@ -73,7 +74,7 @@ export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: DocPage
   const utilityLinks = useMemo(() => [
     ...UTILITY_LINKS,
     { href: "/docs/biblioteca", code: "AS", label: isEnglish ? "Asset library" : "Biblioteca de assets" },
-    ...(isOwner ? [{ href: "/docs/admin", code: "AD", label: isEnglish ? "Manage Brandville" : "Administrar Brandville" }] : []),
+    ...(isOwner ? [{ href: "/docs/admin", code: "AD", label: isEnglish ? `Manage ${platformIdentity.displayName}` : `Administrar ${platformIdentity.displayName}` }] : []),
   ], [isEnglish, isOwner]);
 
   const activeSlug = pathname?.replace(/^\/docs\//, "") ?? "";
@@ -168,7 +169,7 @@ export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: DocPage
           <span aria-hidden="true" className="h-px w-4 bg-release-analog-white" />
         </button>
         <Link href="/docs" className="font-display text-sm font-bold uppercase tracking-wider text-release-analog-white">
-          {brandvilleInstance.brand.shortName} <span className="text-release-analog-turquoise">/ Brandville</span>
+          {brandvilleInstance.brand.shortName} <span className="text-release-analog-turquoise">/ {platformIdentity.displayName}</span>
         </Link>
         <button
           type="button"
@@ -190,7 +191,7 @@ export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: DocPage
           >
             <div className="flex items-center justify-between px-5 pb-4">
               <span className="font-display text-sm font-bold uppercase tracking-wider text-release-analog-white">
-                {brandvilleInstance.brand.shortName} <span className="text-release-analog-turquoise">/ Brandville</span>
+                {brandvilleInstance.brand.shortName} <span className="text-release-analog-turquoise">/ {platformIdentity.displayName}</span>
               </span>
               <button
                 type="button"
@@ -268,16 +269,6 @@ export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: DocPage
         <nav
           aria-label={isEnglish ? "Groups" : "Grupos"}
           className="flex w-16 flex-none flex-col items-center gap-6 overflow-y-auto border-r border-border-default bg-background-primary py-6"
-          style={
-            brandvilleInstance.key === "hairline"
-              ? ({
-                  "--color-background-primary": "#313032",
-                  "--color-release-analog-white": "#e3ddd2",
-                  "--color-text-secondary": "#b9b3aa",
-                  "--color-border-default": "#4a484b",
-                } as React.CSSProperties)
-              : undefined
-          }
         >
           <Link
             href="/docs"
@@ -345,16 +336,6 @@ export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: DocPage
         {/* Expanded panel for the selected group */}
         <aside
           className="brand-scrollbar flex w-64 flex-none flex-col overflow-y-auto border-r border-border-default bg-surface-primary py-8"
-          style={
-            brandvilleInstance.key === "hairline"
-              ? ({
-                  "--color-surface-primary": "#313032",
-                  "--color-release-analog-white": "#e3ddd2",
-                  "--color-text-secondary": "#b9b3aa",
-                  "--color-border-default": "#4a484b",
-                } as React.CSSProperties)
-              : undefined
-          }
         >
           <p className="px-6 font-display text-[11px] font-bold uppercase tracking-[0.25em] text-release-analog-turquoise">
             {selectedGroup}

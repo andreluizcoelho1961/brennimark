@@ -3,7 +3,6 @@ import type { BrandvilleInstance } from "../types";
 // Gerado pelo onboarding Brandville. Edite o manifesto e gere novamente.
 export const brandvilleInstanceDefinition = {
   "key": "empresa-modelo",
-  "productName": "Brandville",
   "brand": {
     "name": "Empresa Modelo",
     "shortName": "Empresa Modelo",

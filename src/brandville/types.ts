@@ -18,7 +18,6 @@ export interface BrandvilleTheme {
 
 export interface BrandvilleInstance {
   key: string;
-  productName: "Brandville";
   brand: {
     name: string;
     shortName: string;

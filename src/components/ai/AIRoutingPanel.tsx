@@ -1,5 +1,6 @@
 "use client";
 
+import { platformIdentity } from "@/platform/identity";
 import { useMemo, useState } from "react";
 import {
   PROVIDERS,
@@ -32,11 +33,11 @@ type Props = {
 
 const FEATURE_COPY: Record<AIRoutingFeature, { title: string; description: string }> = isEnglish
   ? {
-      chat: { title: "Brand chat", description: "Answers grounded in Brandville content." },
+      chat: { title: "Brand chat", description: `Answers grounded in ${platformIdentity.displayName} content.` },
       analysis: { title: "Application review", description: "Visual read and assessment of brand applications." },
     }
   : {
-      chat: { title: "Chat da marca", description: "Respostas fundamentadas no conteúdo do Brandville." },
+      chat: { title: "Chat da marca", description: `Respostas fundamentadas no conteúdo do ${platformIdentity.displayName}.` },
       analysis: { title: "Análise de peças", description: "Leitura visual e avaliação de aplicações da marca." },
     };
 
