@@ -24,7 +24,8 @@ humana identificada na auditoria §6.
 | 07 | Verificação autenticada do BYOK | — | M | pronto |
 | 08 | Extrair a lógica específica de instância do core | R10 | M | pronto |
 | 09 | Reconciliar a documentação | — | M | **[parcial: D2]** |
-| 10 | Teste de stack Supabase local em CI | R2, R11 | M | depende de 04 |
+| 09b | CI mínimo: lint, tipos, testes, build | R11 | P | **feito, execução remota pendente** |
+| 10 | Teste de stack Supabase local em CI | R2, R11 | M | depende de 04 e de 09b |
 
 ---
 
@@ -224,6 +225,26 @@ ao estado real: matriz multi-instância e `NEXT_PUBLIC_BRANDVILLE_INSTANCE` docu
 de variáveis, scripts npm e do nome do pacote entra neste PR. Se permanecer como codinome interno,
 basta declarar isso explicitamente na documentação. Recomendação: **manter** — renomear agora é
 custo sem retorno, desde que nenhum texto de venda use o nome.
+
+---
+
+## PR-09b — CI mínimo (feito, com ressalva)
+
+**Feito:** `.github/workflows/ci.yml` executa `npm ci`, lint, `tsc --noEmit`, as três suítes locais e
+o build de produção. Push em `main` e todo pull request; permissões só de leitura; concorrência por
+referência com cancelamento; timeout de 15 minutos; sem `continue-on-error`. Scripts `typecheck`,
+`test:ci` e `verify` no `package.json`, e `.nvmrc` fixando a versão de Node que o workflow lê.
+
+**Ressalva registrada:** *workflow criado e validado localmente; primeira execução no GitHub pendente
+de definição do remoto.* O repositório não tem remoto, então o workflow nunca rodou de fato. A
+validação disponível foi executar localmente a sequência literal que ele chama — `npm run verify` —
+com exit code 0. O risco residual está em duas linhas que não dependem do código: disponibilidade de
+Node 26 no runner e reprodutibilidade de `npm ci`.
+
+**Gate:** uma execução remota verde é obrigatória antes do primeiro piloto ou de qualquer publicação
+oficial. Até lá, a proteção vale localmente.
+
+**Deliberadamente não feito:** nenhuma infraestrutura para simular GitHub Actions na máquina.
 
 ---
 
