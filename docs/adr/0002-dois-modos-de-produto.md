@@ -60,8 +60,22 @@ navegação oferece — e não de `disabled`.
 
 **Adotar dois modos explícitos do mesmo sistema, resolvidos por capacidade e não por papel.**
 
-1. Uma configuração tipada declara as **capacidades** de quem está usando: consultar, editar,
-   governar, administrar carteira.
+1. Uma configuração tipada declara as **capacidades** de quem está usando, por marca:
+
+   | Capacidade | O que permite |
+   |---|---|
+   | `consultar` | ler o guia, perguntar ao assistente, analisar peça, baixar asset |
+   | `editar` | redigir e alterar conteúdo; **não** muda estado editorial |
+   | `aprovar` | mudar status, publicar release, autoridade editorial |
+   | `administrar` | membros, papéis, chaves de IA, gestão de assets |
+
+   **`editar` e `aprovar` são separados de propósito.** É como governança de marca funciona: a
+   agência redige, o dono da marca aprova. O aplicativo já modela isso com
+   `ready | draft | pending` e o histórico de versões. Sem a separação, dar edição à agência daria
+   também autoridade editorial sobre a marca do cliente — que nenhum gestor de marca aceitaria.
+
+   O manual da Guitar Garage diz literalmente: *aprova aplicação: Solon Fishbone*, *autor do
+   sistema: André Coelho*. Quem autora não é quem aprova.
 2. A moldura V2 monta os destinos a partir dessa configuração. Um consultor não recebe rota que
    terminaria em 403 nem controle que não pode acionar.
 3. A autorização de servidor permanece exatamente como está. Capacidade decide o que aparece;
@@ -74,6 +88,28 @@ navegação oferece — e não de `disabled`.
 Papel é quem a pessoa é; capacidade é o que ela pode fazer aqui. Um mesmo `owner` pode ser
 agência numa instalação e consultor em outra. Amarrar a composição da interface ao papel forçaria
 a interface a saber de contratos comerciais — que mudam mais rápido que código.
+
+### Alcance é outro eixo, não uma capacidade
+
+Quantas marcas o login enxerga — uma instalação ou uma carteira — é ortogonal ao que a pessoa pode
+fazer dentro de cada uma. Os cenários reais são combinações dos dois eixos:
+
+| Quem | Alcance | Capacidades |
+|---|---|---|
+| Designer da marca cliente | uma | consultar |
+| Gestor de marca do cliente | uma | consultar, aprovar |
+| Agência trabalhando naquela marca | uma | consultar, editar |
+| Estúdio com carteira própria | várias | varia por marca |
+
+A última linha é o motivo de a capacidade ser **por marca** e não global: a mesma pessoa pode
+editar a marca A e apenas consultar a marca B.
+
+### Nome
+
+**`Studio` permanece com o sentido do ADR-0001: a carteira da agência.** O modo de uma marca só
+recebe nome quando a identidade comercial existir; até lá é descrito funcionalmente como
+*consulta*. Isso evita reescrever ADR-0001, o briefing de evolução e o plano do WP4, onde
+`Studio` já aparece com esse sentido.
 
 ## 5. Como isso conversa com o ADR-0001
 

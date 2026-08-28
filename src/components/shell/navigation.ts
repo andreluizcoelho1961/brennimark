@@ -1,12 +1,11 @@
-import { brandvilleInstance, brandvilleUtilityLinks } from "@/brandville/config";
-
-export type ShellRole = "owner" | "member";
+import { brandvilleInstance, brandvilleUtilityLinks } from "../../brandville/config";
+import { can, type BrandCapability } from "../../platform/capabilities";
 
 export interface ShellDestination {
   href: string;
   label: string;
-  /** Menor papel que enxerga o destino. Ausente = todos. */
-  requires?: ShellRole;
+  /** Capacidade necessária para o destino existir. Ausente = basta consultar. */
+  requires?: BrandCapability;
   /** Aparece na navegação inferior do mobile. */
   mobile?: boolean;
 }
@@ -28,7 +27,11 @@ const t = (pt: string, en: string) => (isEnglish ? en : pt);
  * a permissão é decidida antes de renderizar — um member nunca recebe link
  * que terminaria em 403.
  */
-export function shellSections({ role }: { role: ShellRole }): ShellSection[] {
+export function shellSections({
+  capabilities,
+}: {
+  capabilities: readonly BrandCapability[];
+}): ShellSection[] {
   const utilities = brandvilleUtilityLinks.map((link) => ({ href: link.href, label: link.label }));
 
   const sections: ShellSection[] = [
@@ -53,7 +56,7 @@ export function shellSections({ role }: { role: ShellRole }): ShellSection[] {
       id: "governance",
       label: t("Governança", "Governance"),
       destinations: [
-        { href: "/docs/admin", label: t("Administração", "Administration"), requires: "owner" },
+        { href: "/docs/admin", label: t("Administração", "Administration"), requires: "administrar" },
       ],
     },
   ];
@@ -61,7 +64,9 @@ export function shellSections({ role }: { role: ShellRole }): ShellSection[] {
   return sections
     .map((section) => ({
       ...section,
-      destinations: section.destinations.filter((d) => !d.requires || d.requires === role),
+      // O destino não existe quando falta a capacidade. Não é botão desabilitado:
+      // quem consulta não vê sinal de que há uma superfície de edição.
+      destinations: section.destinations.filter((d) => can(capabilities, d.requires ?? "consultar")),
     }))
     .filter((section) => section.destinations.length > 0);
 }
