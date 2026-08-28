@@ -52,6 +52,31 @@ O resultado importado deve ser curado antes de ser entregue ao gerador. Consulte
 [`docs/BRANDVILLE_MATRIX.md`](./docs/BRANDVILLE_MATRIX.md) para os comandos de
 curadoria e indexação das referências visuais.
 
+## Verificação
+
+Um comando roda exatamente a mesma sequência que a integração contínua executa —
+lint, tipos, as três suítes locais e o build de produção:
+
+```bash
+npm run verify
+```
+
+Se ele passa na sua máquina, passa no CI: o workflow em
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) chama os mesmos scripts,
+na mesma ordem, na versão de Node declarada em `.nvmrc`.
+
+Etapas isoladas, quando útil durante o desenvolvimento:
+
+```bash
+npm run lint        # eslint
+npm run typecheck   # tsc --noEmit
+npm run test:ci     # as três suítes, sem rede e sem banco
+```
+
+Nenhuma suíte depende de Supabase, credenciais ou rede. O teste que aplica as
+migrations numa stack limpa é o PR-10 do WP0 e ainda não entrou no pipeline —
+ver [`docs/plan/wp0-baseline-reproduzivel.md`](./docs/plan/wp0-baseline-reproduzivel.md).
+
 ## Status
 
 - Color, typography, motion, photography direction, voice/language: complete.

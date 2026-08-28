@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "brandville:new": "node scripts/create-brandville-instance.mjs",
     "brandville:import": "node scripts/import-brand-book.mjs",
     "brandville:curate": "node scripts/curate-brandville-import.mjs",
@@ -14,7 +15,9 @@
     "test:brandville-scaffold": "node --test scripts/brandville-instance-generator.test.mjs",
     "test:brandville-import": "node --test scripts/brandville-pdf-importer.test.mjs",
     "test:brand-context": "tsc --module commonjs --moduleResolution node --target ES2022 --outDir .tmp/brand-context-test --esModuleInterop --skipLibCheck --types node src/brandville/config.test.ts src/content/doc-blocks.test.ts src/lib/ai/analysis-result.test.ts src/lib/ai/brand-context.test.ts src/lib/ai/citations.test.ts src/lib/ai/provider.test.ts src/lib/ai/stream-fallback.test.ts && node --test .tmp/brand-context-test/brandville/*.test.js .tmp/brand-context-test/content/*.test.js .tmp/brand-context-test/lib/ai/*.test.js",
-    "evaluate:brand-chat": "node scripts/evaluate-brand-chat.mjs"
+    "evaluate:brand-chat": "node scripts/evaluate-brand-chat.mjs",
+    "test:ci": "npm run test:brandville-scaffold && npm run test:brandville-import && npm run test:brand-context",
+    "verify": "npm run lint && npm run typecheck && npm run test:ci && npm run build"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.16",
