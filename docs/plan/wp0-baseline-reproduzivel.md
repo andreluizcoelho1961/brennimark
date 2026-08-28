@@ -276,6 +276,16 @@ apontando o objeto ausente.
 
 ---
 
+## Mudança de prioridade registrada em 28/08
+
+O ADR-0003 move a **exportação completa por marca (WP8)** de último pacote para pré-requisito do
+primeiro contrato de agência. Motivo: o aplicativo importa manual em PDF e não exporta nada; numa
+relação com data para acabar, isso é passivo comercial.
+
+Também registra três migrações que antecedem o resto do roteiro — conteúdo da marca de código para
+dado, instância em tempo de execução, e banco compartilhado. As duas primeiras não dependem da
+terceira.
+
 ## Não faz parte do WP0
 
 Convites e papéis (WP1), telemetria e custo (WP2), onboarding (WP3), Studio (WP4), planos (WP5),

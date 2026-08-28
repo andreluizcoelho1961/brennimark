@@ -1,11 +1,17 @@
 # ADR-0001 — Studio como control plane sobre instalações isoladas
 
-- **Status:** proposto, aguardando aprovação
+- **Status:** **SUBSTITUÍDO** pelo [ADR-0003](./0003-produto-hospedado-multi-marca.md) em 28/08/2026
 - **Data:** 27/08/2026
 - **Contexto:** briefing §6, auditoria `docs/audit/2026-08-27-estado-do-repositorio.md`
 - **Decisão irreversível?** Parcialmente. Ver §7.
 
 ---
+
+> **Nota de substituição.** Este ADR continua válido como registro do raciocínio para a fase de
+> pilotos, e a restrição sobre o Studio não acumular conteúdo (§6) permanece em vigor. O que foi
+> substituído é a topologia: o ADR-0003 adota banco compartilhado como padrão e mantém o silo como
+> plano superior. O argumento de reversibilidade da §5 deste documento estava invertido — ver
+> ADR-0003 §4.
 
 ## 1. O problema, em uma frase
 
