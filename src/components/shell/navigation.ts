@@ -71,3 +71,9 @@ export function isDestinationActive(href: string, pathname: string): boolean {
   if (href === "/docs") return pathname === "/docs" || !pathname.startsWith("/docs/");
   return pathname === href || pathname.startsWith(`${href}/`);
 }
+
+/** Reescreve um destino para outro prefixo. Sem prefixo, devolve o original. */
+export function withBase(href: string, basePath?: string): string {
+  if (!basePath) return href;
+  return href.replace(/^\/docs/, basePath);
+}

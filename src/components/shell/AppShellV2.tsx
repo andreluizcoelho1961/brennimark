@@ -1,3 +1,8 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import type { DocPageEntry } from "@/content/docs";
+import { CommandPalette } from "./CommandPalette";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { PlatformTopBar } from "./PlatformTopBar";
 import type { ShellSection } from "./navigation";
@@ -16,24 +21,59 @@ import type { ShellSection } from "./navigation";
  */
 export function AppShellV2({
   sections,
+  docs,
   userEmail,
+  basePath,
   children,
 }: {
   sections: ShellSection[];
+  docs: readonly DocPageEntry[];
   userEmail?: string;
+  /** Prefixo alternativo para os destinos. Existe para a rota de comparação
+   *  manter a navegação dentro da V2; em produção fica ausente e os destinos
+   *  são os reais. String, não função: não atravessa a fronteira de servidor
+   *  para cliente de outro jeito. */
+  basePath?: string;
   children: React.ReactNode;
 }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  const openSearch = useCallback(() => setSearchOpen(true), []);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openSearch();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [openSearch]);
+
+  const destinations = sections.flatMap((section) =>
+    section.destinations.map((d) => ({ href: d.href, label: d.label })),
+  );
+
   return (
     <div className="flex h-dvh flex-col bg-platform-bg text-platform-text">
-      <PlatformTopBar userEmail={userEmail} />
+      <PlatformTopBar userEmail={userEmail} onOpenSearch={openSearch} />
       <div className="flex min-h-0 flex-1">
-        <DesktopSidebar sections={sections} />
+        <DesktopSidebar sections={sections} basePath={basePath} />
         <main className="min-w-0 flex-1 overflow-y-auto p-[var(--space-shell-4)]">
           <div className="mx-auto h-full max-w-[1200px] overflow-hidden rounded-[var(--radius-entry)] border border-platform-border">
             {children}
           </div>
         </main>
       </div>
+      {searchOpen && (
+        <CommandPalette
+          docs={docs}
+          destinations={destinations}
+          basePath={basePath}
+          onClose={() => setSearchOpen(false)}
+        />
+      )}
     </div>
   );
 }

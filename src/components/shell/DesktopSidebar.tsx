@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { isDestinationActive, type ShellSection } from "./navigation";
+import { isDestinationActive, withBase, type ShellSection } from "./navigation";
 
 /**
  * Navegação global do desktop.
@@ -16,7 +16,13 @@ import { isDestinationActive, type ShellSection } from "./navigation";
  * um indicador de posição — e nenhum deles é matiz. Estado nunca depende só de
  * cor, e a moldura não tem cor própria para gastar.
  */
-export function DesktopSidebar({ sections }: { sections: ShellSection[] }) {
+export function DesktopSidebar({
+  sections,
+  basePath,
+}: {
+  sections: ShellSection[];
+  basePath?: string;
+}) {
   const pathname = usePathname() ?? "";
 
   return (
@@ -34,7 +40,7 @@ export function DesktopSidebar({ sections }: { sections: ShellSection[] }) {
             return (
               <Link
                 key={destination.href}
-                href={destination.href}
+                href={withBase(destination.href, basePath)}
                 aria-current={active ? "page" : undefined}
                 className={`relative flex h-8 items-center rounded-[var(--radius-control)] px-[var(--space-shell-3)] text-[13px] transition-colors duration-[var(--motion-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus ${
                   active

@@ -28,12 +28,15 @@ export default async function ShellV2Preview({
 
   const context = await getBrandvilleAuthContext();
   const role = context?.role === "owner" ? "owner" : "member";
-  const entry = (await getResolvedBrandDoc(path)) ?? (await getResolvedBrandDocs(context))[0];
+  const docs = await getResolvedBrandDocs(context);
+  const entry = (await getResolvedBrandDoc(path)) ?? docs[0];
 
   if (!entry) notFound();
 
   return (
-    <AppShellV2 sections={shellSections({ role })} userEmail={context?.user.email ?? undefined}>
+    <AppShellV2 sections={shellSections({ role })} docs={docs} userEmail={context?.user.email ?? undefined}
+      basePath="/dev/shell-v2"
+    >
       <BrandCanvas>
         <DocPage entry={entry} />
       </BrandCanvas>
