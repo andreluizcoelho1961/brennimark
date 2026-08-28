@@ -7,50 +7,72 @@ import {
   buildChatSystemPrompt,
   getBrandKnowledgeSources,
 } from "./brand-context";
+import type { DocPageEntry } from "../../content/docs";
 
-test("normaliza páginas e dados estruturados em fontes únicas", () => {
-  const sources = getBrandKnowledgeSources();
+const PAGINAS: DocPageEntry[] = [
+  {
+    slug: "cores",
+    group: "Visual",
+    title: "Cores",
+    status: "ready",
+    body: ["A cor primária é aplicada em superfície, não em texto corrido."],
+    blocks: [{ kind: "swatches", items: [{ name: "Primária", hex: "#2B6CB0" }] }],
+  },
+  { slug: "voz", group: "Verbal", title: "Tom de voz", status: "draft", body: ["Frase curta, sem adjetivo vazio."] },
+  { slug: "pendente", group: "Verbal", title: "Assinatura", status: "pending", body: [] },
+];
+
+test("cada página vira uma fonte, e só o que a marca importou entra", () => {
+  const sources = getBrandKnowledgeSources(PAGINAS);
   const ids = sources.map((source) => source.id);
 
-  assert.equal(new Set(ids).size, ids.length, "source ids must be unique");
-  assert.ok(sources.some((source) => source.id === "structured:colors"));
-  assert.ok(sources.some((source) => source.id === "structured:typography"));
-  assert.ok(sources.some((source) => source.id === "structured:logos"));
-  assert.ok(sources.some((source) => source.id === "structured:voice"));
-  assert.ok(sources.some((source) => source.id === "assets:official"));
+  assert.equal(new Set(ids).size, ids.length, "ids de fonte precisam ser únicos");
+  assert.equal(sources.length, PAGINAS.length, "nenhuma fonte além das páginas");
+  assert.ok(sources.every((source) => source.kind === "guide-page"));
+  assert.ok(!ids.some((id) => id.startsWith("structured:")), "não pode haver fonte fabricada pelo produto");
 });
 
-test("usa um contexto visual compacto na análise de peças", () => {
-  const context = buildAnalysisBrandContext();
-  const fullContext = buildBrandContext();
+test("sem marca importada, o contexto é vazio em vez de inventado", () => {
+  assert.deepEqual(getBrandKnowledgeSources([]), []);
+  assert.equal(buildBrandContext([]).trim(), "");
+});
 
-  assert.match(context, /id="structured:colors"/);
-  assert.match(context, /id="structured:logos"/);
-  assert.doesNotMatch(context, /id="assets:official"/);
+test("a análise recebe só as páginas com bloco visual", () => {
+  const context = buildAnalysisBrandContext(PAGINAS);
+  const fullContext = buildBrandContext(PAGINAS);
+
+  assert.match(context, /id="doc:cores"/);
+  assert.doesNotMatch(context, /id="doc:voz"/, "página sem bloco visual não deveria entrar");
   assert.ok(context.length < fullContext.length);
-  assert.ok(buildAnalysisSystemPrompt().includes(context));
 });
 
-test("inclui respostas para as perguntas críticas da marca", () => {
-  const context = buildBrandContext();
+test("guia sem nenhum bloco visual cai para o guia inteiro, em vez de mandar vazio", () => {
+  const semBlocos = PAGINAS.filter((p) => !p.blocks);
+  const context = buildAnalysisBrandContext(semBlocos);
+  assert.match(context, /id="doc:voz"/);
+  assert.ok(buildAnalysisSystemPrompt(semBlocos).includes(context), "o prompt de análise precisa embutir o contexto");
+});
 
-  assert.match(context, /#000000/);
-  assert.match(context, /#F6F2EF/);
-  assert.match(context, /#01A48F/);
-  assert.match(context, /Gotham Black \(900\)/);
-  assert.match(context, /wordmark-horizontal-white\.png/);
-  assert.match(context, /Keep it monochrome/);
-  assert.match(context, /Fora do vocabulário: Revolutionary/);
-  assert.match(context, /portrait-spotlight\.jpg/);
-  assert.match(context, /Music-Icons\.ai/);
+test("o valor de um bloco chega ao contexto, com o status da página que o contém", () => {
+  const context = buildBrandContext(PAGINAS);
+
+  assert.match(context, /#2B6CB0/, "o hex do swatch precisa chegar à IA");
+  assert.match(context, /PRONTO/, "a página aprovada precisa se anunciar como tal");
+  assert.match(context, /RASCUNHO/, "rascunho não pode ser apresentado como regra");
 });
 
 test("preserva status e caminho para respostas verificáveis", () => {
-  const context = buildBrandContext();
+  const sources = getBrandKnowledgeSources(PAGINAS);
 
-  assert.match(context, /id="structured:colors" status="PRONTO"/);
-  assert.match(context, /id="structured:photography" status="RASCUNHO"/);
-  assert.match(context, /CAMINHO: \/docs\/universo-visual\/guia-de-cores/);
+  for (const source of sources) {
+    assert.ok(source.title, "toda fonte precisa de título citável");
+    assert.match(source.path, /^\/docs\//, "o caminho precisa levar de volta à página");
+    assert.ok(["ready", "draft", "pending"].includes(source.status));
+  }
+
+  const pendente = sources.find((s) => s.status === "pending");
+  assert.ok(pendente, "página em construção precisa continuar sendo uma fonte");
+  assert.equal(pendente.facts.length, 0, "página sem conteúdo não pode ganhar fato inventado");
 });
 
 test("prompts exigem citação, incerteza e separação de interpretação", () => {

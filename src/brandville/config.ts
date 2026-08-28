@@ -1,20 +1,18 @@
 import type { CSSProperties } from "react";
-import { exampleInstance } from "./instances/example";
 import { generatedBrandvilleInstances } from "./instances/generated";
-import { theBluesMakerInstance } from "./instances/the-bluesmaker";
+import { brandvilleInstanceDefinition as unconfiguredInstance } from "./instances/unconfigured";
 import { brandAliasVars, brandCssVars, platformAliasVars, platformCssVars } from "../platform/tokens";
 import type { BrandvilleInstance, BrandvilleUtilityKey } from "./types";
 
 export const brandvilleInstances = {
-  "the-bluesmaker": theBluesMakerInstance,
-  example: exampleInstance,
+  unconfigured: unconfiguredInstance,
   ...generatedBrandvilleInstances,
 } satisfies Record<string, BrandvilleInstance>;
 
 export type BrandvilleInstanceKey = keyof typeof brandvilleInstances;
 
 export function resolveBrandvilleInstance(key?: string): BrandvilleInstance {
-  const requested = key || "the-bluesmaker";
+  const requested = key || "unconfigured";
   const instance = brandvilleInstances[requested as BrandvilleInstanceKey];
   if (!instance) {
     throw new Error(`Instância Brandville desconhecida: ${requested}. Opções: ${Object.keys(brandvilleInstances).join(", ")}`);
@@ -23,6 +21,9 @@ export function resolveBrandvilleInstance(key?: string): BrandvilleInstance {
 }
 
 export const brandvilleInstance = resolveBrandvilleInstance(process.env.NEXT_PUBLIC_BRANDVILLE_INSTANCE);
+
+/** Verdadeiro enquanto nenhum manual tiver sido importado. */
+export const hasBrand = brandvilleInstance.key !== "unconfigured";
 
 /**
  * Duas camadas, dois namespaces.

@@ -1,22 +1,8 @@
-import {
-  brandAssets,
-  brandPositioning,
-  colorTokens,
-  dontResemble,
-  iconGroups,
-  logoLockups,
-  logoUsageRules,
-  motionSpec,
-  photographyDirection,
-  photographyGallery,
-  typeRoles,
-  voice,
-} from "../../content/brand";
 import { flattenBlocksToFacts } from "../../content/doc-blocks";
 import type { DocPageEntry, DocStatus } from "../../content/docs";
 import { activeDocsRegistry as docsRegistry, brandvilleInstance } from "../../brandville/config";
 
-export type BrandKnowledgeKind = "guide-page" | "structured-rule" | "asset-catalog";
+export type BrandKnowledgeKind = "guide-page";
 
 export interface BrandKnowledgeSource {
   id: string;
@@ -34,145 +20,19 @@ const STATUS_LABEL: Record<DocStatus, string> = isEnglish
   ? { ready: "READY", draft: "DRAFT", pending: "IN PROGRESS" }
   : { ready: "PRONTO", draft: "RASCUNHO", pending: "EM CONSTRUÇÃO" };
 
-function bullets(values: string[]): string[] {
-  return values.map((value) => `• ${value}`);
-}
-
-function getStatus(slug: string, fallback: DocStatus, docs: readonly DocPageEntry[] = docsRegistry): DocStatus {
-  return docs.find((entry) => entry.slug === slug)?.status ?? fallback;
-}
-
-function buildStructuredSources(docs: readonly DocPageEntry[] = docsRegistry): BrandKnowledgeSource[] {
-  if (brandvilleInstance.ai.knowledgeMode === "docs") return [];
-  return [
-    {
-      id: "structured:positioning",
-      title: "Posicionamento estruturado",
-      group: "Núcleo do Artista",
-      path: "/docs/definicao",
-      status: getStatus("definicao", "ready", docs),
-      kind: "structured-rule",
-      facts: [
-        `Nome: ${brandPositioning.name}`,
-        `Definição curta: ${brandPositioning.oneLiner}`,
-        `Descrição: ${brandPositioning.description}`,
-        ...bullets(brandPositioning.tone.map((item) => `Tom: ${item}`)),
-        ...bullets(brandPositioning.notThis.map((item) => `Não é: ${item}`)),
-        ...bullets(dontResemble.map((item) => `A experiência não deve se parecer com: ${item}`)),
-      ],
-    },
-    {
-      id: "structured:colors",
-      title: "Guia de Cores",
-      group: "Universo Visual",
-      path: "/docs/universo-visual/guia-de-cores",
-      status: getStatus("universo-visual/guia-de-cores", "ready", docs),
-      kind: "structured-rule",
-      facts: [
-        "Preto e branco quente são as cores permanentes da marca. Acentos pertencem a lançamentos específicos e não devem ser tratados como cores permanentes.",
-        ...colorTokens.map((color) => `${color.name}: ${color.hex} (${color.token}). Função: ${color.function}`),
-      ],
-    },
-    {
-      id: "structured:typography",
-      title: "Tipografia",
-      group: "Universo Visual",
-      path: "/docs/universo-visual/tipografia",
-      status: getStatus("universo-visual/tipografia", "ready", docs),
-      kind: "structured-rule",
-      facts: [
-        "Família oficial: Gotham — Book, Medium, Bold e Black. Os arquivos são licenciados ao cliente, auto-hospedados e não podem ser redistribuídos.",
-        "Fallback: Avenir Next, Montserrat, Helvetica Neue, Arial.",
-        ...typeRoles.map((role) => `${role.name}: ${role.weight}. Uso: ${role.usage} Exemplo: ${role.sample}`),
-      ],
-    },
-    {
-      id: "structured:logos",
-      title: "Símbolos e Logotipos",
-      group: "Universo Visual",
-      path: "/docs/universo-visual/simbolos-e-logotipos",
-      status: getStatus("universo-visual/simbolos-e-logotipos", "ready", docs),
-      kind: "structured-rule",
-      facts: [
-        "A marca é um wordmark, sem símbolo ou ícone. Existem três lockups oficiais.",
-        "Variantes: branco sobre fundo escuro e preto sobre fundo claro.",
-        "Área de proteção: uma altura de caixa-alta do próprio wordmark em todos os lados.",
-        "Tamanho mínimo ainda não foi validado em produção. Regra provisória: horizontal em torno de 120px; versões empilhadas em torno de 90px.",
-        ...logoLockups.map((lockup) => `${lockup.name}: ${lockup.use} Arquivos: ${lockup.src} e ${lockup.srcBlack}.`),
-        ...logoUsageRules.map((rule) => `${rule.title}: ${rule.body}`),
-      ],
-    },
-    {
-      id: "structured:voice",
-      title: "Tom de Voz",
-      group: "Universo Verbal",
-      path: "/docs/universo-verbal/tom-de-voz",
-      status: getStatus("universo-verbal/tom-de-voz", "ready", docs),
-      kind: "structured-rule",
-      facts: [
-        ...voice.characteristics.map((item) => `A voz é: ${item}.`),
-        ...voice.outsideVocabulary.map((item) => `Fora do vocabulário: ${item}.`),
-        ...voice.languageRules.map((item) => `Regra de idioma: ${item}`),
-      ],
-    },
-    {
-      id: "structured:photography",
-      title: "Direção Fotográfica",
-      group: "Universo Visual",
-      path: "/docs/universo-visual/imagens-arquetipicas",
-      status: getStatus("universo-visual/imagens-arquetipicas", "draft", docs),
-      kind: "structured-rule",
-      facts: [
-        ...photographyDirection.lookFor.map((item) => `Buscar: ${item}.`),
-        ...photographyDirection.pullsAway.map((item) => `Evitar: ${item}.`),
-        ...photographyGallery.map((photo) => `Referência disponível: ${photo.src} — ${photo.alt}.`),
-      ],
-    },
-    {
-      id: "structured:motion",
-      title: "Movimento",
-      group: "Universo Visual",
-      path: "/docs/universo-visual/overview",
-      status: getStatus("universo-visual/overview", "draft", docs),
-      kind: "structured-rule",
-      facts: [
-        `Easing: ${motionSpec.easing}.`,
-        ...motionSpec.durations.map((item) => `${item.name}: ${item.value}. Uso: ${item.usage}`),
-        ...motionSpec.inVocabulary.map((item) => `Movimento permitido: ${item}.`),
-        ...motionSpec.outsideVocabulary.map((item) => `Fora do repertório de movimento: ${item}.`),
-      ],
-    },
-    {
-      id: "structured:iconography",
-      title: "Iconografia",
-      group: "Universo Visual",
-      path: "/docs/universo-visual/iconografia",
-      status: getStatus("universo-visual/iconografia", "draft", docs),
-      kind: "structured-rule",
-      facts: [
-        "Set oficial com 100 ícones de linha, traço uniforme, sem preenchimento e sem ornamento.",
-        "Usar em preto sobre claro ou branco sobre escuro. Não misturar ícones de outras origens no mesmo layout.",
-        ...iconGroups.map((group) => `${group.label}: ${group.count} ícones. ${group.note}`),
-      ],
-    },
-    {
-      id: "assets:official",
-      title: "Catálogo de Assets Oficiais",
-      group: "Assets",
-      path: "/docs/universo-visual/simbolos-e-logotipos#assets",
-      status: "ready",
-      kind: "asset-catalog",
-      facts: brandAssets.map((asset) => {
-        const location = asset.href ? `Local: ${asset.href}.` : "Sem download direto.";
-        return `${asset.label} [${asset.status.toUpperCase()}] — ${asset.description} ${location}`;
-      }),
-    },
-  ];
-}
 
 /**
- * Single source list used by chat, analysis and validation. Generic guide
- * pages and structured custom-page data are normalized into the same shape.
+ * Fonte única usada por chat, análise e validação.
+ *
+ * Puramente orientada por documento: o que a IA sabe é o que a marca importou,
+ * e nada além. Antes existiam fontes "estruturadas" — paleta, tipografia,
+ * logotipos, voz — montadas a partir de um arquivo de conteúdo no repositório.
+ * Aquilo era o material de uma marca específica vestido de estrutura de
+ * produto, e não sobrevive a um produto multi-marca.
+ *
+ * O equivalente hoje são os blocos: um bloco de swatches ou de espécime entra
+ * no contexto por flattenBlocksToFacts, com o status editorial da página que o
+ * contém. A procedência vem junto, em vez de ser presumida.
  */
 export function getBrandKnowledgeSources(docs: readonly DocPageEntry[] = docsRegistry): BrandKnowledgeSource[] {
   const guidePages: BrandKnowledgeSource[] = docs.map((entry) => ({
@@ -181,11 +41,11 @@ export function getBrandKnowledgeSources(docs: readonly DocPageEntry[] = docsReg
     group: entry.group,
     path: `/docs/${entry.slug}`,
     status: entry.status,
-    kind: "guide-page",
+    kind: "guide-page" as const,
     facts: [...(entry.body ?? []), ...flattenBlocksToFacts(entry.blocks ?? [])],
   }));
 
-  return [...guidePages, ...buildStructuredSources(docs)];
+  return guidePages;
 }
 
 function renderSource(source: BrandKnowledgeSource): string {
@@ -205,26 +65,28 @@ export function buildBrandContext(docs: readonly DocPageEntry[] = docsRegistry):
   return getBrandKnowledgeSources(docs).map(renderSource).join("\n\n");
 }
 
-const ANALYSIS_SOURCE_IDS = new Set([
-  "structured:positioning",
-  "structured:colors",
-  "structured:typography",
-  "structured:logos",
-  "structured:voice",
-  "structured:photography",
-  "structured:iconography",
-]);
+/** Blocos que carregam informação visual — o que importa ao julgar uma peça. */
+const VISUAL_BLOCK_KINDS = new Set(["swatches", "gallery", "section"]);
+
+function hasVisualBlocks(entry: DocPageEntry): boolean {
+  return (entry.blocks ?? []).some((block) => VISUAL_BLOCK_KINDS.has(block.kind));
+}
 
 /**
- * Compact context for visual review. It avoids sending every guide page,
- * asset path and motion example with each image, which reduces latency and
- * leaves more model attention for the uploaded piece.
+ * Contexto compacto para análise de peça.
+ *
+ * Evita enviar o guia inteiro junto de cada imagem, o que aumenta latência e
+ * gasta atenção do modelo com material irrelevante. Antes a seleção era uma
+ * lista fixa de fontes estruturadas; agora é semântica: entram as páginas que
+ * contêm bloco visual — paleta, galeria ou território.
+ *
+ * Se nenhuma página tiver bloco visual, cai para o guia inteiro. Um guia
+ * pequeno e sem blocos ainda precisa poder ser usado na análise.
  */
 export function buildAnalysisBrandContext(docs: readonly DocPageEntry[] = docsRegistry): string {
-  return getBrandKnowledgeSources(docs)
-    .filter((source) => ANALYSIS_SOURCE_IDS.has(source.id))
-    .map(renderSource)
-    .join("\n\n");
+  const visuais = docs.filter(hasVisualBlocks);
+  const escolhidas = visuais.length > 0 ? visuais : docs;
+  return getBrandKnowledgeSources(escolhidas).map(renderSource).join("\n\n");
 }
 
 const SHARED_GROUNDING_RULES = isEnglish

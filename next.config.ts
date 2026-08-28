@@ -1,4 +1,3 @@
-import path from "node:path";
 import type { NextConfig } from "next";
 
 /**
@@ -15,35 +14,16 @@ if (process.env.BRANDVILLE_DEV_SKIP_AUTH === "true" && process.env.NODE_ENV === 
 }
 
 /**
- * Carregador da tipografia DA MARCA — não da interface.
+ * Sem alias de fonte.
  *
- * A interface tem fonte própria (--font-ui em globals.css) e não depende
- * disto. O que este alias carrega é a fonte da marca consultada, usada apenas
- * em títulos do manual e blocos de espécime (--font-brand).
+ * A tipografia da interface vive em --font-ui (globals.css) e não depende de
+ * arquivo embutido. A tipografia da marca chega pelo `fontStack` da instância,
+ * como valor — a plataforma não hospeda fonte licenciada de cliente algum.
  *
- * next/font/local emite os arquivos de toda chamada localFont() presente no
- * grafo de módulos, então a instância ativa escolhe o seu módulo aqui em vez
- * de o layout importar todos — assim a fonte licenciada de uma marca nunca é
- * publicada no domínio de outra.
- *
- * Uma instância só precisa de módulo próprio se a fonte da marca for
- * auto-hospedada. Quando a fonte é de sistema ou já está no CSS, deixe fora
- * daqui: `fontStack` na instância basta.
+ * Quando uma marca precisar de fonte auto-hospedada, ela virá como asset dela,
+ * servido pelo bucket da marca, não compilado no bundle do produto.
  */
-const fontModuleByInstance: Record<string, string> = {};
-
-const activeInstance = process.env.NEXT_PUBLIC_BRANDVILLE_INSTANCE ?? "the-bluesmaker";
-// Turbopack resolves the alias as a project-relative specifier; webpack needs an absolute path.
-const relativeFontModule = fontModuleByInstance[activeInstance] ?? "./src/fonts/gotham.ts";
-
 const nextConfig: NextConfig = {
-  turbopack: {
-    resolveAlias: { "@brand-font": relativeFontModule },
-  },
-  webpack: (config) => {
-    config.resolve.alias = { ...config.resolve.alias, "@brand-font": path.resolve(relativeFontModule) };
-    return config;
-  },
 };
 
 export default nextConfig;

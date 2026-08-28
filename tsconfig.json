@@ -19,7 +19,6 @@
       }
     ],
     "paths": {
-      "@brand-font": ["./src/fonts/gotham.ts"],
       "@/*": ["./src/*"]
     }
   },

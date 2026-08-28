@@ -1,3 +1,4 @@
+import { platformIdentity } from "@/platform/identity";
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { getAnalysisAuthContext } from "@/lib/analysis/server";
@@ -78,7 +79,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
   const pdf = await PDFDocument.create();
   pdf.setTitle(isEnglish ? `Compliance report - ${row.file_name}` : `Relatorio de conformidade - ${row.file_name}`);
-  pdf.setAuthor(`${brandvilleInstance.brand.name} Brandville`);
+  pdf.setAuthor(`${brandvilleInstance.brand.name} — ${platformIdentity.displayName}`);
   pdf.setSubject(isEnglish ? "Brand application analysis" : "Analise de aplicacao de marca");
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -167,8 +168,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   pages.forEach((pdfPage, index) => {
     pdfPage.drawText(
       isEnglish
-        ? `Brandville - traceable evidence - page ${index + 1} of ${pages.length}`
-        : `Brandville - evidencias rastreaveis - pagina ${index + 1} de ${pages.length}`,
+        ? `${platformIdentity.displayName} - traceable evidence - page ${index + 1} of ${pages.length}`
+        : `${platformIdentity.displayName} - evidencias rastreaveis - pagina ${index + 1} de ${pages.length}`,
       { x: PAGE.margin, y: 24, size: 7, font: regular, color: gray },
     );
   });

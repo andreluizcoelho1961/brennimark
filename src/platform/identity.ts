@@ -2,14 +2,17 @@
  * Identidade da plataforma — o produto que hospeda os manuais, distinta da
  * marca de cada cliente.
  *
- * `Brandville` é CODINOME TÉCNICO, não nome comercial: o briefing §2.3 proíbe
- * consolidá-lo em interface, venda, domínio ou contrato, e o nome definitivo é
- * decisão humana pendente (§24). Enquanto não existir, `displayName` carrega o
- * rótulo provisório e é o único lugar a mudar quando a marca for definida.
+ * `Brennimark` — islandês para a marca queimada, a origem literal da palavra
+ * "brand". Candidato número um, verificado como livre, adotado como nome de
+ * trabalho. Segue marcado como provisório até a decisão final; a troca continua
+ * sendo uma linha.
+ *
+ * `Brandville` era codinome técnico legado e não pode voltar a aparecer em
+ * interface, venda, domínio ou contrato.
  */
 export const platformIdentity = {
   /** Nome exibido na interface. Trocar aqui renomeia o produto inteiro. */
-  displayName: "Brandville",
+  displayName: "Brennimark",
   /** Verdadeiro enquanto o nome for provisório. A interface pode sinalizar. */
   isProvisionalName: true,
 } as const;

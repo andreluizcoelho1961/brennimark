@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { brandvilleInstances, resolveBrandvilleInstance } from "./config";
+import { brandvilleInstances, hasBrand, resolveBrandvilleInstance } from "./config";
 import type { BrandvilleInstance } from "./types";
 
 // Object.entries widens each value to the union of the concrete instance
 // types, and one member's groupCodes has literal keys (no string index
 // signature). Read them back through the contract type so groupCodes is
 // the declared Record<string, string> the test indexes by group name.
-for (const [key, instance] of Object.entries(brandvilleInstances) as [string, BrandvilleInstance][]) {
+// A ausência de marca não é uma marca: tem contrato próprio, verificado abaixo.
+const marcas = (Object.entries(brandvilleInstances) as [string, BrandvilleInstance][])
+  .filter(([key]) => key !== "unconfigured");
+
+for (const [key, instance] of marcas) {
   test(`instância ${key} tem contrato íntegro`, () => {
     assert.equal(instance.key, key);
     assert.ok(instance.brand.name);
@@ -24,6 +28,18 @@ for (const [key, instance] of Object.entries(brandvilleInstances) as [string, Br
     }
   });
 }
+
+test("o estado sem marca é vazio de propósito, e não uma marca de mentira", () => {
+  const vazio = brandvilleInstances.unconfigured;
+  assert.equal(vazio.docs.length, 0, "não pode trazer conteúdo de exemplo");
+  assert.equal(vazio.navigation.groups.length, 0);
+  assert.equal(vazio.brand.name, "", "não pode inventar nome de marca");
+  assert.equal(hasBrand, false, "sem instância configurada, hasBrand precisa ser falso");
+  // O tema ainda precisa ser válido: é ele que pinta a tela de estado vazio.
+  for (const cor of [vazio.theme.background, vazio.theme.foreground, vazio.theme.accent]) {
+    assert.match(cor, /^#[0-9a-f]{6}$/i);
+  }
+});
 
 test("falha de forma explícita para instância desconhecida", () => {
   assert.throws(() => resolveBrandvilleInstance("inexistente"), /Instância Brandville desconhecida/);

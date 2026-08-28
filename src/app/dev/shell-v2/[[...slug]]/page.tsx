@@ -5,6 +5,7 @@ import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { shellSections } from "@/components/shell/navigation";
 import { capabilitiesForRole } from "@/platform/capabilities";
 import { BrandCanvas } from "@/components/BrandCanvas";
+import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
 import { DocPage } from "@/components/docs/DocPage";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -32,15 +33,17 @@ export default async function ShellV2Preview({
   const docs = await getResolvedBrandDocs(context);
   const entry = (await getResolvedBrandDoc(path)) ?? docs[0];
 
-  if (!entry) notFound();
-
   return (
     <AppShellV2 sections={shellSections({ capabilities })} docs={docs} userEmail={context?.user.email ?? undefined}
       basePath="/dev/shell-v2"
     >
-      <BrandCanvas>
-        <DocPage entry={entry} />
-      </BrandCanvas>
+      {entry ? (
+        <BrandCanvas>
+          <DocPage entry={entry} />
+        </BrandCanvas>
+      ) : (
+        <EmptyBrandState />
+      )}
     </AppShellV2>
   );
 }
