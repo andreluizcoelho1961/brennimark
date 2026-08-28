@@ -1,4 +1,10 @@
-# Claude Code Instructions — The BluesMaker / Brandville
+# Claude Code Instructions — aplicativo de gestão de marcas
+
+> **Limite do produto:** este é o repositório da plataforma SaaS. `Brandville` permanece como
+> codinome técnico até a escolha do novo nome. The BluesMaker é a instância atualmente mais
+> completa; Guitar Garage é um projeto externo que poderá fornecer uma exportação aprovada.
+> Estratégia, brandbook e Behance da Guitar Garage não são definidos aqui. Leia
+> `docs/PROJECT_BOUNDARY.md` antes de alterar arquitetura ou conteúdo de uma instância.
 
 Brand guidelines app for The BluesMaker. Sibling to
 `the-bluesmaker-site` (the "Call Me Analog Man" release site) — same

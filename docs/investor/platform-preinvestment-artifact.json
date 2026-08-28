@@ -1,0 +1,1072 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Brandville — proposta de pré-investimento",
+    "description": "Versão 1.1. Proposta indicativa, tese, mercado, termos, governança, plano de caixa, marcos, diligência e retorno ilustrativo.",
+    "generatedAt": "2026-08-27T15:05:17-03:00",
+    "sources": [
+      {"id":"sebrae-agencias","label":"Observatório Sebrae — Agências de publicidade","href":"https://observatorio.sebrae.com.br/profile/industry/agencias-de-publicidade"},
+      {"id":"sebrae-design","label":"Observatório Sebrae — Design e decoração de interiores","href":"https://observatorio.sebrae.com.br/profile/industry/design-e-decoracao-de-interiores"},
+      {"id":"mapa-empresas","label":"Mapa de Empresas — 2º quadrimestre de 2025","href":"https://www.gov.br/empresas-e-negocios/pt-br/mapa-de-empresas/boletins/mapa-de-empresas-boletim-2o-quadrimestre-2025.pdf"},
+      {"id":"iab-adspend","label":"IAB Brasil / Kantar IBOPE Media — Digital AdSpend 2025","href":"https://iabbrasil.com.br/wp-content/uploads/2025/04/IAB_Digital_Adspend_2025_anobase2024_AF.pdf"},
+      {"id":"abes-ti","label":"ABES / IDC — Mercado Brasileiro de Software 2026","href":"https://abes.org.br/mercado-de-ti-no-brasil-cresce-185-em-2025-e-pais-segue-lider-na-america-latina/"},
+      {
+        "id":"competidores",
+        "label":"Páginas oficiais dos competidores",
+        "href":"https://www.frontify.com/en/product-overview",
+        "query":{
+          "engine":"Pesquisa documental consolidada",
+          "sql":"SELECT 'Frontify' AS competitor, 'DAM, guidelines, templates, portais e IA' AS core UNION ALL SELECT 'Corebook', 'Criação e handoff de guidelines digitais' UNION ALL SELECT 'Brandpad', 'Guidelines digitais simples e colaborativas' UNION ALL SELECT 'Standards', 'Diretrizes humanas e machine-readable via MCP/API' UNION ALL SELECT 'Soluções locais sob medida', 'Brandbook digital, educação ou portal customizado';",
+          "description":"Síntese das páginas oficiais consultadas em agosto de 2026.",
+          "executed_at":"2026-08-25",
+          "tables_used":["Frontify product overview","Corebook Studio pricing","Brandpad pricing","Standards AI"]
+        }
+      },
+      {
+        "id":"modelo-brandville",
+        "label":"Modelo bottom-up Brandville — hipóteses de planejamento",
+        "query":{
+          "engine":"Modelo financeiro de cenários",
+          "sql":"SELECT 1329000000 AS tam_base, 221000000 AS sam_base, 22560000 AS som_base_ano_5;",
+          "description":"Estimativa criada para esta análise; não representa receita atual nem forecast aprovado.",
+          "executed_at":"2026-08-25",
+          "filters":["Brasil","receita recorrente anual","horizonte de cinco anos"],
+          "metric_definitions":[
+            "TAM base: 0,75% das empresas não-MEI como contas com complexidade e orçamento de marca, mais 20% do universo combinado de agências e design, descontando 15% de sobreposição.",
+            "SAM base: concentração regional de 65% e alcance inicial de 25% das marcas ou 35% dos parceiros.",
+            "SOM base: 250 agências com cinco marcas ativas por parceiro, mais 150 marcas diretas, no quinto ano.",
+            "ARR representa receita recorrente anual; serviços de implantação não estão incluídos."
+          ]
+        }
+      },
+      {
+        "id":"simulacao-canal",
+        "label":"Simulação de coorte Brandville — 10 agências",
+        "query":{
+          "engine":"Modelo unit economics de cenários",
+          "sql":"SELECT 'Conservador' AS scenario, 10 AS signed_agencies, 5 AS active_agencies, 8 AS active_brands, 8587 AS brandville_mrr, 103044 AS brandville_arr, 0.8300 AS gross_margin UNION ALL SELECT 'Base', 10, 8, 24, 21568, 258816, 0.8294 UNION ALL SELECT 'Expansão', 10, 9, 45, 36846, 442152, 0.8290;",
+          "description":"Coorte hipotética de 10 agências durante 12 meses. Os valores não representam clientes, preços ou receita observados.",
+          "executed_at":"2026-08-25",
+          "filters":["assinatura Studio de R$ 599/mês","licença por marca de R$ 699/mês","custo de R$ 100 por agência e R$ 120 por marca/mês"],
+          "metric_definitions":[
+            "MRR Brandville = agências ativas × R$ 599 + marcas ativas × R$ 699.",
+            "ARR run-rate = MRR × 12.",
+            "Margem bruta = (receita Brandville − custo direto estimado) ÷ receita Brandville.",
+            "Economia da agência base: cliente paga R$ 1.290/mês de software e R$ 800/mês de governança; a agência paga R$ 699 por marca e R$ 599/mês pelo Studio."
+          ]
+        }
+      },
+      {
+        "id":"modelo-investimento",
+        "label":"Modelo de capital inicial Brandville — cenários e marcos",
+        "query":{
+          "engine":"Modelo financeiro de runway e unit economics",
+          "sql":"SELECT 'Validação enxuta' AS stage, 300000 AS low_capital, 500000 AS reference_capital, 600000 AS high_capital, 4 AS runway_months UNION ALL SELECT 'Rodada institucional condicional', 1900000, 2100000, 2300000, 15 UNION ALL SELECT 'Estrutura completa', 2800000, 3500000, 4500000, 18;",
+          "description":"Estimativa criada para orientar captação e contratação. Não representa orçamento aprovado, valuation ou compromisso de investimento.",
+          "executed_at":"2026-08-25",
+          "filters":["Brasil","equipe enxuta","produto já existente","modelo de canal por agências"],
+          "metric_definitions":[
+            "Runway é o número de meses financiados antes de considerar receita futura ou nova rodada.",
+            "A sequência recomendada começa com R$ 300–600 mil por quatro meses; o teto institucional de R$ 2,1 milhões só é reorçado após o gate.",
+            "O orçamento institucional de referência pressupõe burn operacional médio próximo de R$ 113,5 mil/mês, R$ 150 mil de implantação/equipamentos e reserva financeira.",
+            "Ponto de equilíbrio simulado usa uma agência madura com cinco marcas, R$ 4.094 de MRR e R$ 3.394 de contribuição bruta mensal para o Brandville.",
+            "Todas as metas de clientes, receita, custos e margem são hipóteses a validar em pilotos pagos."
+          ]
+        }
+      },
+      {
+        "id":"modelo-retorno",
+        "label":"Modelo ilustrativo de retorno e cap table Brandville",
+        "href":"https://www.saas-capital.com/the-saas-capital-index/",
+        "query":{
+          "engine":"Modelo de cenários de retorno sobre capital",
+          "sql":"SELECT 'Defesa' AS scenario, 6600000 AS year5_arr, 2.0 AS arr_multiple, 13200000 AS enterprise_value, 13200000 AS assumed_equity_value, 0.12 AS investor_residual_ownership, 1584000 AS investor_proceeds, 0.7543 AS investor_moic, -0.0548 AS investor_irr, 0.432 AS founder_residual_ownership, 5702400 AS founder_equity_value UNION ALL SELECT 'Base — múltiplo comprimido', 22560000, 3.0, 67680000, 67680000, 0.12, 8121600, 3.8674, 0.3106, 0.432, 29237760 UNION ALL SELECT 'Base — referência', 22560000, 4.0, 90240000, 90240000, 0.12, 10828800, 5.1566, 0.3883, 0.432, 38983680 UNION ALL SELECT 'Expansão', 74400000, 6.0, 446400000, 446400000, 0.12, 53568000, 25.5086, 0.9113, 0.432, 192844800;",
+          "description":"Cenários ilustrativos, sem probabilidade atribuída. Em 31 de julho de 2026, o SaaS Capital Index de 63 companhias públicas B2B SaaS indicava mediana de 3,8x receita run-rate. O relatório anual 2026 da Software Equity Group registrou mediana de M&A SaaS próxima de 4,0x em 2025, com resultados inferiores em ativos de menor qualidade. O modelo inclui 3x para testar compressão.",
+          "executed_at":"2026-08-26",
+          "filters":["aporte de R$ 2,1 milhões","20% de participação inicial do investidor","40% de diluição relativa futura","12% de participação residual do investidor no ano 5","43,2% de participação residual do fundador","dívida líquida assumida igual a zero no evento de liquidez","liquidez exatamente no fim do quinto ano para cálculo de IRR"],
+          "metric_definitions":[
+            "Valor empresarial ilustrativo = ARR do ano 5 × múltiplo de ARR.",
+            "Para a simulação, valor do acionista é igual ao valor empresarial porque a dívida líquida é assumida como zero; isso precisa ser recalculado em uma transação real.",
+            "Retorno bruto do investidor = valor do acionista assumido × participação residual de 12%.",
+            "MOIC = retorno bruto ÷ aporte inicial de R$ 2,1 milhões.",
+            "IRR anualizada assume aporte no início e liquidez integral exatamente cinco anos depois, sem fluxos intermediários.",
+            "Valor da participação do fundador é valor patrimonial teórico, não dinheiro disponível, e exclui impostos, preferências, dívida e custos de transação."
+          ]
+        }
+      },
+      {
+        "id":"modelo-downside",
+        "label":"Modelo de downside Brandville — encerramento, liquidação e rota direta",
+        "query":{
+          "engine":"Modelo interno de proteção de capital",
+          "sql":"SELECT 4 AS month, 500000 AS capital_received, 471200 AS cash_spent, 28800 AS ending_cash, 48000 AS tangible_low, 60000 AS tangible_high, 0 AS conditional_arr UNION ALL SELECT 8, 1200000, 992400, 207600, 50000, 70000, 720000 UNION ALL SELECT 15, 2100000, 1852000, 248000, 30000, 50000, 1200000;",
+          "description":"Estimativa de recuperação em encerramento ordenado. O piso atribui valor apenas a caixa e revenda de ativos físicos. Código, marca, dados de pilotos e contratos recebem valor somente em cenários condicionais e não constituem garantia de recuperação.",
+          "executed_at":"2026-08-26",
+          "metric_definitions":[
+            "Mês 4: equipamentos de R$ 80 mil revendidos por 60%–75%; nenhum valor atribuído a intangíveis.",
+            "Mês 8: exemplo condicional usa R$ 60 mil de MRR transferível e 0,25x ARR; sem receita verificável, considerar apenas o piso.",
+            "Mês 15: exemplo condicional usa R$ 100 mil de MRR e 0,25x–0,75x ARR; a faixa não é benchmark de transação nem promessa de comprador.",
+            "Mercado direto isolado = contas de marca elegíveis × ARR médio por marca; não inclui receita de assinaturas Studio das agências."
+          ]
+        }
+      },
+      {
+        "id":"seg-saas-2026",
+        "label":"Software Equity Group — 2026 Annual SaaS Report",
+        "href":"https://sandhill.com/wp-content/uploads/2026/03/SEG-Research-2026-Annual-SaaS-Report.pdf",
+        "query":{
+          "engine":"Benchmark de transações SaaS",
+          "description":"O relatório registrou mediana anual de aproximadamente 4,2x EV/TTM receita em transações SaaS de 2025 e descreveu a mediana como próxima de 4,0x, com média de 6,9x puxada por ativos premium e outliers.",
+          "executed_at":"2026-08-26"
+        }
+      },
+      {
+        "id":"equipamentos-ai",
+        "label":"Orçamento Brandville — equipamentos, IA e infraestrutura",
+        "href":"https://www.apple.com/br/shop/buy-mac",
+        "query":{
+          "engine":"Orçamento operacional por envelope",
+          "sql":"SELECT 80000 AS equipment_budget, 70000 AS office_setup_budget, 157500 AS ai_cloud_security_budget, 15 AS runway_months;",
+          "description":"Envelope de planejamento. A Apple Brasil listava MacBook Air a partir de R$ 15.999 e MacBook Pro a partir de R$ 24.999 em agosto de 2026. O custo de IA é variável e deve ser gerenciado por orçamento, medição por marca e roteamento de modelos.",
+          "executed_at":"2026-08-26",
+          "metric_definitions":[
+            "Equipamentos incluem notebooks, monitores, periféricos, chaves de segurança, garantia e reposição inicial.",
+            "IA/cloud/software incluem inferência, embeddings, armazenamento, observabilidade, backups, ambientes e ferramentas de equipe.",
+            "O envelope não pressupõe compra de máquinas topo de linha para toda a equipe nem execução local de modelos proprietários."
+          ]
+        }
+      },
+      {
+        "id":"abstartups-investimento",
+        "label":"ABStartups — Mapeamento do Ecossistema Brasileiro de Startups 2025",
+        "href":"https://abstartups.com.br/wp-content/uploads/Mapeamento-do-Ecossistema-de-Startups-2025.pdf"
+      },
+      {
+        "id":"opex-porto-alegre",
+        "label":"Modelo operacional Brandville — escritório enxuto em Porto Alegre",
+        "href":"https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf",
+        "query":{
+          "engine":"Modelo mensal de custos por envelope",
+          "sql":"SELECT 82666.67 AS people_avg_monthly, 6100 AS office_monthly, 10500 AS ai_cloud_software_monthly, 6200 AS corporate_monthly, 8000 AS go_to_market_monthly, 113466.67 AS avg_monthly_burn, 15 AS runway_months, 2100000 AS recommended_round;",
+          "description":"Simulação de planejamento para uma startup híbrida com sala de aproximadamente 50 m² em Porto Alegre. Combina referências públicas de aluguel, energia, internet, coworking e limpeza com premissas gerenciais para consumo, equipe e serviços.",
+          "executed_at":"2026-08-26",
+          "filters":["Porto Alegre","equipe média de cinco a sete prestadores/pessoas","15 meses","contratação progressiva"],
+          "metric_definitions":[
+            "Burn operacional médio exclui R$ 150 mil de implantação/equipamentos e R$ 248 mil de reserva e arredondamento financeiro.",
+            "Pessoas usa custo empresarial e contratos por estágio; não equivale a salário líquido.",
+            "Aluguel base usa aproximadamente 50 m² × R$ 34,79/m², referência FipeZAP de junho de 2026, arredondado para R$ 1.750/mês.",
+            "Energia usa 850 kWh/mês a custo final orçamentário de R$ 1/kWh; a tarifa pública sem tributos pode ser inferior e a fatura real varia por impostos e bandeira.",
+            "Café, água, snacks, materiais e manutenção são premissas conservadoras, não cotações contratuais."
+          ]
+        }
+      },
+      {
+        "id":"infra-porto-alegre",
+        "label":"Referências operacionais de Porto Alegre — energia, internet, coworking e limpeza",
+        "href":"https://coworkingpoa.com.br/planos",
+        "query":{
+          "engine":"Pesquisa pública de preços",
+          "sql":"SELECT 34.79 AS commercial_rent_per_sqm, 599 AS coworking_hotdesk_monthly, 90 AS fiber_500mb_monthly, 500 AS dedicated_internet_monthly, 600 AS small_office_cleaning_monthly;",
+          "description":"FipeZAP registrou locação comercial média de R$ 34,79/m² em Porto Alegre em junho de 2026. KaizenHUB listava hot desk ilimitado por R$ 599/mês; Vivo Empresas listava fibra de 500 Mbps por R$ 90/mês e internet dedicada a partir de R$ 500/mês; referência local de limpeza comercial indicava R$ 500–700/mês para escritório de até 100 m².",
+          "executed_at":"2026-08-26",
+          "tables_used":["Índice FipeZAP Comercial — Porto Alegre","KaizenHUB planos","Vivo Empresas Fibra Lite e Internet Dedicada","Dell Service limpeza comercial Porto Alegre"]
+        }
+      },
+      {
+        "id":"aneel-ceee-2026",
+        "label":"ANEEL — Consulta Pública da revisão tarifária da CEEE-D",
+        "href":"https://www.gov.br/aneel/pt-br/assuntos/noticias/2026-defeso-eleitoral/aprovada-consulta-publica-para-debater-revisao-tarifariadaceee-d/",
+        "query":{
+          "engine":"Fonte regulatória oficial",
+          "description":"A ANEEL abriu consulta pública em 24 de agosto de 2026 com proposta de efeito médio de 24,24% para consumidores de baixa tensão da CEEE-D, com vigência estimada a partir de 22 de novembro de 2026. O índice ainda está sujeito à consulta e decisão final.",
+          "executed_at":"2026-08-26"
+        }
+      },
+      {
+        "id":"auditoria-brandville",
+        "label":"Auditoria interna de coerência — orçamento, runway e retorno",
+        "query":{
+          "engine":"Recomputação independente das premissas do relatório",
+          "sql":"SELECT 1702000 AS operating_cost_15m, 150000 AS setup_capex, 1852000 AS base_cash_outflow, 2100000 AS committed_capital, 248000 AS base_ending_cash, 0.1339 AS maximum_cost_overrun_before_shortfall, 113500 AS avg_monthly_burn, 3394 AS contribution_per_mature_agency, CEIL(113500.0/3394.0) AS break_even_agencies;",
+          "description":"Conferência independente dos subtotais, fases, tranches, participação societária, MOIC, IRR e ponto de equilíbrio. Valores arredondados na narrativa podem diferir alguns reais das bases exatas.",
+          "executed_at":"2026-08-26",
+          "metric_definitions":[
+            "Despesa operacional de 15 meses = R$ 1.240.000 de pessoas + R$ 462.000 de demais despesas recorrentes.",
+            "Saída de caixa base = R$ 1.702.000 de operação + R$ 150.000 de implantação.",
+            "Caixa final sem receita = R$ 2.100.000 menos R$ 1.852.000 = R$ 248.000.",
+            "Tolerância de custo antes de insuficiência = R$ 248.000 dividido por R$ 1.852.000 = 13,39%.",
+            "Ponto de equilíbrio = teto de R$ 113.500 dividido por R$ 3.394 = 34 agências maduras."
+          ]
+        }
+      },
+      {
+        "id":"marco-legal-startups",
+        "label":"Planalto — Marco Legal das Startups (LC 182/2021)",
+        "href":"https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp182.htm",
+        "query":{
+          "engine":"Fonte legal oficial",
+          "description":"A LC 182/2021 admite diferentes instrumentos de aporte em startups, inclusive estruturas conversíveis. A escolha definitiva depende de revisão societária, tributária e contábil independente.",
+          "executed_at":"2026-08-26"
+        }
+      },
+      {
+        "id":"anpd-seguranca",
+        "label":"ANPD — Segurança da informação para agentes de pequeno porte",
+        "href":"https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-guia-de-seguranca-para-agentes-de-tratamento-de-pequeno-porte",
+        "query":{
+          "engine":"Fonte regulatória oficial",
+          "description":"Referência para controles proporcionais de segurança, governança de dados e resposta a incidentes; o tratamento diferenciado não elimina a obrigação de observar a LGPD.",
+          "executed_at":"2026-08-26"
+        }
+      },
+      {
+        "id":"proposta-preinvestimento",
+        "label":"Proposta indicativa Brandville — termos, KPIs e governança",
+        "query":{
+          "engine":"Modelo interno de pré-investimento",
+          "sql":"SELECT 300000 AS validation_low, 500000 AS validation_reference, 600000 AS validation_high, 4 AS validation_months, 2100000 AS later_institutional_ceiling, 8400000 AS hypothetical_pre_money, 10500000 AS hypothetical_post_money, 0.20 AS hypothetical_investor_fully_diluted, 0.75 AS gross_margin_gate, 6 AS runway_floor_months;",
+          "description":"Estrutura indicativa e não vinculante. A recomendação atual é apenas o cheque de validação; o teto institucional, valuation, direitos e cap table são hipóteses posteriores ao gate e dependem do instrumento inicial, diligência e assessoria independente.",
+          "executed_at":"2026-08-26",
+          "metric_definitions":[
+            "O cheque de validação antecede a rodada institucional e pode gerar diluição adicional; os 20% por R$ 2,1 milhões não incluem automaticamente esse instrumento.",
+            "Metas comerciais são gates de diligência e liberação de capital, não forecasts garantidos.",
+            "Runway floor corresponde ao caixa disponível dividido pelo burn mensal atualizado, excluindo receita ainda não contratada."
+          ]
+        }
+      }
+    ],
+    "cards": [
+      {
+        "id":"card-tam","dataset":"headline","sourceId":"modelo-brandville",
+        "description":"Receita recorrente anual do mercado total endereçável no cenário base; hipótese, não dado observado.",
+        "metrics":[{"label":"TAM base","field":"tam_base","format":"currency"}]
+      },
+      {
+        "id":"card-sam","dataset":"headline","sourceId":"modelo-brandville",
+        "description":"Receita recorrente anual do segmento inicial atendível no cenário base.",
+        "metrics":[{"label":"SAM base","field":"sam_base","format":"currency"}]
+      },
+      {
+        "id":"card-som","dataset":"headline","sourceId":"modelo-brandville",
+        "description":"Meta de ARR no quinto ano do cenário base; não é previsão de receita atual.",
+        "metrics":[{"label":"SOM base — ano 5","field":"som_base","format":"currency"}]
+      },
+      {
+        "id":"card-round","dataset":"investor_headline","sourceId":"modelo-investimento",
+        "description":"Cheque de quatro meses para testar liderança técnica e conflito de canal antes da rodada institucional.",
+        "metrics":[{"label":"Cheque inicial de validação","field":"validation_check","format":"currency"}]
+      },
+      {
+        "id":"card-runway","dataset":"investor_headline","sourceId":"modelo-investimento",
+        "description":"Janela curta suficiente para produzir evidência sem financiar a estrutura completa.",
+        "metrics":[{"label":"Runway de validação — meses","field":"validation_runway","format":"number"}]
+      },
+      {
+        "id":"card-founder","dataset":"investor_headline","sourceId":"modelo-retorno",
+        "description":"Participação ilustrativa se o cheque de validação for incluído; instrumento separado acrescenta diluição.",
+        "metrics":[{"label":"Fundador pós-pré-seed — sem diluição extra","field":"founder_post_seed","format":"percent"}]
+      },
+      {
+        "id":"card-base-moic","dataset":"investor_headline","sourceId":"modelo-retorno",
+        "description":"Múltiplo bruto ilustrativo com ARR base e múltiplo comprimido de 3x; não é forecast nem garantia.",
+        "metrics":[{"label":"MOIC base a 3x","field":"compressed_moic","format":"number"}]
+      }
+    ],
+    "charts": [
+      {
+        "id":"chart-scenarios",
+        "title":"Cenários de receita recorrente no quinto ano",
+        "subtitle":"Metas de planejamento, em R$ milhões de ARR; não representam forecast validado.",
+        "type":"horizontalBar",
+        "intent":"comparison",
+        "question":"Qual é a faixa plausível de receita recorrente no quinto ano sob diferentes níveis de distribuição?",
+        "rationale":"Barras horizontais facilitam a comparação direta entre três cenários nominais.",
+        "dataset":"som_scenarios",
+        "sourceId":"modelo-brandville",
+        "encodings":{
+          "x":{"field":"scenario","type":"nominal","label":"Cenário"},
+          "y":{"field":"arr_millions","type":"quantitative","format":"number","label":"ARR","unit":"R$ milhões"},
+          "tooltip":[
+            {"field":"agency_partners","type":"quantitative","label":"Agências parceiras"},
+            {"field":"active_brands","type":"quantitative","label":"Marcas ativas"},
+            {"field":"arr_millions","type":"quantitative","label":"ARR","unit":"R$ milhões"}
+          ]
+        },
+        "valueFormat":"number","unit":"R$ mi","layout":"full"
+      },
+      {
+        "id":"chart-funnel",
+        "title":"Funil de mercado no cenário base",
+        "subtitle":"Contas potenciais, segmento inicial atendível e meta de marcas ativas no ano 5.",
+        "type":"horizontalBar",
+        "intent":"comparison",
+        "question":"Como o universo potencial se reduz até a meta operacional de cinco anos?",
+        "rationale":"Barras mostram magnitude sem usar geometria de funil, que distorceria as diferenças.",
+        "dataset":"market_funnel",
+        "sourceId":"modelo-brandville",
+        "encodings":{
+          "x":{"field":"stage","type":"ordinal","label":"Escopo"},
+          "y":{"field":"accounts","type":"quantitative","format":"compact","label":"Contas"},
+          "tooltip":[
+            {"field":"definition","type":"text","label":"Definição"},
+            {"field":"accounts","type":"quantitative","label":"Contas"}
+          ]
+        },
+        "valueFormat":"compact","layout":"full"
+      },
+      {
+        "id":"chart-investor-return",
+        "title":"Retorno bruto ilustrativo do investidor",
+        "subtitle":"MOIC no ano 5; o mesmo ARR base aparece a 3x e 4x para isolar compressão de múltiplo.",
+        "type":"horizontalBar",
+        "intent":"comparison",
+        "question":"Como o retorno potencial varia entre os cenários operacionais do Brandville?",
+        "rationale":"Barras horizontais comparam quatro resultados discretos, incluindo sensibilidade de múltiplo, sem sugerir probabilidade.",
+        "dataset":"investor_returns",
+        "sourceId":"modelo-retorno",
+        "encodings":{
+          "x":{"field":"scenario","type":"nominal","label":"Cenário"},
+          "y":{"field":"investor_moic","type":"quantitative","format":"number","label":"MOIC","unit":"x"},
+          "tooltip":[
+            {"field":"year5_arr","type":"quantitative","format":"currency","label":"ARR ano 5"},
+            {"field":"arr_multiple","type":"quantitative","label":"Múltiplo de ARR","unit":"x"},
+            {"field":"enterprise_value","type":"quantitative","format":"currency","label":"Valor empresarial"},
+            {"field":"investor_proceeds","type":"quantitative","format":"currency","label":"Retorno bruto"},
+            {"field":"founder_equity_value","type":"quantitative","format":"currency","label":"Valor teórico do fundador"}
+          ]
+        },
+        "valueFormat":"number","unit":"x","layout":"full"
+      },
+      {
+        "id":"chart-monthly-burn",
+        "title":"Burn operacional médio por categoria",
+        "subtitle":"Operação híbrida em Porto Alegre; média mensal dos 15 meses, excluindo investimentos iniciais e reserva.",
+        "type":"horizontalBar",
+        "intent":"comparison",
+        "question":"Quais categorias concentram o caixa mensal necessário para operar o Brandville?",
+        "rationale":"Barras horizontais deixam explícito que pessoas, e não aluguel ou café, são o principal componente do burn.",
+        "dataset":"monthly_burn_categories",
+        "sourceId":"opex-porto-alegre",
+        "encodings":{
+          "x":{"field":"category","type":"nominal","label":"Categoria"},
+          "y":{"field":"monthly_amount","type":"quantitative","format":"currency","label":"Custo mensal"},
+          "tooltip":[
+            {"field":"monthly_amount","type":"quantitative","format":"currency","label":"Média mensal"},
+            {"field":"fifteen_month_total","type":"quantitative","format":"currency","label":"Total em 15 meses"},
+            {"field":"basis","type":"text","label":"Base da estimativa"}
+          ]
+        },
+        "valueFormat":"currency","layout":"full"
+      }
+    ],
+    "tables": [
+      {
+        "id":"table-competition","title":"Mapa competitivo",
+        "subtitle":"Posicionamento observado nas ofertas públicas em agosto de 2026.",
+        "dataset":"competition","sourceId":"competidores","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"competitor","label":"Plataforma","type":"text"},
+          {"field":"core","label":"Força principal","type":"text"},
+          {"field":"buyer","label":"Comprador típico","type":"text"},
+          {"field":"gap","label":"Espaço para o Brandville","type":"text"}
+        ]
+      },
+      {
+        "id":"table-assumptions","title":"Premissas do sizing",
+        "subtitle":"Valores ajustáveis que mais alteram o resultado do modelo.",
+        "dataset":"assumptions","sourceId":"modelo-brandville","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"input","label":"Premissa","type":"text"},
+          {"field":"base","label":"Cenário base","type":"text"},
+          {"field":"range","label":"Faixa testada","type":"text"},
+          {"field":"confidence","label":"Confiança","type":"text"}
+        ]
+      },
+      {
+        "id":"table-channel-simulation","title":"Coorte simulada de 10 agências",
+        "subtitle":"Resultado no final de 12 meses; preços, conversão e custos são hipóteses a validar.",
+        "dataset":"channel_simulation","sourceId":"simulacao-canal","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"scenario","label":"Cenário","type":"text"},
+          {"field":"active_agencies","label":"Agências ativas","type":"number"},
+          {"field":"active_brands","label":"Marcas ativas","type":"number"},
+          {"field":"brands_per_active_agency","label":"Marcas/agência","type":"number"},
+          {"field":"brandville_mrr","label":"MRR Brandville","format":"currency"},
+          {"field":"brandville_arr","label":"ARR run-rate","format":"currency"},
+          {"field":"gross_margin","label":"Margem bruta","format":"percent"}
+        ]
+      },
+      {
+        "id":"table-partner-economics","title":"Economia mensal de uma agência madura",
+        "subtitle":"Parceiro com cinco marcas ativas; contribuição antes de impostos e despesas comerciais.",
+        "dataset":"partner_economics","sourceId":"simulacao-canal","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"item","label":"Item","type":"text"},
+          {"field":"monthly_value","label":"Valor mensal","format":"currency"},
+          {"field":"meaning","label":"Interpretação","type":"text"}
+        ]
+      },
+      {
+        "id":"table-investment-scenarios","title":"Cenários de capital inicial",
+        "subtitle":"Sequência recomendada: validação curta antes de qualquer rodada institucional.",
+        "dataset":"investment_scenarios","sourceId":"modelo-investimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"stage","label":"Estratégia","type":"text"},
+          {"field":"capital_range","label":"Capital estimado","type":"text"},
+          {"field":"runway_months","label":"Runway","type":"number"},
+          {"field":"objective","label":"Decisão que o capital precisa suportar","type":"text"}
+        ]
+      },
+      {
+        "id":"table-preseed-allocation","title":"Uso recomendado de R$ 2,1 milhões",
+        "subtitle":"Distribuição indicativa para 15 meses, com contratação gradual e reserva de contingência.",
+        "dataset":"preseed_allocation","sourceId":"opex-porto-alegre","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"category","label":"Categoria","type":"text"},
+          {"field":"amount","label":"Valor","format":"currency"},
+          {"field":"share","label":"Participação","format":"percent"}
+        ]
+      },
+      {
+        "id":"table-break-even","title":"Ponto de equilíbrio simulado",
+        "subtitle":"Equivalência operacional com agências maduras de cinco marcas; não é forecast de vendas.",
+        "dataset":"break_even","sourceId":"modelo-investimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"metric","label":"Métrica","type":"text"},
+          {"field":"value","label":"Valor","type":"text"},
+          {"field":"interpretation","label":"Interpretação","type":"text"}
+        ]
+      },
+      {
+        "id":"table-funding-tranches","title":"Sequência de decisões de capital",
+        "subtitle":"O cheque de validação não cria obrigação de investir no orçamento institucional posterior.",
+        "dataset":"funding_tranches","sourceId":"modelo-investimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"tranche","label":"Tranche","type":"text"},
+          {"field":"amount","label":"Capital","format":"currency"},
+          {"field":"period","label":"Período","type":"text"},
+          {"field":"release_gate","label":"Condição de liberação","type":"text"}
+        ]
+      },
+      {
+        "id":"table-investor-return","title":"Economia do retorno no ano 5",
+        "subtitle":"Inclui sensibilidade de 3x e 4x sobre o mesmo ARR base; liquidez hipotética no fim do ano 5 e dívida líquida zero.",
+        "dataset":"investor_returns","sourceId":"modelo-retorno","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"scenario","label":"Cenário","type":"text"},
+          {"field":"year5_arr","label":"ARR ano 5","format":"currency"},
+          {"field":"arr_multiple","label":"Múltiplo","format":"number"},
+          {"field":"enterprise_value","label":"Valor empresarial","format":"currency"},
+          {"field":"investor_proceeds","label":"Retorno bruto","format":"currency"},
+          {"field":"investor_moic","label":"MOIC","format":"number"},
+          {"field":"investor_irr","label":"IRR anualizada","format":"percent"}
+        ]
+      },
+      {
+        "id":"table-downside-protection","title":"Perda estimada em encerramento ordenado",
+        "subtitle":"Piso de recuperação usa apenas caixa e ativos físicos; valor de IP e contratos aparece somente quando há ARR transferível.",
+        "dataset":"downside_protection","sourceId":"modelo-downside","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"stop_point","label":"Ponto de parada","type":"text"},
+          {"field":"capital_received","label":"Capital recebido","format":"currency"},
+          {"field":"recoverable_floor","label":"Piso recuperável","type":"text"},
+          {"field":"conditional_value","label":"Valor condicional","type":"text"},
+          {"field":"estimated_loss","label":"Perda estimada","type":"text"},
+          {"field":"interpretation","label":"Leitura","type":"text"}
+        ]
+      },
+      {
+        "id":"table-direct-fallback","title":"Rota direta sem o canal de agências",
+        "subtitle":"Sizing isolado de licenças de marca; exclui assinatura Studio, implantação e serviços.",
+        "dataset":"direct_fallback","sourceId":"modelo-downside","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"scope","label":"Escopo","type":"text"},
+          {"field":"eligible_brands","label":"Marcas","type":"number"},
+          {"field":"arr_per_brand","label":"ARR por marca","format":"currency"},
+          {"field":"annual_revenue","label":"ARR potencial","format":"currency"},
+          {"field":"confidence","label":"Confiança","type":"text"}
+        ]
+      },
+      {
+        "id":"table-founder-economics","title":"Remuneração e patrimônio do criador",
+        "subtitle":"Separação entre caixa recebido pelo trabalho e valor teórico da participação societária.",
+        "dataset":"founder_economics","sourceId":"modelo-retorno","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"item","label":"Componente","type":"text"},
+          {"field":"value","label":"Referência","type":"text"},
+          {"field":"meaning","label":"Interpretação","type":"text"}
+        ]
+      },
+      {
+        "id":"table-real-opex","title":"Custo mensal de uma operação real em Porto Alegre",
+        "subtitle":"Escritório híbrido de aproximadamente 50 m²; média operacional de 15 meses, antes de investimentos iniciais e reserva.",
+        "dataset":"real_opex","sourceId":"opex-porto-alegre","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"group","label":"Grupo","type":"text"},
+          {"field":"item","label":"Despesa","type":"text"},
+          {"field":"monthly_amount","label":"Média mensal","format":"currency"},
+          {"field":"assumption","label":"Base da estimativa","type":"text"}
+        ]
+      },
+      {
+        "id":"table-workspace-options","title":"Alternativas de espaço físico",
+        "subtitle":"Comparação mensal para uma equipe pequena; preços reais dependem de endereço, disponibilidade e negociação.",
+        "dataset":"workspace_options","sourceId":"infra-porto-alegre","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"option","label":"Modelo","type":"text"},
+          {"field":"monthly_cost","label":"Custo mensal","format":"currency"},
+          {"field":"included","label":"Inclui","type":"text"},
+          {"field":"tradeoff","label":"Trade-off","type":"text"}
+        ]
+      },
+      {
+        "id":"table-cash-phases","title":"Orçamento institucional de referência por fase",
+        "subtitle":"Modelo anterior ao cheque de validação; reconcilia R$ 2,1 milhões, mas será rebaseado após o gate.",
+        "dataset":"cash_phases","sourceId":"opex-porto-alegre","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"phase","label":"Fase","type":"text"},
+          {"field":"months","label":"Meses","type":"text"},
+          {"field":"operating_cost","label":"Operação","format":"currency"},
+          {"field":"setup_capex","label":"Implantação","format":"currency"},
+          {"field":"tranche","label":"Capital modelado","format":"currency"},
+          {"field":"phase_buffer","label":"Sobra da tranche","format":"currency"},
+          {"field":"cumulative_cash","label":"Caixa acumulado","format":"currency"},
+          {"field":"gate","label":"Evidência esperada","type":"text"}
+        ]
+      },
+      {
+        "id":"table-cash-sensitivity","title":"Sensibilidade do caixa",
+        "subtitle":"Receita não é usada para financiar o plano; cenários testam apenas variação do custo total de R$ 1,852 milhão.",
+        "dataset":"cash_sensitivity","sourceId":"opex-porto-alegre","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"scenario","label":"Cenário","type":"text"},
+          {"field":"cost_variation","label":"Variação de custo","format":"percent"},
+          {"field":"cash_outflow","label":"Saída total","format":"currency"},
+          {"field":"ending_cash","label":"Caixa final","format":"currency","semantic":"movement"},
+          {"field":"interpretation","label":"Leitura","type":"text"}
+        ]
+      },
+      {
+        "id":"table-evidence-confidence","title":"Matriz de confiança das evidências",
+        "subtitle":"Grau de confiança para a decisão atual; não mede a qualidade futura do negócio.",
+        "dataset":"evidence_confidence","sourceId":"auditoria-brandville","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"area","label":"Área","type":"text"},
+          {"field":"evidence","label":"Base atual","type":"text"},
+          {"field":"confidence","label":"Confiança","type":"text"},
+          {"field":"required_validation","label":"Próxima validação","type":"text"}
+        ]
+      },
+      {
+        "id":"table-term-sheet","title":"Termos indicativos por estágio",
+        "subtitle":"Somente o cheque de validação é recomendado agora; valuation institucional permanece hipotético.",
+        "dataset":"term_sheet","sourceId":"proposta-preinvestimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"term","label":"Termo","type":"text"},
+          {"field":"proposal","label":"Proposta indicativa","type":"text"},
+          {"field":"rationale","label":"Proteção e lógica econômica","type":"text"}
+        ]
+      },
+      {
+        "id":"table-cap-table","title":"Cap table ilustrativo e diluição",
+        "subtitle":"Percentuais fully diluted; a última linha simula 40% de diluição relativa futura.",
+        "dataset":"cap_table","sourceId":"modelo-retorno","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"stage","label":"Momento","type":"text"},
+          {"field":"founder","label":"Fundador","format":"percent"},
+          {"field":"option_pool","label":"Pool","format":"percent"},
+          {"field":"preseed_investor","label":"Investidor pré-seed","format":"percent"},
+          {"field":"future_investors","label":"Investidores futuros","format":"percent"}
+        ]
+      },
+      {
+        "id":"table-kpi-gates","title":"Scorecard de liberação e acompanhamento",
+        "subtitle":"Metas propostas para validar repetibilidade; resultados observados substituem as hipóteses a cada revisão.",
+        "dataset":"kpi_gates","sourceId":"proposta-preinvestimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"metric","label":"Indicador","type":"text"},
+          {"field":"definition","label":"Definição operacional","type":"text"},
+          {"field":"m4","label":"Mês 4","type":"text"},
+          {"field":"m8","label":"Mês 8","type":"text"},
+          {"field":"m15","label":"Mês 15","type":"text"}
+        ]
+      },
+      {
+        "id":"table-governance","title":"Governança proposta",
+        "subtitle":"Cadência enxuta para proteger caixa, confiança e velocidade de execução.",
+        "dataset":"governance","sourceId":"proposta-preinvestimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"mechanism","label":"Mecanismo","type":"text"},
+          {"field":"cadence","label":"Cadência ou gatilho","type":"text"},
+          {"field":"decision","label":"Decisão e evidência","type":"text"},
+          {"field":"owner","label":"Responsável","type":"text"}
+        ]
+      },
+      {
+        "id":"table-100-days","title":"Plano dos primeiros 100 dias",
+        "subtitle":"Sequência para converter capital em evidência antes da expansão da estrutura.",
+        "dataset":"first_100_days","sourceId":"proposta-preinvestimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"period","label":"Período","type":"text"},
+          {"field":"priorities","label":"Prioridades","type":"text"},
+          {"field":"evidence","label":"Entrega verificável","type":"text"},
+          {"field":"owner","label":"Responsável","type":"text"}
+        ]
+      },
+      {
+        "id":"table-diligence","title":"Data room e condições precedentes",
+        "subtitle":"Status reflete a evidência disponibilizada nesta análise, não a inexistência do documento.",
+        "dataset":"diligence","sourceId":"proposta-preinvestimento","density":"spacious","layout":"full",
+        "columns":[
+          {"field":"area","label":"Área","type":"text"},
+          {"field":"required_items","label":"Documentos e evidências","type":"text"},
+          {"field":"status","label":"Status atual","type":"text"},
+          {"field":"condition","label":"Condição para fechamento","type":"text"}
+        ]
+      }
+    ],
+    "blocks": [
+      {"id":"title","type":"markdown","body":"# Brandville — proposta de pré-investimento"},
+      {
+        "id":"executive-summary","type":"markdown","layout":"full",
+        "body":"## Executive Summary\n\n- **Recomendação: não pedir R$ 2,1 milhões como primeiro cheque.** O caminho mais defensável é captar R$ 300–600 mil — referência de R$ 500 mil e quatro meses — para resolver dois bloqueadores: liderança técnica formal além do fundador e evidência de que ao menos três agências preferem revenda recorrente a projetos avulsos. Só depois dessas provas deve ser negociada uma rodada institucional de até R$ 2,1 milhões, reorçada com os dados da validação.\n- **O risco do cheque inicial continua alto.** Se os gates falharem no mês 4, o modelo estima R$ 28,8 mil de caixa e R$ 48–60 mil de revenda de equipamentos. Sem atribuir valor ao código, marca ou aprendizado, R$ 411–423 mil — 82%–85% do cheque de R$ 500 mil — podem não ser recuperados. A proteção principal não é colateral; é parar cedo.\n- **A evidência atual é insuficiente para underwriting institucional.** A Guitar Garage é uma amostra de uma entrega conduzida pelo fundador. Não comprova repetibilidade por terceiros, retenção, CAC, margem de IA ou adesão do canal. Esses itens permanecem hipóteses de baixa confiança até existirem contratos, coortes e telemetria.\n- **O retorno foi testado contra compressão.** Com ARR hipotético de R$ 22,56 milhões no ano 5, múltiplo de 3x produziria valor empresarial de R$ 67,68 milhões e retorno bruto de R$ 8,12 milhões: 3,87x e IRR anualizada de 31,1%. A 4x, seriam 5,16x e 38,8%. Nenhum cenário contém probabilidade, garantia de liquidez ou valor assegurado para o investidor."
+      },
+      {"id":"metrics","type":"metric-strip","cardIds":["card-round","card-runway","card-founder","card-base-moic"]},
+      {
+        "id":"investment-thesis","type":"markdown","layout":"full",
+        "body":"## A tese investível é infraestrutura recorrente de marca — ainda não comprovada\n\nO modelo pressupõe três alavancas: receita recorrente por marca ativa, aquisição multiplicada por agências e custo marginal inferior ao preço. A Guitar Garage fornece uma amostra de qualidade de entrega conduzida pelo fundador. Ela não demonstra que terceiros conseguem implantar o método, que agências desejam revendê-lo ou que várias marcas permanecem ativas sem intervenção contínua do criador.\n\n**Decisão de investimento:** financiar primeiro a produção dessas evidências. Se três agências não preferirem economicamente a recorrência, se não houver segunda pessoa capaz de operar o código ou se a segunda marca por agência não aparecer, a rodada institucional não deve avançar no formato atual."
+      },
+      {
+        "id":"timing","type":"markdown","layout":"full",
+        "body":"## Há gasto adjacente relevante; demanda por governança recorrente não foi medida\n\nO Brasil encerrou o segundo quadrimestre de 2025 com 24,2 milhões de empresas ativas, das quais 12,7 milhões eram MEIs. No ecossistema criativo, o Observatório Sebrae registra cerca de 33,2 mil empresas ativas classificadas como agências de publicidade e 16,6 mil em atividades de design e decoração.\n\nO investimento em publicidade digital atingiu R$ 37,9 bilhões em 2024, com 67% transacionados via agências. Em paralelo, o mercado brasileiro de TI alcançou US$ 67,8 bilhões em 2025. Esses números dimensionam categorias adjacentes; não medem orçamento, intenção de compra ou retenção para software de governança de marca.\n\n**Implicação:** existe um universo amplo para pesquisa, mas a disposição de pagar por governança recorrente precisa ser observada em contratos."
+      },
+      {
+        "id":"category","type":"markdown","layout":"full",
+        "body":"## A hipótese de posicionamento está entre o PDF e a plataforma enterprise\n\nNa base do mercado, marcas podem ser entregues como PDF, apresentação e pasta de arquivos. No topo, plataformas internacionais oferecem DAM, guidelines, templates e integrações, normalmente com maior complexidade de implantação e preço orientado ao mid-market global ou enterprise.\n\nA hipótese do Brandville é atender o intervalo entre esses extremos com implantação em português, regras rastreáveis e governança humana. Ainda não há comparação observada de win rate, preço ou retenção que prove a existência econômica desse espaço.\n\n**Implicação:** a validação precisa testar se clientes pagam mais pelo ciclo fonte → análise → decisão → release do que por hospedagem e apresentação."
+      },
+      {
+        "id":"competition-intro","type":"markdown","layout":"full",
+        "body":"## Os concorrentes demonstram oferta existente; a abertura local ainda é hipótese\n\nFrontify oferece uma plataforma unificada; Standards trabalha com diretrizes legíveis por máquinas; Corebook e Brandpad atendem designers e agências. A presença desses produtos comprova oferta, não demanda específica pelo Brandville no Brasil. A diferenciação proposta — português, inteligência com fontes e governança humana — precisa ser testada em comparação de compra e uso."
+      },
+      {"id":"competition-table","type":"table","tableId":"table-competition"},
+      {
+        "id":"sizing-method","type":"markdown","layout":"full",
+        "body":"## O sizing usa contas pagantes, não participação em publicidade\n\nO modelo parte de empresas não-MEI como universo empresarial e aplica um filtro para organizações com complexidade, produção de conteúdo e orçamento compatíveis. Em paralelo, parte do universo de agências e atividades de design e aplica filtros de maturidade, capacidade de revenda e sobreposição.\n\nNo cenário base, 0,75% das 11,55 milhões de empresas não-MEI formam aproximadamente 86,7 mil contas de marca elegíveis. O universo combinado de agências e design é reduzido para aproximadamente 8,5 mil parceiros potenciais. Com ARR médio de R$ 14,4 mil por marca e R$ 9,6 mil por parceiro, o TAM chega a cerca de R$ 1,33 bilhão.\n\nA sensibilidade é ampla: combinando as premissas inferiores, o TAM cai para aproximadamente R$ 358 milhões; combinando as superiores, chega a R$ 4,39 bilhões. Essa faixa não deve ser apresentada como precisão estatística, mas como demonstração de quanto elegibilidade e preço influenciam a tese.\n\n**A maior incerteza é o filtro de elegibilidade, não a aritmética.** Entrevistas e vendas reais devem substituir essa hipótese rapidamente."
+      },
+      {"id":"market-metrics","type":"metric-strip","cardIds":["card-tam","card-sam","card-som"]},
+      {"id":"assumptions-table","type":"table","tableId":"table-assumptions"},
+      {
+        "id":"funnel-intro","type":"markdown","layout":"full",
+        "body":"## O mercado atendível inicial é propositalmente menor\n\nO SAM base concentra a entrada nas regiões Sul e Sudeste, nos setores com alta produção de conteúdo e em clientes alcançáveis por estúdios independentes. Isso reduz a oportunidade inicial para cerca de 14,1 mil contas de marca e 1,9 mil parceiros, equivalentes a aproximadamente R$ 221 milhões de ARR.\n\nA meta do quinto ano não pressupõe domínio nacional: o cenário base precisa de 250 parceiros com cinco marcas ativas cada, mais 150 contas diretas. Essa distribuição produziria 1,4 mil marcas ativas — aproximadamente 10% das contas do SAM inicial."
+      },
+      {"id":"funnel-chart","type":"chart","chartId":"chart-funnel"},
+      {
+        "id":"som-intro","type":"markdown","layout":"full",
+        "body":"## A hipótese de escala exige várias marcas por agência\n\nNo cenário conservador, 100 parceiros e 500 marcas ativas produziriam cerca de R$ 6,6 milhões de ARR no quinto ano. O cenário base produziria R$ 22,6 milhões; o cenário de expansão, R$ 74,4 milhões. São resultados matemáticos de premissas, não projeções validadas.\n\nA variável decisiva no modelo é marcas ativas por agência. Uma implantação isolada caracteriza uso de software; somente ativação repetida e retenção observada permitiriam tratar a agência como canal."
+      },
+      {"id":"som-chart","type":"chart","chartId":"chart-scenarios"},
+      {
+        "id":"channel-simulation-intro","type":"markdown","layout":"full","sourceId":"simulacao-canal",
+        "body":"## Uma coorte de 10 agências poderia testar a tese; hoje ela é apenas simulada\n\nNão há coorte observada neste documento. A simulação supõe 10 agências contratadas e varia permanência e marcas publicadas em 12 meses. No cenário conservador, cinco agências e oito marcas produziriam aproximadamente R$ 8,6 mil de MRR. No base, oito agências e 24 marcas produziriam R$ 21,6 mil de MRR; no de expansão, nove agências e 45 marcas produziriam R$ 442,2 mil de ARR run-rate.\n\n**Leitura:** o exercício indica que marcas por agência dominam o resultado matemático. O teste anterior à rodada é comercial: ao menos três agências precisam comparar projeto avulso e revenda recorrente com números próprios e escolher a segunda opção."
+      },
+      {"id":"channel-simulation-table","type":"table","tableId":"table-channel-simulation"},
+      {
+        "id":"partner-economics-intro","type":"markdown","layout":"full","sourceId":"simulacao-canal",
+        "body":"## Cinco marcas podem superar um projeto avulso — se as premissas se confirmarem\n\nNos preços simulados, uma agência com cinco marcas pagaria R$ 4.094/mês ao Brandville e cobraria R$ 10.450/mês dos clientes. Depois de dez horas de governança a R$ 120/h, a contribuição modelada seria R$ 5.156/mês, ou R$ 61.872 em 12 meses, antes de impostos, venda, inadimplência e overhead. Isso supera em R$ 11.872 um projeto avulso hipotético de R$ 50 mil, mas exige cinco clientes ativos, execução contínua e retenção anual.\n\n**Bloqueador comercial:** não há evidência de que agências prefiram essa troca. Antes da rodada institucional, pelo menos três agências reais devem apresentar faturamento e esforço dos dois modelos, aceitar preço e declarar escolha por revenda recorrente em piloto pago."
+      },
+      {"id":"partner-economics-table","type":"table","tableId":"table-partner-economics"},
+      {
+        "id":"investor-return-intro","type":"markdown","layout":"full","sourceId":"modelo-retorno",
+        "body":"## A compressão de múltiplo reduz o retorno antes mesmo de alterar o ARR\n\nO modelo assume, apenas para sensibilidade, aporte institucional de R$ 2,1 milhões por 20%, diluição relativa posterior de 40% e participação residual de 12% no ano 5. Em 31 de julho de 2026, o SaaS Capital Index registrava mediana de 3,8x receita run-rate para 63 companhias públicas B2B SaaS. O relatório 2026 da Software Equity Group registrou mediana de M&A SaaS próxima de 4,0x em 2025 e resultados inferiores para ativos de menor qualidade. Nenhum dos dois benchmarks é comparável diretamente a uma startup brasileira pré-receita.\n\nCom ARR hipotético de R$ 22,56 milhões, 3x produziria valor empresarial de R$ 67,68 milhões e retorno bruto de R$ 8,12 milhões — **3,87x e IRR anualizada de 31,1%**. A 4x, o retorno seria R$ 10,83 milhões — 5,16x e 38,8%. No cenário de defesa, o investidor recuperaria R$ 1,58 milhão, menos que o aporte.\n\n**Leitura correta:** múltiplo, ARR, diluição, dívida e data de saída são hipóteses independentes. A tabela não atribui probabilidade nem incorpora o cheque de validação, preferências, impostos ou custos de transação."
+      },
+      {"id":"investor-return-chart","type":"chart","chartId":"chart-investor-return"},
+      {"id":"investor-return-table","type":"table","tableId":"table-investor-return"},
+      {
+        "id":"downside-intro","type":"markdown","layout":"full","sourceId":"modelo-downside",
+        "body":"## Cenário de fracasso e proteção do capital\n\nA proteção real vem de limitar o cheque inicial e encerrar cedo; ativos físicos recuperam apenas parte pequena do capital. Se a validação falhar no mês 4, terão sido gastos R$ 471,2 mil: R$ 391,2 mil em operação e R$ 80 mil em equipamentos. O caixa remanescente seria R$ 28,8 mil. Estimando revenda dos equipamentos por 60%–75%, o total recuperável seria R$ 76,8–88,8 mil e a perda, R$ 411,2–423,2 mil — 82%–85% do cheque.\n\nDados de piloto, código e aprendizado recebem valor zero no piso porque não existe comprador identificado. Os cenários dos meses 8 e 15 só se aplicam caso capital posterior tenha sido aprovado e seguem o orçamento antigo para comparabilidade. Recuperação adicional depende de ARR contratado e transferível; os valores são exemplos, não ofertas de aquisição."
+      },
+      {"id":"downside-table","type":"table","tableId":"table-downside-protection"},
+      {
+        "id":"direct-fallback-intro","type":"markdown","layout":"full","sourceId":"modelo-downside",
+        "body":"## Se o produto funcionar e o canal falhar, a rota direta existe — com escala menor\n\nIsolando apenas contas de marca, o TAM modelado é de aproximadamente 86,7 mil marcas × R$ 14,4 mil de ARR, ou R$ 1,25 bilhão. O SAM direto usa 14,1 mil marcas e resulta em R$ 203 milhões. Esses números continuam baseados em elegibilidade e preço de baixa confiança; não demonstram aquisição direta eficiente.\n\nComo plano operacional sem agências, 100–300 marcas diretas no ano 5 representariam R$ 1,44–4,32 milhões de ARR, contra R$ 22,56 milhões no cenário base com canal. A rota B reduz dependência das agências, mas provavelmente aumenta CAC e trabalho comercial. Ela deve ser testada em paralelo com poucos contratos, não usada para justificar o cheque institucional antes da evidência."
+      },
+      {"id":"direct-fallback-table","type":"table","tableId":"table-direct-fallback"},
+      {
+        "id":"business-model","type":"markdown","layout":"full",
+        "body":"## O modelo comercial deve combinar SaaS, implantação e expansão\n\nA arquitetura recomendada tem três camadas:\n\n1. **Brandville Studio:** assinatura da agência para templates, carteira, instalações e governança.\n2. **Licença por marca ativa:** receita recorrente que cresce com a carteira implantada.\n3. **Serviços de implantação e curadoria:** receita não recorrente para migração, estruturação do Brand Core e personalização.\n\nUma faixa inicial a validar é R$ 249–399/mês para Guide, R$ 699–999/mês para Intelligence e R$ 1.490–2.490/mês para Governance, com preço de parceiro e franquias de IA. Implantação pode variar de R$ 2,5 mil a R$ 15 mil conforme complexidade. Esses valores são hipóteses comerciais, não preços finais.\n\nOs cenários de longo prazo não usam um único preço. O conservador pressupõe ARPA anual de R$ 12 mil por marca e R$ 6 mil por agência; o base, R$ 14,4 mil e R$ 9,6 mil; e o de expansão, R$ 18 mil e R$ 12 mil. Já os pilotos usam preço de entrada de R$ 699 por marca e R$ 599 por Studio. A diferença precisa vir de mix de planos, expansão de uso, franquias, reajustes e clientes em níveis superiores — e só deve ser mantida no forecast se as coortes demonstrarem essa evolução.\n\n**Disciplina de margem:** uso de IA precisa de limites, medição e opção BYOK. Serviços devem acelerar ativação, não transformar a empresa em consultoria dependente de horas."
+      },
+      {
+        "id":"moat","type":"markdown","layout":"full",
+        "body":"## A defensabilidade possível está no histórico governado, não no formato app\n\nA interface e a ideia de brandbook digital podem ser copiadas. Regras estruturadas, decisões, exceções, versões e análises revisadas poderiam aumentar custo de troca se clientes as acumularem e usarem ao longo do tempo. Não há retenção observada que confirme esse efeito.\n\nUma segunda hipótese de defesa é distribuição por agências; uma terceira é confiança por fontes, permissões, isolamento e auditoria. Ambas dependem de adoção e execução ainda não medidas.\n\n**Implicação:** o roadmap de validação deve priorizar uso recorrente e governança antes de ampliar o editor visual ou construir um DAM enterprise."
+      },
+      {
+        "id":"risks","type":"markdown","layout":"full",
+        "body":"## Dois riscos bloqueiam o primeiro cheque; os demais podem ser testados por etapas\n\n- **Liderança técnica — bloqueador:** não foi apresentada evidência de uma segunda pessoa com compromisso formal, acesso, responsabilidade de revisão e capacidade de operar a base por 60 dias sem o fundador. Antes do cheque, essa pessoa precisa estar identificada, comprometida e ter iniciado a revisão; o capital pode financiar sua remuneração e a operação compartilhada durante a validação.\n- **Conflito de canal — bloqueador:** não há comparação observada entre revenda recorrente e projetos avulsos. Três agências precisam escolher o modelo recorrente com números próprios antes da rodada institucional.\n- **Educação e preço:** empresas podem tratar brandbook como entrega pontual ou comparar o produto a PDF e Notion. Teste: pilotos pagos e três faixas de preço.\n- **Precisão e custo da IA:** respostas equivocadas podem reduzir confiança e inferência pode corroer margem. Teste: fontes obrigatórias, telemetria por marca, limites e aprovação humana.\n- **Armadilha de serviços:** customização pode impedir margem e velocidade. Teste: horas por onboarding e execução do playbook por terceiro.\n- **Resposta competitiva:** plataformas globais podem incorporar funções semelhantes. Resposta proposta: localização, canal independente e governança; diferenciação ainda não medida.\n- **Segurança e LGPD:** clientes maiores podem exigir controles, SSO e procurement. Mitigação só pode ser considerada após controles implementados e testados.\n- **Diluição e nova rodada:** uma extensão antes de métricas financiáveis pode reduzir retorno. Controle: cheque curto, contratação progressiva e gates de caixa."
+      },
+      {
+        "id":"conditional-go","type":"markdown","layout":"full","sourceId":"proposta-preinvestimento",
+        "body":"## Decisão recomendada: cheque de validação condicionado; rodada institucional ainda não\n\nO estado atual sustenta, no máximo, uma validação de R$ 300–600 mil. Antes do desembolso, deve existir uma segunda liderança técnica formalmente comprometida, capaz de revisar e operar a base, além de plano documentado para 60 dias de indisponibilidade do fundador. Durante os quatro meses, três agências reais precisam comparar projeto avulso e recorrência, aceitar preço e iniciar piloto pago.\n\n**Go para negociar até R$ 2,1 milhões:** bloqueadores resolvidos, 10 agências piloto, 20–30 marcas, onboarding e custo instrumentados, evidência inicial de segunda marca e reforecast de 15 meses. A decisão de continuidade precisa ocorrer até o dia 75, antes de o caixa cair abaixo de dois meses do burn atualizado. **Hold:** atraso de um ciclo ou dados incompletos, acompanhado de redução de burn e plano explícito de caixa. **Stop/Pivot:** nenhuma preferência por revenda recorrente, dependência técnica sem sucessão ou burn acima de 110% sem evidência proporcional."
+      },
+      {
+        "id":"term-sheet-intro","type":"markdown","layout":"full","sourceId":"proposta-preinvestimento",
+        "body":"## O term sheet institucional é um cenário posterior à validação\n\nA estrutura de **R$ 2,1 milhões por 20% fully diluted** não é recomendada para assinatura antes dos quatro meses de prova. Ela serve como hipótese para negociação depois dos gates e deve ser reprecificada com tração, orçamento e instrumento do cheque inicial. Se a validação de R$ 500 mil for separada e conversível, haverá diluição adicional; se for creditada na rodada institucional, os documentos devem dizer isso expressamente.\n\nPara a rodada posterior, permanecem indicativas preferência de liquidação não participante de 1x, pro rata, antidiluição por média ponderada ampla e matérias reservadas materiais. Os direitos só podem ser avaliados com o cap table atualizado e o instrumento de validação definido."
+      },
+      {"id":"term-sheet-table","type":"table","tableId":"table-term-sheet"},
+      {
+        "id":"cap-table-intro","type":"markdown","layout":"full","sourceId":"modelo-retorno",
+        "body":"## O cap table de 72%/8%/20% omite o instrumento de validação\n\nA simulação reserva 10% pré-rodada para talentos e, após um aporte institucional integral de R$ 2,1 milhões, mostra fundador 72%, pool 8% e investidor 20%. Com diluição relativa futura de 40%, seriam 43,2%, 4,8% e 12%.\n\nEsses percentuais só fecham se o cheque de validação for creditado ou incorporado nos termos da rodada. Se R$ 500 mil entrarem antes por instrumento separado, a conversão acrescentará diluição. Portanto, o quadro não é um cap table atual nem previsão; é uma referência que precisa ser recalculada após definir o primeiro instrumento."
+      },
+      {"id":"cap-table-table","type":"table","tableId":"table-cap-table"},
+      {
+        "id":"legal-structure","type":"markdown","layout":"full","sourceId":"marco-legal-startups",
+        "body":"## O instrumento deve preservar simplicidade sem criar passivo oculto\n\nO Marco Legal das Startups admite aportes por instrumentos diretos e conversíveis. Para o Brandville, a escolha entre participação imediata, mútuo conversível ou estrutura equivalente deve ser feita somente após comparar efeitos societários, tributários, contábeis e de governança.\n\nAntes do fechamento, os documentos precisam definir claramente: valuation ou fórmula de conversão, aquisição proporcional por tranche, direitos de informação, preferência de liquidação, antidiluição, pro rata, vesting, propriedade intelectual, condições precedentes, inadimplemento e destino das parcelas não desembolsadas. Esta proposta é indicativa e não substitui documentação jurídica."
+      },
+      {
+        "id":"investment-recommendation","type":"markdown","layout":"full","sourceId":"modelo-investimento",
+        "body":"## Primeiro R$ 300–600 mil; depois, se houver prova, reavaliar R$ 2,1 milhões\n\nA sequência recomendada tem duas decisões separadas. **Fase 0:** cheque de validação de R$ 300–600 mil, referência de R$ 500 mil, por quatro meses, preferencialmente remoto ou em coworking. Ele financia liderança técnica formal, pilotos, instrumentação e o teste econômico com três agências. **Fase institucional:** somente após Go documentado, reorçar uma operação de 15 meses com teto indicativo de R$ 2,1 milhões.\n\nO orçamento atual de R$ 2,1 milhões contém R$ 1,702 milhão de operação, R$ 150 mil de implantação/equipamentos e R$ 248 mil de reserva. Como parte desse trabalho será feita na Fase 0, não se deve somar automaticamente R$ 500 mil + R$ 2,1 milhões nem afirmar que o total será R$ 2,6 milhões: o valor institucional precisa ser reconstruído com caixa remanescente, ativos comprados, receita e equipe reais.\n\n**Recomendação:** autorizar apenas a Fase 0 agora. Tratar R$ 2,1 milhões como teto de planejamento posterior, não como compromisso antecipado."
+      },
+      {"id":"investment-scenarios-table","type":"table","tableId":"table-investment-scenarios"},
+      {
+        "id":"funding-benchmark","type":"markdown","layout":"full","sourceId":"abstartups-investimento",
+        "body":"## O benchmark não justifica antecipar o cheque institucional\n\nNo Mapeamento do Ecossistema Brasileiro de Startups 2025, 34,8% das startups mapeadas declararam investimento; o valor médio informado foi de R$ 1 milhão e 26,5% das investidas haviam captado mais de R$ 1 milhão. Isso não torna R$ 2,1 milhões adequado ao Brandville: estágio, instrumento, amostra e tração não são diretamente comparáveis.\n\nA leitura conservadora é inversa: como o valor institucional está acima da média informada e não existem coortes auditáveis, o cheque inicial deve ser menor. O benchmark contextualiza a ambição de capital; não valida valuation, canal ou retorno."
+      },
+      {
+        "id":"tranches-intro","type":"markdown","layout":"full","sourceId":"modelo-investimento",
+        "body":"## A primeira decisão não é uma tranche de R$ 2,1 milhões; é uma validação independente\n\nO cheque de R$ 500 mil deve fechar sem compromisso automático das parcelas posteriores. Liderança técnica formal é condição precedente, não entrega do período. Durante quatro meses, o capital testa preço, preferência das agências, onboarding e operação por mais de uma pessoa.\n\nSomente um memo de gate com evidências permite abrir a rodada institucional. A tabela de parcelas permanece como desenho possível do orçamento de 15 meses, mas precisa ser rebaseada depois da Fase 0; não representa obrigação de desembolso."
+      },
+      {"id":"funding-tranches-table","type":"table","tableId":"table-funding-tranches"},
+      {
+        "id":"cash-control-intro","type":"markdown","layout":"full","sourceId":"auditoria-brandville",
+        "body":"## O orçamento de 15 meses fecha; o cronograma de financiamento não está aprovado\n\nO modelo original divide R$ 2,1 milhões em R$ 500 mil, R$ 700 mil e R$ 900 mil. As fases consomem R$ 471,2 mil, R$ 521,2 mil e R$ 859,6 mil, respectivamente. Essa reconciliação demonstra consistência aritmética do orçamento, não autorização das parcelas nem sequência recomendada de captação.\n\nNo conjunto, o modelo usa **R$ 1,852 milhão** e encerra com **R$ 248 mil de caixa** sem receita. Ele tolera cerca de 13,4% de aumento; a 15%, haveria déficit de R$ 29,8 mil. Depois da Fase 0, todos os valores devem ser reorçados e o caixa remanescente deduzido do pedido institucional."
+      },
+      {"id":"cash-phases-table","type":"table","tableId":"table-cash-phases"},
+      {"id":"cash-sensitivity-table","type":"table","tableId":"table-cash-sensitivity"},
+      {
+        "id":"kpi-gates-intro","type":"markdown","layout":"full","sourceId":"proposta-preinvestimento",
+        "body":"## Capital adicional só entra quando a evidência melhora\n\nO scorecard usa resultados, drivers, guardrails de confiança e disciplina financeira. Agências e marcas devem ser **pagantes, ativas e identificáveis por coorte**; MRR exclui implantação e receita não recorrente. Margem bruta desconta IA, cloud, suporte diretamente atribuível e demais custos variáveis.\n\nOs alvos de CAC payback e retenção ainda são provisórios porque não há histórico observado. Eles funcionam como critérios de validação — não como fatos inseridos artificialmente no valuation. Cada tranche exige ata de revisão, exportação das métricas e orçamento atualizado."
+      },
+      {"id":"kpi-gates-table","type":"table","tableId":"table-kpi-gates"},
+      {
+        "id":"governance-intro","type":"markdown","layout":"full","sourceId":"proposta-preinvestimento",
+        "body":"## Governança humana é parte do produto e da empresa\n\nNo produto, respostas de IA que alterem ou interpretem regras de marca devem exibir fonte, versão e escopo; nenhuma nova regra entra em produção sem aprovação humana autorizada. Na companhia, decisões de caixa, segurança, propriedade intelectual e captação recebem registros verificáveis.\n\nO investidor acompanha o negócio por informação e matérias reservadas, sem assumir a gestão diária. O fundador preserva autoridade de produto e direção criativa dentro do orçamento aprovado; desvios materiais provocam reforecast e decisão conjunta."
+      },
+      {"id":"governance-table","type":"table","tableId":"table-governance"},
+      {
+        "id":"security-baseline","type":"markdown","layout":"full","sourceId":"anpd-seguranca",
+        "body":"## Segurança e LGPD precisam anteceder dados sensíveis\n\nO estágio inicial não exige todos os controles enterprise, mas o baseline proposto inclui inventário de dados, base legal e finalidade, contratos com operadores, segregação entre marcas, menor privilégio, autenticação forte, logs, backups testados, retenção e resposta a incidentes.\n\nO tratamento simplificado para agentes de pequeno porte não elimina princípios e deveres da LGPD. Antes da rodada institucional, controles implementados, responsável interno ou contratado nomeado e testes registrados devem constar do data room."
+      },
+      {
+        "id":"real-opex-intro","type":"markdown","layout":"full","sourceId":"opex-porto-alegre",
+        "body":"## O orçamento institucional modela R$ 113,5 mil/mês; a equipe ainda não está comprovada\n\nO modelo financeiro reserva custo para fundador, liderança técnica, engenharia backend/IA, design e administração desde o início; vendas e customer success entram depois. Isso produz média de **R$ 82,7 mil/mês em pessoas**. A presença dessas funções no orçamento não significa que os profissionais estejam contratados. Em particular, a liderança técnica deve estar formalizada antes do cheque de validação.\n\nO escritório híbrido completo está estimado em **R$ 6,1 mil/mês**; IA/cloud/software em R$ 10,5 mil; estrutura corporativa em R$ 6,2 mil; e geração de demanda em R$ 8 mil. São envelopes, não contratos.\n\n**Implicação:** a maior alavanca de caixa é a sequência de contratação. O orçamento precisa ser substituído por propostas e contratos antes da rodada institucional."
+      },
+      {"id":"monthly-burn-chart","type":"chart","chartId":"chart-monthly-burn"},
+      {"id":"real-opex-table","type":"table","tableId":"table-real-opex"},
+      {
+        "id":"energy-risk","type":"markdown","layout":"full","sourceId":"aneel-ceee-2026",
+        "body":"## A energia pode ficar mais cara durante o runway\n\nEm 24 de agosto de 2026, a ANEEL abriu consulta pública para a revisão tarifária da CEEE-D. A proposta indicava efeito médio de **24,24% para consumidores de baixa tensão**, com vigência estimada a partir de 22 de novembro de 2026. O índice ainda não é definitivo.\n\nO orçamento mantém R$ 850/mês como média de planejamento e usa a reserva financeira para absorver eventual aumento, bandeiras e picos de climatização. Depois da escolha do imóvel, a empresa deve simular a fatura com carga instalada real e atualizar o orçamento trimestralmente."
+      },
+      {
+        "id":"workspace-intro","type":"markdown","layout":"full","sourceId":"infra-porto-alegre",
+        "body":"## Coworking reduz o custo fixo durante a validação\n\nO FipeZAP registrou locação comercial média de **R$ 34,79/m² em Porto Alegre em junho de 2026**. Para 50 m², isso indica aluguel próximo de R$ 1,74 mil/mês antes de condomínio e IPTU; o modelo completo usa R$ 6,1 mil/mês com todas as despesas.\n\nUm hot desk ilimitado anunciado custava R$ 599/mês; cinco posições chegariam a aproximadamente R$ 3 mil, com internet e café. Privacidade e disponibilidade de salas precisam ser verificadas. A recomendação é coworking ou remoto na Fase 0 e sala própria somente depois de demanda operacional observada."
+      },
+      {"id":"workspace-options-table","type":"table","tableId":"table-workspace-options"},
+      {
+        "id":"capital-allocation-intro","type":"markdown","layout":"full","sourceId":"opex-porto-alegre",
+        "body":"## O teto de R$ 2,1 milhões está reconciliado, mas será reorçado após a validação\n\nNo modelo atual, R$ 1,24 milhão financia pessoas; R$ 462 mil cobrem escritório, IA/cloud/software, estrutura corporativa e geração de demanda; R$ 150 mil financiam equipamentos e implantação; e R$ 248 mil permanecem como reserva. A soma está reconciliada, mas ainda não reflete contratos observados.\n\nO desenho pressupõe fundador em produto e direção criativa, liderança técnica formal, engenharia backend/IA e capacidade comercial/CS por marcos. Se a Fase 0 comprar ativos, contratar pessoas ou gerar receita, essas linhas precisam ser rebaseadas antes da rodada institucional."
+      },
+      {"id":"preseed-allocation-table","type":"table","tableId":"table-preseed-allocation"},
+      {
+        "id":"equipment-ai-intro","type":"markdown","layout":"full","sourceId":"equipamentos-ai",
+        "body":"## Equipamentos e IA são envelopes de capacidade ainda não cotados\n\nNo orçamento institucional, **R$ 80 mil** cobrem computadores, monitores, armazenamento, periféricos e reposição; R$ 70 mil cobrem mobiliário, rede, caução e preparação. Como referência de agosto de 2026, a Apple Brasil anunciava MacBook Air a partir de R$ 15.999 e MacBook Pro a partir de R$ 24.999.\n\nIA, cloud, segurança e software recebem **R$ 157,5 mil em 15 meses**, média de R$ 10,5 mil/mês. Roteamento, cache, limites e telemetria podem reduzir custo, mas a margem só será conhecida após consumo real por marca."
+      },
+      {
+        "id":"founder-economics-intro","type":"markdown","layout":"full","sourceId":"modelo-retorno",
+        "body":"## A remuneração do fundador e sua diluição ainda dependem dos instrumentos\n\nO orçamento institucional usa **R$ 15 mil mensais de pró-labore bruto** durante 15 meses e custo empresarial de R$ 18 mil/mês. Isso produziria R$ 225 mil brutos ao fundador e R$ 270 mil de custo total; não é contrato aprovado nem renda líquida.\n\nO cap table ilustrativo parte de fundador 90% e pool 10%. Um aporte institucional de R$ 2,1 milhões por 20% produziria fundador 72% e pool 8%, com valuation de R$ 8,4 milhões pre-money — mas somente se o cheque de validação estiver incluído ou creditado. Um instrumento separado gera diluição adicional e invalida esses percentuais.\n\nA participação de 43,2% e o valor teórico de R$ 39 milhões no cenário base a 4x dependem ainda de diluição relativa futura de 40%, dívida zero e liquidez. Não representam patrimônio realizável nem remuneração garantida."
+      },
+      {"id":"founder-economics-table","type":"table","tableId":"table-founder-economics"},
+      {
+        "id":"break-even-intro","type":"markdown","layout":"full","sourceId":"modelo-investimento",
+        "body":"## O ponto de equilíbrio aparece perto de 34 agências maduras\n\nNo modelo atual, uma agência com cinco marcas gera R$ 4.094 de MRR para o Brandville. Descontando R$ 700 de custo direto estimado, a contribuição bruta é de R$ 3.394 por mês. Para cobrir uma operação de aproximadamente R$ 113,5 mil/mês, seriam necessárias **cerca de 34 agências equivalentes**, ou 170 marcas ativas.\n\nNesse ponto, o Brandville teria aproximadamente R$ 139,2 mil de MRR e R$ 115,4 mil de contribuição bruta mensal. A conta é um teto operacional conservador, não um break-even contábil definitivo: a contribuição já desconta custos diretos, enquanto o burn de referência contém um envelope de IA, cloud e software que pode incluir parte desses mesmos custos. Depois dos pilotos, o cálculo deve separar opex fixo, custo variável por agência, custo variável por marca e suporte atribuível para eliminar qualquer dupla contagem."
+      },
+      {"id":"break-even-table","type":"table","tableId":"table-break-even"},
+      {
+        "id":"first-100-days-intro","type":"markdown","layout":"full","sourceId":"proposta-preinvestimento",
+        "body":"## Antes do Dia 0, outra pessoa precisa conseguir operar o produto\n\nA contagem dos 100 dias começa somente depois de formalizar liderança técnica com acesso, responsabilidade de revisão e plano de continuidade por 60 dias sem o fundador. A partir daí, a prioridade é instrumentar o produto, colocar pilotos pagos em produção e medir onde o processo ainda depende do criador.\n\nAo fim do período, o comitê deve ter dados sobre custo e tempo por marca, escolha recorrente versus projeto avulso, segunda marca, uso de IA e execução do playbook por terceiro. Sem essas respostas, não há base para o cheque institucional."
+      },
+      {"id":"first-100-days-table","type":"table","tableId":"table-100-days"},
+      {
+        "id":"diligence-intro","type":"markdown","layout":"full","sourceId":"proposta-preinvestimento",
+        "body":"## A rodada só fecha com propriedade, obrigações e riscos visíveis\n\nA diligência não deve ser tratada como burocracia posterior. Código, design, marca, domínios, contratos e dados precisam pertencer ou estar licenciados corretamente à sociedade que recebe o investimento. O mesmo vale para relações com colaboradores, componentes open source e materiais produzidos antes da constituição.\n\nComo esses documentos não foram apresentados nesta análise, o status abaixo é deliberadamente conservador: **pendente de evidência**. O investidor deve receber um data room indexado, versões finais dos documentos e uma lista explícita de exceções antes do desembolso inicial."
+      },
+      {"id":"diligence-table","type":"table","tableId":"table-diligence"},
+      {
+        "id":"evidence-confidence-intro","type":"markdown","layout":"full","sourceId":"auditoria-brandville",
+        "body":"## A aritmética pode ser auditada; a decisão institucional ainda não pode\n\nCustos físicos têm referências públicas e os subtotais foram reconciliados. Mercado, valuation, liquidação e retorno continuam sensíveis a hipóteses. Não foram apresentados contratos, coortes, telemetria, responsável técnico formal ou preferência observada das agências.\n\n**Avaliação de confiança:** o documento suporta discussão de um cheque de validação e roteiro de diligência. Não suporta underwriting ou compromisso institucional de R$ 2,1 milhões. Essa conclusão só muda com os bloqueadores resolvidos e resultados verificáveis."
+      },
+      {"id":"evidence-confidence-table","type":"table","tableId":"table-evidence-confidence"},
+      {
+        "id":"next-steps","type":"markdown","layout":"full",
+        "body":"## Provas exigidas antes da rodada institucional\n\n1. **Testar o conflito de canal:** obter de pelo menos três agências reais a comparação entre projeto avulso e revenda recorrente, com faturamento, horas, margem e decisão documentados.\n2. **Resolver o bloqueador técnico:** formalizar uma segunda pessoa capaz de revisar, implantar e operar a base, com acesso e plano de continuidade por 60 dias sem o fundador.\n3. Formalizar sociedade, cap table, vesting, instrumento do cheque inicial e cessão integral da propriedade intelectual.\n4. Executar dez pilotos pagos comparáveis e testar três preços.\n5. Demonstrar segunda marca em até 90 dias e execução do onboarding por terceiro.\n6. Medir CAC, payback, retenção, uso, custo de IA, horas humanas e margem bruta; não estimar esses indicadores a partir de intenção.\n7. Implementar isolamento de dados, permissões, logs, backups testados e resposta a incidentes.\n8. Usar a Guitar Garage como demonstração de qualidade e instrumentação, sem tratá-la como prova de repetibilidade.\n9. Emitir memo Go/Hold/Stop com dados exportáveis e reforecast do teto institucional.\n10. Somente depois do Go, negociar capital para 20–30 agências pagantes, 100–150 marcas e R$ 82 mil–R$ 123 mil de MRR."
+      },
+      {
+        "id":"further-questions","type":"markdown","layout":"full",
+        "body":"## O interrogatório provável de um investidor cético\n\n- Por que eu deveria acreditar que uma agência vai preferir aproximadamente R$ 4 mil/mês recorrentes a um projeto de R$ 50 mil avulso? Onde estão três decisões reais com margem e horas comparadas?\n- Quem, além do fundador, pode operar tecnicamente o produto amanhã se ele ficar indisponível? Essa pessoa já assinou compromisso, revisou o código e testou recuperação?\n- Por que pedir R$ 2,1 milhões antes de provar as duas maiores incógnitas com R$ 300–600 mil?\n- O que exatamente recebo se o negócio parar no mês 4? Quem compraria código, marca ou contratos e por qual evidência de preço?\n- A Guitar Garage prova algo além da capacidade do fundador de produzir uma boa entrega?\n- Quantas marcas pagaram, renovaram e ativaram uma segunda marca sem intervenção técnica do criador?\n- Qual parcela da receita é software repetível e qual é serviço do estúdio disfarçado de SaaS?\n- O CAC inclui tempo do fundador, conteúdo, viagens, implantação e comissão? Qual é o payback observado, não modelado?\n- Por que um cliente não usaria Notion, PDF, Figma ou uma plataforma internacional? Há win/loss documentado?\n- Quem é titular de cada linha de código, domínio, marca e ativo produzido antes da sociedade?\n- Como uma marca prova que seus dados não treinaram, contaminaram ou ficaram acessíveis a outra marca?\n- Quanto da participação de 72% do fundador sobra depois da conversão do cheque inicial, pool e próxima rodada?\n- Qual comprador plausível pagaria 3x–4x ARR e quais métricas o Brandville precisaria demonstrar para ser comparável?"
+      },
+      {
+        "id":"caveats","type":"markdown","layout":"full",
+        "body":"## Caveats e premissas\n\nEsta proposta é indicativa e não vinculante. Não constitui oferta pública, avaliação financeira independente, recomendação de investimento, compromisso de aporte ou promessa de retorno. Termos e instrumentos dependem de negociação, diligência e validação jurídica, contábil, tributária e societária.\n\nNão foram fornecidos dados auditados de receita, clientes, churn, CAC, margem, pipeline, uso ou liderança técnica formal. TAM, SAM, SOM, metas, valuation, valor de liquidação e gates são hipóteses. O orçamento de Porto Alegre combina referências públicas com premissas gerenciais e precisa de cotações.\n\nO cheque inicial de R$ 500 mil é referência dentro da faixa R$ 300–600 mil. O teto posterior de R$ 2,1 milhões precisa ser reorçado; não deve ser somado automaticamente ao cheque inicial. Cap table e retorno não incorporam eventual diluição do instrumento de validação.\n\nOs cenários de retorno assumem R$ 2,1 milhões por 20%, diluição posterior de 40%, dívida líquida zero, saída no fim do quinto ano e múltiplos de 2x, 3x, 4x ou 6x ARR. Não atribuem probabilidades. Preferências, impostos, custos, dívida e instrumento inicial podem alterar os resultados.\n\nA recomendação atual é apenas financiar validação depois de resolver a liderança técnica. A rodada institucional permanece **No-Go até evidência**."
+      }
+    ]
+  },
+  "snapshot": {
+    "version":1,
+    "generatedAt":"2026-08-27T15:05:17-03:00",
+    "status":"ready",
+    "datasets":{
+      "headline":[{"tam_base":1329000000,"sam_base":221000000,"som_base":22560000}],
+      "som_scenarios":[
+        {"scenario":"Conservador","agency_partners":100,"brands_per_partner":4,"direct_brands":100,"active_brands":500,"brand_arpa":12000,"agency_arpa":6000,"arr_millions":6.6},
+        {"scenario":"Base","agency_partners":250,"brands_per_partner":5,"direct_brands":150,"active_brands":1400,"brand_arpa":14400,"agency_arpa":9600,"arr_millions":22.56},
+        {"scenario":"Expansão","agency_partners":500,"brands_per_partner":7,"direct_brands":300,"active_brands":3800,"brand_arpa":18000,"agency_arpa":12000,"arr_millions":74.4}
+      ],
+      "market_funnel":[
+        {"stage":"TAM — marcas elegíveis","accounts":86650,"definition":"0,75% das empresas brasileiras não-MEI"},
+        {"stage":"SAM — marcas iniciais","accounts":14081,"definition":"65% de concentração regional × 25% de alcance inicial"},
+        {"stage":"SOM base — ano 5","accounts":1400,"definition":"1.250 marcas via parceiros + 150 diretas"}
+      ],
+      "competition":[
+        {"competitor":"Frontify","core":"DAM, guidelines, templates, portais e IA","buyer":"Mid-market e enterprise","gap":"Implantação e preço localizados para estúdios independentes"},
+        {"competitor":"Corebook","core":"Criação e handoff de guidelines digitais","buyer":"Designers e agências","gap":"Governança, análise ligada a regras e evolução decisória"},
+        {"competitor":"Brandpad","core":"Guidelines digitais simples e colaborativas","buyer":"Designers e pequenas equipes","gap":"Inteligência com fontes e operação contínua da marca"},
+        {"competitor":"Standards","core":"Diretrizes humanas e machine-readable via MCP/API","buyer":"Agências e brand teams","gap":"Workflow localizado de análise, aprovação e revenda"},
+        {"competitor":"Soluções locais sob medida","core":"Brandbook digital, educação ou portal customizado","buyer":"Projetos específicos","gap":"Produto replicável, dados estruturados e receita SaaS"}
+      ],
+      "assumptions":[
+        {"input":"Empresas não-MEI","base":"11,55 milhões","range":"Dado observado","confidence":"Alta"},
+        {"input":"Elegibilidade de marcas","base":"0,75%","range":"0,30%–1,50%","confidence":"Baixa"},
+        {"input":"ARR por marca","base":"R$ 14,4 mil","range":"R$ 9,6–24 mil","confidence":"Baixa"},
+        {"input":"Parceiros qualificados","base":"20% do universo","range":"10%–30%","confidence":"Baixa–média"},
+        {"input":"Sobreposição agência/design","base":"15%","range":"10%–30%","confidence":"Baixa"},
+        {"input":"ARR por parceiro","base":"R$ 9,6 mil","range":"R$ 6–18 mil","confidence":"Baixa"},
+        {"input":"Concentração regional do SAM","base":"65%","range":"55%–75%","confidence":"Média"}
+      ],
+      "channel_simulation":[
+        {"scenario":"Conservador","signed_agencies":10,"active_agencies":5,"active_brands":8,"brands_per_active_agency":1.6,"brandville_mrr":8587,"brandville_arr":103044,"direct_cost":1460,"gross_margin":0.83},
+        {"scenario":"Base","signed_agencies":10,"active_agencies":8,"active_brands":24,"brands_per_active_agency":3,"brandville_mrr":21568,"brandville_arr":258816,"direct_cost":3680,"gross_margin":0.8294},
+        {"scenario":"Expansão","signed_agencies":10,"active_agencies":9,"active_brands":45,"brands_per_active_agency":5,"brandville_mrr":36846,"brandville_arr":442152,"direct_cost":6300,"gross_margin":0.829}
+      ],
+      "partner_economics":[
+        {"item":"Receita cobrada dos clientes","monthly_value":10450,"meaning":"Cinco marcas × R$ 2.090, somando software e governança"},
+        {"item":"Pagamento mensal ao Brandville","monthly_value":4094,"meaning":"Studio de R$ 599 + cinco licenças de R$ 699"},
+        {"item":"Margem antes do trabalho humano","monthly_value":6356,"meaning":"Receita da carteira menos o pagamento ao Brandville"},
+        {"item":"Custo humano estimado","monthly_value":1200,"meaning":"Dez horas mensais a R$ 120 por hora"},
+        {"item":"Contribuição mensal da agência","monthly_value":5156,"meaning":"Antes de impostos, vendas e despesas gerais"}
+      ],
+      "investment_scenarios":[
+        {"stage":"1 — Validação recomendada agora","capital_range":"R$ 300 mil–R$ 600 mil","runway_months":4,"objective":"Liderança técnica formal, três decisões reais de canal, pilotos pagos e instrumentação"},
+        {"stage":"2 — Rodada institucional condicional","capital_range":"Até R$ 2,1 mi; reorçar após validação","runway_months":15,"objective":"Somente após Go: repetibilidade, 20–30 agências e 100–150 marcas"},
+        {"stage":"3 — Estrutura completa","capital_range":"R$ 2,8 mi–R$ 4,5 mi","runway_months":18,"objective":"Somente após tração: equipe maior, escala e requisitos enterprise"}
+      ],
+      "preseed_allocation":[
+        {"category":"Pessoas — equipe progressiva e fundador","amount":1240000,"share":0.590476,"purpose":"Custo empresarial médio de R$ 82.667/mês, incluindo pró-labore do fundador"},
+        {"category":"Escritório e operação física","amount":91500,"share":0.043571,"purpose":"Aluguel, condomínio, IPTU, energia, internet, limpeza, café, materiais e manutenção"},
+        {"category":"IA, cloud, segurança e software","amount":157500,"share":0.0750,"purpose":"Modelos, infraestrutura, observabilidade, backups e ferramentas operacionais"},
+        {"category":"Estrutura corporativa","amount":93000,"share":0.044286,"purpose":"Contabilidade, jurídico/LGPD, seguros, taxas bancárias, seleção e treinamento"},
+        {"category":"Marketing, vendas, viagens e pilotos","amount":120000,"share":0.057143,"purpose":"Aquisição de parceiros, conteúdo, eventos, deslocamentos e demonstrações"},
+        {"category":"Equipamentos e implantação","amount":150000,"share":0.071429,"purpose":"R$ 80 mil em equipamentos e R$ 70 mil em mobiliário, rede, caução e preparação"},
+        {"category":"Reserva financeira","amount":248000,"share":0.118095,"purpose":"Atrasos comerciais, câmbio, reajustes, reposição e capital de giro"}
+      ],
+      "break_even":[
+        {"metric":"Agências maduras equivalentes","value":"34","interpretation":"Cada parceiro mantém cinco marcas ativas"},
+        {"metric":"Marcas ativas","value":"170","interpretation":"34 agências × cinco marcas"},
+        {"metric":"MRR Brandville","value":"R$ 139.196","interpretation":"34 × R$ 4.094"},
+        {"metric":"Contribuição bruta mensal","value":"R$ 115.396","interpretation":"Após aproximadamente R$ 23,8 mil de custos diretos"},
+        {"metric":"Custo operacional de referência","value":"R$ 113.500/mês","interpretation":"Burn médio planejado, excluindo implantação e reserva"}
+      ],
+      "investor_headline":[
+        {"validation_check":500000,"validation_runway":4,"round_amount":2100000,"runway_months":15,"founder_post_seed":0.72,"compressed_moic":3.87,"base_moic":5.16}
+      ],
+      "funding_tranches":[
+        {"tranche":"Fase 0 — validação independente","amount":500000,"period":"Quatro meses","release_gate":"Antes do desembolso: liderança técnica formal, acesso, revisão do código e plano de continuidade por 60 dias"},
+        {"tranche":"Gate institucional","amount":0,"period":"Fim da Fase 0","release_gate":"Três agências escolhem recorrência com números próprios; pilotos pagos, 20–30 marcas, telemetria e memo Go/Hold/Stop"},
+        {"tranche":"Rodada institucional potencial","amount":2100000,"period":"Até 15 meses após Go","release_gate":"Valor e parcelas reorçados com caixa, ativos, receita, equipe e métricas observados na Fase 0"}
+      ],
+      "investor_returns":[
+        {"scenario":"Defesa","year5_arr":6600000,"arr_multiple":2,"enterprise_value":13200000,"investor_proceeds":1584000,"investor_moic":0.7543,"investor_irr":-0.0548,"founder_equity_value":5702400},
+        {"scenario":"Base — múltiplo comprimido","year5_arr":22560000,"arr_multiple":3,"enterprise_value":67680000,"investor_proceeds":8121600,"investor_moic":3.8674,"investor_irr":0.3106,"founder_equity_value":29237760},
+        {"scenario":"Base — referência","year5_arr":22560000,"arr_multiple":4,"enterprise_value":90240000,"investor_proceeds":10828800,"investor_moic":5.1566,"investor_irr":0.3883,"founder_equity_value":38983680},
+        {"scenario":"Expansão","year5_arr":74400000,"arr_multiple":6,"enterprise_value":446400000,"investor_proceeds":53568000,"investor_moic":25.5086,"investor_irr":0.9113,"founder_equity_value":192844800}
+      ],
+      "downside_protection":[
+        {"stop_point":"Mês 4 — gate falha","capital_received":500000,"recoverable_floor":"R$ 76,8–88,8 mil","conditional_value":"R$ 0 para IP, marca e dados","estimated_loss":"R$ 411,2–423,2 mil (82%–85%)","interpretation":"R$ 28,8 mil de caixa + revenda de 60%–75% dos equipamentos; operação é custo afundado"},
+        {"stop_point":"Mês 8 — encerramento","capital_received":1200000,"recoverable_floor":"R$ 257,6–277,6 mil","conditional_value":"+0,25x ARR transferível; exemplo de R$ 180 mil a R$ 60 mil MRR","estimated_loss":"R$ 742,4–762,4 mil (62%–64%) no exemplo; 77%–79% sem ARR","interpretation":"Código e contratos só recebem valor se houver receita verificável e comprador"},
+        {"stop_point":"Mês 15 — encerramento","capital_received":2100000,"recoverable_floor":"R$ 278–298 mil","conditional_value":"+0,25x–0,75x ARR; exemplo de R$ 300–900 mil a R$ 100 mil MRR","estimated_loss":"R$ 902 mil–1,522 mi (43%–72%) no exemplo","interpretation":"Faixa altamente incerta; churn, concentração, IP e transferência podem reduzir o valor a zero"}
+      ],
+      "direct_fallback":[
+        {"scope":"TAM direto modelado","eligible_brands":86700,"arr_per_brand":14400,"annual_revenue":1248480000,"confidence":"Baixa — elegibilidade e preço não observados"},
+        {"scope":"SAM direto modelado","eligible_brands":14100,"arr_per_brand":14400,"annual_revenue":203040000,"confidence":"Baixa — aquisição direta não testada"},
+        {"scope":"Rota direta — 100 marcas no ano 5","eligible_brands":100,"arr_per_brand":14400,"annual_revenue":1440000,"confidence":"Meta de planejamento, não forecast"},
+        {"scope":"Rota direta — 300 marcas no ano 5","eligible_brands":300,"arr_per_brand":14400,"annual_revenue":4320000,"confidence":"Meta de planejamento, não forecast"}
+      ],
+      "founder_economics":[
+        {"item":"Pró-labore bruto","value":"R$ 15 mil/mês","meaning":"Remuneração pelo trabalho executivo; não é retorno do investimento"},
+        {"item":"Total bruto em 15 meses","value":"R$ 225 mil","meaning":"Antes de impostos; o custo empresarial modelado é de R$ 270 mil"},
+        {"item":"Participação pré-rodada","value":"90%","meaning":"Ilustração com pool de opções de 10%; requer negociação e documentos societários"},
+        {"item":"Participação pós-pré-seed","value":"72% hipotéticos","meaning":"Somente se o cheque inicial estiver incluído; instrumento separado adiciona diluição"},
+        {"item":"Valor implícito pós-money","value":"R$ 10,5 milhões hipotéticos","meaning":"R$ 2,1 milhões por 20%; sujeito a reprecificação após validação e sem liquidez"},
+        {"item":"Participação residual no ano 5","value":"43,2%","meaning":"Depois de diluição relativa adicional hipotética de 40%"},
+        {"item":"Valor teórico — base a 4x","value":"R$ 39,0 milhões","meaning":"43,2% de R$ 90,24 milhões; exclui instrumento inicial e não é caixa"}
+      ],
+      "monthly_burn_categories":[
+        {"category":"Pessoas","monthly_amount":82666.67,"fifteen_month_total":1240000,"basis":"Equipe progressiva de produto, tecnologia, comercial, CS e administração"},
+        {"category":"IA, cloud e software","monthly_amount":10500,"fifteen_month_total":157500,"basis":"Modelos, hosting, dados, segurança e ferramentas"},
+        {"category":"Marketing e pilotos","monthly_amount":8000,"fifteen_month_total":120000,"basis":"Conteúdo, mídia, eventos, viagens e demonstrações"},
+        {"category":"Estrutura corporativa","monthly_amount":6200,"fifteen_month_total":93000,"basis":"Contabilidade, jurídico, seguros, banco e treinamento"},
+        {"category":"Escritório","monthly_amount":6100,"fifteen_month_total":91500,"basis":"Sala de 50 m² com todas as despesas físicas"}
+      ],
+      "real_opex":[
+        {"group":"Pessoas","item":"Fundador — custo empresarial","monthly_amount":18000,"assumption":"R$ 15 mil de pró-labore bruto + margem para tributos e benefícios"},
+        {"group":"Pessoas","item":"Liderança técnica full-stack","monthly_amount":22000,"assumption":"Contrato sênior desde o início"},
+        {"group":"Pessoas","item":"Engenharia backend/IA","monthly_amount":18000,"assumption":"Contrato sênior desde o início"},
+        {"group":"Pessoas","item":"Design e conteúdo fracionado","monthly_amount":5000,"assumption":"Apoio recorrente ao fundador"},
+        {"group":"Pessoas","item":"Financeiro e administrativo fracionado","monthly_amount":4000,"assumption":"BPO e apoio operacional"},
+        {"group":"Pessoas","item":"Parcerias e vendas — média da rampa","monthly_amount":11000,"assumption":"R$ 15 mil/mês a partir do quinto mês"},
+        {"group":"Pessoas","item":"Customer success — média da rampa","monthly_amount":4666.67,"assumption":"R$ 10 mil/mês a partir do nono mês"},
+        {"group":"Escritório","item":"Aluguel de sala com aproximadamente 50 m²","monthly_amount":1750,"assumption":"50 m² × R$ 34,79/m², arredondado"},
+        {"group":"Escritório","item":"Condomínio","monthly_amount":650,"assumption":"Prédio comercial enxuto; depende de portaria e elevadores"},
+        {"group":"Escritório","item":"IPTU","monthly_amount":250,"assumption":"Referência de anúncios locais para salas de 50 m²"},
+        {"group":"Escritório","item":"Seguro do imóvel e conteúdo","monthly_amount":150,"assumption":"Cobertura básica contra incêndio e danos"},
+        {"group":"Escritório","item":"Energia elétrica","monthly_amount":850,"assumption":"850 kWh/mês a R$ 1/kWh orçamentário, incluindo tributos e bandeiras"},
+        {"group":"Escritório","item":"Internet principal e redundância móvel","monthly_amount":350,"assumption":"Fibra empresarial + link móvel de contingência"},
+        {"group":"Escritório","item":"Limpeza semanal","monthly_amount":600,"assumption":"Faixa local de R$ 500–700/mês para até 100 m²"},
+        {"group":"Escritório","item":"Café, água, leite, frutas e snacks","monthly_amount":900,"assumption":"Equipe pequena, clientes e reuniões"},
+        {"group":"Escritório","item":"Papelaria e materiais de limpeza","monthly_amount":300,"assumption":"Reposição mensal média"},
+        {"group":"Escritório","item":"Manutenção e pequenas reposições","monthly_amount":300,"assumption":"Lâmpadas, cabos, reparos e acessórios"},
+        {"group":"Tecnologia","item":"Modelos de IA e APIs","monthly_amount":4500,"assumption":"Média com rampa; limites por marca e roteamento de modelos"},
+        {"group":"Tecnologia","item":"Cloud, banco de dados, storage e CDN","monthly_amount":2000,"assumption":"Ambientes de produção, staging, backup e tráfego inicial"},
+        {"group":"Tecnologia","item":"Software de desenvolvimento, design e colaboração","monthly_amount":2500,"assumption":"Licenças para equipe pequena"},
+        {"group":"Tecnologia","item":"Segurança, logs, backup e observabilidade","monthly_amount":1200,"assumption":"Controles mínimos antes de vendas maiores"},
+        {"group":"Tecnologia","item":"Domínios e e-mail","monthly_amount":300,"assumption":"Média mensal de serviços anuais"},
+        {"group":"Corporativo","item":"Contabilidade e folha","monthly_amount":1500,"assumption":"Empresa de tecnologia com apoio mensal"},
+        {"group":"Corporativo","item":"Jurídico, contratos, LGPD e propriedade intelectual","monthly_amount":2500,"assumption":"Provisão média; desembolso real será irregular"},
+        {"group":"Corporativo","item":"Seguros empresariais e cyber","monthly_amount":800,"assumption":"Provisão inicial sujeita a cotação"},
+        {"group":"Corporativo","item":"Banco, cartões e tarifas","monthly_amount":400,"assumption":"Exclui taxas variáveis sobre receita"},
+        {"group":"Corporativo","item":"Seleção, treinamento e saúde da equipe","monthly_amount":1000,"assumption":"Provisão mensal"},
+        {"group":"Mercado","item":"Conteúdo, mídia e materiais comerciais","monthly_amount":4000,"assumption":"Geração de demanda controlada"},
+        {"group":"Mercado","item":"Eventos, viagens e deslocamentos","monthly_amount":3000,"assumption":"Visitas a agências e presença setorial"},
+        {"group":"Mercado","item":"Demonstrações, brindes e recepção de clientes","monthly_amount":1000,"assumption":"Pilotos e reuniões presenciais"}
+      ],
+      "workspace_options":[
+        {"option":"Remoto + salas sob demanda","monthly_cost":2500,"included":"Ajuda de custo, encontros e salas de reunião","tradeoff":"Maior runway; menos presença, cultura e cenário de demonstração"},
+        {"option":"Coworking para cinco pessoas","monthly_cost":4000,"included":"Mesas, internet, café, limpeza e algumas salas","tradeoff":"Baixo investimento inicial; privacidade e disponibilidade limitadas"},
+        {"option":"Sala híbrida própria — 50 m²","monthly_cost":6100,"included":"Aluguel e todas as despesas físicas recorrentes","tradeoff":"Melhor controle e apresentação; exige caução, mobiliário e gestão"}
+      ],
+      "cash_phases":[
+        {"phase":"1 — validação","months":"1–4","operating_cost":391200,"setup_capex":80000,"tranche":500000,"phase_buffer":28800,"cumulative_cash":28800,"gate":"Pilotos pagos, 20–30 marcas e instrumentação de custo/uso"},
+        {"phase":"2 — repetibilidade","months":"5–8","operating_cost":451200,"setup_capex":70000,"tranche":700000,"phase_buffer":178800,"cumulative_cash":207600,"gate":"15–20 agências, 60–80 marcas, onboarding <14 dias e margem >75%"},
+        {"phase":"3 — escala controlada","months":"9–15","operating_cost":859600,"setup_capex":0,"tranche":900000,"phase_buffer":40400,"cumulative_cash":248000,"gate":"Segunda marca em 90 dias, 100–150 marcas e <6 horas manuais por implantação"}
+      ],
+      "cash_sensitivity":[
+        {"scenario":"Plano base","cost_variation":0,"cash_outflow":1852000,"ending_cash":248000,"interpretation":"15 meses completos sem depender de receita"},
+        {"scenario":"Custos 10% acima","cost_variation":0.10,"cash_outflow":2037200,"ending_cash":62800,"interpretation":"Runway preservado, mas com proteção mínima"},
+        {"scenario":"Custos 15% acima","cost_variation":0.15,"cash_outflow":2129800,"ending_cash":-29800,"interpretation":"Exige corte imediato, receita ou extensão de capital"}
+      ],
+      "evidence_confidence":[
+        {"area":"Liderança e continuidade técnica","evidence":"Nenhuma segunda pessoa formal foi evidenciada nesta análise","confidence":"Bloqueador","required_validation":"Compromisso, acessos, revisão do código e teste de 60 dias sem fundador"},
+        {"area":"Preferência econômica das agências","evidence":"Simulação; nenhuma decisão real comparada","confidence":"Bloqueador","required_validation":"Três agências com projeto avulso versus recorrência, margem, horas e escolha documentada"},
+        {"area":"Mercado empresarial e criativo","evidence":"Bases oficiais e setoriais com filtros explícitos","confidence":"Média","required_validation":"Entrevistas e taxa real de elegibilidade por segmento"},
+        {"area":"Aluguel e infraestrutura em Porto Alegre","evidence":"FipeZAP de junho de 2026 e ofertas públicas","confidence":"Média–alta","required_validation":"Três propostas vinculantes para endereço e serviços escolhidos"},
+        {"area":"Equipe e remunerações","evidence":"Premissas gerenciais por senioridade e rampa","confidence":"Média–baixa","required_validation":"Propostas de contratação e definição CLT/PJ com contador e advogado"},
+        {"area":"IA, cloud e suporte","evidence":"Envelope operacional sem telemetria histórica","confidence":"Baixa","required_validation":"Custo por marca e por análise em pilotos instrumentados"},
+        {"area":"Preço, CAC e retenção","evidence":"Hipóteses comerciais e simulações","confidence":"Baixa","required_validation":"Pilotos pagos, coortes e funil comercial observável"},
+        {"area":"Retorno do investidor","evidence":"Cenários matematicamente reconciliados","confidence":"Baixa como previsão","required_validation":"Tração, termos societários, dívida líquida e mercado de saída"},
+        {"area":"Orçamento e runway","evidence":"Fases, tranches e subtotais reconciliados","confidence":"Alta para o modelo","required_validation":"Orçamento realizado mensal e reforecast trimestral"}
+      ],
+      "term_sheet":[
+        {"term":"Cheque atual recomendado","proposal":"R$ 300–600 mil; referência R$ 500 mil por quatro meses","rationale":"Testa bloqueadores sem compromisso automático da rodada institucional"},
+        {"term":"Condição precedente do cheque atual","proposal":"Liderança técnica formal além do fundador, acesso, revisão do código e plano de continuidade de 60 dias","rationale":"Sem essa evidência, o risco de pessoa única impede o desembolso"},
+        {"term":"Rodada institucional potencial","proposal":"Até R$ 2,1 milhões, somente após memo Go e reforecast","rationale":"Teto de planejamento; não constitui compromisso presente nem soma automática ao cheque inicial"},
+        {"term":"Valuation institucional hipotético","proposal":"R$ 8,4 milhões pre-money; R$ 10,5 milhões post-money","rationale":"20% por R$ 2,1 milhões; precisa ser revisto com tração e conversão do instrumento inicial"},
+        {"term":"Instrumento inicial","proposal":"Conversível ou equity a definir; declarar se será creditado na rodada posterior","rationale":"Evita esconder diluição adicional ou dupla contagem de capital"},
+        {"term":"Preferência de liquidação","proposal":"1x não participante","rationale":"Protege principal em saída baixa sem dupla participação no upside"},
+        {"term":"Antidiluição","proposal":"Média ponderada ampla; sem full ratchet","rationale":"Proteção razoável sem bloquear rodadas futuras"},
+        {"term":"Direito pro rata","proposal":"Direito de acompanhar futuras emissões, sujeito aos documentos definitivos","rationale":"Permite manutenção proporcional da participação"},
+        {"term":"Informação e conselho","proposal":"Pack mensal; revisão trimestral; assento ou observer a negociar","rationale":"Visibilidade sem transferir a operação cotidiana ao investidor"},
+        {"term":"Matérias reservadas","proposal":"Novos valores mobiliários, dívida acima do limite, venda de IP, M&A, partes relacionadas e desvio material do orçamento","rationale":"Veto restrito a decisões que alteram risco ou valor econômico"},
+        {"term":"Vesting do fundador","proposal":"Reverse vesting de 48 meses, com crédito por contribuição anterior e aceleração double-trigger a negociar","rationale":"Alinha continuidade sem ignorar o valor já criado"},
+        {"term":"Demais condições precedentes","proposal":"Sociedade, cap table, cessão de IP, acordo do fundador, orçamento, segurança e data room","rationale":"Capital entra apenas quando propriedade, operação técnica e obrigações estiverem verificáveis"},
+        {"term":"Natureza","proposal":"Não vinculante, exceto cláusulas expressamente negociadas como confidencialidade, exclusividade e custos","rationale":"Mantém espaço para diligência e documentos finais"}
+      ],
+      "cap_table":[
+        {"stage":"Antes da rodada — fully diluted","founder":0.90,"option_pool":0.10,"preseed_investor":0,"future_investors":0},
+        {"stage":"Após pré-seed integral","founder":0.72,"option_pool":0.08,"preseed_investor":0.20,"future_investors":0},
+        {"stage":"Após diluição futura ilustrativa de 40%","founder":0.432,"option_pool":0.048,"preseed_investor":0.12,"future_investors":0.40}
+      ],
+      "kpi_gates":[
+        {"metric":"Agências pagantes ativas","definition":"Contrato ativo, pagamento iniciado e ao menos uma marca publicada ou em onboarding","m4":"10","m8":"15–20","m15":"20–30"},
+        {"metric":"Marcas ativas","definition":"Marca publicada com usuário autorizado ativo nos últimos 30 dias","m4":"20–30","m8":"60–80","m15":"100–150"},
+        {"metric":"MRR de software","definition":"Assinaturas recorrentes contratadas; exclui implantação e serviços","m4":"Medir","m8":"Medir por coorte","m15":"R$ 82 mil–123 mil"},
+        {"metric":"Segunda marca em 90 dias","definition":"Percentual das agências elegíveis que publicam uma segunda marca em até 90 dias","m4":"Coorte iniciada","m8":"≥50%","m15":"≥60%"},
+        {"metric":"Margem bruta","definition":"Receita menos IA, cloud, suporte e demais custos variáveis diretamente atribuíveis","m4":"Instrumentar","m8":"≥75%","m15":"≥80%"},
+        {"metric":"Tempo até primeira publicação","definition":"Dias corridos do contrato assinado até primeira marca publicada","m4":"Baseline","m8":"<14 dias","m15":"<10 dias"},
+        {"metric":"Trabalho manual por marca","definition":"Horas humanas internas registradas para onboarding de uma nova marca","m4":"Baseline","m8":"<8 h","m15":"<6 h"},
+        {"metric":"Marcas por agência","definition":"Marcas ativas divididas por agências pagantes ativas","m4":"≥2","m8":"≥3","m15":"≥5 nas coortes maduras"},
+        {"metric":"CAC payback","definition":"CAC totalmente carregado dividido pela margem bruta nova mensal","m4":"Instrumentar","m8":"Baseline","m15":"≤12 meses"},
+        {"metric":"GRR de seis meses","definition":"MRR retido da coorte, excluindo expansão","m4":"Não maduro","m8":"Primeiras coortes","m15":"≥90%"},
+        {"metric":"Respostas de IA com fonte","definition":"Decisões sobre regras que exibem fonte, versão e trecho aplicável","m4":"100%","m8":"100%","m15":"100%"},
+        {"metric":"Continuidade de caixa","definition":"Caixa dividido pelo burn atualizado, sem receita não contratada","m4":"Gate Go/Hold/Stop e plano de caixa aprovados até o dia 75","m8":"≥6 meses após eventual rodada","m15":"Plano da próxima fase antes de caixa <6 meses"}
+      ],
+      "governance":[
+        {"mechanism":"Revisão operacional","cadence":"Semanal","decision":"Produto, pilotos, impedimentos e próximas entregas","owner":"Fundador + liderança técnica formalizada antes do cheque"},
+        {"mechanism":"Pack do investidor","cadence":"Mensal, até 10 dias úteis","decision":"P&L, caixa, burn, runway, orçamento x realizado, funil, coortes e KPIs","owner":"Fundador + financeiro"},
+        {"mechanism":"Comitê/conselho","cadence":"Trimestral e em cada gate","decision":"Tranches, contratações, reforecast, produto–canal e riscos","owner":"Fundador + investidor"},
+        {"mechanism":"Desvio de orçamento","cadence":">10% no mês ou na projeção","decision":"Reforecast e plano corretivo antes de ampliar despesas","owner":"Fundador; aprovação nas matérias reservadas"},
+        {"mechanism":"Runway crítico","cadence":"Projeção inferior a seis meses","decision":"Plano de financiamento, receita ou redução de custo em até 15 dias","owner":"Fundador + investidor"},
+        {"mechanism":"Incidente material","cadence":"Notificação inicial em até 24 h","decision":"Conter, preservar evidência, avaliar impacto e executar resposta","owner":"Liderança técnica formal + responsável LGPD interno ou contratado e nomeado"},
+        {"mechanism":"Governança de regras","cadence":"A cada release de marca","decision":"Aprovação humana, versão, justificativa, fonte e rollback","owner":"Brand owner autorizado"},
+        {"mechanism":"Partes relacionadas","cadence":"Antes da contratação","decision":"Documentar preço, conflito e aprovação aplicável","owner":"Fundador + governança"}
+      ],
+      "first_100_days":[
+        {"period":"Antes do Dia 0","priorities":"Formalizar segunda liderança técnica, acessos, revisão da arquitetura e plano de 60 dias sem fundador","evidence":"Contrato/compromisso, matriz de acessos, runbook e exercício de recuperação assinados","owner":"Fundador + liderança técnica identificada"},
+        {"period":"Dias 0–30","priorities":"Fechar cap table e IP; instrumentar produto; selecionar agências e coletar economia atual de projetos","evidence":"Data room v1, telemetria, baseline de segurança e três comparações canal versus projeto avulso","owner":"Fundador + liderança técnica formal + jurídico"},
+        {"period":"Dias 31–60","priorities":"Publicar marcas; testar preços; medir horas, IA e suporte; executar onboarding por terceiro","evidence":"Pilotos pagos, custo por marca e documentação operada sem o fundador","owner":"Fundador + liderança técnica + apoio de implantação"},
+        {"period":"Dias 61–100","priorities":"Chegar a 20–30 marcas; medir segunda marca e preferência do canal; preparar reforecast","evidence":"Memo Go/Hold/Stop com dados exportáveis, caixa, perda máxima e decisão sobre rodada institucional","owner":"Fundador + investidor do cheque inicial"}
+      ],
+      "diligence":[
+        {"area":"Societário","required_items":"Constituição, cap table fully diluted, acordos, beneficiários finais e passivos","status":"Pendente de evidência","condition":"Sem inconsistências materiais antes do fechamento"},
+        {"area":"Propriedade intelectual","required_items":"Cessões de código, design, marca, domínio, conteúdo e inventário open source","status":"Pendente de evidência","condition":"Titularidade ou licenças válidas na sociedade investida"},
+        {"area":"Produto e tecnologia","required_items":"Arquitetura, repositórios, acessos, roadmap, testes, backups; nome de quem além do fundador opera a base; plano e teste para 60 dias de indisponibilidade","status":"Bloqueador — evidência não apresentada","condition":"Liderança técnica formal, revisão independente e continuidade testada antes do cheque inicial"},
+        {"area":"Segurança e LGPD","required_items":"Mapa de dados, bases legais, política, DPA, operadores, retenção e resposta a incidentes","status":"Pendente de evidência","condition":"Baseline implementado e plano datado para lacunas"},
+        {"area":"Comercial","required_items":"Pilotos, contratos, pipeline, preços testados, coortes e entrevistas com clientes","status":"Pendente de evidência","condition":"Evidência mínima para a tranche correspondente"},
+        {"area":"Financeiro e tributário","required_items":"Modelo mensal de 24 meses, extratos, obrigações, regime tributário, orçamento e cotações","status":"Pendente de evidência","condition":"Reconciliação contábil e ausência de passivo material oculto"},
+        {"area":"Pessoas","required_items":"Contratos, remuneração, confidencialidade, IP, benefícios, vesting e compromisso da liderança técnica","status":"Pendente; liderança técnica é condição precedente","condition":"Relações formalizadas e custo compatível com o cheque de validação"},
+        {"area":"Rodada","required_items":"Term sheet, instrumento definitivo, disclosure schedule e aprovações societárias","status":"Proposta indicativa","condition":"Negociação, diligência e pareceres concluídos"}
+      ]
+    }
+  },
+  "sources":[
+    {"id":"sebrae-agencias","label":"Observatório Sebrae — Agências de publicidade","href":"https://observatorio.sebrae.com.br/profile/industry/agencias-de-publicidade"},
+    {"id":"sebrae-design","label":"Observatório Sebrae — Design e decoração de interiores","href":"https://observatorio.sebrae.com.br/profile/industry/design-e-decoracao-de-interiores"},
+    {"id":"mapa-empresas","label":"Mapa de Empresas — 2º quadrimestre de 2025","href":"https://www.gov.br/empresas-e-negocios/pt-br/mapa-de-empresas/boletins/mapa-de-empresas-boletim-2o-quadrimestre-2025.pdf"},
+    {"id":"iab-adspend","label":"IAB Brasil / Kantar IBOPE Media — Digital AdSpend 2025","href":"https://iabbrasil.com.br/wp-content/uploads/2025/04/IAB_Digital_Adspend_2025_anobase2024_AF.pdf"},
+    {"id":"abes-ti","label":"ABES / IDC — Mercado Brasileiro de Software 2026","href":"https://abes.org.br/mercado-de-ti-no-brasil-cresce-185-em-2025-e-pais-segue-lider-na-america-latina/"},
+    {"id":"competidores","label":"Páginas oficiais dos competidores","href":"https://www.frontify.com/en/product-overview"},
+    {"id":"modelo-brandville","label":"Modelo bottom-up Brandville — hipóteses de planejamento"},
+    {"id":"simulacao-canal","label":"Simulação de coorte Brandville — 10 agências"},
+    {"id":"modelo-investimento","label":"Modelo de capital inicial Brandville — cenários e marcos"},
+    {"id":"modelo-retorno","label":"Modelo ilustrativo de retorno e cap table Brandville","href":"https://www.saas-capital.com/the-saas-capital-index/"},
+    {"id":"modelo-downside","label":"Modelo de downside Brandville — encerramento, liquidação e rota direta"},
+    {"id":"seg-saas-2026","label":"Software Equity Group — 2026 Annual SaaS Report","href":"https://sandhill.com/wp-content/uploads/2026/03/SEG-Research-2026-Annual-SaaS-Report.pdf"},
+    {"id":"equipamentos-ai","label":"Apple Brasil — referência de preços de computadores","href":"https://www.apple.com/br/shop/buy-mac"},
+    {"id":"abstartups-investimento","label":"ABStartups — Mapeamento do Ecossistema Brasileiro de Startups 2025","href":"https://abstartups.com.br/wp-content/uploads/Mapeamento-do-Ecossistema-de-Startups-2025.pdf"},
+    {"id":"opex-porto-alegre","label":"Modelo operacional Brandville — escritório enxuto em Porto Alegre","href":"https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf"},
+    {"id":"infra-porto-alegre","label":"Referências operacionais de Porto Alegre — energia, internet, coworking e limpeza","href":"https://coworkingpoa.com.br/planos"},
+    {"id":"aneel-ceee-2026","label":"ANEEL — Consulta Pública da revisão tarifária da CEEE-D","href":"https://www.gov.br/aneel/pt-br/assuntos/noticias/2026-defeso-eleitoral/aprovada-consulta-publica-para-debater-revisao-tarifariadaceee-d/"},
+    {"id":"auditoria-brandville","label":"Auditoria interna de coerência — orçamento, runway e retorno"},
+    {"id":"marco-legal-startups","label":"Planalto — Marco Legal das Startups (LC 182/2021)","href":"https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp182.htm"},
+    {"id":"anpd-seguranca","label":"ANPD — Segurança da informação para agentes de pequeno porte","href":"https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-guia-de-seguranca-para-agentes-de-tratamento-de-pequeno-porte"},
+    {"id":"proposta-preinvestimento","label":"Proposta indicativa Brandville — termos, KPIs e governança"}
+  ]
+}

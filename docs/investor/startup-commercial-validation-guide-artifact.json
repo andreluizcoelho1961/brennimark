@@ -1,0 +1,220 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Entrada no mercado e validação comercial",
+    "description": "Guia institucional para posicionar, vender e validar o aplicativo de gerenciamento de marca com agências.",
+    "generatedAt": "2026-08-27T15:05:17-03:00",
+    "sources": [
+      {
+        "id": "estudo-base",
+        "label": "Estudo final de pré-investimento da plataforma — versão 1.1",
+        "query": {
+          "engine": "Documento interno de planejamento",
+          "sql": "SELECT 'Entrevistas de descoberta' AS stage, 15 AS target UNION ALL SELECT 'Pilotos pagos', 3;",
+          "description": "Premissas de produto, canal, pricing, capital, metas e validação comercial. Valores permanecem hipóteses até serem substituídos por contratos, coortes e telemetria.",
+          "executed_at": "2026-08-27"
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "chart-initial-funnel",
+        "title": "Meta inicial de entrevistas e pilotos",
+        "subtitle": "Primeiros 30 dias; metas de planejamento, não resultados observados.",
+        "type": "horizontalBar",
+        "intent": "comparison",
+        "question": "Qual é a passagem mínima planejada de entrevistas para pilotos pagos?",
+        "rationale": "Duas barras deixam clara a diferença entre conversas de descoberta e decisões comerciais reais.",
+        "dataset": "initial_funnel",
+        "sourceId": "estudo-base",
+        "encodings": {
+          "x": {"field":"stage","type":"ordinal","label":"Etapa"},
+          "y": {"field":"target","type":"quantitative","format":"number","label":"Quantidade"},
+          "tooltip": [
+            {"field":"target","type":"quantitative","label":"Meta"},
+            {"field":"meaning","type":"text","label":"Definição"}
+          ]
+        },
+        "valueFormat": "number",
+        "layout": "full"
+      }
+    ],
+    "tables": [
+      {
+        "id": "table-commercial-models",
+        "title": "Modalidades comerciais a testar",
+        "subtitle": "As modalidades organizam a validação; não constituem tabela definitiva de produtos.",
+        "dataset": "commercial_models",
+        "sourceId": "estudo-base",
+        "density": "spacious",
+        "layout": "full",
+        "columns": [
+          {"field":"model","label":"Modalidade","type":"text"},
+          {"field":"buyer","label":"Comprador","type":"text"},
+          {"field":"revenue","label":"Composição da receita","type":"text"},
+          {"field":"use","label":"Quando usar","type":"text"}
+        ]
+      },
+      {
+        "id": "table-interview-record",
+        "title": "Ficha mínima de entrevista",
+        "subtitle": "Cada conversa deve gerar informações comparáveis e uma próxima decisão.",
+        "dataset": "interview_record",
+        "sourceId": "estudo-base",
+        "density": "spacious",
+        "layout": "full",
+        "columns": [
+          {"field":"section","label":"Bloco","type":"text"},
+          {"field":"information","label":"Informação mínima","type":"text"}
+        ]
+      },
+      {
+        "id": "table-roadmap",
+        "title": "Estratégia dos primeiros 100 dias",
+        "subtitle": "A sequência transforma conversas comerciais em evidência para produto, pricing e capital.",
+        "dataset": "roadmap",
+        "sourceId": "estudo-base",
+        "density": "spacious",
+        "layout": "full",
+        "columns": [
+          {"field":"period","label":"Período","type":"text"},
+          {"field":"focus","label":"Foco","type":"text"},
+          {"field":"evidence","label":"Evidência esperada","type":"text"}
+        ]
+      },
+      {
+        "id": "table-responsibilities",
+        "title": "Responsabilidades na validação",
+        "subtitle": "Produto e comercial trabalham juntos, com donos claros para cada etapa.",
+        "dataset": "responsibilities",
+        "sourceId": "estudo-base",
+        "density": "spacious",
+        "layout": "full",
+        "columns": [
+          {"field":"front","label":"Frente","type":"text"},
+          {"field":"product","label":"Liderança de produto","type":"text"},
+          {"field":"commercial","label":"Liderança comercial","type":"text"}
+        ]
+      }
+    ],
+    "blocks": [
+      {
+        "id": "executive-summary",
+        "type": "markdown",
+        "layout": "full",
+        "sourceId": "estudo-base",
+        "body": "## Executive Summary\n\n- **O produto já existe e funciona.** Ele apresenta o brand book em ambiente digital, responde perguntas com IA, analisa peças visuais em relação às regras da marca, permite escolher provedores de IA e oferece painéis para atualização contínua.\n- **A etapa atual é transformar produto em negócio repetível.** O principal teste é descobrir se agências desejam incorporar a plataforma à própria oferta, vendê-la para várias marcas e manter receita recorrente depois da implantação.\n- **A venda inicial também é pesquisa.** Cada conversa deve revelar como a agência trabalha hoje, quanto cobra, quantas horas utiliza, onde perde eficiência e em quais condições aceitaria um piloto pago.\n- **O primeiro marco é obter três decisões comerciais reais.** Depois, a meta é formar uma coorte de até dez agências, publicar 20–30 marcas e medir preço, margem, uso, onboarding e ativação de uma segunda marca."
+      },
+      {
+        "id": "startup-proposition",
+        "type": "markdown",
+        "layout": "full",
+        "sourceId": "estudo-base",
+        "body": "## A proposta é transformar o brand book em uma operação contínua\n\nO aplicativo converte uma entrega estática em uma plataforma viva de consulta, análise e governança. Ele reúne brand book digital, consulta por IA baseada no conteúdo da marca, análise de conformidade de peças JPEG ou PNG, escolha de modelos de IA e painéis de edição.\n\nO diferencial pretendido não é apenas hospedar diretrizes. É criar o ciclo **regra → consulta ou análise → decisão → correção → nova versão**, com participação humana, histórico e fontes verificáveis."
+      },
+      {
+        "id": "agency-channel",
+        "type": "markdown",
+        "layout": "full",
+        "sourceId": "estudo-base",
+        "body": "## A agência pode ser cliente, canal e prestadora de governança\n\nA agência contrata um ambiente para sua carteira, implanta uma marca cliente, entrega acesso, cobra implantação e mensalidade e repete o processo com outras marcas. A tese de canal só estará comprovada quando uma agência ativar mais de uma marca e mantiver essas marcas ativas. Uma implantação isolada demonstra uso; a segunda e a terceira marcas demonstram distribuição."
+      },
+      {"id":"commercial-models-intro","type":"markdown","layout":"full","body":"## A oferta inicial combina software, implantação e acompanhamento\n\nAs faixas de Guide a R$ 249–399/mês, Intelligence a R$ 699–999/mês, Governance a R$ 1.490–2.490/mês e implantação a R$ 2,5 mil–R$ 15 mil são hipóteses. A referência de canal para pilotos é Studio a R$ 599/mês e licença por marca a R$ 699/mês. Em uma simulação, uma agência com cinco marcas pagaria R$ 4.094/mês à plataforma e poderia cobrar R$ 10.450/mês dos clientes, incluindo governança. Preços reais devem vir de contratos."},
+      {"id":"commercial-models-table","type":"table","tableId":"table-commercial-models"},
+      {
+        "id": "target-agencies",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## As primeiras conversas devem chegar a quem entende cliente, operação e margem\n\nDevem ser priorizadas agências e estúdios de branding, design, estratégia e comunicação que mantenham clientes recorrentes, entreguem ou interpretem brand books e tenham uma marca candidata a piloto. Os interlocutores prioritários são sócios e líderes de atendimento, estratégia, branding, criação, operações ou novos negócios com influência sobre a oferta comercial."
+      },
+      {
+        "id": "conversation-flow",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## A abordagem separa descoberta, demonstração e decisão\n\n**Descoberta:** compreender projetos, preços, horas, ferramentas, retrabalho, receita posterior à entrega e processo decisório.\n\n**Demonstração:** ligar o brand book digital, o chat com fontes, a análise de peças e os painéis aos problemas que a agência acabou de relatar.\n\n**Validação comercial:** pedir modalidade, preço, marca piloto, decisor, escopo de 30–60 dias, critério de continuidade e data da próxima decisão. Interesse verbal não substitui piloto pago ou compromisso documentado."
+      },
+      {
+        "id": "interview-questions",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## A entrevista precisa revelar a economia atual da agência\n\n1. Que projetos de marca são vendidos e com que frequência?\n2. Quanto a agência cobra por identidade, brand book, implantação e acompanhamento?\n3. Quantas pessoas e horas são usadas na entrega e no suporte posterior?\n4. Que dúvidas, erros e retrabalhos aparecem depois da entrega?\n5. Quais ferramentas e alternativas são usadas hoje?\n6. Quantas marcas poderiam precisar de operação contínua?\n7. Quem decide testar e pagar?\n8. Qual marca real entraria primeiro e que resultado justificaria uma segunda marca?"
+      },
+      {"id":"interview-record-table","type":"table","tableId":"table-interview-record"},
+      {"id":"roadmap-intro","type":"markdown","layout":"full","body":"## Os primeiros 100 dias devem produzir contratos e aprendizagem\n\nA preparação organiza oferta, demonstração, ficha e funil. Os primeiros 30 dias buscam 12–15 entrevistas, três comparações completas e três pilotos pagos. O gráfico mostra a passagem mínima planejada de 15 entrevistas para três decisões pagas; são metas, não resultados. Entre os dias 31 e 60, o foco passa a ser publicar marcas e medir tempo, horas, uso, IA e suporte. Até o dia 100, a operação deve avançar em direção a dez agências, 20–30 marcas e uma decisão Go/Hold/Stop."},
+      {"id":"initial-funnel-chart","type":"chart","chartId":"chart-initial-funnel"},
+      {"id":"roadmap-table","type":"table","tableId":"table-roadmap"},
+      {
+        "id": "metrics",
+        "type": "markdown",
+        "layout": "full",
+        "sourceId": "estudo-base",
+        "body": "## Três sinais definem se a validação está funcionando\n\n1. **Agências que iniciam piloto pago:** disposição real de pagar e capacidade de fechamento.\n2. **Agências que ativam uma segunda marca em até 90 dias:** evidência de canal, não apenas projeto isolado.\n3. **Margem de contribuição por agência e por marca:** capacidade de cobrir IA, cloud, suporte e trabalho atribuível.\n\nConversão do funil, tempo de publicação, horas manuais, uso e motivos de perda ajudam a diagnosticar esses resultados. Respostas sobre regras devem manter fontes e aprovação humana; customização e suporte não podem crescer mais rápido que a receita."
+      },
+      {"id":"responsibilities-intro","type":"markdown","layout":"full","body":"## Produto e comercial precisam operar como um único ciclo\n\nA liderança comercial é responsável por lista, abordagem, entrevistas, funil, proposta, negociação e follow-up. A liderança de produto responde por visão, demonstração, limites, implantação e medição. Toda conversa termina com responsável, ação e data; toda proposta tem marca, escopo, preço, prazo e critério de continuidade."},
+      {"id":"responsibilities-table","type":"table","tableId":"table-responsibilities"},
+      {
+        "id": "next-steps",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Próximos passos\n\n1. Fechar o escopo e a condição comercial do piloto pago.\n2. Preparar demonstração curta, proposta de uma página e ficha de entrevista.\n3. Montar a primeira lista de agências e identificar decisores.\n4. Iniciar descobertas antes de demonstrações extensas.\n5. Registrar fatos, estimativas e hipóteses separadamente.\n6. Revisar semanalmente funil, objeções, preço, horas e marcas candidatas."
+      },
+      {
+        "id": "further-questions",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Perguntas que ainda precisam de evidência\n\n- A agência prefere recorrência ou projeto avulso?\n- Quem compra: agência, cliente final ou ambos?\n- Qual combinação de implantação, software e governança é mais fácil de vender?\n- Qual faixa de preço é aceita sem criar serviço excessivo?\n- A segunda marca pode ser implantada com menor dependência da startup?\n- Quais requisitos de segurança ou aprovação bloqueiam contratos maiores?"
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "layout": "full",
+        "body": "## Premissas e limites\n\nO nome comercial ainda será definido. Preços, volumes e metas são hipóteses de validação. Não devem ser prometidos preço definitivo, precisão absoluta da IA, integrações sem escopo, funcionalidades enterprise ainda não implementadas, exclusividade de canal, economia garantida ou white label completo como condição padrão do piloto."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-08-27T15:05:17-03:00",
+    "status": "ready",
+    "datasets": {
+      "initial_funnel": [
+        {"stage":"Entrevistas de descoberta","target":15,"meaning":"Conversas estruturadas com agências do perfil prioritário"},
+        {"stage":"Pilotos pagos","target":3,"meaning":"Marca, preço, prazo, decisor e critério de sucesso definidos"}
+      ],
+      "commercial_models": [
+        {"model":"Piloto pago por agência","buyer":"Agência","revenue":"Implantação + licença temporária ou mensal","use":"Primeira validação com escopo e prazo definidos"},
+        {"model":"Revenda recorrente","buyer":"Agência e seus clientes","revenue":"Studio + licença por marca; agência adiciona governança","use":"Modelo prioritário para canal e recorrência"},
+        {"model":"Licença direta","buyer":"Empresa ou brand team","revenue":"Implantação + plano mensal por marca","use":"Quando não há agência adequada ou a empresa compra diretamente"},
+        {"model":"Operação assistida","buyer":"Agência ou empresa","revenue":"Software + implantação e curadoria intensas","use":"Casos que precisam organizar conteúdo antes da ativação"},
+        {"model":"Projetos especiais","buyer":"Empresas maiores","revenue":"Escopo, integrações e governança negociados","use":"Somente depois de validar o produto padrão"}
+      ],
+      "interview_record": [
+        {"section":"Identificação","information":"Agência, cidade, porte aproximado, site e segmento"},
+        {"section":"Interlocutor","information":"Função, influência e quem decide"},
+        {"section":"Carteira","information":"Clientes ativos, projetos de marca por ano e marcas elegíveis"},
+        {"section":"Modelo atual","information":"Preço, mensalidades, horas, equipe e ferramentas"},
+        {"section":"Problema","information":"Dúvidas, retrabalho, aprovações, inconsistência e margem"},
+        {"section":"Reação ao produto","information":"Valor percebido, dúvidas, objeções e alternativa comparada"},
+        {"section":"Economia proposta","information":"Implantação, mensalidade, revenda, horas e margem esperada"},
+        {"section":"Decisão","information":"Modalidade, marca piloto, decisor, condição e data"},
+        {"section":"Resultado","information":"Proposta, piloto pago, publicação, uso e segunda marca"}
+      ],
+      "roadmap": [
+        {"period":"Preparação","focus":"Oferta, demonstração, ficha, lista e funil","evidence":"Piloto definido e processo comercial pronto"},
+        {"period":"Dias 1–30","focus":"12–15 entrevistas e primeiras propostas","evidence":"Três comparações completas e três pilotos pagos"},
+        {"period":"Dias 31–60","focus":"Implantação e medição","evidence":"Marcas publicadas; tempo, horas, uso, IA e suporte registrados"},
+        {"period":"Dias 61–100","focus":"Repetição e expansão","evidence":"Progresso para dez agências, 20–30 marcas e decisão Go/Hold/Stop"}
+      ],
+      "responsibilities": [
+        {"front":"Posicionamento","product":"Define visão, demonstração e limites","commercial":"Traduz valor para o contexto da agência"},
+        {"front":"Prospecção","product":"Apoia segmentos e casos","commercial":"Constrói lista, aborda, agenda e mantém funil"},
+        {"front":"Entrevistas","product":"Aprofunda produto, operação e tecnologia","commercial":"Conduz economia, decisão e próximos passos"},
+        {"front":"Proposta","product":"Valida escopo e capacidade","commercial":"Estrutura preço, negociação e fechamento"},
+        {"front":"Piloto","product":"Implanta, mede e corrige","commercial":"Mantém compromisso, feedback e expansão"},
+        {"front":"Aprendizagem","product":"Decide mudanças de produto","commercial":"Consolida padrões de compra, objeção e canal"}
+      ]
+    }
+  }
+}

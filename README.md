@@ -1,8 +1,14 @@
-# Brandville — matriz replicável
+# Aplicativo de gestão de marcas — nome provisório
 
 Aplicativo de diretrizes de marca com navegação, busca, assets, assistência por
 IA, análise de aplicações e histórico de governança. Cada cliente recebe uma
 instalação individual; a base técnica é reutilizável.
+
+**Brandville é apenas o nome de trabalho do código atual.** O nome comercial será substituído
+depois de pesquisa e clearance. Este repositório é o produto SaaS; não é o projeto de marca
+Guitar Garage, The BluesMaker ou qualquer outra instância carregada nele.
+
+A separação de escopo está em [`docs/PROJECT_BOUNDARY.md`](./docs/PROJECT_BOUNDARY.md).
 
 Sibling project: [`the-bluesmaker-site`](https://github.com/andreluizcoelho1961/the-bluesmaker-site)
 (the "Call Me Analog Man" release site) — both draw from the same brand
