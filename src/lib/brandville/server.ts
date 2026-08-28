@@ -4,7 +4,7 @@ import { parseDocBlocks } from "@/content/doc-blocks";
 import type { DocPageEntry, DocPageImage, DocStatus } from "@/content/docs";
 import { createClient } from "@/lib/supabase/server";
 
-const SKIP_AUTH = process.env.NEXT_PUBLIC_SKIP_AUTH === "true";
+const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
 
 export type BrandvilleAuthContext = {
   supabase: SupabaseClient;

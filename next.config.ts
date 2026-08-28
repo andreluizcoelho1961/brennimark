@@ -2,13 +2,33 @@ import path from "node:path";
 import type { NextConfig } from "next";
 
 /**
- * Each brand's licensed font files must only ever be emitted into that
- * brand's own bundle. next/font/local emits every localFont() call it finds
- * in the module graph, so the active instance picks its font module here
- * instead of the layout importing all of them.
+ * BRANDVILLE_DEV_SKIP_AUTH desliga a verificação de sessão e serve o conteúdo
+ * estático do guide sem login. É uma conveniência de desenvolvimento local e
+ * nunca deve alcançar um ambiente publicado — demonstrações comerciais usam uma
+ * instalação sanitizada com autenticação real, não esta flag.
+ */
+if (process.env.BRANDVILLE_DEV_SKIP_AUTH === "true" && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "BRANDVILLE_DEV_SKIP_AUTH=true em build de producao. Essa flag serve o guide sem autenticacao " +
+      "e e exclusiva de desenvolvimento local. Remova-a das variaveis de ambiente deste deploy.",
+  );
+}
+
+/**
+ * Carregador da tipografia DA MARCA — não da interface.
  *
- * To give an instance its own typeface: add `src/fonts/<brand>.ts` exporting
- * `brandFont`, then map the instance key to it below.
+ * A interface tem fonte própria (--font-ui em globals.css) e não depende
+ * disto. O que este alias carrega é a fonte da marca consultada, usada apenas
+ * em títulos do manual e blocos de espécime (--font-brand).
+ *
+ * next/font/local emite os arquivos de toda chamada localFont() presente no
+ * grafo de módulos, então a instância ativa escolhe o seu módulo aqui em vez
+ * de o layout importar todos — assim a fonte licenciada de uma marca nunca é
+ * publicada no domínio de outra.
+ *
+ * Uma instância só precisa de módulo próprio se a fonte da marca for
+ * auto-hospedada. Quando a fonte é de sistema ou já está no CSS, deixe fora
+ * daqui: `fontStack` na instância basta.
  */
 const fontModuleByInstance: Record<string, string> = {};
 

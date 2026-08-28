@@ -1,5 +1,6 @@
 "use client";
 
+import { platformIdentity } from "@/platform/identity";
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -81,7 +82,7 @@ function LoginForm() {
   return (
     <div className="w-full max-w-sm">
       <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-release-analog-turquoise">
-        Brandville
+        {platformIdentity.displayName}
       </p>
       <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-release-analog-white">
         {mode === "signin" ? "Sign in to access the brand guide" : "Create your account"}

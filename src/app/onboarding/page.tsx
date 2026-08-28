@@ -1,5 +1,6 @@
 "use client";
 
+import { platformIdentity } from "@/platform/identity";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -103,7 +104,7 @@ function OnboardingForm() {
           disabled={submitting || !email}
           className="mt-2 border border-release-analog-white px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-white transition-colors duration-150 hover:bg-release-analog-white hover:text-release-analog-black disabled:opacity-50"
         >
-          {submitting ? "Saving…" : "Enter Brandville"}
+          {submitting ? "Saving…" : `Enter ${platformIdentity.displayName}`}
         </button>
 
         {errorMessage && (

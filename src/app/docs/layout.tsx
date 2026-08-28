@@ -4,7 +4,7 @@ import { getBrandvilleAuthContext, getResolvedBrandDocs } from "@/lib/brandville
 import { DocsNav } from "@/components/docs/DocsNav";
 import { SignOutButton } from "@/components/SignOutButton";
 
-const SKIP_AUTH = process.env.NEXT_PUBLIC_SKIP_AUTH === "true";
+const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
 
 export default async function DocsLayout({ children }: { children: React.ReactNode }) {
   let userEmail = "";

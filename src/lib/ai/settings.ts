@@ -23,7 +23,7 @@ export type StoredAISetting = {
   updatedAt: string;
 };
 
-/** The signed-in user's workspace id, or null if unauthenticated (e.g. NEXT_PUBLIC_SKIP_AUTH dev mode). */
+/** The signed-in user's workspace id, or null if unauthenticated (e.g. BRANDVILLE_DEV_SKIP_AUTH dev mode). */
 export async function getCurrentWorkspaceId(): Promise<string | null> {
   const supabase = await createClient();
   const {
