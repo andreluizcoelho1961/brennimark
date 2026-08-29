@@ -1,73 +1,107 @@
-# Claude Code Instructions — aplicativo de gestão de marcas
+# Instruções do projeto — Brennimark
 
-> **Limite do produto:** este é o repositório da plataforma SaaS. `Brandville` permanece como
-> codinome técnico até a escolha do novo nome. The BluesMaker é a instância atualmente mais
-> completa; Guitar Garage é um projeto externo que poderá fornecer uma exportação aprovada.
-> Estratégia, brandbook e Behance da Guitar Garage não são definidos aqui. Leia
-> `docs/PROJECT_BOUNDARY.md` antes de alterar arquitetura ou conteúdo de uma instância.
+**Brennimark** é o produto: uma plataforma de gestão de marca vendida a agências e a marcas.
+Islandês para *marca de fogo* — a marca queimada no gado, origem literal da palavra "brand".
+Adotado como nome de trabalho, ainda não definitivo.
 
-Brand guidelines app for The BluesMaker. Sibling to
-`the-bluesmaker-site` (the "Call Me Analog Man" release site) — same
-brand, same tokens, different purpose: this one documents the system
-rather than applying it to a single release.
+`Brandville` era codinome técnico legado. Não pode voltar a aparecer em interface, venda, domínio
+ou contrato. Ainda existe em identificadores internos (`src/brandville/`, `BRANDVILLE_*`), e essa
+renomeação é dívida mecânica registrada, não decisão pendente.
 
-## Audience
+## O que este repositório NÃO é
 
-Shared with external partners/press as the canonical brand reference —
-treat it as presentable, external-facing material, not an internal
-scratch doc. `robots: noindex` is set (not for public search), but
-assume anyone with the link can see it.
+Não é o aplicativo de nenhuma marca específica. **The BluesMaker, Hairline e Guitar Garage não
+vivem aqui** — nenhum deles é instância, dependência ou referência visual deste produto. Foram
+removidos por inteiro em 28/08/2026.
 
-## Source of truth
+Se precisar de uma marca para testar, o caminho é o mesmo do cliente: importar um manual em PDF.
+Não recriar instância em código.
 
-- Content: `src/content/brand.ts` — edit copy/data there, not inline in components.
-- Docs registry: `src/content/docs.ts` — sidebar structure, page status, prose body, and reference `images` per page. Generic pages render through `DocPage`; only 5 slugs have bespoke components (see `COMPONENT_SLUGS` in `src/app/docs/[...slug]/page.tsx`).
-- Reference images/mockups: drop files under `public/brand/<category>/` (see `public/brand/README.md` for the folder convention) and list them in a page's `images` array in `docs.ts` — `DocPage` renders any `images` list as a grid automatically via `AssetGrid`, no new component needed. Adding images does NOT change a page's status badge — bump `status` explicitly once material is approved, not just uploaded.
-- Tokens: `src/app/globals.css` — must stay in sync with `the-bluesmaker-site`'s tokens (same brand, same cover-art-derived colors). If one changes, check the other.
-- Fonts: `src/fonts/*.otf` — same licensed Gotham files as the-bluesmaker-site. Never redistribute outside these two private repos.
+## Leitura obrigatória antes de alterar arquitetura
 
-## Status / open items
+Os ADRs vigentes, em ordem:
 
-- **Iconography**: position changed 2026-07-19. The book previously
-  stated the project deliberately builds no icon system; the founder
-  reviewed that and adopted a licensed 100-icon music/audio line set
-  instead. Extracted from the supplied EPS with Ghostscript at 300dpi
-  and sliced by grid detection into `public/icons/set/`, white on
-  transparent, grouped by category (controls, volume, playback, notes,
-  instruments, mics, devices, headphones). Vector master in
-  `public/brand/iconografia/`. The Grafismos page was amended to match:
-  instruments and notation are legitimate in a functional icon role,
-  what it still avoids is their ornamental use.
+- [`docs/adr/0002`](./docs/adr/0002-dois-modos-de-produto.md) — modos de agência e consulta,
+  capacidades por marca
+- [`docs/adr/0003`](./docs/adr/0003-produto-hospedado-multi-marca.md) — produto hospedado
+  multi-marca; **substitui o 0001**
+- [`docs/adr/0004`](./docs/adr/0004-o-produto-age-na-criacao.md) — o produto age na criação
 
-- **Logo**: real files landed 2026-07-19. Three lockups of the same
-  wordmark — horizontal, stacked stepping right, stacked stepping left —
-  supplied as one 3-page Illustrator file. There is no symbol or icon;
-  the wordmark is the whole mark. Rendered to PNG at 600dpi with
-  transparency in black and white variants under `public/logo/`; the
-  vector master sits in `public/brand/logos/`. Regenerate with
-  Ghostscript (`-sDEVICE=pngalpha -r600`) if the source is ever revised.
-  Still undefined, and deliberately marked as such on the page rather
-  than invented: clear space, minimum size, misuse examples.
-- Everything else (color, typography, photography, motion, voice,
-  applications, assets) is populated with real, already-established
-  brand facts — nothing fabricated.
+`docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRANDVILLE_MATRIX.md` são
+**históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
 
-## AI layer (BYOK, multi-provider)
+## Next.js 16.2.10
 
-- Never import `@ai-sdk/*` directly from feature code — always go through `getModel()` in `src/lib/ai/provider.ts`. Adding a provider means adding one case there, not touching chat/analysis code.
-- Config resolution: `src/lib/ai/settings.ts`'s `resolveConfig(role)` picks the workspace's active `ai_settings` row for that role (`chat` | `analysis`, with `both` covering either), falling back to the shared Groq demo (`GROQ_API_KEY` env var, `openai/gpt-oss-20b`) when none exists. Chat may switch to `openai/gpt-oss-120b` under the same Groq key before the first token, or to an explicitly authorized secondary provider configured with the three `AI_CHAT_FALLBACK_*` server variables. `getCurrentWorkspaceId()` resolves the signed-in user's workspace via `workspace_members`; returns `null` when unauthenticated (including local `NEXT_PUBLIC_SKIP_AUTH` dev mode) — that's what makes demo mode "just work" locally.
-- API keys are encrypted at rest with AES-256-GCM (`src/lib/ai/crypto.ts`) under `AI_SETTINGS_ENCRYPTION_KEY` (server-only env var, `openssl rand -base64 32`). Never return `api_key_ciphertext`/`api_key_iv` from an API route — only `api_key_last4`.
-- `workspaces`/`workspace_members` are multi-tenant scaffolding ahead of actual need (today: 1 profile → 1 auto-provisioned workspace, via a `SECURITY DEFINER` trigger on `profiles` insert). The trigger function has `EXECUTE` revoked from `anon`/`authenticated` — Supabase auto-exposes public-schema functions as RPC by default, so any `SECURITY DEFINER` function added later needs the same lockdown unless it's meant to be publicly callable.
-- Brand context for chat/analysis system prompts comes from `src/lib/ai/brand-context.ts`, which carries each `docsRegistry` page's Pronto/Rascunho/Em construção status into the prompt — keep this if the docs registry shape changes, it's what stops the assistant from presenting draft content as settled fact (see `feedback_brand_content_honesty` in project memory).
-- Known gap: settings CRUD (`/docs/configuracoes/ia`) requires a real Supabase session and wasn't exercised end-to-end through an authenticated browser login (only via curl, confirming the 401 gate) — verify after a real magic-link sign-in before calling BYOK "done".
+Tem mudanças incompatíveis com versões anteriores. Antes de alterar APIs, roteamento, cache,
+middleware/proxy, Server Components ou convenções do App Router, consultar `node_modules/next/dist/docs/`.
 
-## Non-negotiables (same as the-bluesmaker-site)
+Duas armadilhas já encontradas, para não se repetirem:
 
-- No fabricated logo — never generate a placeholder "logo" that looks
-  like a finished mark. The current placeholder is explicitly labeled
-  as a placeholder for this reason.
-- Gotham font files stay private — self-hosted, never on a CDN or
-  public font-serving path.
-- Color values must trace back to the cover-art extraction, not be
-  eyeballed — see `the-bluesmaker-site/docs/DESIGN_SYSTEM.md` for the
-  original sampling method if colors ever need re-deriving.
+- **Função não atravessa a fronteira de Server para Client Component.** Passar callback quebra em
+  execução, não em compilação. Use valor serializável.
+- **Custom property CSS é resolvida onde é DECLARADA.** Declarar `--x: var(--y)` no `:root`
+  congela o valor antes de um escopo descendente definir `--y`. O escopo precisa sobrescrever `--x`
+  diretamente.
+
+## Fronteiras que não se cruzam
+
+**Plataforma × marca.** A moldura — navegação, login, administração, configurações, governança —
+usa `--platform-*`. O conteúdo da marca vive dentro do `BrandCanvas` e usa `--brand-*`.
+`PlatformSurface` devolve os tokens da plataforma a um trecho dentro do canvas.
+
+Nenhum controle, foco, estado ou status editorial pode herdar cor ou fonte da marca cliente. A
+guarda em `src/platform/leak-guard.test.ts` verifica isso no código-fonte e cresce a cada
+componente migrado.
+
+**Interface × autorização.** Capacidades (`consultar`, `editar`, `aprovar`, `administrar`) decidem
+o que **aparece**. RLS e verificação de papel decidem o que é **permitido**. Interface nunca é
+fronteira de segurança.
+
+**Tipografia.** A interface tem fonte própria (`--font-ui`). A fonte da marca (`--font-brand`) só
+aparece onde demonstra a marca: títulos do manual e blocos de espécime. A plataforma **não hospeda
+fonte licenciada de cliente algum**.
+
+## Honestidade editorial — não negociável
+
+O status `ready | draft | pending` atravessa o modelo, o contexto de IA e as citações.
+
+- Ganhar imagem ou bloco **não** promove o status.
+- A IA cita fonte, status e caminho, e não afirma o que não está documentado.
+- **Só regra aprovada entra num prompt em silêncio.** Rascunho pode ser oferecido, mas
+  identificado — ver ADR-0004 §3.2.
+
+Um diretor de arte perdoa "não há diretriz documentada". Não perdoa ser levado a errar diante do
+cliente dele.
+
+## Camada de IA
+
+Nunca importar `@ai-sdk/*` direto de código de feature — sempre via `getModel()` em
+`src/lib/ai/provider.ts`. Resolução de configuração em `src/lib/ai/settings.ts`.
+
+Chaves cifradas em AES-256-GCM (`src/lib/ai/crypto.ts`). Nunca retornar `api_key_ciphertext` nem
+`api_key_iv` de uma rota — só `api_key_last4`.
+
+Qualquer função `SECURITY DEFINER` nova precisa de `revoke execute` de `anon` e `authenticated`, e
+`search_path` vazio com nomes qualificados.
+
+## Banco
+
+Toda mudança precisa de migration versionada, RLS, índices e **teste de autorização negativo** —
+provar que a conta A não lê a da B, não só que A lê a sua. Condição 2 do ADR-0003.
+
+O histórico de migrations do repositório precisa bater com o ledger de produção. Já divergiu uma
+vez, em timestamps, e `db push` teria reaplicado migrations sobre objetos existentes.
+
+Nunca apagar, reescrever ou normalizar silenciosamente dados, histórico ou assets.
+
+## Verificação
+
+```bash
+npm run verify
+```
+
+Roda a mesma sequência do CI: lint, tipos, as três suítes e o build de produção. Se passa aqui,
+passa lá.
+
+O CI existe em `.github/workflows/ci.yml` mas **nunca rodou**: o repositório não tem remoto. Uma
+execução remota verde é gate obrigatório antes do primeiro piloto.

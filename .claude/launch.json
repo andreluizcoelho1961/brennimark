@@ -2,23 +2,18 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "hairline",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "--webpack", "-p", "3011"],
+      "name": "brennimark",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3011"
+      ],
       "port": 3011,
       "env": {
-        "NEXT_PUBLIC_BRANDVILLE_INSTANCE": "hairline",
-        "NEXT_PUBLIC_SKIP_AUTH": "true"
-      }
-    },
-    {
-      "name": "oxxo",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "--webpack", "-p", "3012"],
-      "port": 3012,
-      "env": {
-        "NEXT_PUBLIC_BRANDVILLE_INSTANCE": "oxxo",
-        "NEXT_PUBLIC_SKIP_AUTH": "true"
+        "BRANDVILLE_DEV_SKIP_AUTH": "true"
       }
     }
   ]

@@ -1,3 +1,14 @@
+> **Documento histórico — não é especificação vigente.**
+>
+> Descreve a arquitetura da instalação única, com conteúdo de marca versionado em código. Substituído pelo [ADR-0003](./adr/0003-produto-hospedado-multi-marca.md), que adota
+> produto hospedado multi-marca com silo como plano superior, e pelo
+> [ADR-0004](./adr/0004-o-produto-age-na-criacao.md).
+>
+> Preservado porque o raciocínio continua útil e porque a opção de silo permanece disponível como
+> plano. Onde este texto divergir dos ADRs, valem os ADRs.
+
+---
+
 # Brandville — Architecture (current implementation)
 
 Internal reference for how the app works and is put together **today**. See

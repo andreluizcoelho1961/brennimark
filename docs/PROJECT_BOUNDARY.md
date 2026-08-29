@@ -1,4 +1,4 @@
-# Limite do projeto — aplicativo de gestão de marcas
+# Limite do projeto — Brennimark
 
 ## Este repositório é o produto
 
@@ -12,13 +12,21 @@ Aqui vivem:
 - onboarding, pricing, demo comercial e documentação do produto;
 - materiais técnicos, comerciais e de investimento da startup.
 
-`Brandville` é um codinome legado no código. Não tratar como nome comercial aprovado.
+**Brennimark** é o nome de trabalho do produto. `Brandville` é codinome legado que ainda aparece
+em identificadores internos e não pode voltar à interface.
 
-## As marcas são instâncias, não o produto
+## As marcas são dados, não o produto
 
-The BluesMaker, Hairline, Empresa Modelo, Guitar Garage e futuras marcas são dados e
-configurações carregados na plataforma. Cada uma mantém sua própria fonte da verdade fora
-deste repositório ou em um pacote de conteúdo explicitamente controlado.
+Uma marca é conteúdo carregado na plataforma — nunca código versionado aqui. Cada uma mantém sua
+própria fonte da verdade fora deste repositório, e entra pelo mesmo caminho que qualquer cliente
+usará: importação de manual.
+
+**Nenhuma marca vive neste repositório.** The BluesMaker, Hairline e Guitar Garage existiam aqui
+como instâncias em código e foram removidos por inteiro em 28/08/2026 — instâncias, componentes
+exclusivos, conteúdo, assets e fontes licenciadas. Recriar qualquer um deles em código seria
+desfazer a decisão do [ADR-0003](./adr/0003-produto-hospedado-multi-marca.md).
+
+Se precisar de uma marca para testar, importe um PDF.
 
 Uma instância não pode:
 

@@ -1,3 +1,14 @@
+> **Documento histórico — não é especificação vigente.**
+>
+> Especifica o produto sob o nome e a arquitetura anteriores. Substituído pelo [ADR-0003](./adr/0003-produto-hospedado-multi-marca.md), que adota
+> produto hospedado multi-marca com silo como plano superior, e pelo
+> [ADR-0004](./adr/0004-o-produto-age-na-criacao.md).
+>
+> Preservado porque o raciocínio continua útil e porque a opção de silo permanece disponível como
+> plano. Onde este texto divergir dos ADRs, valem os ADRs.
+
+---
+
 # Brandville Product Architecture v1.0
 
 **Document type:** Product architecture specification  
