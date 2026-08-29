@@ -1,9 +1,7 @@
 import { notFound } from "next/navigation";
-import { brandvilleInstance } from "@/brandville/config";
-import { getBrandvilleAuthContext, getResolvedBrandDoc, getResolvedBrandDocs } from "@/lib/brandville/server";
+import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { shellSections } from "@/components/shell/navigation";
-import { capabilitiesForRole } from "@/platform/capabilities";
 import { BrandCanvas } from "@/components/BrandCanvas";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
 import { DocPage } from "@/components/docs/DocPage";
@@ -26,19 +24,21 @@ export default async function ShellV2Preview({
   if (process.env.NODE_ENV === "production") notFound();
 
   const { slug } = await params;
-  const path = slug?.join("/") || brandvilleInstance.navigation.defaultDocSlug;
-
-  const context = await getBrandvilleAuthContext();
-  const capabilities = capabilitiesForRole(context?.role ?? "member");
-  const docs = await getResolvedBrandDocs(context);
-  const entry = (await getResolvedBrandDoc(path)) ?? docs[0];
+  const { brand, docs, capabilities, userEmail, defaultDocSlug } = await resolveWorkspaceContext();
+  const caminho = slug?.join("/") || defaultDocSlug;
+  const entry = docs.find((doc) => doc.slug === caminho) ?? docs[0];
 
   return (
-    <AppShellV2 sections={shellSections({ capabilities })} docs={docs} userEmail={context?.user.email ?? undefined}
+    <AppShellV2
+      sections={shellSections({ capabilities })}
+      docs={docs}
+      userEmail={userEmail}
+      brandName={brand?.brand.name}
+      brandDescriptor={brand?.brand.descriptor}
       basePath="/dev/shell-v2"
     >
-      {entry ? (
-        <BrandCanvas>
+      {brand && entry ? (
+        <BrandCanvas theme={brand.theme}>
           <DocPage entry={entry} />
         </BrandCanvas>
       ) : (

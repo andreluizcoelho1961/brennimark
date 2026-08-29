@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { generatedBrandvilleInstances } from "./instances/generated";
 import { brandvilleInstanceDefinition as unconfiguredInstance } from "./instances/unconfigured";
-import { brandAliasVars, brandCssVars, platformAliasVars, platformCssVars } from "../platform/tokens";
+import { platformAliasVars, platformCssVars } from "../platform/tokens";
 import type { BrandvilleInstance, BrandvilleUtilityKey } from "./types";
 
 export const brandvilleInstances = {
@@ -20,10 +20,19 @@ export function resolveBrandvilleInstance(key?: string): BrandvilleInstance {
   return instance;
 }
 
+/**
+ * COMPATIBILIDADE TEMPORÁRIA, não arquitetura.
+ *
+ * A marca ativa é resolvida por requisição, em
+ * lib/brandville/workspace-context.ts. Este objeto sobrevive apenas para os
+ * pontos ainda não migrados — microcópia por idioma (patch 3) e o caminho de
+ * escrita da administração (patch 2) — e sai no patch 7, quando a marca passar
+ * a ser escolhida em tempo de execução.
+ *
+ * Nenhum componente novo deve lê-lo como fonte da marca ativa. Ele é global
+ * por processo: duas contas servidas pelo mesmo processo veriam a mesma marca.
+ */
 export const brandvilleInstance = resolveBrandvilleInstance(process.env.NEXT_PUBLIC_BRANDVILLE_INSTANCE);
-
-/** Verdadeiro enquanto nenhum manual tiver sido importado. */
-export const hasBrand = brandvilleInstance.key !== "unconfigured";
 
 /**
  * Duas camadas, dois namespaces.
@@ -36,12 +45,6 @@ export const hasBrand = brandvilleInstance.key !== "unconfigured";
 export const platformThemeStyle = {
   ...platformCssVars(),
   ...platformAliasVars(),
-} as CSSProperties;
-
-/** Conteúdo da marca. Escopo do BrandCanvas, nunca do documento. */
-export const brandThemeStyle = {
-  ...brandCssVars(brandvilleInstance.theme),
-  ...brandAliasVars(),
 } as CSSProperties;
 
 const utilityCatalog: Record<BrandvilleUtilityKey, { href: string; code: string; label: string }> = {

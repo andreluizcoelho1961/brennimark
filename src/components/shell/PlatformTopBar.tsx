@@ -13,10 +13,14 @@ import { WorkspaceIdentity } from "./WorkspaceIdentity";
  */
 export function PlatformTopBar({
   userEmail,
+  brandName,
+  brandDescriptor,
   onOpenSearch,
   children,
 }: {
   userEmail?: string;
+  brandName?: string;
+  brandDescriptor?: string;
   onOpenSearch?: () => void;
   children?: React.ReactNode;
 }) {
@@ -32,7 +36,7 @@ export function PlatformTopBar({
         <span className="truncate text-[13px] font-semibold tracking-tight text-platform-text">
           {platformIdentity.displayName}
         </span>
-        <WorkspaceIdentity />
+        <WorkspaceIdentity name={brandName} descriptor={brandDescriptor} />
       </span>
 
       <div className="ml-auto flex items-center gap-[var(--space-shell-3)]">

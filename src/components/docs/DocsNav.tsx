@@ -63,7 +63,7 @@ function RailItem({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: DocPageEntry[]; isOwner?: boolean }) {
+export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: readonly DocPageEntry[]; isOwner?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const searchRef = useRef<HTMLInputElement>(null);

@@ -13,6 +13,9 @@
 export const platformIdentity = {
   /** Nome exibido na interface. Trocar aqui renomeia o produto inteiro. */
   displayName: "Brennimark",
+  /** Descrição do PRODUTO, usada nos metadados da aplicação. Não descreve
+   *  nenhuma marca cliente: quem descreve a marca é o manual dela. */
+  tagline: "Sistema de gestão de manuais de marca.",
   /** Verdadeiro enquanto o nome for provisório. A interface pode sinalizar. */
   isProvisionalName: true,
 } as const;

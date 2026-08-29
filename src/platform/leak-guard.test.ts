@@ -31,6 +31,11 @@ const BOUNDARY = ["src/components/BrandCanvas.tsx"];
 const raiz = process.cwd();
 const ler = (rel: string) => readFileSync(path.join(raiz, rel), "utf8");
 
+/** Igual a `ler`, sem comentários. Documentar o que foi removido é legítimo;
+ *  o que a guarda persegue é código. */
+const lerCodigo = (rel: string) =>
+  ler(rel).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
 test("nenhum componente migrado usa token com nome de release de cliente", () => {
   for (const arquivo of [...MOLDURA, ...BOUNDARY]) {
     assert.doesNotMatch(ler(arquivo), /release-analog-/, `${arquivo} ainda usa release-analog-*`);
@@ -106,4 +111,50 @@ test("a V2 não tem texto de interface fixo em um idioma", () => {
     const literaisSuspeitos = fonte.match(/>\s*(Buscar|Search|Configurações|Settings)\s*</g);
     assert.equal(literaisSuspeitos, null, `${arquivo} tem rótulo fixo: ${literaisSuspeitos?.join(", ")}`);
   }
+});
+
+/**
+ * Patch 1. Estes arquivos resolvem ou exibem a marca ativa, e a marca ativa
+ * pertence à requisição. Importar `brandvilleInstance` aqui devolveria um
+ * objeto global por processo — a marca de uma conta apareceria para outra sob
+ * concorrência, e o defeito só se manifestaria com duas contas simultâneas.
+ */
+const CAMINHO_DA_MARCA = [
+  "src/components/BrandCanvas.tsx",
+  "src/components/shell/WorkspaceIdentity.tsx",
+  "src/lib/brandville/context.ts",
+  "src/lib/brandville/workspace-context.ts",
+  "src/app/docs/page.tsx",
+  "src/app/docs/[...slug]/page.tsx",
+  "src/app/docs/layout.tsx",
+  "src/app/layout.tsx",
+];
+
+test("o caminho da marca ativa não importa a instância global", () => {
+  for (const arquivo of CAMINHO_DA_MARCA) {
+    assert.doesNotMatch(
+      ler(arquivo),
+      /^\s*import\s.*brandvilleInstance.*$/m,
+      `${arquivo} lê a marca de um objeto de módulo; a marca ativa é da requisição`,
+    );
+  }
+});
+
+test("nenhum código decide comportamento por hasBrand", () => {
+  // `hasBrand` era constante calculada da instância estática na inicialização
+  // do processo: uma marca podia existir no banco e a interface continuar
+  // mostrando o estado vazio. Foi removida; esta guarda impede que volte.
+  for (const arquivo of CAMINHO_DA_MARCA) {
+    assert.doesNotMatch(lerCodigo(arquivo), /\bhasBrand\b/, `${arquivo} voltou a usar hasBrand`);
+  }
+});
+
+test("os metadados da aplicação são do produto, não do manual", () => {
+  const codigo = lerCodigo("src/app/layout.tsx");
+  assert.match(codigo, /platformIdentity/, "o título da aba precisa vir da plataforma");
+  assert.doesNotMatch(
+    codigo,
+    /brandvilleInstance\.metadata/,
+    "a marca do cliente não batiza a janela do Brennimark",
+  );
 });

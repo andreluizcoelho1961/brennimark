@@ -23,12 +23,18 @@ export function AppShellV2({
   sections,
   docs,
   userEmail,
+  brandName,
+  brandDescriptor,
   basePath,
   children,
 }: {
   sections: ShellSection[];
   docs: readonly DocPageEntry[];
   userEmail?: string;
+  /** Contexto da marca ativa, resolvido pela requisição. A moldura o exibe
+   *  como rótulo; nenhum componente daqui vai buscá-lo por conta própria. */
+  brandName?: string;
+  brandDescriptor?: string;
   /** Prefixo alternativo para os destinos. Existe para a rota de comparação
    *  manter a navegação dentro da V2; em produção fica ausente e os destinos
    *  são os reais. String, não função: não atravessa a fronteira de servidor
@@ -57,7 +63,12 @@ export function AppShellV2({
 
   return (
     <div className="flex h-dvh flex-col bg-platform-bg text-platform-text">
-      <PlatformTopBar userEmail={userEmail} onOpenSearch={openSearch} />
+      <PlatformTopBar
+          userEmail={userEmail}
+          brandName={brandName}
+          brandDescriptor={brandDescriptor}
+          onOpenSearch={openSearch}
+        />
       <div className="flex min-h-0 flex-1">
         <DesktopSidebar sections={sections} basePath={basePath} />
         <main className="min-w-0 flex-1 overflow-y-auto p-[var(--space-shell-4)]">

@@ -1,12 +1,27 @@
 import type { Metadata } from "next";
-import { brandvilleInstance, platformThemeStyle } from "@/brandville/config";
+import { platformThemeStyle } from "@/brandville/config";
+import { platformIdentity } from "@/platform/identity";
 import "./globals.css";
 
+/**
+ * Metadados do PRODUTO, não do manual.
+ *
+ * Antes o título da aba e o idioma do documento vinham de
+ * `brandvilleInstance.metadata` — a marca do cliente batizava a janela do
+ * Brennimark, e um manual em inglês fazia o aplicativo inteiro se declarar em
+ * inglês para o leitor de tela. São dois metadados diferentes: a página do
+ * manual descreve a marca; a aplicação descreve a si mesma.
+ *
+ * O `lang` do documento é o idioma da INTERFACE. O patch 3 o liga à
+ * preferência da pessoa; até lá é o padrão do produto.
+ */
 export const metadata: Metadata = {
-  title: brandvilleInstance.metadata.title,
-  description: brandvilleInstance.metadata.description,
+  title: platformIdentity.displayName,
+  description: platformIdentity.tagline,
   robots: { index: false, follow: false },
 };
+
+const LOCALE_PADRAO = "pt-BR";
 
 export default function RootLayout({
   children,
@@ -14,11 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang={brandvilleInstance.metadata.language}
-      className="h-full antialiased"
-      style={platformThemeStyle}
-    >
+    <html lang={LOCALE_PADRAO} className="h-full antialiased" style={platformThemeStyle}>
       <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
