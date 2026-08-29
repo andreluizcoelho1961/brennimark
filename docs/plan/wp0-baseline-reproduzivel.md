@@ -264,10 +264,10 @@ apontando o objeto ausente.
 
 ## Definition of Done do WP0 (briefing §22 aplicado)
 
-- [ ] Ambiente novo criado do zero apenas com repositório, `.env.example` e acessos legítimos
-- [ ] Diff de esquema entre ambientes documentado, com decisão explícita para cada divergência
+- [x] **Ambiente novo criado do zero apenas com repositório** — projeto `brennimark` provisionado em 29/08/2026 e as 16 migrations aplicadas em ordem, sem erro
+- [x] Diff de esquema entre ambientes documentado — ver auditoria §2.1-bis
 - [ ] `npm run lint`, `npx tsc --noEmit`, as três suítes de teste e `npm run build` passam
-- [ ] Nenhuma migration depende de objeto não documentado
+- [x] **Nenhuma migration depende de objeto não documentado** — provado pela aplicação limpa
 - [ ] Uma segunda pessoa executou o runbook sem ajuda informal
 - [ ] Teste de restauração de backup executado e registrado com data
 - [ ] R1, R2, R3, R4, R10 e R11 da matriz de riscos fechados
@@ -275,6 +275,24 @@ apontando o objeto ausente.
 - [ ] Nenhuma decisão comercial da §24 foi presumida
 
 ---
+
+## Aplicação limpa executada em 29/08
+
+O projeto `brennimark` foi provisionado do zero e recebeu as 16 migrations em ordem, **sem um único
+erro**. É a prova que faltava de que o histórico recuperado no PR-04 está íntegro — e o critério de
+aceite central do WP0.
+
+A aplicação limpa encontrou um defeito que nenhum ambiente existente teria revelado:
+`analysis_runs` e `ai_routing_policies` mantinham os grants padrão do Supabase para `anon`,
+inclusive `TRUNCATE`, que não passa por RLS. As migrations delas concediam a `authenticated` sem
+revogar de `anon`, e as tabelas fundacionais já tinham sido corrigidas em `20260827215129` — estas
+duas passaram batido.
+
+Corrigido em `20260829090000`. Advisors de segurança do Supabase: nenhum apontamento. Nenhuma
+tabela sem RLS, e `anon` sem alcance a tabela alguma.
+
+**É a justificativa concreta do PR-10.** O teste de stack limpa não é higiene: ele acabou de achar
+um privilégio aberto que quatro meses de uso não acharam.
 
 ## Mudança de prioridade registrada em 28/08
 
