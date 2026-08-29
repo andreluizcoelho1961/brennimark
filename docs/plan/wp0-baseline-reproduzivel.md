@@ -24,7 +24,7 @@ humana identificada na auditoria §6.
 | 07 | Verificação autenticada do BYOK | — | M | pronto |
 | 08 | Extrair a lógica específica de instância do core | R10 | M | pronto |
 | 09 | Reconciliar a documentação | — | M | **[parcial: D2]** |
-| 09b | CI mínimo: lint, tipos, testes, build | R11 | P | **feito, execução remota pendente** |
+| 09b | CI mínimo: lint, tipos, testes, build | R11 | P | **feito e verde no GitHub** |
 | 10 | Teste de stack Supabase local em CI | R2, R11 | M | depende de 04 e de 09b |
 
 ---

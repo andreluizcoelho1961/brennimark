@@ -97,12 +97,14 @@ marca depender dele.
 | PR | Escopo | Verificação |
 | --- | --- | --- |
 | 1 | Esquema: `brands`, `brand_id` em `brand_documents`, RLS, **teste de autorização negativo** | Migração numa stack limpa; A não lê o de B |
-| 2 | Leitura: `getResolvedBrandDocs` e a resolução de configuração passam a consultar `brands`, com reserva no registro | The BluesMaker e Hairline renderizam idênticos |
-| 3 | Escrita: seeder que exporta uma instância de código para linhas, sem interpretação | Ida e volta: exportar → importar → comparar campo a campo |
-| 4 | Migrar Hairline pelo caminho novo, mantendo o código como reserva | Comparação visual página a página; status preservado |
-| 5 | Gerador e importador de PDF passam a gravar no banco | Importar um PDF e ver a marca no ar sem tocar em arquivo |
-| 6 | Administração cria e edita marca inteira, não só páginas | Criar uma marca do zero pela interface |
-| 7 | Remover o registro em código quando ninguém depender dele | `grep` prova ausência de consumidor |
+| 2 | Leitura: `getResolvedBrandDocs` e a configuração passam a consultar `brands` | **feito** — sem herança, não há reserva a manter |
+| 3 | Importador de PDF passa a criar marca no banco, pela interface | Subir um PDF e ver a marca no ar sem tocar em arquivo |
+| 4 | Administração cria e edita marca inteira, não só páginas | Criar uma marca do zero pela interface |
+
+**O plano encolheu de sete PRs para quatro.** Os PRs 3, 4 e 7 originais — exportar código para
+linhas, migrar o Hairline, e remover o registro — deixaram de existir quando toda a herança foi
+removida em 28/08. Com isso o risco 1, perda silenciosa de conteúdo na conversão, também
+desapareceu: não há o que converter.
 
 Cada PR mantém o aplicativo funcional e termina com `npm run verify` verde.
 

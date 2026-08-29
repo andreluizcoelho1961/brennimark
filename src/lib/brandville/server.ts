@@ -1,7 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { activeDocsRegistry, brandvilleInstance } from "@/brandville/config";
-import { parseDocBlocks } from "@/content/doc-blocks";
-import type { DocPageEntry, DocPageImage, DocStatus } from "@/content/docs";
+import { parseBrandRow, parseDocumentRow, type ActiveBrand } from "./brand-row";
+import type { DocPageEntry, DocPageImage } from "@/content/docs";
 import { createClient } from "@/lib/supabase/server";
 
 const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
@@ -31,13 +30,7 @@ export async function getBrandvilleAuthContext(): Promise<BrandvilleAuthContext 
   return { supabase, user, workspaceId: data.workspace_id, role: data.role };
 }
 
-function validStatus(value: unknown): value is DocStatus {
-  return value === "ready" || value === "draft" || value === "pending";
-}
 
-function validBody(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
 
 export function validImages(value: unknown): value is DocPageImage[] {
   return Array.isArray(value) && value.every((item) => {
@@ -48,32 +41,59 @@ export function validImages(value: unknown): value is DocPageImage[] {
   });
 }
 
-export async function getResolvedBrandDocs(context?: BrandvilleAuthContext | null): Promise<DocPageEntry[]> {
+/**
+ * A marca ativa desta requisição.
+ *
+ * Enquanto a instância é escolhida por variável de ambiente em build, ela
+ * seleciona qual linha carregar. A migração 2 substitui isso por resolução em
+ * tempo de execução, e então uma conta poderá servir várias marcas.
+ */
+export async function resolveActiveBrand(
+  context?: BrandvilleAuthContext | null,
+): Promise<ActiveBrand | null> {
   const auth = context === undefined ? await getBrandvilleAuthContext() : context;
-  if (!auth) return [...activeDocsRegistry];
+  if (!auth) return null;
+
+  const chave = process.env.NEXT_PUBLIC_BRANDVILLE_INSTANCE;
+  let consulta = auth.supabase
+    .from("brands")
+    .select("id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal, status_labels")
+    .eq("workspace_id", auth.workspaceId);
+
+  if (chave && chave !== "unconfigured") consulta = consulta.eq("key", chave);
+
+  const { data, error } = await consulta.order("created_at", { ascending: true }).limit(1).maybeSingle();
+  if (error) throw error;
+
+  return parseBrandRow(data);
+}
+
+/**
+ * As páginas do manual, direto do banco.
+ *
+ * Antes esta função percorria um registro em código e procurava sobreposições
+ * no banco. Agora o banco é a fonte: sem marca, não há páginas — e é isso que
+ * o estado vazio mostra, em vez de conteúdo de exemplo.
+ */
+export async function getResolvedBrandDocs(
+  context?: BrandvilleAuthContext | null,
+): Promise<DocPageEntry[]> {
+  const auth = context === undefined ? await getBrandvilleAuthContext() : context;
+  if (!auth) return [];
+
+  const marca = await resolveActiveBrand(auth);
+  if (!marca) return [];
 
   const { data, error } = await auth.supabase
     .from("brand_documents")
     .select("slug, group_name, title, status, body, images, blocks, sort_order")
-    .eq("workspace_id", auth.workspaceId)
-    .eq("instance_key", brandvilleInstance.key);
+    .eq("brand_id", marca.id)
+    .order("sort_order", { ascending: true });
   if (error) throw error;
 
-  const overrides = new Map((data ?? []).map((row) => [row.slug, row]));
-  return activeDocsRegistry.map((base, index) => {
-    const row = overrides.get(base.slug);
-    if (!row) return base;
-    return {
-      slug: base.slug,
-      group: typeof row.group_name === "string" ? row.group_name : base.group,
-      title: typeof row.title === "string" ? row.title : base.title,
-      status: validStatus(row.status) ? row.status : base.status,
-      body: validBody(row.body) ? row.body : base.body,
-      images: validImages(row.images) ? row.images : base.images,
-      blocks: parseDocBlocks(row.blocks) ?? base.blocks,
-      sortOrder: typeof row.sort_order === "number" ? row.sort_order : index,
-    } as DocPageEntry & { sortOrder: number };
-  });
+  // Linha que não passa na tradução some do manual em vez de aparecer com
+  // valor indefinido. Ver o comentário em brand-row.ts.
+  return (data ?? []).map(parseDocumentRow).filter((entry): entry is DocPageEntry => entry !== null);
 }
 
 export async function getResolvedBrandDoc(slug: string): Promise<DocPageEntry | undefined> {
