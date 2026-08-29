@@ -4,22 +4,20 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { FeedbackPanel } from "@/components/analysis/FeedbackPanel";
 import type { AnalysisRun, AnalysisVerdict } from "@/lib/analysis/history";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
-const locale = isEnglish ? "en-US" : "pt-BR";
-
-const EXPECTED: Array<{ value: Exclude<AnalysisVerdict, "unknown">; label: string }> = isEnglish
-  ? [
+const EXPECTED_POR_IDIOMA: Record<"en" | "pt-BR", Array<{ value: Exclude<AnalysisVerdict, "unknown">; label: string }>> = {
+  en: [
       { value: "aligned", label: "Aligned" },
       { value: "partially_aligned", label: "Partially aligned" },
       { value: "misaligned", label: "Misaligned" },
-    ]
-  : [
-      { value: "aligned", label: "Alinhada" },
-      { value: "partially_aligned", label: "Parcialmente alinhada" },
-      { value: "misaligned", label: "Desalinhada" },
-    ];
+  ],
+  "pt-BR": [
+    { value: "aligned", label: "Alinhada" },
+    { value: "partially_aligned", label: "Parcialmente alinhada" },
+    { value: "misaligned", label: "Desalinhada" },
+  ],
+};
 
 function Section({ title, value }: { title: string; value: string | string[] }) {
   const values = Array.isArray(value) ? value : value ? [value] : [];
@@ -37,6 +35,9 @@ function Section({ title, value }: { title: string; value: string | string[] }) 
 }
 
 export default function AnalysisHistoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const isEnglish = useIsEnglish();
+  const EXPECTED = EXPECTED_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
+  const locale = isEnglish ? "en-US" : "pt-BR";
   const { id } = use(params);
   const [run, setRun] = useState<AnalysisRun | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,7 +64,7 @@ export default function AnalysisHistoryDetailPage({ params }: { params: Promise<
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [id]);
+  useEffect(load, [id, isEnglish]);
 
   async function saveCalibration() {
     setCalibrationMessage(isEnglish ? "Saving…" : "Salvando…");

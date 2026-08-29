@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { LocaleProvider } from "@/platform/locale-client";
+import { PRODUCT_LOCALE } from "@/platform/locale";
 import type { DocPageEntry } from "@/content/docs";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -41,5 +43,9 @@ export default async function AdminPanelLab({
     ? [{ slug: "tipografia", title: "Tipografia", deletedAt: "2026-08-29T12:00:00.000Z" }]
     : [];
 
-  return <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} />;
+  return (
+    <LocaleProvider locale={PRODUCT_LOCALE}>
+      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} />
+    </LocaleProvider>
+  );
 }

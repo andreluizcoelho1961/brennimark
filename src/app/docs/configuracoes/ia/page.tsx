@@ -11,9 +11,8 @@ import {
   type AIRoutingPolicy,
 } from "@/lib/ai/provider";
 import { AIRoutingPanel } from "@/components/ai/AIRoutingPanel";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
 type StoredAISetting = {
   id: string;
@@ -26,11 +25,13 @@ type StoredAISetting = {
   updatedAt: string;
 };
 
-const ROLE_LABEL: Record<AIRole, string> = isEnglish
-  ? { chat: "Chat", analysis: "Review", both: "Chat + Review" }
-  : { chat: "Chat", analysis: "Análise", both: "Chat + Análise" };
+const ROLE_LABEL_POR_IDIOMA = {
+  en: { chat: "Chat", analysis: "Review", both: "Chat + Review" },
+  "pt-BR": { chat: "Chat", analysis: "Análise", both: "Chat + Análise" },
+} satisfies Record<string, Record<AIRole, string>>;
 
 function DemoBadge({ role, settings }: { role: "chat" | "analysis"; settings: StoredAISetting[] }) {
+  const isEnglish = useIsEnglish();
   const hasActive = settings.some((s) => s.isActive && (s.role === role || s.role === "both"));
   if (hasActive) return null;
   const roleLabel = isEnglish ? (role === "chat" ? "Chat" : "Review") : (role === "chat" ? "Chat" : "Análise");
@@ -45,6 +46,8 @@ function DemoBadge({ role, settings }: { role: "chat" | "analysis"; settings: St
 }
 
 export default function AISettingsPage() {
+  const isEnglish = useIsEnglish();
+  const ROLE_LABEL = ROLE_LABEL_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [settings, setSettings] = useState<StoredAISetting[]>([]);
   const [policies, setPolicies] = useState<AIRoutingPolicy[]>([]);
   const [routingEditable, setRoutingEditable] = useState(false);

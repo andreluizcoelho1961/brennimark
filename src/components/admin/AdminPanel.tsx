@@ -5,13 +5,12 @@ import Link from "next/link";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { VersionHistory } from "@/components/admin/VersionHistory";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
-
-const STATUS_LABEL: Record<DocStatus, string> = isEnglish
-  ? { ready: "Approved", draft: "Draft", pending: "In progress" }
-  : { ready: "Pronto", draft: "Rascunho", pending: "Em construção" };
+const STATUS_LABEL_POR_IDIOMA = {
+  en: { ready: "Approved", draft: "Draft", pending: "In progress" },
+  "pt-BR": { ready: "Pronto", draft: "Rascunho", pending: "Em construção" },
+} satisfies Record<string, Record<DocStatus, string>>;
 
 type DeletedPage = { slug: string; title: string; deletedAt: string };
 
@@ -26,6 +25,8 @@ export function AdminPanel({
   deletedPages?: DeletedPage[];
   groups: readonly string[];
 }) {
+  const isEnglish = useIsEnglish();
+  const STATUS_LABEL = STATUS_LABEL_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [docs, setDocs] = useState(initialDocs);
   const [persistedDocs, setPersistedDocs] = useState(initialDocs);
   const [excluidas, setExcluidas] = useState(deletedPages);
@@ -164,7 +165,7 @@ export function AdminPanel({
         <div className="mt-12 border-t border-border-default pt-12">
           <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-release-analog-turquoise">{isEnglish ? "Library" : "Biblioteca"}</p>
           <h2 className="mt-3 font-display text-3xl font-black uppercase text-release-analog-white">{isEnglish ? "Official assets" : "Assets oficiais"}</h2>
-          <div className="mt-8"><AssetLibrary canManage language={brandvilleInstance.metadata.language} /></div>
+          <div className="mt-8"><AssetLibrary canManage /></div>
         </div>
       </div>
     );
@@ -223,7 +224,7 @@ export function AdminPanel({
         <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-release-analog-turquoise">{isEnglish ? "Library" : "Biblioteca"}</p>
         <h2 className="mt-3 font-display text-3xl font-black uppercase text-release-analog-white">{isEnglish ? "Official assets" : "Assets oficiais"}</h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">{isEnglish ? "Upload logos, images, PDFs, fonts, and ZIP packages. Files stay private and download links expire automatically." : "Envie logos, imagens, PDFs, fontes e pacotes ZIP. Os arquivos ficam privados e os links de download expiram automaticamente."}</p>
-        <div className="mt-8"><AssetLibrary canManage language={brandvilleInstance.metadata.language} /></div>
+        <div className="mt-8"><AssetLibrary canManage /></div>
       </section>
     </div>
   );

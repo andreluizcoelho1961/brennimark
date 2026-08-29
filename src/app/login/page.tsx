@@ -4,17 +4,19 @@ import { platformIdentity } from "@/platform/identity";
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
 type Mode = "signin" | "signup";
 type Status = "idle" | "submitting" | "check-email" | "error";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
-const AUTH_FAILED_MESSAGE = isEnglish
-  ? "Something went wrong signing in. Please try again."
-  : "Algo deu errado ao entrar. Tente de novo.";
+const AUTH_FAILED_MESSAGE_POR_IDIOMA = {
+  en: "Something went wrong signing in. Please try again.",
+  "pt-BR": "Algo deu errado ao entrar. Tente de novo.",
+};
 
 function LoginForm() {
+  const isEnglish = useIsEnglish();
+  const AUTH_FAILED_MESSAGE = AUTH_FAILED_MESSAGE_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const router = useRouter();
   const searchParams = useSearchParams();
   const hadAuthError = searchParams.get("error") === "auth_failed";

@@ -7,9 +7,12 @@ import { classifyAIError } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
-import { brandvilleInstance } from "@/brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
+// Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
+// Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
+// padrão do produto responde por todo mundo — e a fonte é uma só.
+const isEnglish = inEnglish(PRODUCT_LOCALE);
 const CHAT_TIMEOUT_MS = 60_000;
 
 export const maxDuration = 120;

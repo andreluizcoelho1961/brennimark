@@ -5,9 +5,8 @@ import Link from "next/link";
 import type { StructuredAnalysis } from "@/lib/ai/analysis-result";
 import { FeedbackPanel } from "@/components/analysis/FeedbackPanel";
 import type { AnalysisRun } from "@/lib/analysis/history";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
 type ProgressStage = "preparing" | "consulting" | "fallback" | "verifying";
 type Attempt = { provider: string; model: string; elapsedMs: number; status: "failed" | "completed" };
@@ -23,17 +22,18 @@ type StreamEvent =
   | ({ type: "complete"; analysis: StructuredAnalysis; isDemo: boolean; historyId: string | null; historySaved: boolean; imageSaved: boolean } & AnalysisMeta)
   | { type: "error"; error: string; message: string; elapsedMs: number };
 
-const STEPS: Array<{ stage: ProgressStage; label: string }> = isEnglish
-  ? [
-      { stage: "preparing", label: "Preparing image" },
-      { stage: "consulting", label: "Consulting visual AI" },
-      { stage: "verifying", label: "Verifying guidelines" },
-    ]
-  : [
-      { stage: "preparing", label: "Preparando imagem" },
-      { stage: "consulting", label: "Consultando IA visual" },
-      { stage: "verifying", label: "Verificando diretrizes" },
-    ];
+const STEPS_POR_IDIOMA: Record<"en" | "pt-BR", Array<{ stage: ProgressStage; label: string }>> = {
+  en: [
+    { stage: "preparing", label: "Preparing image" },
+    { stage: "consulting", label: "Consulting visual AI" },
+    { stage: "verifying", label: "Verifying guidelines" },
+  ],
+  "pt-BR": [
+    { stage: "preparing", label: "Preparando imagem" },
+    { stage: "consulting", label: "Consultando IA visual" },
+    { stage: "verifying", label: "Verificando diretrizes" },
+  ],
+};
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -44,12 +44,14 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
-function seconds(milliseconds: number) {
+function seconds(milliseconds: number, isEnglish: boolean) {
   const value = (milliseconds / 1_000).toFixed(1);
   return isEnglish ? `${value} s` : `${value.replace(".", ",")} s`;
 }
 
 function AnalysisProgress({ stage, message, elapsedMs }: { stage: ProgressStage; message: string; elapsedMs: number }) {
+  const isEnglish = useIsEnglish();
+  const STEPS = STEPS_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const normalizedStage = stage === "fallback" ? "consulting" : stage;
   const currentIndex = STEPS.findIndex((step) => step.stage === normalizedStage);
 
@@ -57,7 +59,7 @@ function AnalysisProgress({ stage, message, elapsedMs }: { stage: ProgressStage;
     <div className="border border-border-default p-5" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-4">
         <p className="font-display text-xs font-black uppercase tracking-wide text-release-analog-white">{isEnglish ? "Analysis in progress" : "Análise em andamento"}</p>
-        <span className="font-mono text-xs text-text-secondary">{seconds(elapsedMs)}</span>
+        <span className="font-mono text-xs text-text-secondary">{seconds(elapsedMs, isEnglish)}</span>
       </div>
       <ol className="mt-5 grid gap-3 sm:grid-cols-3">
         {STEPS.map((step, index) => {
@@ -112,6 +114,7 @@ function TextSection({ title, value }: { title: string; value: string }) {
 }
 
 function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: AnalysisMeta }) {
+  const isEnglish = useIsEnglish();
   const hasStructure = Boolean(result.verdict || result.evidence.length || result.rules.length || result.problems.length);
   return (
     <div className="space-y-6">
@@ -151,11 +154,11 @@ function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: An
         </summary>
         <div className="mt-3 space-y-1 font-mono text-[11px]">
           <p>{isEnglish ? "Model" : "Modelo"}: {meta.provider} / {meta.model}</p>
-          <p>{isEnglish ? "Total time" : "Tempo total"}: {seconds(meta.elapsedMs)}</p>
+          <p>{isEnglish ? "Total time" : "Tempo total"}: {seconds(meta.elapsedMs, isEnglish)}</p>
           <p>{isEnglish ? "Fallback" : "Reserva"}: {meta.fallbackUsed ? (isEnglish ? "used" : "utilizada") : (isEnglish ? "not used" : "não utilizada")}</p>
           {meta.attempts.map((attempt, index) => (
             <p key={`${attempt.provider}-${attempt.model}-${index}`}>
-              {isEnglish ? "Attempt" : "Tentativa"} {index + 1}: {attempt.provider} / {attempt.model} — {attempt.status === "completed" ? (isEnglish ? "completed" : "concluída") : (isEnglish ? "failed" : "falhou")} {isEnglish ? "in" : "em"} {seconds(attempt.elapsedMs)}
+              {isEnglish ? "Attempt" : "Tentativa"} {index + 1}: {attempt.provider} / {attempt.model} — {attempt.status === "completed" ? (isEnglish ? "completed" : "concluída") : (isEnglish ? "failed" : "falhou")} {isEnglish ? "in" : "em"} {seconds(attempt.elapsedMs, isEnglish)}
             </p>
           ))}
         </div>
@@ -165,6 +168,7 @@ function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: An
 }
 
 export default function AnalysisPage() {
+  const isEnglish = useIsEnglish();
   const [preview, setPreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
@@ -207,7 +211,7 @@ export default function AnalysisPage() {
       })
       .catch(() => setError(isEnglish ? "Couldn't retrieve the previous image. Please upload the piece again." : "Não foi possível recuperar a imagem anterior. Envie a peça novamente."))
       .finally(() => setLoadingPrevious(false));
-  }, []);
+  }, [isEnglish]);
 
   useEffect(() => {
     if (!loading || !startedAt) return;

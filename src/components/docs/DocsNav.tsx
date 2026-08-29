@@ -8,6 +8,7 @@ import {
   brandvilleInstance,
   brandvilleUtilityLinks as UTILITY_LINKS,
 } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 import type { DocPageEntry } from "@/content/docs";
 import { platformIdentity } from "@/platform/identity";
 
@@ -70,9 +71,9 @@ export function DocsNav({ docs: docsRegistry, isOwner = false }: { docs: readonl
   const [query, setQuery] = useState("");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const isEnglish = brandvilleInstance.metadata.language === "en";
+  const isEnglish = useIsEnglish();
   const utilityLinks = useMemo(() => [
-    ...UTILITY_LINKS,
+    ...UTILITY_LINKS(isEnglish ? "en" : "pt-BR"),
     { href: "/docs/biblioteca", code: "AS", label: isEnglish ? "Asset library" : "Biblioteca de assets" },
     ...(isOwner ? [{ href: "/docs/admin", code: "AD", label: isEnglish ? `Manage ${platformIdentity.displayName}` : `Administrar ${platformIdentity.displayName}` }] : []),
   ], [isEnglish, isOwner]);

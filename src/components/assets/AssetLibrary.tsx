@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import { useIsEnglish } from "@/platform/locale-client";
 
 type Asset = { id: string; label: string; description: string; category: string; file_name: string; mime_type: string; size_bytes: number; status: string; created_at: string; downloadUrl: string | null };
 function formatSize(bytes: number) { if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 
-export function AssetLibrary({ canManage = false, language = "pt" }: { canManage?: boolean; language?: string }) {
-  const isEnglish = language === "en";
+export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
+  // A biblioteca é instrumento da plataforma: rótulos, erros e estados vazios
+  // são do produto. Os nomes dos arquivos é que são da marca.
+  const isEnglish = useIsEnglish();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");

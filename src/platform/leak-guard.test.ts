@@ -272,3 +272,72 @@ test("a administração oferece as páginas excluídas", () => {
   assert.match(lerCodigo("src/app/docs/admin/page.tsx"), /getDeletedPages/);
   assert.match(lerCodigo("src/components/admin/AdminPanel.tsx"), /deletedPages/);
 });
+
+test("as rotas de laboratório continuam fechadas em produção", () => {
+  // Elas servem dados fixos e existem para o teste de navegador. Uma delas
+  // aberta em produção seria conteúdo falso servido como se fosse da marca.
+  for (const rota of [
+    "src/app/dev/shell-v2/[[...slug]]/page.tsx",
+    "src/app/dev/admin-panel/page.tsx",
+  ]) {
+    const codigo = lerCodigo(rota);
+    assert.match(codigo, /NODE_ENV === "production"/, `${rota} não verifica o ambiente`);
+    assert.match(codigo, /notFound\(\)/, `${rota} não fecha a porta`);
+  }
+});
+
+/**
+ * Patch 3. O idioma da interface é do produto e de quem usa; o idioma do
+ * manual é da marca. Eram a mesma coisa em 33 pontos.
+ *
+ * Duas exceções deliberadas, e só duas:
+ *
+ * - o selo de status, cujo vocabulário a marca declara e pode redefinir:
+ *   traduzi-lo diria na tela algo diferente do que a marca aprovou;
+ * - o prompt do assistente, que cita o manual e responde sobre ele.
+ */
+const FALAM_A_LINGUA_DO_PRODUTO = [
+  "src/components/shell/navigation.ts",
+  "src/components/shell/PlatformTopBar.tsx",
+  "src/components/shell/CommandPalette.tsx",
+  "src/components/docs/DocsNav.tsx",
+  "src/components/docs/DocPage.tsx",
+  "src/components/admin/AdminPanel.tsx",
+  "src/components/admin/VersionHistory.tsx",
+  "src/components/assets/AssetLibrary.tsx",
+  "src/components/ai/AIRoutingPanel.tsx",
+  "src/components/ai/AssistantMessage.tsx",
+  "src/components/analysis/FeedbackPanel.tsx",
+  "src/app/layout.tsx",
+  "src/app/login/page.tsx",
+  "src/app/docs/analise/page.tsx",
+  "src/app/docs/chat/page.tsx",
+  "src/app/docs/historico/page.tsx",
+  "src/app/docs/biblioteca/page.tsx",
+  "src/app/docs/configuracoes/ia/page.tsx",
+  "src/app/api/admin/content/route.ts",
+  "src/app/api/ai/chat/route.ts",
+  "src/lib/ai/errors.ts",
+];
+
+test("nenhum instrumento do produto decide microcópia pelo idioma do manual", () => {
+  for (const arquivo of FALAM_A_LINGUA_DO_PRODUTO) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /metadata\.language/,
+      `${arquivo} fala a língua do manual; um manual em inglês não muda o login de ninguém`,
+    );
+  }
+});
+
+test("o selo de status recebe o vocabulário da marca, sem buscá-lo", () => {
+  const selo = lerCodigo("src/components/docs/StatusBadge.tsx");
+  assert.match(selo, /statusLabels/, "o vocabulário editorial chega por propriedade");
+  assert.doesNotMatch(selo, /brandvilleInstance/, "e não de um objeto global de processo");
+});
+
+test("resolveInterfaceLocale não aceita o idioma do manual", () => {
+  // A ausência é o ponto: se houvesse um parâmetro de marca, alguém acabaria
+  // passando brand.metadata.language para cá.
+  assert.doesNotMatch(lerCodigo("src/platform/locale.ts"), /brand|manual\.language/i);
+});

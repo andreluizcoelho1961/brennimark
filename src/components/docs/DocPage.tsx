@@ -1,9 +1,10 @@
 import Image from "next/image";
 import type { DocPageEntry } from "@/content/docs";
 import { StatusBadge } from "@/components/docs/StatusBadge";
+import type { StatusLabels } from "@/components/docs/status";
 import { AssetGrid } from "@/components/docs/AssetGrid";
 import { BlockRenderer } from "@/components/docs/blocks/BlockRenderer";
-import { brandvilleInstance } from "@/brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 function Title({ title }: { title: string }) {
   const words = title.split(" ");
@@ -21,10 +22,21 @@ function Title({ title }: { title: string }) {
   );
 }
 
-export function DocPage({ entry, children }: { entry: DocPageEntry; children?: React.ReactNode }) {
+export function DocPage({
+  entry,
+  brandLanguage,
+  statusLabels,
+  children,
+}: {
+  entry: DocPageEntry;
+  /** Idioma e vocabulário editorial DA MARCA — só o selo de status os usa. */
+  brandLanguage?: string;
+  statusLabels?: StatusLabels;
+  children?: React.ReactNode;
+}) {
   const [heroImage, ...restImages] = entry.images ?? [];
   const hasBody = Boolean(entry.body && entry.body.length > 0);
-  const isEnglish = brandvilleInstance.metadata.language === "en";
+  const isEnglish = inEnglish(PRODUCT_LOCALE);
 
   return (
     <article className="px-page-inline py-12 md:py-16">
@@ -39,7 +51,7 @@ export function DocPage({ entry, children }: { entry: DocPageEntry; children?: R
           <Title title={entry.title} />
 
           <div className="mt-5">
-            <StatusBadge status={entry.status} />
+            <StatusBadge status={entry.status} brandLanguage={brandLanguage} statusLabels={statusLabels} />
           </div>
 
           {hasBody && (

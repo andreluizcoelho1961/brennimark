@@ -2,21 +2,21 @@
 
 import { useState } from "react";
 import type { AnalysisFeedback } from "@/lib/analysis/history";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
-const OPTIONS: Array<{ value: AnalysisFeedback; label: string }> = isEnglish
-  ? [
-      { value: "correct", label: "Correct" },
-      { value: "partial", label: "Partial" },
-      { value: "incorrect", label: "Incorrect" },
-    ]
-  : [
-      { value: "correct", label: "Correta" },
-      { value: "partial", label: "Parcial" },
-      { value: "incorrect", label: "Incorreta" },
-    ];
+const OPTIONS_POR_IDIOMA: Record<"en" | "pt-BR", Array<{ value: AnalysisFeedback; label: string }>> = {
+  en: [
+    { value: "correct", label: "Correct" },
+    { value: "partial", label: "Partial" },
+    { value: "incorrect", label: "Incorrect" },
+  ],
+  "pt-BR": [
+    { value: "correct", label: "Correta" },
+    { value: "partial", label: "Parcial" },
+    { value: "incorrect", label: "Incorreta" },
+  ],
+};
 
 export function FeedbackPanel({
   historyId,
@@ -29,6 +29,8 @@ export function FeedbackPanel({
   initialNote?: string;
   onSaved?: () => void;
 }) {
+  const isEnglish = useIsEnglish();
+  const OPTIONS = OPTIONS_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [rating, setRating] = useState<AnalysisFeedback | null>(initialRating);
   const [note, setNote] = useState(initialNote);
   const [saving, setSaving] = useState(false);

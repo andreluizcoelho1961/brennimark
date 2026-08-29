@@ -61,7 +61,16 @@ const utilityCatalogEn: Record<BrandvilleUtilityKey, { href: string; code: strin
   "ai-settings": { href: "/docs/configuracoes/ia", code: "CF", label: "AI settings" },
 };
 
-export const brandvilleUtilityLinks = brandvilleInstance.navigation.utilityLinks.map((key) => (brandvilleInstance.metadata.language === "en" ? utilityCatalogEn : utilityCatalog)[key]);
+/**
+ * Os destinos de utilidade da navegação, no idioma da INTERFACE.
+ *
+ * O rótulo "Chat da marca" é do produto, não do manual: um manual em inglês
+ * não deve renomear a navegação de quem está lendo em português.
+ */
+export function brandvilleUtilityLinks(locale: string) {
+  const catalogo = locale === "en" ? utilityCatalogEn : utilityCatalog;
+  return brandvilleInstance.navigation.utilityLinks.map((key) => catalogo[key]);
+}
 export const activeDocsRegistry = [...brandvilleInstance.docs];
 
 export function getActiveDocBySlug(slug: string) {

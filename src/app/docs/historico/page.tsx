@@ -3,16 +3,14 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { AnalysisRun, AnalysisVerdict } from "@/lib/analysis/history";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
-const locale = isEnglish ? "en-US" : "pt-BR";
+const VERDICT_LABELS_POR_IDIOMA = {
+  en: { aligned: "Aligned", partially_aligned: "Partially aligned", misaligned: "Misaligned", unknown: "Unclassified" },
+  "pt-BR": { aligned: "Alinhada", partially_aligned: "Parcialmente alinhada", misaligned: "Desalinhada", unknown: "Sem classificação" },
+} satisfies Record<string, Record<AnalysisVerdict, string>>;
 
-const VERDICT_LABELS: Record<AnalysisVerdict, string> = isEnglish
-  ? { aligned: "Aligned", partially_aligned: "Partially aligned", misaligned: "Misaligned", unknown: "Unclassified" }
-  : { aligned: "Alinhada", partially_aligned: "Parcialmente alinhada", misaligned: "Desalinhada", unknown: "Sem classificação" };
-
-function seconds(value: number) {
+function seconds(value: number, isEnglish: boolean) {
   const formatted = (value / 1_000).toFixed(1);
   return isEnglish ? `${formatted} s` : `${formatted.replace(".", ",")} s`;
 }
@@ -29,6 +27,9 @@ function normalizePattern(value: string) {
 }
 
 export default function AnalysisHistoryPage() {
+  const isEnglish = useIsEnglish();
+  const VERDICT_LABELS = VERDICT_LABELS_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
+  const locale = isEnglish ? "en-US" : "pt-BR";
   const [runs, setRuns] = useState<AnalysisRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -44,7 +45,7 @@ export default function AnalysisHistoryPage() {
       .then((data) => setRuns(data.runs ?? []))
       .catch(() => setError(isEnglish ? "Couldn't load history." : "Não foi possível carregar o histórico."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isEnglish]);
 
   const metrics = useMemo(() => {
     const calibrated = runs.filter((run) => run.calibrationEnabled && run.calibrationExpectedVerdict);
@@ -122,14 +123,14 @@ export default function AnalysisHistoryPage() {
               ? [
                   ["Analyses", String(metrics.total)],
                   ["Misaligned", String(metrics.misaligned)],
-                  ["Average time", metrics.total ? seconds(metrics.averageMs) : "-"],
+                  ["Average time", metrics.total ? seconds(metrics.averageMs, isEnglish) : "-"],
                   ["Fallback usage", `${metrics.fallbackRate.toFixed(0)}%`],
                   ["Calibrated accuracy", metrics.calibrationAccuracy === null ? "-" : `${metrics.calibrationAccuracy.toFixed(0)}%`],
                 ]
               : [
                   ["Análises", String(metrics.total)],
                   ["Desalinhadas", String(metrics.misaligned)],
-                  ["Tempo médio", metrics.total ? seconds(metrics.averageMs) : "-"],
+                  ["Tempo médio", metrics.total ? seconds(metrics.averageMs, isEnglish) : "-"],
                   ["Uso de reserva", `${metrics.fallbackRate.toFixed(0)}%`],
                   ["Precisão calibrada", metrics.calibrationAccuracy === null ? "-" : `${metrics.calibrationAccuracy.toFixed(0)}%`],
                 ]
@@ -204,7 +205,7 @@ export default function AnalysisHistoryPage() {
                       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] uppercase tracking-wide text-text-secondary">
                         <span className="text-release-analog-turquoise">{VERDICT_LABELS[run.verdict]}</span>
                         <span>{new Date(run.createdAt).toLocaleDateString(locale)}</span>
-                        <span>{seconds(run.elapsedMs)}</span>
+                        <span>{seconds(run.elapsedMs, isEnglish)}</span>
                       </div>
                     </div>
                   </Link>

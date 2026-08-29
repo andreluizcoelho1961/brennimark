@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 import { historyActionLabel } from "@/lib/brandville/history-action";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
 type Version = {
   id: string;
@@ -20,12 +19,18 @@ type Version = {
   isCurrent: boolean;
 };
 
-const STATUS_LABEL: Record<DocStatus, string> = isEnglish
-  ? { ready: "Approved", draft: "Draft", pending: "In progress" }
-  : { ready: "Pronto", draft: "Rascunho", pending: "Em construção" };
-const DATE_FORMAT = new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { dateStyle: "short", timeStyle: "short" });
+const STATUS_LABEL_POR_IDIOMA = {
+  en: { ready: "Approved", draft: "Draft", pending: "In progress" },
+  "pt-BR": { ready: "Pronto", draft: "Rascunho", pending: "Em construção" },
+} satisfies Record<string, Record<DocStatus, string>>;
 
 export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovered: (document: DocPageEntry) => void }) {
+  const isEnglish = useIsEnglish();
+  const STATUS_LABEL = STATUS_LABEL_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
+  // O formato de data segue o idioma da interface. Antes seguia o do manual:
+  // um manual em inglês fazia a auditoria mostrar datas em formato americano
+  // para uma equipe brasileira.
+  const DATE_FORMAT = new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { dateStyle: "short", timeStyle: "short" });
   const [versions, setVersions] = useState<Version[]>([]);
   const [pageDeleted, setPageDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,7 +53,7 @@ export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovere
     }
     void load();
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [slug, isEnglish]);
 
   async function recover(version: Version) {
     const confirmMessage = isEnglish

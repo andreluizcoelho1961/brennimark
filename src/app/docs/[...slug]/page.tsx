@@ -16,7 +16,11 @@ export default async function DocSlugPage({ params }: { params: Promise<{ slug: 
 
   return (
     <BrandCanvas theme={brand.theme}>
-      <DocPage entry={entry} />
+      <DocPage
+        entry={entry}
+        brandLanguage={brand.metadata.language}
+        statusLabels={brand.statusLabels}
+      />
     </BrandCanvas>
   );
 }

@@ -11,9 +11,8 @@ import {
   type AIRoutingFeature,
   type AIRoutingPolicy,
 } from "@/lib/ai/provider";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
 type AvailableSetting = {
   id: string;
@@ -31,15 +30,16 @@ type Props = {
   onSave: (policy: AIRoutingPolicy) => Promise<{ ok: boolean; message?: string }>;
 };
 
-const FEATURE_COPY: Record<AIRoutingFeature, { title: string; description: string }> = isEnglish
-  ? {
+const FEATURE_COPY_POR_IDIOMA: Record<"en" | "pt-BR", Record<AIRoutingFeature, { title: string; description: string }>> = {
+  en: {
       chat: { title: "Brand chat", description: `Answers grounded in ${platformIdentity.displayName} content.` },
       analysis: { title: "Application review", description: "Visual read and assessment of brand applications." },
-    }
-  : {
-      chat: { title: "Chat da marca", description: `Respostas fundamentadas no conteúdo do ${platformIdentity.displayName}.` },
-      analysis: { title: "Análise de peças", description: "Leitura visual e avaliação de aplicações da marca." },
-    };
+  },
+  "pt-BR": {
+    chat: { title: "Chat da marca", description: `Respostas fundamentadas no conteúdo do ${platformIdentity.displayName}.` },
+    analysis: { title: "Análise de peças", description: "Leitura visual e avaliação de aplicações da marca." },
+  },
+};
 
 function providerLabel(provider: AIProvider) {
   return PROVIDERS.find((item) => item.value === provider)?.label ?? provider;
@@ -56,6 +56,8 @@ function RoutingCard({
   editable: boolean;
   onSave: Props["onSave"];
 }) {
+  const isEnglish = useIsEnglish();
+  const FEATURE_COPY = FEATURE_COPY_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [primarySettingId, setPrimarySettingId] = useState(initial.primarySettingId ?? "");
   const [fallbackSettingId, setFallbackSettingId] = useState(initial.fallbackSettingId ?? "");
   const [timeoutSeconds, setTimeoutSeconds] = useState(initial.firstChunkTimeoutMs / 1_000);
@@ -268,6 +270,7 @@ function RoutingCard({
 }
 
 export function AIRoutingPanel({ settings, policies, editable, onSave }: Props) {
+  const isEnglish = useIsEnglish();
   return (
     <div className="mt-16 border-t border-border-default pt-10">
       <p className="font-display text-xs font-bold uppercase tracking-wide text-release-analog-white">

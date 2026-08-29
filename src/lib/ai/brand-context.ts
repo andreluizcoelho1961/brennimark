@@ -14,6 +14,16 @@ export interface BrandKnowledgeSource {
   facts: string[];
 }
 
+/**
+ * A LÍNGUA DO MANUAL, não a da interface — e é o único módulo onde isso é
+ * certo. O assistente cita o manual e responde sobre ele; um prompt em
+ * português sobre um manual inteiramente em inglês faz o modelo traduzir
+ * termos que a marca definiu.
+ *
+ * DÍVIDA: ainda lê a instância global. Deveria receber a marca resolvida, como
+ * o selo de status passou a receber — a mudança é de assinatura, em cinco
+ * funções exportadas e seus chamadores, e não cabia no patch do idioma.
+ */
 const isEnglish = brandvilleInstance.metadata.language === "en";
 
 const STATUS_LABEL: Record<DocStatus, string> = isEnglish

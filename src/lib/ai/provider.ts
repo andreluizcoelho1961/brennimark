@@ -4,9 +4,9 @@ import { createGroq } from "@ai-sdk/groq";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
-import { brandvilleInstance } from "../../brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "../../platform/locale";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
+const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 export type AIProvider = "groq" | "anthropic" | "openai" | "google" | "openrouter";
 export type AIRole = "chat" | "analysis" | "both";

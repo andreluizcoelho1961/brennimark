@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DocPageEntry } from "@/content/docs";
+import type { StatusLabels } from "@/components/docs/status";
 import { CommandPalette } from "./CommandPalette";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { PlatformTopBar } from "./PlatformTopBar";
@@ -25,6 +26,8 @@ export function AppShellV2({
   userEmail,
   brandName,
   brandDescriptor,
+  brandLanguage,
+  statusLabels,
   basePath,
   children,
 }: {
@@ -35,6 +38,10 @@ export function AppShellV2({
    *  como rótulo; nenhum componente daqui vai buscá-lo por conta própria. */
   brandName?: string;
   brandDescriptor?: string;
+  /** Vocabulário editorial da marca. A paleta mostra o status das páginas, e
+   *  esse rótulo é da marca — ver StatusBadge. */
+  brandLanguage?: string;
+  statusLabels?: StatusLabels;
   /** Prefixo alternativo para os destinos. Existe para a rota de comparação
    *  manter a navegação dentro da V2; em produção fica ausente e os destinos
    *  são os reais. String, não função: não atravessa a fronteira de servidor
@@ -82,6 +89,8 @@ export function AppShellV2({
           docs={docs}
           destinations={destinations}
           basePath={basePath}
+          brandLanguage={brandLanguage}
+          statusLabels={statusLabels}
           onClose={() => setSearchOpen(false)}
         />
       )}

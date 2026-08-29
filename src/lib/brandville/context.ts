@@ -4,6 +4,7 @@ import {
   type BrandCapability,
   type WorkspaceRole,
 } from "../../platform/capabilities";
+import { resolveInterfaceLocale, type ProductLocale } from "../../platform/locale";
 import type { ActiveBrand } from "./brand-row";
 
 /**
@@ -38,19 +39,17 @@ export interface WorkspaceContext {
   /** Slug de entrada da marca, ou nulo quando ela não declara um. */
   defaultDocSlug: string | null;
   /**
-   * Idioma da INTERFACE, não do manual. O produto fala português enquanto a
-   * pessoa não escolher outro idioma; um manual em inglês não muda o login.
-   * O patch 3 liga a preferência do usuário aqui.
+   * Idioma da INTERFACE, não do manual. Um manual em inglês não muda o login.
+   * Resolvido em platform/locale.ts, que é onde a preferência da pessoa entra
+   * quando houver onde guardá-la.
    */
-  locale: string;
+  locale: ProductLocale;
 }
 
 export interface AuthShape {
   role: WorkspaceRole;
   email?: string;
 }
-
-const LOCALE_PADRAO = "pt-BR";
 
 export function montarContexto({
   access,
@@ -74,7 +73,10 @@ export function montarContexto({
     userEmail: auth?.email || undefined,
     // Slug vazio redirecionaria para /docs/ e produziria laço.
     defaultDocSlug: slug ? slug : null,
-    locale: LOCALE_PADRAO,
+    // Sem parâmetro: a preferência do usuário ainda não tem onde ser guardada.
+    // O idioma do manual não entra aqui por construção — resolveInterfaceLocale
+    // não aceita esse valor.
+    locale: resolveInterfaceLocale(),
   };
 }
 

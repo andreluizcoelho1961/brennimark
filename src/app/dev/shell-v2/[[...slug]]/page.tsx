@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
+import { LocaleProvider } from "@/platform/locale-client";
 import { shellSections } from "@/components/shell/navigation";
 import { BrandCanvas } from "@/components/BrandCanvas";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
@@ -24,26 +25,34 @@ export default async function ShellV2Preview({
   if (process.env.NODE_ENV === "production") notFound();
 
   const { slug } = await params;
-  const { brand, docs, capabilities, userEmail, defaultDocSlug } = await resolveWorkspaceContext();
+  const { brand, docs, capabilities, userEmail, defaultDocSlug, locale } = await resolveWorkspaceContext();
   const caminho = slug?.join("/") || defaultDocSlug;
   const entry = docs.find((doc) => doc.slug === caminho) ?? docs[0];
 
   return (
+    <LocaleProvider locale={locale}>
     <AppShellV2
-      sections={shellSections({ capabilities })}
+      sections={shellSections({ capabilities, locale })}
       docs={docs}
       userEmail={userEmail}
       brandName={brand?.brand.name}
       brandDescriptor={brand?.brand.descriptor}
+      brandLanguage={brand?.metadata.language}
+      statusLabels={brand?.statusLabels}
       basePath="/dev/shell-v2"
     >
       {brand && entry ? (
         <BrandCanvas theme={brand.theme}>
-          <DocPage entry={entry} />
+          <DocPage
+            entry={entry}
+            brandLanguage={brand.metadata.language}
+            statusLabels={brand.statusLabels}
+          />
         </BrandCanvas>
       ) : (
         <EmptyBrandState />
       )}
     </AppShellV2>
+    </LocaleProvider>
   );
 }

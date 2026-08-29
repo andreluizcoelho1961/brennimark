@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 import { buildSearchIndex, searchIndex, type SearchResult } from "@/lib/search";
 import { withBase } from "./navigation";
 import type { DocPageEntry } from "@/content/docs";
-import { STATUS_CLASSES, resolveStatusLabels } from "@/components/docs/status";
+import { STATUS_CLASSES, resolveStatusLabels, type StatusLabels } from "@/components/docs/status";
 
 /**
  * Busca da plataforma.
@@ -23,11 +23,15 @@ export function CommandPalette({
   docs,
   destinations,
   basePath,
+  brandLanguage,
+  statusLabels,
   onClose,
 }: {
   docs: readonly DocPageEntry[];
   destinations: readonly { href: string; label: string }[];
   basePath?: string;
+  brandLanguage?: string;
+  statusLabels?: StatusLabels;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -37,12 +41,10 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
 
-  const isEnglish = brandvilleInstance.metadata.language === "en";
+  const isEnglish = useIsEnglish();
   const t = (pt: string, en: string) => (isEnglish ? en : pt);
-  const labels = resolveStatusLabels({
-    language: brandvilleInstance.metadata.language,
-    override: brandvilleInstance.statusLabels,
-  });
+  // O vocabulário editorial é da marca, não da interface: ver StatusBadge.
+  const labels = resolveStatusLabels({ language: brandLanguage ?? "pt-BR", override: statusLabels });
 
   const index = useMemo(() => buildSearchIndex({ docs, destinations }), [docs, destinations]);
   const results = useMemo(() => searchIndex(index, query).slice(0, 12), [index, query]);

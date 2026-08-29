@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { brandvilleInstance } from "@/brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
+// Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
+// Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
+// padrão do produto responde por todo mundo — e a fonte é uma só.
+const isEnglish = inEnglish(PRODUCT_LOCALE);
 const MAX_SIZE = 25 * 1024 * 1024;
 // Tipo declarado pelo cliente é uma pista, não prova. Cada entrada traz as
 // assinaturas de bytes que o conteúdo precisa apresentar para ser aceito.

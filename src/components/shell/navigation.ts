@@ -1,4 +1,5 @@
-import { brandvilleInstance, brandvilleUtilityLinks } from "../../brandville/config";
+import { brandvilleUtilityLinks } from "../../brandville/config";
+import type { ProductLocale } from "../../platform/locale";
 import { can, type BrandCapability } from "../../platform/capabilities";
 
 export interface ShellDestination {
@@ -16,8 +17,7 @@ export interface ShellSection {
   destinations: ShellDestination[];
 }
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
-const t = (pt: string, en: string) => (isEnglish ? en : pt);
+
 
 /**
  * Fonte única dos destinos globais, separada da apresentação.
@@ -29,10 +29,15 @@ const t = (pt: string, en: string) => (isEnglish ? en : pt);
  */
 export function shellSections({
   capabilities,
+  locale,
 }: {
   capabilities: readonly BrandCapability[];
+  /** Idioma da INTERFACE. Os destinos da moldura são do produto; o manual pode
+   *  estar em outra língua sem que a navegação mude. */
+  locale: ProductLocale;
 }): ShellSection[] {
-  const utilities = brandvilleUtilityLinks.map((link) => ({ href: link.href, label: link.label }));
+  const t = (pt: string, en: string) => (locale === "en" ? en : pt);
+  const utilities = brandvilleUtilityLinks(locale).map((link) => ({ href: link.href, label: link.label }));
 
   const sections: ShellSection[] = [
     {

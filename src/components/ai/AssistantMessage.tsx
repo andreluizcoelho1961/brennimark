@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { parseBrandCitations, type BrandCitationStatus } from "@/lib/ai/citations";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
 const STATUS_CLASS: Record<BrandCitationStatus, string> = {
   PRONTO: "text-release-analog-turquoise",
@@ -14,6 +13,7 @@ const STATUS_CLASS: Record<BrandCitationStatus, string> = {
 };
 
 export function AssistantMessage({ content }: { content: string }) {
+  const isEnglish = useIsEnglish();
   return (
     <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-release-analog-white md:text-base">
       {parseBrandCitations(content, isEnglish).map((segment, index) =>

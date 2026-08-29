@@ -1,7 +1,7 @@
 import { APICallError } from "ai";
-import { brandvilleInstance } from "../../brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "../../platform/locale";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
+const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 export type AIErrorCode = "invalid_key" | "rate_limited" | "model_unavailable" | "timed_out" | "unknown";
 

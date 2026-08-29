@@ -38,8 +38,8 @@ test("aprovar não implica administrar", () => {
 
 test("a navegação some para quem só consulta, em vez de aparecer desabilitada", async () => {
   const { shellSections } = await import("../components/shell/navigation");
-  const consulta = shellSections({ capabilities: capabilitiesForRole("member") });
-  const admin = shellSections({ capabilities: capabilitiesForRole("owner") });
+  const consulta = shellSections({ capabilities: capabilitiesForRole("member"), locale: "pt-BR" });
+  const admin = shellSections({ capabilities: capabilitiesForRole("owner"), locale: "pt-BR" });
 
   const hrefs = (s: ReturnType<typeof shellSections>) => s.flatMap((x) => x.destinations.map((d) => d.href));
 

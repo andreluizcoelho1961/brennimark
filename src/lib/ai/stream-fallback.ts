@@ -1,6 +1,6 @@
-import { brandvilleInstance } from "../../brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "../../platform/locale";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
+const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 export class FirstChunkTimeoutError extends Error {
   constructor(timeoutMs: number) {

@@ -5,10 +5,14 @@ import { getAnalysisAuthContext } from "@/lib/analysis/server";
 import { ANALYSIS_EVIDENCE_BUCKET, ANALYSIS_RUN_SELECT, type AnalysisRow } from "@/lib/analysis/history";
 import { sanitizeStructuredAnalysis } from "@/lib/ai/analysis-result";
 import { brandvilleInstance } from "@/brandville/config";
+import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 export const runtime = "nodejs";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
+// Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
+// Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
+// padrão do produto responde por todo mundo — e a fonte é uma só.
+const isEnglish = inEnglish(PRODUCT_LOCALE);
 const locale = isEnglish ? "en-US" : "pt-BR";
 
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };

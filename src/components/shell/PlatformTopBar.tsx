@@ -1,7 +1,7 @@
 "use client";
 
-import { brandvilleInstance } from "@/brandville/config";
 import { platformIdentity } from "@/platform/identity";
+import { useIsEnglish } from "@/platform/locale-client";
 import { WorkspaceIdentity } from "./WorkspaceIdentity";
 
 /**
@@ -24,7 +24,7 @@ export function PlatformTopBar({
   onOpenSearch?: () => void;
   children?: React.ReactNode;
 }) {
-  const isEnglish = brandvilleInstance.metadata.language === "en";
+  const isEnglish = useIsEnglish();
   const searchLabel = isEnglish ? "Search" : "Buscar";
 
   return (

@@ -2,26 +2,28 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AssistantMessage } from "@/components/ai/AssistantMessage";
-import { brandvilleInstance } from "@/brandville/config";
+import { useIsEnglish } from "@/platform/locale-client";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type RequestPhase = "idle" | "connecting" | "thinking" | "answering";
 
-const isEnglish = brandvilleInstance.metadata.language === "en";
 
-const progressCopy: Record<Exclude<RequestPhase, "idle">, string> = isEnglish
-  ? {
+const PROGRESS_COPY_POR_IDIOMA: Record<"en" | "pt-BR", Record<Exclude<RequestPhase, "idle">, string>> = {
+  en: {
       connecting: "Connecting to the assistant…",
       thinking: "Consulting the brand guide…",
       answering: "Preparing the answer…",
-    }
-  : {
-      connecting: "Conectando ao assistente…",
-      thinking: "Consultando o guia da marca…",
-      answering: "Preparando a resposta…",
-    };
+  },
+  "pt-BR": {
+    connecting: "Conectando ao assistente…",
+    thinking: "Consultando o guia da marca…",
+    answering: "Preparando a resposta…",
+  },
+};
 
 export default function ChatPage() {
+  const isEnglish = useIsEnglish();
+  const progressCopy = PROGRESS_COPY_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [phase, setPhase] = useState<RequestPhase>("idle");
@@ -182,8 +184,8 @@ export default function ChatPage() {
         {messages.length === 0 && (
           <p className="text-sm leading-relaxed text-text-secondary">
             {isEnglish
-              ? <>Ask about positioning, voice, color, typography — anything about the {brandvilleInstance.brand.name} brand system.</>
-              : <>Pergunte sobre posicionamento, tom de voz, cor, tipografia — qualquer coisa do sistema de marca {brandvilleInstance.brand.name}.</>}
+              ? <>Ask about positioning, voice, color, typography — anything in this brand system.</>
+              : <>Pergunte sobre posicionamento, tom de voz, cor, tipografia — qualquer coisa deste sistema de marca.</>}
           </p>
         )}
         {messages.map((m, i) => (

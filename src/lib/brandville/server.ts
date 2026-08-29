@@ -155,6 +155,10 @@ export async function getDeletedPages(
       .eq("brand_id", brandId)
       .eq("action", "deleted")
       .order("created_at", { ascending: false })
+      // Desempate por id: sem ele, duas exclusões no mesmo instante podem sair
+      // em ordens diferentes a cada página, e uma linha se repetiria enquanto
+      // outra sumiria da paginação.
+      .order("id", { ascending: false })
       .range(inicio, inicio + PAGINA - 1);
 
     if (slugsVivos.length > 0) {
