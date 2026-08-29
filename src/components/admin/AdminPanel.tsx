@@ -13,12 +13,26 @@ const STATUS_LABEL: Record<DocStatus, string> = isEnglish
   ? { ready: "Approved", draft: "Draft", pending: "In progress" }
   : { ready: "Pronto", draft: "Rascunho", pending: "Em construção" };
 
-export function AdminPanel({ initialDocs, groups }: { initialDocs: DocPageEntry[]; groups: readonly string[] }) {
+type DeletedPage = { slug: string; title: string; deletedAt: string };
+
+export function AdminPanel({
+  initialDocs,
+  deletedPages = [],
+  groups,
+}: {
+  initialDocs: DocPageEntry[];
+  /** Páginas sem linha viva que ainda têm histórico. Elas continuam
+   *  selecionáveis porque é de lá que a recuperação parte. */
+  deletedPages?: DeletedPage[];
+  groups: readonly string[];
+}) {
   const [docs, setDocs] = useState(initialDocs);
   const [persistedDocs, setPersistedDocs] = useState(initialDocs);
-  const [slug, setSlug] = useState(initialDocs[0]?.slug ?? "");
+  const [excluidas, setExcluidas] = useState(deletedPages);
+  const [slug, setSlug] = useState(initialDocs[0]?.slug ?? deletedPages[0]?.slug ?? "");
   const selected = docs.find((doc) => doc.slug === slug);
   const persisted = persistedDocs.find((doc) => doc.slug === slug);
+  const excluidaSelecionada = excluidas.find((pagina) => pagina.slug === slug);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
@@ -69,10 +83,14 @@ export function AdminPanel({ initialDocs, groups }: { initialDocs: DocPageEntry[
     const response = await fetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
     const result = await response.json().catch(() => ({}));
     if (response.ok) {
-      const restantes = docs.filter((doc) => doc.slug !== slug);
-      setDocs(restantes);
+      // A página sai do guia e entra na lista de excluídas — continua
+      // selecionável, que é o que torna a recuperação alcançável.
+      setExcluidas((atual) => [
+        { slug, title: selected.title, deletedAt: new Date().toISOString() },
+        ...atual.filter((pagina) => pagina.slug !== slug),
+      ]);
+      setDocs(docs.filter((doc) => doc.slug !== slug));
       setPersistedDocs((current) => current.filter((doc) => doc.slug !== slug));
-      setSlug(restantes[0]?.slug ?? "");
     }
     setSaving(false);
     setMessage(response.ok
@@ -89,9 +107,32 @@ export function AdminPanel({ initialDocs, groups }: { initialDocs: DocPageEntry[
         : [...atual, { ...document }];
     setDocs(repor);
     setPersistedDocs(repor);
+    setExcluidas((atual) => atual.filter((pagina) => pagina.slug !== document.slug));
     setSlug(document.slug);
     setMessage(isEnglish ? "Version recovered and published. The guide and the AI now use this content." : "Versão recuperada e publicada. O guia e a IA já usam este conteúdo.");
     setHistoryRevision((value) => value + 1);
+  }
+
+  // Página excluída: sem editor, porque não há linha para editar. O histórico
+  // continua aberto, e é dele que ela volta inteira.
+  if (!selected && excluidaSelecionada) {
+    return (
+      <div className="px-page-inline py-12 md:py-16">
+        <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-text-secondary">{isEnglish ? "Deleted page" : "Página excluída"}</p>
+        <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-release-analog-white md:text-5xl">{excluidaSelecionada.title}</h1>
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-secondary">{isEnglish ? "This page is no longer in the guide. Its full content — text, images and blocks — is preserved in the history below, and restoring any version brings the page back." : "Esta página não está mais no guia. O conteúdo completo — texto, imagens e blocos — continua preservado no histórico abaixo, e recuperar qualquer versão traz a página de volta."}</p>
+        {(docs.length > 0 || excluidas.length > 1) && (
+          <div className="mt-8">
+            <label htmlFor="admin-excluida" className="mb-2 block font-display text-[10px] font-bold uppercase tracking-widest text-text-secondary">{isEnglish ? "Page" : "Página"}</label>
+            <select id="admin-excluida" value={slug} onChange={(event) => setSlug(event.target.value)} className="w-full max-w-md border border-border-default bg-background-primary px-3 py-3 text-sm text-release-analog-white">
+              {docs.map((doc) => <option key={doc.slug} value={doc.slug}>{doc.title}</option>)}
+              {excluidas.map((pagina) => <option key={pagina.slug} value={pagina.slug}>{pagina.title} — {isEnglish ? "deleted" : "excluída"}</option>)}
+            </select>
+          </div>
+        )}
+        <VersionHistory key={`${slug}-${historyRevision}`} slug={slug} onRecovered={handleRecovered} />
+      </div>
+    );
   }
 
   // A administração edita o que existe; criar página é o importador de PDF.
@@ -129,6 +170,10 @@ export function AdminPanel({ initialDocs, groups }: { initialDocs: DocPageEntry[
               <p className="px-2 py-2 font-display text-[10px] font-black uppercase tracking-wider text-release-analog-turquoise">{group}</p>
               {docs.filter((doc) => doc.group === group).map((doc) => <button key={doc.slug} type="button" onClick={() => selectPage(doc.slug)} className={`block w-full px-2 py-2 text-left text-sm ${doc.slug === slug ? "bg-release-analog-turquoise text-release-analog-black" : "text-text-secondary hover:text-release-analog-white"}`}>{doc.title}</button>)}
             </div>)}
+            {excluidas.length > 0 && <div className="mb-4 border-t border-border-default pt-3">
+              <p className="px-2 py-2 font-display text-[10px] font-black uppercase tracking-wider text-text-secondary">{isEnglish ? "Deleted" : "Excluídas"}</p>
+              {excluidas.map((pagina) => <button key={pagina.slug} type="button" onClick={() => selectPage(pagina.slug)} className="block w-full px-2 py-2 text-left text-sm text-text-secondary line-through hover:text-release-analog-white">{pagina.title}</button>)}
+            </div>}
           </div>
         </aside>
 

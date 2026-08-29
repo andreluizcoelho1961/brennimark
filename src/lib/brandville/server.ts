@@ -120,3 +120,40 @@ export async function getProfileSummary(
   const nome = data?.full_name;
   return typeof nome === "string" && nome.length > 0 ? { fullName: nome } : null;
 }
+
+/**
+ * Páginas que foram excluídas e ainda têm histórico.
+ *
+ * Sem esta lista a recuperação existe na API e não existe na experiência: a
+ * página some da seleção no instante da exclusão, e ninguém consegue chegar ao
+ * histórico dela — muito menos depois de recarregar a tela.
+ *
+ * O título vem do instantâneo mais recente, que é a última coisa que se sabe
+ * sobre a página.
+ */
+export async function getDeletedPages(
+  auth: BrandvilleAuthContext,
+  brandId: string,
+  slugsVivos: readonly string[],
+): Promise<{ slug: string; title: string; deletedAt: string }[]> {
+  const { data, error } = await auth.supabase
+    .from("brand_document_versions")
+    .select("slug, snapshot, created_at")
+    .eq("brand_id", brandId)
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+
+  const vivos = new Set(slugsVivos);
+  const vistos = new Map<string, { slug: string; title: string; deletedAt: string }>();
+  for (const linha of data ?? []) {
+    if (vivos.has(linha.slug) || vistos.has(linha.slug)) continue;
+    const titulo = (linha.snapshot as Record<string, unknown> | null)?.title;
+    vistos.set(linha.slug, {
+      slug: linha.slug,
+      title: typeof titulo === "string" && titulo ? titulo : linha.slug,
+      deletedAt: linha.created_at,
+    });
+  }
+  return [...vistos.values()];
+}

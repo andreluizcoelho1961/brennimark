@@ -248,3 +248,27 @@ test("o rótulo do histórico vem do vocabulário, não de comparação solta", 
     "comparar com um único valor faz qualquer ação nova virar 'Publicada'",
   );
 });
+
+/**
+ * Patch 2.1. A recuperação de uma página excluída é o caminho mais fácil de
+ * quebrar sem perceber: ele só é exercido depois de alguém apagar algo.
+ */
+test("o histórico não exige que a página ainda exista", () => {
+  const rota = lerCodigo("src/app/api/admin/content/history/route.ts");
+  assert.doesNotMatch(
+    rota,
+    /if \(!contexto\.docs\.some\(\(doc\) => doc\.slug === slug\)\)/,
+    "validar o slug contra as páginas vivas torna a recuperação inalcançável justamente quando é necessária",
+  );
+});
+
+test("a recuperação grava os blocos de volta", () => {
+  const rota = lerCodigo("src/app/api/admin/content/history/route.ts");
+  assert.match(rota, /blocks: snapshot\.blocks/, "sem isto a página renasce sem conteúdo estruturado");
+});
+
+test("a administração oferece as páginas excluídas", () => {
+  // Recuperação que existe na API e não na tela não existe para ninguém.
+  assert.match(lerCodigo("src/app/docs/admin/page.tsx"), /getDeletedPages/);
+  assert.match(lerCodigo("src/components/admin/AdminPanel.tsx"), /deletedPages/);
+});

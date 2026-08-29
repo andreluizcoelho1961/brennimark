@@ -1,22 +1,16 @@
 import { NextResponse } from "next/server";
-import type { DocPageEntry, DocPageImage, DocStatus } from "@/content/docs";
+import type { DocPageEntry } from "@/content/docs";
+import {
+  comparable,
+  pageFromSnapshot,
+  parseSnapshot,
+  type VersionSnapshot,
+} from "@/lib/brandville/version-snapshot";
 import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { historyActionLabel, type HistoryAction } from "@/lib/brandville/history-action";
 
-type VersionSnapshot = {
-  slug: string;
-  group: string;
-  title: string;
-  status: DocStatus;
-  body: string[];
-  images: DocPageImage[];
-  sortOrder: number;
-  updatedAt?: string;
-};
-
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const STATUS = new Set<DocStatus>(["ready", "draft", "pending"]);
 
 async function contextoDeAdministracao() {
   const [contexto, auth] = await Promise.all([
@@ -29,42 +23,6 @@ async function contextoDeAdministracao() {
 
 const SEM_PERMISSAO = { message: "Apenas quem administra a marca pode ver o histórico." };
 
-function validImages(value: unknown): value is DocPageImage[] {
-  return Array.isArray(value) && value.every((item) => {
-    if (!item || typeof item !== "object") return false;
-    const image = item as Record<string, unknown>;
-    return typeof image.src === "string" && typeof image.alt === "string" &&
-      (image.caption === undefined || typeof image.caption === "string");
-  });
-}
-
-function parseSnapshot(value: unknown): VersionSnapshot | null {
-  if (!value || typeof value !== "object") return null;
-  const snapshot = value as Record<string, unknown>;
-  if (
-    typeof snapshot.slug !== "string" ||
-    typeof snapshot.group !== "string" ||
-    typeof snapshot.title !== "string" ||
-    !STATUS.has(snapshot.status as DocStatus) ||
-    !Array.isArray(snapshot.body) || !snapshot.body.every((item) => typeof item === "string") ||
-    !validImages(snapshot.images) ||
-    typeof snapshot.sortOrder !== "number"
-  ) return null;
-  return snapshot as VersionSnapshot;
-}
-
-function comparable(snapshot: VersionSnapshot | null) {
-  if (!snapshot) return null;
-  return {
-    group: snapshot.group,
-    title: snapshot.title,
-    status: snapshot.status,
-    body: snapshot.body,
-    images: snapshot.images,
-    sortOrder: snapshot.sortOrder,
-  };
-}
-
 function changedFields(current: VersionSnapshot, previous: VersionSnapshot | null, action: string) {
   const rotulo = historyActionLabel(action as HistoryAction);
   if (rotulo.replacesFieldList) return [rotulo.summary];
@@ -72,7 +30,7 @@ function changedFields(current: VersionSnapshot, previous: VersionSnapshot | nul
   type ComparableSnapshot = NonNullable<ReturnType<typeof comparable>>;
   const fields: Array<[keyof ComparableSnapshot, string]> = [
     ["title", "Título"], ["group", "Seção"], ["status", "Status"],
-    ["body", "Texto"], ["images", "Imagens"], ["sortOrder", "Ordem"],
+    ["body", "Texto"], ["images", "Imagens"], ["blocks", "Blocos"], ["sortOrder", "Ordem"],
   ];
   const atual = comparable(current)!;
   const anterior = comparable(previous)!;
@@ -87,11 +45,7 @@ export async function GET(request: Request) {
   if (!contexto) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const slug = new URL(request.url).searchParams.get("slug") ?? "";
-  // A página precisa pertencer à marca ativa. Antes a validação era contra o
-  // registro em código, que não sabe nada sobre esta conta.
-  if (!contexto.docs.some((doc) => doc.slug === slug)) {
-    return NextResponse.json({ message: "Esta página não existe nesta marca." }, { status: 404 });
-  }
+  if (!slug) return NextResponse.json({ message: "Página inválida." }, { status: 400 });
 
   const [versionsResult, currentResult] = await Promise.all([
     contexto.auth.supabase.from("brand_document_versions")
@@ -99,16 +53,26 @@ export async function GET(request: Request) {
       .eq("brand_id", contexto.brand.id).eq("slug", slug)
       .order("created_at", { ascending: false }).limit(50),
     contexto.auth.supabase.from("brand_documents")
-      .select("slug, group_name, title, status, body, images, sort_order, updated_at")
+      .select("slug, group_name, title, status, body, images, blocks, sort_order, updated_at")
       .eq("brand_id", contexto.brand.id).eq("slug", slug).maybeSingle(),
   ]);
   if (versionsResult.error || currentResult.error) {
     return NextResponse.json({ message: "Não foi possível carregar o histórico." }, { status: 500 });
   }
 
+  // Uma página excluída não tem mais linha em brand_documents, mas continua
+  // tendo histórico — e é de lá que ela volta. Validar o slug contra as páginas
+  // vivas tornava a recuperação inalcançável justamente quando é necessária.
+  // O que delimita o acesso é o brand_id da consulta, não a existência da
+  // página.
+  if ((versionsResult.data ?? []).length === 0 && !currentResult.data) {
+    return NextResponse.json({ message: "Esta página não existe nesta marca." }, { status: 404 });
+  }
+
   const currentSnapshot = currentResult.data ? parseSnapshot({
     slug: currentResult.data.slug, group: currentResult.data.group_name, title: currentResult.data.title,
     status: currentResult.data.status, body: currentResult.data.body, images: currentResult.data.images,
+    blocks: currentResult.data.blocks,
     sortOrder: currentResult.data.sort_order, updatedAt: currentResult.data.updated_at,
   }) : null;
 
@@ -185,6 +149,9 @@ export async function POST(request: Request) {
       status: snapshot.status,
       body: snapshot.body,
       images: snapshot.images,
+      // Sem isto a linha renasce com o padrão [] e todo o conteúdo estruturado
+      // — paletas, galerias, territórios — some na recuperação.
+      blocks: snapshot.blocks ?? [],
       sort_order: snapshot.sortOrder,
       restored_from_version_id: versionId,
       updated_by: contexto.auth.user.id,
@@ -197,9 +164,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Não foi possível recuperar esta versão." }, { status: 500 });
   }
 
-  const document: DocPageEntry = {
-    slug: snapshot.slug, group: snapshot.group, title: snapshot.title,
-    status: snapshot.status, body: snapshot.body, images: snapshot.images,
-  };
+  const document: DocPageEntry = pageFromSnapshot(snapshot);
   return NextResponse.json({ ok: true, updatedAt: data.updated_at, document });
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AdminPanel } from "@/components/admin/AdminPanel";
+import { getBrandvilleAuthContext, getDeletedPages } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 
 export default async function AdminPage() {
@@ -13,5 +14,16 @@ export default async function AdminPage() {
   // declara — não as de uma instância de código.
   if (!brand) redirect("/docs");
 
-  return <AdminPanel initialDocs={[...docs]} groups={brand.navigation.groups} />;
+  const auth = await getBrandvilleAuthContext();
+  const excluidas = auth
+    ? await getDeletedPages(auth, brand.id, docs.map((doc) => doc.slug))
+    : [];
+
+  return (
+    <AdminPanel
+      initialDocs={[...docs]}
+      deletedPages={excluidas}
+      groups={brand.navigation.groups}
+    />
+  );
 }
