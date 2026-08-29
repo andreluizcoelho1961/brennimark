@@ -6,7 +6,8 @@
 #
 # Deliberadamente FORA desta etapa: Supabase, migrations e qualquer teste que
 # dependa de infraestrutura externa. O teste de stack limpa e o PR-10 do WP0 e
-# entra quando houver `supabase start` no pipeline.
+# entra quando houver `supabase start` no pipeline. A suite de navegador entra
+# aqui porque tambem e hermetica: ela sobe o proprio servidor sem banco.
 name: CI
 
 on:
@@ -25,9 +26,9 @@ concurrency:
 
 jobs:
   verify:
-    name: Lint, tipos, testes e build
+    name: Lint, tipos, testes, build e navegador
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -59,3 +60,24 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+
+      # So o Chromium. Os outros motores custam minutos e ainda nao respondem
+      # a nenhuma pergunta que este produto tenha.
+      - name: Navegador do Playwright
+        run: npx playwright install --with-deps chromium
+
+      # Sobe `next dev` com BRANDVILLE_DEV_SKIP_AUTH e nada mais: sem Supabase,
+      # sem segredo, sem rede. Ver playwright.config.ts.
+      - name: Testes de navegador
+        run: npm run test:e2e
+
+      # Rastro, imagem e video so existem quando algo falhou; execucao verde
+      # nao publica artefato nenhum.
+      - name: Artefatos da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-falhas
+          path: e2e/.artefatos/
+          retention-days: 7
+          if-no-files-found: ignore

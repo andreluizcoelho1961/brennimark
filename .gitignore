@@ -14,6 +14,8 @@
 /coverage
 /.tmp/
 /brandville/imports/
+/e2e/.artefatos/
+/playwright-report/
 
 # next.js
 /.next/
