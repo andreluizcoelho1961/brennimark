@@ -8,6 +8,11 @@ import { expect, test } from "@playwright/test";
  * protege. Escrever asserção sobre navegação mobile antes de a navegação
  * mobile existir produz teste que nasce vermelho e é desligado na primeira
  * pressa.
+ *
+ * O QUE ESTES TESTES PROTEGEM HOJE: a V1. /docs ainda monta DocsNav. A V2
+ * entra nesta suíte no patch 4, quando ganhar mobile, e passa a ser o objeto
+ * definitivo destes testes depois da promoção no patch 5. Até lá, verde aqui
+ * não é afirmação nenhuma sobre a V2.
  */
 
 const LARGURAS = [320, 375, 390, 768, 1024, 1440];
@@ -18,10 +23,28 @@ test("a aplicação sobe sem banco e sem segredo", async ({ page }) => {
 });
 
 test("o estado sem marca é o que aparece antes do primeiro manual", async ({ page }) => {
+  const errosDeConsole: string[] = [];
+  page.on("pageerror", (erro) => errosDeConsole.push(erro.message));
+
   await page.goto("/docs");
+
   // Sem marca configurada, o produto mostra a própria moldura vazia — não
-  // conteúdo de exemplo, não erro.
-  await expect(page.locator("body")).not.toBeEmpty();
+  // conteúdo de exemplo, não erro. Uma asserção de "body não vazio" passaria
+  // igual diante de uma tela de erro do Next, que também tem corpo.
+  await expect(
+    page.getByRole("heading", { name: "Nenhuma marca por aqui ainda" }),
+  ).toBeVisible();
+
+  // Quem está sem marca ainda precisa saber em que produto está.
+  await expect(page.getByText("Brennimark", { exact: true })).toBeVisible();
+
+  // `nextjs-portal` existe sempre em desenvolvimento: é o host das ferramentas
+  // do Next, não o erro. O overlay de erro é o diálogo dentro dele — o seletor
+  // atravessa o shadow DOM.
+  await expect(page.locator("[data-nextjs-dialog]")).toHaveCount(0);
+  await expect(page.getByText("Unhandled Runtime Error")).toHaveCount(0);
+  await expect(page.getByText("Build Error")).toHaveCount(0);
+  expect(errosDeConsole).toEqual([]);
 });
 
 for (const largura of LARGURAS) {
