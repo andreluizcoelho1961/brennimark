@@ -33,6 +33,20 @@ export function AdminPanel({
   const selected = docs.find((doc) => doc.slug === slug);
   const persisted = persistedDocs.find((doc) => doc.slug === slug);
   const excluidaSelecionada = excluidas.find((pagina) => pagina.slug === slug);
+
+  /**
+   * Vivas e excluídas na MESMA coleção.
+   *
+   * Elas já estiveram em listas separadas, e a lista das excluídas só existia
+   * na navegação de desktop — que é `xl:block`. Abaixo disso a recuperação
+   * ficava inalcançável, e ninguém percebe porque o caminho só é exercido
+   * depois de alguém apagar alguma coisa. Uma fonte só para os dois seletores
+   * torna esse desencontro impossível.
+   */
+  const opcoesDePagina = [
+    ...docs.map((doc) => ({ slug: doc.slug, title: doc.title, deleted: false })),
+    ...excluidas.map((pagina) => ({ slug: pagina.slug, title: pagina.title, deleted: true })),
+  ];
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
@@ -125,8 +139,11 @@ export function AdminPanel({
           <div className="mt-8">
             <label htmlFor="admin-excluida" className="mb-2 block font-display text-[10px] font-bold uppercase tracking-widest text-text-secondary">{isEnglish ? "Page" : "Página"}</label>
             <select id="admin-excluida" value={slug} onChange={(event) => setSlug(event.target.value)} className="w-full max-w-md border border-border-default bg-background-primary px-3 py-3 text-sm text-release-analog-white">
-              {docs.map((doc) => <option key={doc.slug} value={doc.slug}>{doc.title}</option>)}
-              {excluidas.map((pagina) => <option key={pagina.slug} value={pagina.slug}>{pagina.title} — {isEnglish ? "deleted" : "excluída"}</option>)}
+              {opcoesDePagina.map((opcao) => (
+                <option key={opcao.slug} value={opcao.slug}>
+                  {opcao.deleted ? `${opcao.title} — ${isEnglish ? "deleted" : "excluída"}` : opcao.title}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -163,16 +180,20 @@ export function AdminPanel({
         <aside className="border border-border-default bg-surface-primary p-3">
           <label htmlFor="admin-page" className="block px-2 pb-2 font-display text-[10px] font-bold uppercase tracking-widest text-text-secondary">{isEnglish ? "Page" : "Página"}</label>
           <select id="admin-page" value={slug} onChange={(event) => selectPage(event.target.value)} className="w-full border border-border-default bg-background-primary px-3 py-3 text-sm text-release-analog-white xl:hidden">
-            {docs.map((doc) => <option key={doc.slug} value={doc.slug}>{doc.title}</option>)}
+            {opcoesDePagina.map((opcao) => (
+              <option key={opcao.slug} value={opcao.slug}>
+                {opcao.deleted ? `${opcao.title} — ${isEnglish ? "deleted" : "excluída"}` : opcao.title}
+              </option>
+            ))}
           </select>
           <div className="hidden max-h-[34rem] overflow-y-auto xl:block">
             {groups.map((group) => <div key={group} className="mb-4">
               <p className="px-2 py-2 font-display text-[10px] font-black uppercase tracking-wider text-release-analog-turquoise">{group}</p>
               {docs.filter((doc) => doc.group === group).map((doc) => <button key={doc.slug} type="button" onClick={() => selectPage(doc.slug)} className={`block w-full px-2 py-2 text-left text-sm ${doc.slug === slug ? "bg-release-analog-turquoise text-release-analog-black" : "text-text-secondary hover:text-release-analog-white"}`}>{doc.title}</button>)}
             </div>)}
-            {excluidas.length > 0 && <div className="mb-4 border-t border-border-default pt-3">
+            {opcoesDePagina.some((opcao) => opcao.deleted) && <div className="mb-4 border-t border-border-default pt-3">
               <p className="px-2 py-2 font-display text-[10px] font-black uppercase tracking-wider text-text-secondary">{isEnglish ? "Deleted" : "Excluídas"}</p>
-              {excluidas.map((pagina) => <button key={pagina.slug} type="button" onClick={() => selectPage(pagina.slug)} className="block w-full px-2 py-2 text-left text-sm text-text-secondary line-through hover:text-release-analog-white">{pagina.title}</button>)}
+              {opcoesDePagina.filter((opcao) => opcao.deleted).map((opcao) => <button key={opcao.slug} type="button" onClick={() => selectPage(opcao.slug)} className="block w-full px-2 py-2 text-left text-sm text-text-secondary line-through hover:text-release-analog-white">{opcao.title} <span className="not-sr-only text-[10px] uppercase">({isEnglish ? "deleted" : "excluída"})</span></button>)}
             </div>}
           </div>
         </aside>

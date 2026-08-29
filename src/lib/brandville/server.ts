@@ -128,32 +128,55 @@ export async function getProfileSummary(
  * página some da seleção no instante da exclusão, e ninguém consegue chegar ao
  * histórico dela — muito menos depois de recarregar a tela.
  *
- * O título vem do instantâneo mais recente, que é a última coisa que se sabe
- * sobre a página.
+ * Duas escolhas de consulta que importam:
+ *
+ * Só linhas `deleted`. Uma página que voltou tem linha viva e é filtrada pelos
+ * slugs vivos de qualquer jeito, então nenhuma outra ação responde a esta
+ * pergunta. A primeira versão desta função lia TODAS as ações e cortava nas
+ * 500 mais recentes — numa marca com histórico longo, uma exclusão antiga
+ * ficaria fora da janela e a página seria irrecuperável pela interface.
+ *
+ * E os slugs vivos entram na própria consulta, não em filtro depois. Assim o
+ * banco devolve só o que interessa, e a paginação percorre um conjunto que na
+ * prática é pequeno: exclusões são raras.
  */
 export async function getDeletedPages(
   auth: BrandvilleAuthContext,
   brandId: string,
   slugsVivos: readonly string[],
 ): Promise<{ slug: string; title: string; deletedAt: string }[]> {
-  const { data, error } = await auth.supabase
-    .from("brand_document_versions")
-    .select("slug, snapshot, created_at")
-    .eq("brand_id", brandId)
-    .order("created_at", { ascending: false })
-    .limit(500);
-  if (error) throw error;
-
-  const vivos = new Set(slugsVivos);
+  const PAGINA = 1000;
   const vistos = new Map<string, { slug: string; title: string; deletedAt: string }>();
-  for (const linha of data ?? []) {
-    if (vivos.has(linha.slug) || vistos.has(linha.slug)) continue;
-    const titulo = (linha.snapshot as Record<string, unknown> | null)?.title;
-    vistos.set(linha.slug, {
-      slug: linha.slug,
-      title: typeof titulo === "string" && titulo ? titulo : linha.slug,
-      deletedAt: linha.created_at,
-    });
+
+  for (let inicio = 0; ; inicio += PAGINA) {
+    let consulta = auth.supabase
+      .from("brand_document_versions")
+      .select("slug, snapshot, created_at")
+      .eq("brand_id", brandId)
+      .eq("action", "deleted")
+      .order("created_at", { ascending: false })
+      .range(inicio, inicio + PAGINA - 1);
+
+    if (slugsVivos.length > 0) {
+      consulta = consulta.not("slug", "in", `(${slugsVivos.map((s) => `"${s}"`).join(",")})`);
+    }
+
+    const { data, error } = await consulta;
+    if (error) throw error;
+
+    for (const linha of data ?? []) {
+      // A primeira ocorrência é a mais recente: é a exclusão que vale.
+      if (vistos.has(linha.slug)) continue;
+      const titulo = (linha.snapshot as Record<string, unknown> | null)?.title;
+      vistos.set(linha.slug, {
+        slug: linha.slug,
+        title: typeof titulo === "string" && titulo ? titulo : linha.slug,
+        deletedAt: linha.created_at,
+      });
+    }
+
+    if ((data?.length ?? 0) < PAGINA) break;
   }
+
   return [...vistos.values()];
 }

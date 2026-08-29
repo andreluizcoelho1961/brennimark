@@ -1,0 +1,45 @@
+import { notFound } from "next/navigation";
+import { AdminPanel } from "@/components/admin/AdminPanel";
+import type { DocPageEntry } from "@/content/docs";
+
+export const metadata = { robots: { index: false, follow: false } };
+
+/**
+ * A tela de administração com dados fixos, para o teste de navegador.
+ *
+ * A administração de verdade exige sessão, workspace e marca no banco. Criar
+ * um usuário permanente no Supabase só para o Playwright seria pior do que o
+ * problema: conta viva num projeto real, credencial em algum lugar, e um teste
+ * que depende de rede. As APIs são interceptadas no teste; a integridade do
+ * banco já está coberta pelos testes em SQL.
+ *
+ * O que esta rota exercita é o que faltava: o CAMINHO pela interface. Excluir
+ * uma página e não conseguir voltar até ela foi defeito real duas vezes — e nas
+ * duas o código parecia certo na leitura.
+ *
+ * Fora de produção por construção.
+ */
+const VIVAS: DocPageEntry[] = [
+  { slug: "cores", group: "Sistema", title: "Cores", status: "ready", body: ["A paleta parte do vermelho."] },
+  { slug: "tipografia", group: "Sistema", title: "Tipografia", status: "ready", body: ["Uma família, quatro pesos."] },
+];
+
+export default async function AdminPanelLab({
+  searchParams,
+}: {
+  searchParams: Promise<{ estado?: string }>;
+}) {
+  if (process.env.NODE_ENV === "production") notFound();
+
+  const { estado } = await searchParams;
+
+  // `?estado=com-excluida` é o servidor devolvendo o que devolveria depois de
+  // um recarregamento: uma página viva e outra já excluída.
+  const comExcluida = estado === "com-excluida";
+  const docs = comExcluida ? VIVAS.slice(0, 1) : VIVAS;
+  const excluidas = comExcluida
+    ? [{ slug: "tipografia", title: "Tipografia", deletedAt: "2026-08-29T12:00:00.000Z" }]
+    : [];
+
+  return <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} />;
+}
