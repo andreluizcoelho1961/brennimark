@@ -5,7 +5,7 @@ import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings"
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
 import { classifyAIError } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
-import { getResolvedBrandDocs } from "@/lib/brandville/server";
+import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
 import { brandvilleInstance } from "@/brandville/config";
 
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   let firstChunkTimeoutMs: number;
   let brandDocs;
   try {
-    brandDocs = await getResolvedBrandDocs();
+    brandDocs = (await resolveWorkspaceContext()).docs;
     const routing = await resolveChatRouting();
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;

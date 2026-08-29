@@ -3,7 +3,7 @@ import { streamText } from "ai";
 import { getModel, supportsVision } from "@/lib/ai/provider";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
-import { getResolvedBrandDocs } from "@/lib/brandville/server";
+import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { classifyAIError } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   let brandDocs;
   try {
-    brandDocs = await getResolvedBrandDocs();
+    brandDocs = (await resolveWorkspaceContext()).docs;
   } catch {
     return NextResponse.json({ error: "content_unavailable", message: isEnglish ? "Couldn't load the latest guidelines right now." : "Não foi possível carregar as diretrizes atualizadas agora." }, { status: 503 });
   }

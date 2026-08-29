@@ -69,25 +69,21 @@ export async function resolveActiveBrand(
 }
 
 /**
- * As páginas do manual, direto do banco.
+ * As páginas de UMA marca, direto do banco.
  *
- * Antes esta função percorria um registro em código e procurava sobreposições
- * no banco. Agora o banco é a fonte: sem marca, não há páginas — e é isso que
- * o estado vazio mostra, em vez de conteúdo de exemplo.
+ * Recebe o identificador já resolvido e não descobre marca nenhuma. Antes ela
+ * chamava resolveActiveBrand por conta própria, o que fazia a mesma requisição
+ * resolver a marca duas vezes — e abria a porta para navegação e conteúdo
+ * enxergarem marcas diferentes.
  */
-export async function getResolvedBrandDocs(
-  context?: BrandvilleAuthContext | null,
+export async function getBrandDocs(
+  auth: BrandvilleAuthContext,
+  brandId: string,
 ): Promise<DocPageEntry[]> {
-  const auth = context === undefined ? await getBrandvilleAuthContext() : context;
-  if (!auth) return [];
-
-  const marca = await resolveActiveBrand(auth);
-  if (!marca) return [];
-
   const { data, error } = await auth.supabase
     .from("brand_documents")
     .select("slug, group_name, title, status, body, images, blocks, sort_order")
-    .eq("brand_id", marca.id)
+    .eq("brand_id", brandId)
     .order("sort_order", { ascending: true });
   if (error) throw error;
 
@@ -96,7 +92,15 @@ export async function getResolvedBrandDocs(
   return (data ?? []).map(parseDocumentRow).filter((entry): entry is DocPageEntry => entry !== null);
 }
 
-export async function getResolvedBrandDoc(slug: string): Promise<DocPageEntry | undefined> {
-  const docs = await getResolvedBrandDocs();
-  return docs.find((entry) => entry.slug === slug);
+/** O perfil, só com o que decide o onboarding. */
+export async function getProfileSummary(
+  auth: BrandvilleAuthContext,
+): Promise<{ fullName: string } | null> {
+  const { data } = await auth.supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", auth.user.id)
+    .maybeSingle();
+  const nome = data?.full_name;
+  return typeof nome === "string" && nome.length > 0 ? { fullName: nome } : null;
 }

@@ -158,3 +158,43 @@ test("os metadados da aplicação são do produto, não do manual", () => {
     "a marca do cliente não batiza a janela do Brennimark",
   );
 });
+
+/**
+ * Patch 1.1. Guardas de texto para o que o teste de comportamento não alcança:
+ * quem chama o quê. Elas complementam os contadores de context.test.ts — não
+ * substituem, porque casar uma string prova ausência de chamada, não correção.
+ */
+test("o layout de /docs não autentica por conta própria", () => {
+  const codigo = lerCodigo("src/app/docs/layout.tsx");
+  assert.doesNotMatch(
+    codigo,
+    /getBrandvilleAuthContext/,
+    "o layout autenticava e o contexto autenticava de novo: duas idas à Auth API",
+  );
+  assert.doesNotMatch(codigo, /from\("profiles"\)/, "o perfil pertence à resolução da requisição");
+});
+
+test("a consulta de documentos não descobre a marca", () => {
+  const servidor = lerCodigo("src/lib/brandville/server.ts");
+  const corpo = servidor.slice(servidor.indexOf("export async function getBrandDocs"));
+  assert.doesNotMatch(
+    corpo.slice(0, corpo.indexOf("export async function getProfileSummary")),
+    /resolveActiveBrand/,
+    "getBrandDocs recebe brandId; resolver a marca de novo faz navegação e conteúdo divergirem",
+  );
+});
+
+test("não voltou um caminho paralelo de documento por slug", () => {
+  // getResolvedBrandDoc refazia autenticação, marca e documentos fora do
+  // contexto da requisição. Foi removida no patch 1.1.
+  assert.doesNotMatch(lerCodigo("src/lib/brandville/server.ts"), /getResolvedBrandDoc\b/);
+});
+
+test("nenhum papel é presumido quando não há sessão", () => {
+  const codigo = lerCodigo("src/lib/brandville/context.ts");
+  assert.doesNotMatch(
+    codigo,
+    /\?\?\s*"member"/,
+    "presumir member dá `consultar` a visitante sem sessão",
+  );
+});
