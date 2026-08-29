@@ -20,10 +20,19 @@ export type ProductLocale = (typeof PRODUCT_LOCALES)[number];
 /**
  * O padrão do produto enquanto ninguém escolheu.
  *
- * DÍVIDA CONHECIDA: não há onde guardar a preferência da pessoa — `profiles`
- * não tem coluna de idioma. Por isso `resolveInterfaceLocale` hoje sempre
- * devolve o padrão. A escolha do usuário entra em uma função só, aqui, quando
- * a coluna existir; nenhum componente precisa mudar por causa disso.
+ * DÍVIDA, descrita como ela é: o que o patch 3 entregou foi o DESACOPLAMENTO
+ * do manual — nenhum instrumento do produto decide microcópia por
+ * `metadata.language`. Personalização por pessoa é outra coisa, e ainda exige
+ * três mudanças além de uma coluna em `profiles`:
+ *
+ * 1. `resolveInterfaceLocale` precisa receber a preferência; hoje
+ *    `WorkspaceContext` a chama sem argumento;
+ * 2. os módulos que leem `PRODUCT_LOCALE` diretamente — rotas de API, DocPage,
+ *    as mensagens de erro de IA — precisam passar a receber o locale, porque
+ *    uma constante de módulo não varia por pessoa;
+ * 3. a interface precisa de onde a pessoa escolher.
+ *
+ * Dizer "basta adicionar a coluna" seria falso.
  */
 export const PRODUCT_LOCALE: ProductLocale = "pt-BR";
 

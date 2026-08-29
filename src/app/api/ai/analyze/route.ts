@@ -4,6 +4,7 @@ import { getModel, supportsVision } from "@/lib/ai/provider";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { brandPromptContext } from "@/lib/brandville/context";
 import { classifyAIError } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
@@ -71,8 +72,19 @@ export async function POST(request: Request) {
   }
 
   let brandDocs;
+  let brandPrompt;
   try {
-    brandDocs = (await resolveWorkspaceContext()).docs;
+    const contexto = await resolveWorkspaceContext();
+    if (!contexto.brand) {
+      // Sem marca não há sobre o que responder — e um prompt sem papel nem
+      // idioma responderia como se fosse sobre qualquer marca.
+      return NextResponse.json(
+        { error: "no_brand", message: isEnglish ? "No brand configured yet." : "Nenhuma marca configurada ainda." },
+        { status: 409 },
+      );
+    }
+    brandDocs = contexto.docs;
+    brandPrompt = brandPromptContext(contexto.brand);
   } catch {
     return NextResponse.json({ error: "content_unavailable", message: isEnglish ? "Couldn't load the latest guidelines right now." : "Não foi possível carregar as diretrizes atualizadas agora." }, { status: 503 });
   }
@@ -161,7 +173,7 @@ export async function POST(request: Request) {
           start: (attempt, abortSignal) =>
             streamText({
               model: getModel(attempt.config),
-              system: buildAnalysisSystemPrompt(brandDocs),
+              system: buildAnalysisSystemPrompt(brandDocs, brandPrompt),
               messages: [
                 {
                   role: "user",

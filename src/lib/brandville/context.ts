@@ -6,6 +6,7 @@ import {
 } from "../../platform/capabilities";
 import { resolveInterfaceLocale, type ProductLocale } from "../../platform/locale";
 import type { ActiveBrand } from "./brand-row";
+import type { BrandPromptContext } from "../ai/brand-context";
 
 /**
  * A forma do contexto de requisição, a regra que o monta, e o carregador.
@@ -73,9 +74,10 @@ export function montarContexto({
     userEmail: auth?.email || undefined,
     // Slug vazio redirecionaria para /docs/ e produziria laço.
     defaultDocSlug: slug ? slug : null,
-    // Sem parâmetro: a preferência do usuário ainda não tem onde ser guardada.
-    // O idioma do manual não entra aqui por construção — resolveInterfaceLocale
-    // não aceita esse valor.
+    // Sem argumento, de propósito e por enquanto: não existe preferência de
+    // idioma guardada em lugar nenhum. Quando existir, ela entra AQUI — e
+    // vários módulos que hoje leem PRODUCT_LOCALE direto terão de passar a
+    // receber este valor. Ver a dívida descrita em platform/locale.ts.
     locale: resolveInterfaceLocale(),
   };
 }
@@ -116,4 +118,19 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
 
   const docs = marca ? await deps.getDocsByBrandId(auth, marca.id) : [];
   return montarContexto({ access: "ready", auth, marca, docs });
+}
+
+/**
+ * O recorte da marca que o assistente enxerga.
+ *
+ * Uma função, e não um objeto montado em cada rota: se cada chamador escolhesse
+ * os campos, um deles acabaria esquecendo o papel ou o idioma e caindo em um
+ * padrão — que foi exatamente como a instância global sobreviveu até aqui.
+ */
+export function brandPromptContext(marca: ActiveBrand): BrandPromptContext {
+  return {
+    language: marca.metadata.language,
+    chatRole: marca.ai.chatRole,
+    analysisRole: marca.ai.analysisRole,
+  };
 }

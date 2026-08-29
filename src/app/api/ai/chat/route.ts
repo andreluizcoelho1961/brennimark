@@ -6,6 +6,7 @@ import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
 import { classifyAIError } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { brandPromptContext } from "@/lib/brandville/context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
@@ -28,8 +29,19 @@ export async function POST(request: Request) {
   let attempts: ResolvedChatAttempt[];
   let firstChunkTimeoutMs: number;
   let brandDocs;
+  let brandPrompt;
   try {
-    brandDocs = (await resolveWorkspaceContext()).docs;
+    const contexto = await resolveWorkspaceContext();
+    if (!contexto.brand) {
+      // Sem marca não há sobre o que responder — e um prompt sem papel nem
+      // idioma responderia como se fosse sobre qualquer marca.
+      return NextResponse.json(
+        { error: "no_brand", message: isEnglish ? "No brand configured yet." : "Nenhuma marca configurada ainda." },
+        { status: 409 },
+      );
+    }
+    brandDocs = contexto.docs;
+    brandPrompt = brandPromptContext(contexto.brand);
     const routing = await resolveChatRouting();
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
@@ -47,7 +59,7 @@ export async function POST(request: Request) {
       start: (attempt, abortSignal) =>
         streamText({
           model: getModel(attempt.config),
-          system: buildChatSystemPrompt(brandDocs),
+          system: buildChatSystemPrompt(brandDocs, brandPrompt),
           messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,

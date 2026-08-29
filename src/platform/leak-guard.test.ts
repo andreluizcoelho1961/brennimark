@@ -341,3 +341,36 @@ test("resolveInterfaceLocale não aceita o idioma do manual", () => {
   // passando brand.metadata.language para cá.
   assert.doesNotMatch(lerCodigo("src/platform/locale.ts"), /brand|manual\.language/i);
 });
+
+/**
+ * Patch 3.1. O módulo do assistente é o mais perigoso do repositório para
+ * herança: o texto vai direto para o modelo, ninguém o revisa em runtime, e um
+ * nome de cor esquecido lá dentro julga todas as marcas.
+ */
+test("o prompt não conhece marca global nem registro em código", () => {
+  const modulo = lerCodigo("src/lib/ai/brand-context.ts");
+  assert.doesNotMatch(modulo, /brandvilleInstance/, "idioma e papéis chegam por parâmetro");
+  assert.doesNotMatch(
+    modulo,
+    /activeDocsRegistry/,
+    "um valor padrão vindo do registro faz um chamador esquecido montar prompt sem marca",
+  );
+});
+
+test("nenhuma cor de cliente sobrevive no prompt universal", () => {
+  const modulo = lerCodigo("src/lib/ai/brand-context.ts");
+  for (const termo of [/Turquoise/i, /turquesa/i, /release-analog/, /hairline/i, /bluesmaker/i]) {
+    assert.doesNotMatch(modulo, termo, `o prompt de análise carrega vocabulário de um cliente: ${termo}`);
+  }
+});
+
+test("as funções de prompt exigem a marca, sem cair em padrão", () => {
+  const modulo = lerCodigo("src/lib/ai/brand-context.ts");
+  // Assinatura com valor padrão foi como a instância global sobreviveu até
+  // aqui: o chamador não passava nada e o módulo escolhia por ele.
+  assert.doesNotMatch(modulo, /docs: readonly DocPageEntry\[\] =/);
+  for (const fn of ["buildChatSystemPrompt", "buildAnalysisSystemPrompt"]) {
+    const trecho = modulo.slice(modulo.indexOf(`export function ${fn}`));
+    assert.match(trecho.slice(0, 200), /brand: BrandPromptContext/, `${fn} precisa receber a marca`);
+  }
+});
