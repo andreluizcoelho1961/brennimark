@@ -92,15 +92,23 @@ export async function getBrandDocs(
   return (data ?? []).map(parseDocumentRow).filter((entry): entry is DocPageEntry => entry !== null);
 }
 
-/** O perfil, só com o que decide o onboarding. */
+/**
+ * O perfil, só com o que decide o onboarding.
+ *
+ * O erro sobe. Engoli-lo faria uma falha de banco ou de RLS devolver `null`, e
+ * `null` aqui significa "ainda não completou o cadastro": a pessoa seria
+ * mandada para o onboarding por causa de um defeito de infraestrutura, e
+ * refaria um cadastro que já existe.
+ */
 export async function getProfileSummary(
   auth: BrandvilleAuthContext,
 ): Promise<{ fullName: string } | null> {
-  const { data } = await auth.supabase
+  const { data, error } = await auth.supabase
     .from("profiles")
     .select("full_name")
     .eq("id", auth.user.id)
     .maybeSingle();
+  if (error) throw error;
   const nome = data?.full_name;
   return typeof nome === "string" && nome.length > 0 ? { fullName: nome } : null;
 }
