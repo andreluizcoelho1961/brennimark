@@ -13,22 +13,23 @@ const STATUS_LABEL: Record<DocStatus, string> = isEnglish
   ? { ready: "Approved", draft: "Draft", pending: "In progress" }
   : { ready: "Pronto", draft: "Rascunho", pending: "Em construção" };
 
-export function AdminPanel({ initialDocs, baseDocs, groups }: { initialDocs: DocPageEntry[]; baseDocs: DocPageEntry[]; groups: readonly string[] }) {
+export function AdminPanel({ initialDocs, groups }: { initialDocs: DocPageEntry[]; groups: readonly string[] }) {
   const [docs, setDocs] = useState(initialDocs);
   const [persistedDocs, setPersistedDocs] = useState(initialDocs);
   const [slug, setSlug] = useState(initialDocs[0]?.slug ?? "");
-  const selected = docs.find((doc) => doc.slug === slug)!;
-  const persisted = persistedDocs.find((doc) => doc.slug === slug)!;
-  const base = baseDocs.find((doc) => doc.slug === slug)!;
+  const selected = docs.find((doc) => doc.slug === slug);
+  const persisted = persistedDocs.find((doc) => doc.slug === slug);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
-  const customized = useMemo(() => JSON.stringify(persisted) !== JSON.stringify(base), [persisted, base]);
-  const hasUnsavedChanges = useMemo(() => JSON.stringify(selected) !== JSON.stringify(persisted), [selected, persisted]);
+  const hasUnsavedChanges = useMemo(
+    () => JSON.stringify(selected) !== JSON.stringify(persisted),
+    [selected, persisted],
+  );
 
   function selectPage(nextSlug: string) {
     if (hasUnsavedChanges && !window.confirm(isEnglish ? "Discard unsaved changes?" : "Descartar as mudanças que ainda não foram salvas?")) return;
-    setDocs((current) => current.map((doc) => doc.slug === slug ? { ...persisted } : doc));
+    if (persisted) setDocs((current) => current.map((doc) => doc.slug === slug ? persisted : doc));
     setSlug(nextSlug);
     setMessage("");
   }
@@ -39,12 +40,13 @@ export function AdminPanel({ initialDocs, baseDocs, groups }: { initialDocs: Doc
   }
 
   async function save() {
+    if (!selected) return;
     setSaving(true); setMessage("");
     const response = await fetch("/api/admin/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selected) });
     const result = await response.json().catch(() => ({}));
     setSaving(false);
     if (response.ok) {
-      setPersistedDocs((current) => current.map((doc) => doc.slug === slug ? { ...selected } : doc));
+      setPersistedDocs((current) => current.map((doc) => doc.slug === slug ? selected : doc));
       setHistoryRevision((value) => value + 1);
     }
     setMessage(response.ok
@@ -52,34 +54,69 @@ export function AdminPanel({ initialDocs, baseDocs, groups }: { initialDocs: Doc
       : (result.message ?? (isEnglish ? "Couldn't save." : "Não foi possível salvar.")));
   }
 
-  async function restore() {
-    if (!window.confirm(isEnglish ? "Restore this page to the original matrix version?" : "Restaurar esta página para a versão original da matriz?")) return;
+  /**
+   * Excluir a página. Antes isto se chamava "restaurar matriz" e devolvia a
+   * página ao registro em código; sem matriz, apagar apaga. O conteúdo fica no
+   * histórico, e é de lá que ele volta.
+   */
+  async function excluir() {
+    if (!selected) return;
+    const confirmacao = isEnglish
+      ? `Delete "${selected.title}"? It leaves the guide immediately. The content stays in the version history and can be recovered from there.`
+      : `Excluir "${selected.title}"? Ela sai do guia imediatamente. O conteúdo continua no histórico de versões e pode ser recuperado de lá.`;
+    if (!window.confirm(confirmacao)) return;
     setSaving(true); setMessage("");
     const response = await fetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
     const result = await response.json().catch(() => ({}));
     if (response.ok) {
-      setDocs((current) => current.map((doc) => doc.slug === slug ? { ...base } : doc));
-      setPersistedDocs((current) => current.map((doc) => doc.slug === slug ? { ...base } : doc));
-      setHistoryRevision((value) => value + 1);
+      const restantes = docs.filter((doc) => doc.slug !== slug);
+      setDocs(restantes);
+      setPersistedDocs((current) => current.filter((doc) => doc.slug !== slug));
+      setSlug(restantes[0]?.slug ?? "");
     }
     setSaving(false);
     setMessage(response.ok
-      ? (isEnglish ? "Original version restored." : "Versão original restaurada.")
-      : (result.message ?? (isEnglish ? "Couldn't restore." : "Não foi possível restaurar.")));
+      ? (isEnglish ? "Page deleted. It's still in the history." : "Página excluída. Ela continua no histórico.")
+      : (result.message ?? (isEnglish ? "Couldn't delete." : "Não foi possível excluir.")));
   }
 
   function handleRecovered(document: DocPageEntry) {
-    setDocs((current) => current.map((doc) => doc.slug === document.slug ? { ...document } : doc));
-    setPersistedDocs((current) => current.map((doc) => doc.slug === document.slug ? { ...document } : doc));
+    // A página pode ter sido excluída: neste caso a recuperação a traz de
+    // volta à lista em vez de substituir uma entrada existente.
+    const repor = (atual: DocPageEntry[]) =>
+      atual.some((doc) => doc.slug === document.slug)
+        ? atual.map((doc) => (doc.slug === document.slug ? { ...document } : doc))
+        : [...atual, { ...document }];
+    setDocs(repor);
+    setPersistedDocs(repor);
+    setSlug(document.slug);
     setMessage(isEnglish ? "Version recovered and published. The guide and the AI now use this content." : "Versão recuperada e publicada. O guia e a IA já usam este conteúdo.");
     setHistoryRevision((value) => value + 1);
+  }
+
+  // A administração edita o que existe; criar página é o importador de PDF.
+  // Antes esta tela quebrava com lista vazia, porque presumia que o registro em
+  // código sempre teria conteúdo.
+  if (!selected) {
+    return (
+      <div className="px-page-inline py-12 md:py-16">
+        <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-release-analog-turquoise">{isEnglish ? "Administration" : "Administração"}</p>
+        <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-release-analog-white md:text-6xl">{isEnglish ? "No pages yet" : "Nenhuma página ainda"}</h1>
+        <p className="mt-5 max-w-2xl text-base leading-relaxed text-text-secondary">{isEnglish ? "This brand has no published pages. Pages arrive when a brand manual is imported." : "Esta marca ainda não tem páginas publicadas. As páginas chegam quando um manual é importado."}</p>
+        <div className="mt-12 border-t border-border-default pt-12">
+          <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-release-analog-turquoise">{isEnglish ? "Library" : "Biblioteca"}</p>
+          <h2 className="mt-3 font-display text-3xl font-black uppercase text-release-analog-white">{isEnglish ? "Official assets" : "Assets oficiais"}</h2>
+          <div className="mt-8"><AssetLibrary canManage language={brandvilleInstance.metadata.language} /></div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="px-page-inline py-12 md:py-16">
       <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-release-analog-turquoise">{isEnglish ? "Administration" : "Administração"}</p>
       <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-release-analog-white md:text-6xl">{isEnglish ? "Content and assets" : "Conteúdo e assets"}</h1>
-      <p className="mt-5 max-w-3xl text-base leading-relaxed text-text-secondary">{isEnglish ? "Update the guide without touching code. The original matrix stays available as a safe version, and each save also feeds the assistant." : "Atualize o guia sem alterar o código. A matriz original continua disponível como versão segura e cada salvamento passa a orientar também o assistente."}</p>
+      <p className="mt-5 max-w-3xl text-base leading-relaxed text-text-secondary">{isEnglish ? "Update the guide without touching code. Every save is recorded in the version history, and also feeds the assistant." : "Atualize o guia sem alterar o código. Cada salvamento entra no histórico de versões e passa a orientar também o assistente."}</p>
 
       <section className="mt-12 grid gap-8 xl:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="border border-border-default bg-surface-primary p-3">
@@ -97,7 +134,7 @@ export function AdminPanel({ initialDocs, baseDocs, groups }: { initialDocs: Doc
 
         <div className="border border-border-default p-5 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div><p className="font-mono text-[10px] text-text-secondary">/docs/{selected.slug}</p><p className="mt-1 text-xs text-text-secondary">{hasUnsavedChanges ? (isEnglish ? "Unsaved changes" : "Mudanças ainda não salvas") : customized ? (isEnglish ? "Published custom version" : "Versão personalizada publicada") : (isEnglish ? "Original matrix version" : "Versão original da matriz")}</p></div>
+            <div><p className="font-mono text-[10px] text-text-secondary">/docs/{selected.slug}</p><p className="mt-1 text-xs text-text-secondary">{hasUnsavedChanges ? (isEnglish ? "Unsaved changes" : "Mudanças ainda não salvas") : (isEnglish ? "Published" : "Publicada")}</p></div>
             <Link href={`/docs/${selected.slug}`} className="border border-border-default px-4 py-2 font-display text-xs font-bold uppercase text-release-analog-white hover:border-release-analog-white">{isEnglish ? "View page" : "Ver página"}</Link>
           </div>
 
@@ -109,7 +146,7 @@ export function AdminPanel({ initialDocs, baseDocs, groups }: { initialDocs: Doc
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button type="button" disabled={saving || !hasUnsavedChanges} onClick={save} className="bg-release-analog-turquoise px-5 py-3 font-display text-xs font-black uppercase text-release-analog-black disabled:opacity-50">{saving ? (isEnglish ? "Saving…" : "Salvando…") : (isEnglish ? "Save page" : "Salvar página")}</button>
-            <button type="button" disabled={saving || (!customized && !hasUnsavedChanges)} onClick={restore} className="border border-border-default px-5 py-3 font-display text-xs font-bold uppercase text-text-secondary disabled:opacity-40">{isEnglish ? "Restore matrix" : "Restaurar matriz"}</button>
+            <button type="button" disabled={saving} onClick={excluir} className="border border-border-default px-5 py-3 font-display text-xs font-bold uppercase text-text-secondary disabled:opacity-40">{isEnglish ? "Delete page" : "Excluir página"}</button>
             {message && <p role="status" className="text-sm text-text-secondary">{message}</p>}
           </div>
           <VersionHistory key={`${slug}-${historyRevision}`} slug={slug} onRecovered={handleRecovered} />

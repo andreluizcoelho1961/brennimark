@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { parseBrandRow, parseDocumentRow, type ActiveBrand } from "./brand-row";
 import type { DocPageEntry, DocPageImage } from "@/content/docs";
@@ -12,7 +13,14 @@ export type BrandvilleAuthContext = {
   role: "owner" | "member";
 };
 
-export async function getBrandvilleAuthContext(): Promise<BrandvilleAuthContext | null> {
+/**
+ * Sessão, workspace e papel — uma vez por requisição.
+ *
+ * `cache` do React memoriza por requisição, não por processo. Sem ele, cada
+ * rota que precisasse do cliente Supabase abriria outra chamada à Auth API,
+ * que é justamente a duplicação que o patch 1.1 removeu do layout.
+ */
+export const getBrandvilleAuthContext = cache(async (): Promise<BrandvilleAuthContext | null> => {
   if (SKIP_AUTH) return null;
 
   const supabase = await createClient();
@@ -28,7 +36,7 @@ export async function getBrandvilleAuthContext(): Promise<BrandvilleAuthContext 
   if (error) throw error;
   if (!data?.workspace_id || (data.role !== "owner" && data.role !== "member")) return null;
   return { supabase, user, workspaceId: data.workspace_id, role: data.role };
-}
+});
 
 
 

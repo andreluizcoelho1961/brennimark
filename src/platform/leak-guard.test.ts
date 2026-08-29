@@ -198,3 +198,53 @@ test("nenhum papel é presumido quando não há sessão", () => {
     "presumir member dá `consultar` a visitante sem sessão",
   );
 });
+
+/**
+ * Patch 2. Os caminhos de escrita passaram a se identificar pela marca. As
+ * guardas abaixo impedem o retorno de duas fontes de verdade — o registro em
+ * código e o par workspace_id + instance_key — que faziam a escrita gravar
+ * onde a leitura nova não procura.
+ */
+const ESCRITA = [
+  "src/app/api/admin/content/route.ts",
+  "src/app/api/admin/content/history/route.ts",
+  "src/app/docs/admin/page.tsx",
+];
+
+test("a escrita não consulta o registro em código", () => {
+  for (const arquivo of ESCRITA) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /activeDocsRegistry|getActiveDocBySlug/,
+      `${arquivo} valida conteúdo contra código; a marca vive no banco`,
+    );
+  }
+});
+
+test("a escrita não se identifica por instance_key", () => {
+  for (const arquivo of ESCRITA) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /eq\("instance_key"|"workspace_id,instance_key,slug"/,
+      `${arquivo} grava ou consulta pelo par antigo; a chave é brand_id`,
+    );
+  }
+});
+
+test("a administração não veste a marca por instância global", () => {
+  assert.doesNotMatch(
+    lerCodigo("src/app/docs/admin/page.tsx"),
+    /brandvilleInstance/,
+    "as seções válidas são as da marca resolvida",
+  );
+});
+
+test("o rótulo do histórico vem do vocabulário, não de comparação solta", () => {
+  const historico = lerCodigo("src/components/admin/VersionHistory.tsx");
+  assert.match(historico, /historyActionLabel/);
+  assert.doesNotMatch(
+    historico,
+    /action === "restored_to_matrix"/,
+    "comparar com um único valor faz qualquer ação nova virar 'Publicada'",
+  );
+});
