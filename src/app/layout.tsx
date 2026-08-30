@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { platformThemeStyle } from "@/brandville/config";
 import { platformIdentity } from "@/platform/identity";
 import "./globals.css";
@@ -19,6 +19,18 @@ export const metadata: Metadata = {
   title: platformIdentity.displayName,
   description: platformIdentity.tagline,
   robots: { index: false, follow: false },
+};
+
+/**
+ * `viewportFit: "cover"` é o que faz `env(safe-area-inset-*)` valer alguma
+ * coisa. Sem ele o navegador reserva as margens do recorte por conta própria e
+ * todos os insets chegam zerados ao CSS — a moldura calcula recuos que nunca
+ * acontecem, e num aparelho com recorte a barra fica sob ele.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 const LOCALE_PADRAO = "pt-BR";

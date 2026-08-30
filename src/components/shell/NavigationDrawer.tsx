@@ -83,19 +83,20 @@ export function NavigationDrawer({
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <button
-        type="button"
-        aria-label={isEnglish ? "Close navigation" : "Fechar navegação"}
-        onClick={onClose}
-        className="absolute inset-0 bg-platform-scrim"
-      />
+      {/*
+        O véu é suplementar: fechar clicando fora é atalho de mouse, e já
+        existem Escape e um botão explícito. Como botão ele entrava na ordem de
+        foco e na árvore acessível, anunciando "Fechar navegação" duas vezes e
+        gastando uma parada de teclado antes do primeiro destino.
+      */}
+      <div aria-hidden onClick={onClose} className="absolute inset-0 bg-platform-scrim" />
       <div
         ref={painelRef}
         role="dialog"
         aria-modal="true"
         aria-label={isEnglish ? "Main navigation" : "Navegação principal"}
         data-drawer
-        className="absolute inset-y-0 left-0 flex w-[min(20rem,85vw)] flex-col gap-[var(--space-shell-5)] overflow-y-auto border-r border-platform-border bg-platform-bg px-[var(--space-shell-3)] pb-[max(env(safe-area-inset-bottom),var(--space-shell-5))] pt-[max(env(safe-area-inset-top),var(--space-shell-4))] motion-safe:animate-[gaveta_var(--motion-panel)_var(--ease-shell)]"
+        className="absolute inset-y-0 left-0 flex w-[min(20rem,85vw)] flex-col gap-[var(--space-shell-5)] overflow-y-auto border-r border-platform-border bg-platform-bg px-[var(--space-shell-3)] pb-[max(env(safe-area-inset-bottom),var(--space-shell-5))] pl-[max(env(safe-area-inset-left),var(--space-shell-3))] pt-[max(env(safe-area-inset-top),var(--space-shell-4))] motion-safe:animate-[gaveta_var(--motion-panel)_var(--ease-shell)]"
       >
         <div className="flex items-center justify-between px-[var(--space-shell-3)]">
           <span className="text-[11px] uppercase tracking-[0.06em] text-platform-text-muted">

@@ -441,3 +441,29 @@ test("as fixtures de marcas opostas continuam sendo linhas de banco", () => {
   const fixtures = lerCodigo("src/platform/fixtures/marcas-opostas.ts");
   assert.match(fixtures, /status_labels/, "as fixtures usam os nomes de coluna do banco");
 });
+
+/**
+ * Patch 4.1. Dois estados booleanos que podem ser verdadeiros ao mesmo tempo
+ * descrevem uma situação que não deveria existir. A gaveta e a busca eram
+ * assim, e ⌘K funciona em qualquer lugar: com a gaveta aberta, o atalho
+ * empilhava a busca por cima e a página passava a ter dois diálogos.
+ */
+test("a moldura mantém um único estado de modal", () => {
+  const shell = lerCodigo("src/components/shell/AppShellV2.tsx");
+  assert.doesNotMatch(
+    shell,
+    /useState\(false\)/,
+    "estado de modal em booleano permite dois abertos ao mesmo tempo",
+  );
+  assert.match(shell, /"none" \| "nav" \| "search"/, "um estado, três valores");
+});
+
+test("o resto da aplicação fica inerte com um modal aberto", () => {
+  // Prender o foco não impede a navegação virtual de leitor de tela.
+  assert.match(lerCodigo("src/components/shell/AppShellV2.tsx"), /inert=\{/);
+});
+
+test("a moldura declara viewport-fit cover", () => {
+  // Sem isso todo env(safe-area-inset-*) do repositório vale zero.
+  assert.match(lerCodigo("src/app/layout.tsx"), /viewportFit: "cover"/);
+});

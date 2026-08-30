@@ -17,11 +17,13 @@ export function PlatformTopBar({
   brandDescriptor,
   onOpenSearch,
   onOpenNavigation,
+  navigationOpen = false,
   children,
 }: {
   userEmail?: string;
   brandName?: string;
   brandDescriptor?: string;
+  navigationOpen?: boolean;
   onOpenSearch?: () => void;
   /** Ausente no desktop, onde a navegação é uma coluna permanente. */
   onOpenNavigation?: () => void;
@@ -33,7 +35,7 @@ export function PlatformTopBar({
 
   return (
     <header
-      className="flex h-[var(--shell-topbar)] flex-none items-center gap-[var(--space-shell-4)] border-b border-platform-border bg-platform-bg px-[var(--space-shell-4)]"
+      className="flex h-[calc(var(--shell-topbar)+env(safe-area-inset-top))] flex-none items-center gap-[var(--space-shell-4)] border-b border-platform-border bg-platform-bg pl-[max(env(safe-area-inset-left),var(--space-shell-4))] pr-[max(env(safe-area-inset-right),var(--space-shell-4))] pt-[env(safe-area-inset-top)]"
       aria-label={platformIdentity.displayName}
     >
       {onOpenNavigation && (
@@ -42,6 +44,7 @@ export function PlatformTopBar({
           onClick={onOpenNavigation}
           aria-label={searchLabelNav}
           aria-haspopup="dialog"
+          aria-expanded={navigationOpen}
           className="-ml-2 flex h-11 w-11 flex-none items-center justify-center rounded-[var(--radius-control)] text-platform-text-muted hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus lg:hidden"
         >
           <span aria-hidden className="text-[15px]">☰</span>

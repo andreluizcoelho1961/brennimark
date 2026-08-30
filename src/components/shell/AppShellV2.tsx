@@ -50,60 +50,82 @@ export function AppShellV2({
   basePath?: string;
   children: React.ReactNode;
 }) {
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [navOpen, setNavOpen] = useState(false);
+  /**
+   * UM modal por vez, por construção.
+   *
+   * Eram dois booleanos independentes, e ⌘K funciona em qualquer lugar: com a
+   * gaveta aberta, o atalho abria a busca por cima dela e a página passava a
+   * ter dois diálogos, ambos declarando `aria-modal`. Dois estados que podem
+   * ser verdadeiros ao mesmo tempo descrevem uma situação que não deveria
+   * existir; um estado com três valores não a descreve.
+   */
+  const [modal, setModal] = useState<"none" | "nav" | "search">("none");
 
-  const openSearch = useCallback(() => setSearchOpen(true), []);
+  const abrirBusca = useCallback(() => setModal("search"), []);
+  const fechar = useCallback(() => setModal("none"), []);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        openSearch();
+        abrirBusca();
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [openSearch]);
+  }, [abrirBusca]);
 
   const destinations = sections.flatMap((section) =>
     section.destinations.map((d) => ({ href: d.href, label: d.label })),
   );
 
+  const emModal = modal !== "none";
+
   return (
     <div className="flex h-dvh flex-col bg-platform-bg text-platform-text">
-      <PlatformTopBar
+      {/*
+        `inert` desliga o resto da aplicação enquanto um modal está aberto.
+        Prender o foco resolve a tabulação e não resolve a navegação virtual de
+        um leitor de tela, que percorre a árvore inteira independente do foco:
+        sem isto, quem usa leitor continua lendo e ativando o conteúdo coberto.
+      */}
+      <div className="flex min-h-0 flex-1 flex-col" inert={emModal}>
+        <PlatformTopBar
           userEmail={userEmail}
           brandName={brandName}
           brandDescriptor={brandDescriptor}
-          onOpenSearch={openSearch}
-          onOpenNavigation={() => setNavOpen(true)}
+          navigationOpen={modal === "nav"}
+          onOpenSearch={abrirBusca}
+          onOpenNavigation={() => setModal("nav")}
         />
-      <div className="flex min-h-0 flex-1">
-        <DesktopSidebar sections={sections} basePath={basePath} />
-        <NavigationDrawer
-          open={navOpen}
-          sections={sections}
-          basePath={basePath}
-          onClose={() => setNavOpen(false)}
-        />
-        {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
-            390 é 8% da largura gasta em moldura. O canvas encosta e a borda
-            some junto, porque filete em tela cheia não separa nada. */}
-        <main className="min-w-0 flex-1 overflow-y-auto p-0 pb-[env(safe-area-inset-bottom)] lg:p-[var(--space-shell-4)]">
-          <div className="mx-auto h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
-            {children}
-          </div>
-        </main>
+        <div className="flex min-h-0 flex-1">
+          <DesktopSidebar sections={sections} basePath={basePath} />
+          {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
+              390 é 8% da largura gasta em moldura. O canvas encosta e a borda
+              some junto, porque filete em tela cheia não separa nada. */}
+          <main className="min-w-0 flex-1 overflow-y-auto p-0 pb-[env(safe-area-inset-bottom)] lg:p-[var(--space-shell-4)]">
+            <div className="mx-auto h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
-      {searchOpen && (
+
+      <NavigationDrawer
+        open={modal === "nav"}
+        sections={sections}
+        basePath={basePath}
+        onClose={fechar}
+      />
+
+      {modal === "search" && (
         <CommandPalette
           docs={docs}
           destinations={destinations}
           basePath={basePath}
           brandLanguage={brandLanguage}
           statusLabels={statusLabels}
-          onClose={() => setSearchOpen(false)}
+          onClose={fechar}
         />
       )}
     </div>

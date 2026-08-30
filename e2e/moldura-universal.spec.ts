@@ -215,3 +215,132 @@ test("navegar fecha a gaveta", async ({ page }) => {
   await page.getByRole("dialog").getByRole("link", { name: "Visão geral" }).click();
   await expect(page.getByRole("dialog", { name: "Navegação principal" })).toBeHidden();
 });
+
+// ─── Um modal por vez ───────────────────────────────────────────────────────
+
+/**
+ * Os dois instrumentos modais da moldura são a gaveta e a busca, e ⌘K funciona
+ * em qualquer lugar. Com a gaveta aberta, o atalho abria a busca por cima
+ * dela: dois diálogos na página, ambos declarando aria-modal, e o foco preso
+ * em um enquanto o outro continuava visível.
+ *
+ * Nenhum teste anterior cruzava os dois — cada um verificava o seu.
+ */
+test("abrir a busca com a gaveta aberta deixa exatamente um diálogo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+  await abrirGaveta(page);
+
+  await page.keyboard.press("ControlOrMeta+k");
+
+  const dialogos = page.getByRole("dialog");
+  await expect(dialogos).toHaveCount(1);
+  await expect(page.getByRole("dialog", { name: "Navegação principal" })).toBeHidden();
+  // E o foco está dentro do que sobrou.
+  const dentro = await page.evaluate(() =>
+    Boolean(document.activeElement?.closest('[role="dialog"]')),
+  );
+  expect(dentro, "o foco precisa estar dentro do único modal aberto").toBe(true);
+});
+
+test("fechar a busca aberta por cima da gaveta devolve o foco de forma coerente", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+  await abrirGaveta(page);
+  await page.keyboard.press("ControlOrMeta+k");
+  await page.keyboard.press("Escape");
+
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  // Nada pode ficar aberto por trás.
+  await expect(page.getByRole("button", { name: "Abrir navegação" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Abrir navegação" })).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+});
+
+test("o botão da navegação declara se ela está aberta", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+
+  const botao = page.getByRole("button", { name: "Abrir navegação" });
+  await expect(botao).toHaveAttribute("aria-expanded", "false");
+  await botao.click();
+  await expect(page.getByRole("dialog", { name: "Navegação principal" })).toBeVisible();
+});
+
+test("com a gaveta aberta, o resto da aplicação fica inerte", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+  await abrirGaveta(page);
+
+  // Prender o foco não impede a navegação virtual de um leitor de tela, que
+  // percorre a árvore independente do foco.
+  const conteudoInerte = await page.evaluate(() => {
+    const main = document.querySelector("main");
+    return Boolean(main?.closest("[inert]"));
+  });
+  expect(conteudoInerte, "o conteúdo coberto continua alcançável por leitor de tela").toBe(true);
+});
+
+test("o véu não entra na ordem de foco nem na árvore acessível", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+  await abrirGaveta(page);
+
+  // Como botão, ele gastava uma parada de teclado antes do primeiro destino e
+  // anunciava "Fechar navegação" duas vezes.
+  await expect(page.getByRole("button", { name: "Fechar navegação" })).toHaveCount(1);
+  await page.keyboard.press("Tab");
+  const primeiro = await page.evaluate(() => document.activeElement?.getAttribute("aria-hidden"));
+  expect(primeiro).not.toBe("true");
+});
+
+/**
+ * Área segura.
+ *
+ * O que dá para verificar aqui é o que depende do código: a declaração de
+ * viewport, sem a qual o navegador reserva as margens do recorte por conta
+ * própria e TODOS os env() chegam zerados ao CSS; e o fato de os max() da
+ * moldura continuarem entregando o espaçamento normal quando não há recorte.
+ *
+ * O valor real do inset depende do aparelho e não é simulável aqui. Injetar
+ * um recorte falso por CSS testaria o CSS injetado, não a moldura.
+ */
+test("a página declara viewport-fit cover", async ({ page }) => {
+  await page.goto("/dev/marcas?marca=sobria");
+  const viewport = await page
+    .locator('meta[name="viewport"]')
+    .getAttribute("content");
+  expect(viewport, "sem cover, env(safe-area-inset-*) vale zero em todo lugar").toContain(
+    "viewport-fit=cover",
+  );
+});
+
+test("sem recorte, os recuos da moldura continuam sendo os normais", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+
+  // max(env(...), 16px) precisa cair em 16px quando o inset é zero. Um erro
+  // aqui deixaria os controles encostados na borda em aparelho sem recorte.
+  const barra = page.getByRole("banner", { name: "Brennimark" });
+  expect(parseFloat(await barra.evaluate((el) => getComputedStyle(el).paddingLeft))).toBe(16);
+  expect(parseFloat(await barra.evaluate((el) => getComputedStyle(el).paddingRight))).toBe(16);
+
+  const botao = await page.getByRole("button", { name: "Abrir navegação" }).boundingBox();
+  expect(botao!.x, "o controle não pode nascer fora da tela").toBeGreaterThanOrEqual(0);
+});
+
+test("a barra usa os insets do aparelho, e não valores fixos", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=sobria");
+
+  // A regra tem que MENCIONAR env(): é o que faz o recuo existir no aparelho
+  // com recorte. Computar 16px não distingue "max(env, 16px)" de "16px".
+  const usaEnv = await page.evaluate(() => {
+    const header = document.querySelector('header[aria-label="Brennimark"]');
+    if (!header) return false;
+    return header.className.includes("safe-area-inset");
+  });
+  expect(usaEnv, "a barra ignora o recorte do aparelho").toBe(true);
+});
