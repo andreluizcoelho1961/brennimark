@@ -68,6 +68,20 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [hash, setHash] = useState("");
+  /**
+   * Identidade DESTA tentativa de importação, estável entre as repetições.
+   *
+   * O caminho era só `conta/hash.pdf`, então duas marcas da mesma conta que
+   * importassem o mesmo PDF compartilhariam o objeto — e apagar a primeira
+   * levaria o arquivo da segunda, deixando a procedência dela apontando para
+   * nada. Havia também corrida: uma tentativa criava o objeto, outra o
+   * referenciava, e a primeira falhava e o removia.
+   *
+   * Objeto exclusivo por importação resolve os três de uma vez, sem contagem
+   * de referência. Deduplicar o mesmo PDF pode vir depois, com referência
+   * transacional — não de graça, por coincidência de caminho.
+   */
+  const [importId, setImportId] = useState("");
   const [lendo, setLendo] = useState(false);
   const [publicando, setPublicando] = useState(false);
   const [mensagem, setMensagem] = useState("");
@@ -105,6 +119,8 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
         sha256(selecionado),
       ]);
       setHash(digest);
+      // Nova identidade a cada arquivo escolhido; estável enquanto for este.
+      setImportId(crypto.randomUUID());
       // Prévia: nada é gravado aqui.
       setPrevia(montarPrevia(paginas));
       setArquivo(selecionado);
@@ -120,7 +136,7 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
     if (!arquivo || !previa) return;
     setPublicando(true); setMensagem("");
     const supabase = createClient();
-    const caminho = `${workspaceId}/${hash}.pdf`;
+    const caminho = `${workspaceId}/${importId}/${hash}.pdf`;
 
     /**
      * O objeto é IMUTÁVEL, e o caminho é a impressão digital do arquivo.
@@ -152,6 +168,7 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
 
     const { data, error } = await supabase.rpc("publish_brand_import", {
       p_workspace_id: workspaceId,
+      p_import_id: importId,
       p_key: chave,
       p_name: nome.trim(),
       p_short_name: nome.trim().slice(0, 60),
@@ -170,7 +187,9 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
       p_ai: { knowledgeMode: "docs", chatRole: "", analysisRole: "" },
       p_legal: { footerNotice: "" },
       p_documents: previa.documentos,
-      p_storage_path: caminho,
+      // O caminho não é enviado: a função o reconstrói a partir da conta, da
+      // importação e do hash, e confere se o objeto existe. Um caminho vindo
+      // do cliente seria procedência que o cliente escolhe.
       p_pdf_sha256: hash,
       p_page_count: previa.paginasNoPdf,
       p_report: {
@@ -183,9 +202,8 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
 
     setPublicando(false);
     if (error) {
-      // O arquivo só é removido se ESTA tentativa o criou. Um objeto que já
-      // estava lá pode pertencer a outra importação — apagá-lo levaria junto a
-      // procedência de uma marca que deu certo.
+      // Seguro agora: o caminho inclui a identidade desta importação, então o
+      // objeto é só dela. Antes, remover podia apagar o arquivo de outra marca.
       if (objetoNovo) await supabase.storage.from("brand-imports").remove([caminho]);
       // Chave repetida é conflito, não erro genérico: já existe uma marca com
       // este nome, e sobrescrever apagaria curadoria.

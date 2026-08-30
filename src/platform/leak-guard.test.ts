@@ -645,15 +645,39 @@ test("a rota de importação exige quem administra", () => {
  * Patch 5.2. Apagar uma marca é ato total, e o PDF é a cópia mais completa do
  * conteúdo. A cascata do banco não alcança o Storage.
  */
-test("a exclusão de marca remove o arquivo antes do banco", () => {
+test("a exclusão de marca enfileira os arquivos na mesma transação", () => {
   const rota = lerCodigo("src/app/api/admin/brand/route.ts");
-  const corpo = rota.slice(rota.indexOf("export async function DELETE"));
-  const ordemStorage = corpo.indexOf('.storage');
-  const ordemBanco = corpo.indexOf('.from("brands")\n    .delete()');
-  assert.ok(ordemStorage > 0, "a rota precisa remover o PDF");
-  assert.ok(
-    ordemStorage < ordemBanco,
-    "apagar a marca antes do arquivo deixaria o PDF órfão e inalcançável",
+  // Storage primeiro trocava um problema por outro: Storage bem-sucedido com
+  // banco falhando deixava a marca viva sem a própria fonte.
+  assert.match(rota, /delete_brand_with_files/, "a marca e a fila entram juntas");
+  assert.doesNotMatch(
+    rota,
+    /from\("brands"\)\s*\.delete\(\)/,
+    "exclusão solta escapa da transação que registra os arquivos",
+  );
+});
+
+test("a fila de exclusão é drenada e só fecha o que o Storage confirmou", () => {
+  const rota = lerCodigo("src/app/api/admin/brand/route.ts");
+  assert.match(rota, /brand_deletions/);
+  assert.match(rota, /confirmados/, "fechar sem confirmação perderia o arquivo de vista");
+});
+
+test("o caminho do arquivo é exclusivo da importação", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.match(
+    importador,
+    /\$\{workspaceId\}\/\$\{importId\}\/\$\{hash\}\.pdf/,
+    "caminho só por conta+hash faz duas marcas compartilharem o objeto",
+  );
+});
+
+test("o caminho não é enviado pelo cliente", () => {
+  // Procedência que o cliente escolhe não é procedência.
+  assert.doesNotMatch(
+    lerCodigo("src/components/import/BrandImporter.tsx"),
+    /p_storage_path:/,
+    "a função reconstrói o caminho e confere se o objeto existe",
   );
 });
 

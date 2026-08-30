@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
+import { getBrandvilleAuthContext, type BrandvilleAuthContext } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
@@ -9,14 +9,8 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
  * Apagar uma marca é ato total, e o PDF faz parte do total.
  *
  * A cascata do banco leva documentos, versões, assets e o registro da
- * importação. O que ela não alcança é o Storage: o PDF com o manual inteiro
- * sobreviveria à exclusão da marca, e o produto teria prometido apagar
- * enquanto guardava a cópia mais completa de todas.
- *
- * A ordem importa e é deliberada: o arquivo sai PRIMEIRO. Se a remoção do
- * Storage falhar, a marca continua de pé e a pessoa vê um erro — melhor que
- * uma marca apagada com o PDF órfão, que ninguém mais consegue alcançar para
- * remover, porque o caminho vivia no registro que a cascata levou.
+ * importação. O que ela não alcança é o Storage: sem isto, o PDF com o manual
+ * inteiro sobreviveria à exclusão.
  *
  * As linhas de `storage.objects` nunca são tocadas por SQL: quem remove é a
  * API do Storage, com a sessão de quem administra.
@@ -40,64 +34,76 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ message: isEnglish ? "Invalid brand." : "Marca inválida." }, { status: 400 });
   }
 
-  // A marca tem que ser desta conta. A RLS já garante, mas uma resposta 404
-  // explícita é melhor que uma exclusão que não apaga nada e diz que apagou.
-  const { data: marca, error: erroMarca } = await auth.supabase
-    .from("brands")
-    .select("id")
-    .eq("id", brandId)
-    .eq("workspace_id", auth.workspaceId)
-    .maybeSingle();
-  if (erroMarca) throw erroMarca;
-  if (!marca) {
-    return NextResponse.json(
-      { message: isEnglish ? "Brand not found." : "Marca não encontrada." },
-      { status: 404 },
-    );
-  }
+  /**
+   * Uma transação apaga a marca E registra os arquivos a remover.
+   *
+   * A ordem anterior — Storage primeiro, banco depois — evitava arquivo órfão
+   * e trocava por outra inconsistência: se o Storage funcionasse e o banco
+   * falhasse, a marca ficava viva sem a própria fonte, e ninguém saberia.
+   *
+   * Agora a fila é durável e sobrevive à cascata, porque não tem vínculo com a
+   * marca. Falhar ao remover o arquivo deixa uma exclusão PENDENTE e
+   * repetível, não uma inconsistência invisível.
+   */
+  const { data: enfileirados, error: erroExclusao } = await auth.supabase.rpc(
+    "delete_brand_with_files",
+    { p_brand_id: brandId },
+  );
 
-  const { data: importacoes, error: erroImportacoes } = await auth.supabase
-    .from("brand_imports")
-    .select("id, storage_path")
-    .eq("brand_id", brandId)
-    .eq("workspace_id", auth.workspaceId);
-  if (erroImportacoes) throw erroImportacoes;
-
-  const caminhos = (importacoes ?? []).map((linha) => linha.storage_path).filter(Boolean);
-
-  if (caminhos.length > 0) {
-    const { error: erroStorage } = await auth.supabase.storage
-      .from("brand-imports")
-      .remove(caminhos);
-    if (erroStorage) {
-      // Nada foi apagado ainda. A marca continua inteira e alcançável.
-      return NextResponse.json(
-        {
-          message: isEnglish
-            ? "Couldn't remove the imported files. Nothing was deleted."
-            : "Não foi possível remover os arquivos importados. Nada foi excluído.",
-        },
-        { status: 502 },
-      );
-    }
-  }
-
-  // A cascata leva documentos, versões, assets e os registros de importação.
-  const { error: erroExclusao } = await auth.supabase
-    .from("brands")
-    .delete()
-    .eq("id", brandId)
-    .eq("workspace_id", auth.workspaceId);
   if (erroExclusao) {
+    const naoEncontrada = erroExclusao.code === "P0002";
     return NextResponse.json(
       {
-        message: isEnglish
-          ? "The files were removed but the brand could not be deleted."
-          : "Os arquivos foram removidos, mas a marca não pôde ser excluída.",
+        message: naoEncontrada
+          ? isEnglish ? "Brand not found." : "Marca não encontrada."
+          : isEnglish ? "Couldn't delete the brand." : "Não foi possível excluir a marca.",
       },
-      { status: 500 },
+      { status: naoEncontrada ? 404 : 403 },
     );
   }
 
-  return NextResponse.json({ ok: true, arquivosRemovidos: caminhos.length });
+  const removidos = await drenarFilaDeExclusao(auth);
+
+  return NextResponse.json({
+    ok: true,
+    arquivosEnfileirados: enfileirados ?? 0,
+    arquivosRemovidos: removidos.removidos,
+    // Honesto sobre o que sobrou: a marca não existe mais, e estes arquivos
+    // continuam pendentes para a próxima tentativa.
+    pendentes: removidos.pendentes,
+  });
+}
+
+/**
+ * Remove o que estiver na fila e fecha os registros que saíram.
+ *
+ * Idempotente de propósito: uma exclusão que falhou ontem é tentada de novo
+ * na próxima, sem ninguém precisar lembrar dela.
+ */
+async function drenarFilaDeExclusao(auth: BrandvilleAuthContext) {
+  const { data: pendentes, error } = await auth.supabase
+    .from("brand_deletions")
+    .select("id, storage_path")
+    .eq("workspace_id", auth.workspaceId)
+    .limit(200);
+  if (error || !pendentes?.length) return { removidos: 0, pendentes: 0 };
+
+  const caminhos = pendentes.map((linha) => linha.storage_path);
+  const { data: removidos, error: erroStorage } = await auth.supabase.storage
+    .from("brand-imports")
+    .remove(caminhos);
+
+  if (erroStorage) return { removidos: 0, pendentes: pendentes.length };
+
+  // Só fecha o que o Storage confirmou ter removido.
+  const confirmados = new Set((removidos ?? []).map((objeto) => objeto.name));
+  const idsParaFechar = pendentes
+    .filter((linha) => confirmados.has(linha.storage_path))
+    .map((linha) => linha.id);
+
+  if (idsParaFechar.length > 0) {
+    await auth.supabase.from("brand_deletions").delete().in("id", idsParaFechar);
+  }
+
+  return { removidos: idsParaFechar.length, pendentes: pendentes.length - idsParaFechar.length };
 }
