@@ -132,5 +132,10 @@ export function brandPromptContext(marca: ActiveBrand): BrandPromptContext {
     language: marca.metadata.language,
     chatRole: marca.ai.chatRole,
     analysisRole: marca.ai.analysisRole,
+    // Esquecer esta linha não quebrava nada: o campo é opcional, e o prompt
+    // caía nos rótulos do produto sem avisar. A tela mostrava "Documentado" e
+    // o assistente citava "PRONTO" — o defeito que o patch 3.2 corrigiu,
+    // sobrevivendo no adaptador porque os testes montavam o contexto à mão.
+    statusLabels: marca.statusLabels,
   };
 }

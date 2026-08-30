@@ -406,3 +406,20 @@ test("nenhum nome de seção de cliente sobrou no reconhecimento de citação", 
   const modulo = lerCodigo("src/lib/ai/citations.ts");
   assert.doesNotMatch(modulo, /SOURCE_TITLES|Guia de Cores|Símbolos e Logotipos|Tom de Voz/);
 });
+
+/**
+ * Patch 3.3. O adaptador entre a marca do banco e o prompt é um ponto cego:
+ * todo campo dele é opcional do lado do prompt, então esquecer um não produz
+ * erro de tipo nem exceção — produz uma resposta sutilmente errada. Foi o que
+ * aconteceu com statusLabels, e o CI ficou verde porque os testes do prompt
+ * montavam o contexto à mão, por fora desta função.
+ */
+test("o adaptador encaminha todo o contrato do prompt", () => {
+  const contexto = lerCodigo("src/lib/brandville/context.ts");
+  const corpo = contexto.slice(contexto.indexOf("export function brandPromptContext"));
+  const adaptador = corpo.slice(0, corpo.indexOf("\n}"));
+
+  for (const campo of ["language", "chatRole", "analysisRole", "statusLabels"]) {
+    assert.match(adaptador, new RegExp(`${campo}:`), `brandPromptContext não encaminha ${campo}`);
+  }
+});

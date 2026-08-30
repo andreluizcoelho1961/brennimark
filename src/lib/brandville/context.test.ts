@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { carregarWorkspaceContext, montarContexto } from "./context";
+import { brandPromptContext, carregarWorkspaceContext, montarContexto } from "./context";
+import { buildChatSystemPrompt } from "../ai/brand-context";
 import type { ActiveBrand } from "./brand-row";
 import type { DocPageEntry } from "../../content/docs";
 
@@ -213,4 +214,62 @@ test("o preview local dispensa o redirecionamento, não a regra de capacidade", 
   // O ponto do teste: modo local não vira autorização. Sem papel, sem
   // capacidade — igual a qualquer visitante.
   assert.deepEqual(ctx.capabilities, []);
+});
+
+// ─── O adaptador que as rotas realmente usam ───────────────────────────────
+
+/**
+ * O caminho de produção, ponta a ponta.
+ *
+ * Os testes do prompt montavam `BrandPromptContext` à mão, o que é bom para
+ * isolar a regra e péssimo como garantia: eles passavam por fora de
+ * `brandPromptContext`, que é a única função que as rotas de chat e análise
+ * chamam. O adaptador descartava `statusLabels` e o CI continuou verde.
+ *
+ * Um campo opcional some sem erro de tipo, sem exceção e sem teste vermelho.
+ * Só um teste que atravessa o adaptador percebe.
+ */
+const MARCA_EDITORIAL: ActiveBrand = {
+  ...MARCA,
+  metadata: { ...MARCA.metadata, language: "pt-BR" },
+  ai: {
+    knowledgeMode: "docs",
+    chatRole: "Você é o guia da Editorial.",
+    analysisRole: "Você avalia peças da Editorial.",
+  },
+  statusLabels: { ready: "Documentado", draft: "Em validação", pending: "Sem diretriz" },
+};
+
+test("o adaptador entrega o vocabulário da marca ao prompt", () => {
+  const contexto = brandPromptContext(MARCA_EDITORIAL);
+
+  assert.deepEqual(contexto.statusLabels, MARCA_EDITORIAL.statusLabels);
+  assert.equal(contexto.language, "pt-BR");
+  assert.equal(contexto.chatRole, "Você é o guia da Editorial.");
+  assert.equal(contexto.analysisRole, "Você avalia peças da Editorial.");
+});
+
+test("o prompt construído pelo caminho de produção usa o vocabulário da marca", () => {
+  // Este é o teste que faltava: nada de objeto montado à mão. A marca entra
+  // como ela sai do banco e o prompt sai como ele vai para o modelo.
+  const prompt = buildChatSystemPrompt(
+    [{ slug: "grade", group: "Sistema", title: "Grade", status: "ready", body: ["Doze colunas."] }],
+    brandPromptContext(MARCA_EDITORIAL),
+  );
+
+  assert.match(prompt, /status="DOCUMENTADO"/);
+  assert.match(prompt, /DOCUMENTADO é regra estabelecida/);
+  assert.match(prompt, /STATUS é exatamente um destes: DOCUMENTADO, EM VALIDAÇÃO, SEM DIRETRIZ/);
+  assert.doesNotMatch(prompt, /PRONTO/, "os rótulos do produto não podem sobreviver ao override");
+});
+
+test("marca sem vocabulário próprio continua usando os rótulos do produto", () => {
+  const semVocabulario = { ...MARCA_EDITORIAL, statusLabels: undefined };
+  const prompt = buildChatSystemPrompt(
+    [{ slug: "grade", group: "Sistema", title: "Grade", status: "ready", body: ["Doze colunas."] }],
+    brandPromptContext(semVocabulario),
+  );
+
+  assert.match(prompt, /status="PRONTO"/);
+  assert.doesNotMatch(prompt, /DOCUMENTADO/);
 });
