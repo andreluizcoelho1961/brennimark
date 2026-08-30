@@ -71,20 +71,25 @@ const V2 = [
   "src/components/shell/AppShellV2.tsx",
   "src/components/shell/PlatformTopBar.tsx",
   "src/components/shell/DesktopSidebar.tsx",
+  "src/components/shell/NavigationDrawer.tsx",
   "src/components/shell/WorkspaceIdentity.tsx",
   "src/components/shell/navigation.ts",
+  // A citação é instrumento de governança: ela afirma de onde veio a
+  // informação, e não pode vestir a cor de marca nenhuma — nem a do cliente
+  // apresentado, nem a de um release antigo.
+  "src/components/ai/AssistantMessage.tsx",
 ];
 
 test("nenhum componente da V2 usa token de release de cliente", () => {
   for (const arquivo of V2) {
-    assert.doesNotMatch(ler(arquivo), /release-analog-/, `${arquivo} nasceu com token legado`);
+    assert.doesNotMatch(lerCodigo(arquivo), /release-analog-/, `${arquivo} nasceu com token legado`);
   }
 });
 
 test("nenhum componente da V2 usa alias legado de cor", () => {
   for (const arquivo of V2) {
     assert.doesNotMatch(
-      ler(arquivo),
+      lerCodigo(arquivo),
       /(bg|text|border)-(surface|background|release)-|text-text-secondary/,
       `${arquivo} usa alias legado; a V2 fala --platform-* diretamente`,
     );
@@ -408,11 +413,15 @@ test("nenhum nome de seção de cliente sobrou no reconhecimento de citação", 
 });
 
 /**
- * Patch 3.3. O adaptador entre a marca do banco e o prompt é um ponto cego:
- * todo campo dele é opcional do lado do prompt, então esquecer um não produz
- * erro de tipo nem exceção — produz uma resposta sutilmente errada. Foi o que
- * aconteceu com statusLabels, e o CI ficou verde porque os testes do prompt
- * montavam o contexto à mão, por fora desta função.
+ * Patch 3.3. O adaptador entre a marca do banco e o prompt já foi um ponto
+ * cego: statusLabels era opcional no contrato, então esquecê-lo não produzia
+ * erro de tipo nem exceção — produzia uma resposta sutilmente errada.
+ *
+ * O campo passou a ser obrigatório aceitando `undefined`, e agora quem cobra a
+ * omissão é o compilador. Esta guarda continua por baixo, porque ela também
+ * pega o caso de alguém encaminhar o campo com valor fixo em vez do da marca —
+ * o que o tipo não vê. A lista é manual e não descobre um quinto campo
+ * sozinha; o tipo descobre.
  */
 test("o adaptador encaminha todo o contrato do prompt", () => {
   const contexto = lerCodigo("src/lib/brandville/context.ts");
@@ -422,4 +431,13 @@ test("o adaptador encaminha todo o contrato do prompt", () => {
   for (const campo of ["language", "chatRole", "analysisRole", "statusLabels"]) {
     assert.match(adaptador, new RegExp(`${campo}:`), `brandPromptContext não encaminha ${campo}`);
   }
+});
+
+test("as fixtures de marcas opostas continuam sendo linhas de banco", () => {
+  // Uma fixture que monta o objeto final testaria o componente e não o
+  // caminho — foi assim que o adaptador do prompt descartou statusLabels com
+  // o CI verde. Elas precisam atravessar parseBrandRow.
+  assert.match(lerCodigo("src/app/dev/marcas/page.tsx"), /parseBrandRow/);
+  const fixtures = lerCodigo("src/platform/fixtures/marcas-opostas.ts");
+  assert.match(fixtures, /status_labels/, "as fixtures usam os nomes de coluna do banco");
 });

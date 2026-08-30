@@ -17,6 +17,7 @@ const MARCA: BrandPromptContext = {
   language: "pt-BR",
   chatRole: "Você é o guia da Marca A.",
   analysisRole: "Você avalia peças da Marca A.",
+  statusLabels: undefined,
 };
 
 const PAGINAS: DocPageEntry[] = [
@@ -126,12 +127,14 @@ const MARCA_VERMELHA: BrandPromptContext = {
   language: "pt-BR",
   chatRole: "Você é o guia da Vermelha, marca de varejo.",
   analysisRole: "Você avalia peças da Vermelha.",
+  statusLabels: undefined,
 };
 
 const MARCA_AZUL: BrandPromptContext = {
   language: "en",
   chatRole: "You are the guide for Azure, an institutional brand.",
   analysisRole: "You review Azure applications.",
+  statusLabels: undefined,
 };
 
 const PAGINAS_VERMELHA: DocPageEntry[] = [

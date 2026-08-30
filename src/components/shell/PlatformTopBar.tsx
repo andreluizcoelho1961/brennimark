@@ -16,22 +16,38 @@ export function PlatformTopBar({
   brandName,
   brandDescriptor,
   onOpenSearch,
+  onOpenNavigation,
   children,
 }: {
   userEmail?: string;
   brandName?: string;
   brandDescriptor?: string;
   onOpenSearch?: () => void;
+  /** Ausente no desktop, onde a navegação é uma coluna permanente. */
+  onOpenNavigation?: () => void;
   children?: React.ReactNode;
 }) {
   const isEnglish = useIsEnglish();
   const searchLabel = isEnglish ? "Search" : "Buscar";
+  const searchLabelNav = isEnglish ? "Open navigation" : "Abrir navegação";
 
   return (
     <header
       className="flex h-[var(--shell-topbar)] flex-none items-center gap-[var(--space-shell-4)] border-b border-platform-border bg-platform-bg px-[var(--space-shell-4)]"
       aria-label={platformIdentity.displayName}
     >
+      {onOpenNavigation && (
+        <button
+          type="button"
+          onClick={onOpenNavigation}
+          aria-label={searchLabelNav}
+          aria-haspopup="dialog"
+          className="-ml-2 flex h-11 w-11 flex-none items-center justify-center rounded-[var(--radius-control)] text-platform-text-muted hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus lg:hidden"
+        >
+          <span aria-hidden className="text-[15px]">☰</span>
+        </button>
+      )}
+
       <span className="flex min-w-0 items-center gap-[var(--space-shell-3)]">
         <span className="truncate text-[13px] font-semibold tracking-tight text-platform-text">
           {platformIdentity.displayName}
@@ -43,14 +59,15 @@ export function PlatformTopBar({
         <button
           type="button"
           onClick={onOpenSearch}
-          className="flex h-8 w-56 items-center gap-[var(--space-shell-2)] rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-[var(--space-shell-3)] text-left text-[13px] text-platform-text-muted transition-colors duration-[var(--motion-control)] hover:border-platform-signal-soft hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
+          aria-label={searchLabel}
+          className="flex h-11 w-11 items-center justify-center gap-[var(--space-shell-2)] rounded-[var(--radius-control)] text-platform-text-muted transition-colors duration-[var(--motion-control)] hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus sm:h-8 sm:w-56 sm:justify-start sm:border sm:border-platform-border sm:bg-platform-panel sm:px-[var(--space-shell-3)] sm:text-left sm:text-[13px] sm:hover:border-platform-signal-soft"
         >
           <span aria-hidden>⌕</span>
-          <span className="truncate">{searchLabel}</span>
-          <kbd className="ml-auto font-mono text-[10px] text-platform-text-muted">⌘K</kbd>
+          <span className="hidden truncate sm:inline">{searchLabel}</span>
+          <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline">⌘K</kbd>
         </button>
         {userEmail && (
-          <span className="max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted">
+          <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted md:inline">
             {userEmail}
           </span>
         )}

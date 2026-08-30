@@ -24,7 +24,14 @@ export function BrandCanvas({
 }) {
   const estilo = { ...brandCssVars(theme), ...brandAliasVars() } as CSSProperties;
   return (
-    <div style={estilo} className="bg-background-primary text-text-primary">
+    // `min-h-full`: a superfície da marca vai até o fim da área. Sem isso ela
+    // parava onde o texto acabava e o fundo da moldura reaparecia embaixo,
+    // como se a página tivesse sido cortada.
+    <div
+      data-brand-canvas
+      style={estilo}
+      className="min-h-full bg-background-primary text-text-primary"
+    >
       {children}
     </div>
   );

@@ -14,16 +14,25 @@ import { useIsEnglish } from "@/platform/locale-client";
  * produto, e é ele que decide a cor.
  */
 const STATUS_CLASS: Record<DocStatus, string> = {
-  ready: "text-release-analog-turquoise",
-  draft: "text-release-analog-blue",
-  pending: "text-text-secondary",
+  ready: "text-platform-success",
+  draft: "text-platform-warning",
+  pending: "text-platform-text-muted",
 };
 
+/**
+ * A citação é instrumento de governança, não conteúdo da marca.
+ *
+ * Ela usava tokens batizados com o nome do release de um cliente —
+ * `release-analog-turquoise` para o link, `-white` para o texto. Dentro de uma
+ * conversa sobre a marca do cliente, isso vestia a procedência com a cor de
+ * outra marca. Aqui tudo é `--platform-*`: quem afirma de onde veio a
+ * informação fala a linguagem do produto, não a da marca apresentada.
+ */
 export function AssistantMessage({ content }: { content: string }) {
   const isEnglish = useIsEnglish();
   const statusLabels = useStatusLabels();
   return (
-    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-release-analog-white md:text-base">
+    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-platform-text md:text-base">
       {parseBrandCitations(content, statusLabels).map((segment, index) =>
         segment.type === "text" ? (
           <span key={`text-${index}`}>{segment.value}</span>
@@ -32,10 +41,10 @@ export function AssistantMessage({ content }: { content: string }) {
             key={`citation-${index}`}
             href={segment.path}
             title={isEnglish ? `Open ${segment.title}` : `Abrir ${segment.title}`}
-            className="mx-1 inline-flex flex-wrap items-baseline gap-1 border-b border-release-analog-turquoise/50 font-medium text-release-analog-turquoise transition-colors hover:border-release-analog-white hover:text-release-analog-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-release-analog-turquoise"
+            className="mx-1 inline-flex flex-wrap items-baseline gap-1 border-b border-platform-border font-medium text-platform-text transition-colors hover:border-platform-signal hover:text-platform-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
           >
             <span>{isEnglish ? "Source" : "Fonte"}: {segment.title}</span>
-            <span className={`font-display text-[9px] font-bold uppercase tracking-wide ${segment.statusKey ? STATUS_CLASS[segment.statusKey] : "text-text-secondary"}`}>
+            <span className={`font-display text-[9px] font-bold uppercase tracking-wide ${segment.statusKey ? STATUS_CLASS[segment.statusKey] : "text-platform-text-muted"}`}>
               {segment.status}
             </span>
             <span aria-hidden="true">↗</span>

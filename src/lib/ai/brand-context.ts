@@ -20,10 +20,15 @@ export interface BrandPromptContext {
   chatRole: string;
   analysisRole: string;
   /**
-   * O vocabulário editorial que a marca declara. Ausente = os rótulos do
+   * O vocabulário editorial que a marca declara. `undefined` = os rótulos do
    * produto no idioma do manual.
+   *
+   * Obrigatório no contrato, ainda que aceite `undefined`: opcional, ele já
+   * foi esquecido no adaptador sem que o TypeScript reclamasse, e o assistente
+   * passou a citar um estado com nome diferente do que a tela mostrava.
+   * Exigir a chave faz o compilador cobrar a decisão de quem monta o contexto.
    */
-  statusLabels?: StatusLabels;
+  statusLabels: StatusLabels | undefined;
 }
 
 export type BrandKnowledgeKind = "guide-page";

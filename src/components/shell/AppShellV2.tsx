@@ -5,6 +5,7 @@ import type { DocPageEntry } from "@/content/docs";
 import type { StatusLabels } from "@/components/docs/status";
 import { CommandPalette } from "./CommandPalette";
 import { DesktopSidebar } from "./DesktopSidebar";
+import { NavigationDrawer } from "./NavigationDrawer";
 import { PlatformTopBar } from "./PlatformTopBar";
 import type { ShellSection } from "./navigation";
 
@@ -50,6 +51,7 @@ export function AppShellV2({
   children: React.ReactNode;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   const openSearch = useCallback(() => setSearchOpen(true), []);
 
@@ -75,11 +77,21 @@ export function AppShellV2({
           brandName={brandName}
           brandDescriptor={brandDescriptor}
           onOpenSearch={openSearch}
+          onOpenNavigation={() => setNavOpen(true)}
         />
       <div className="flex min-h-0 flex-1">
         <DesktopSidebar sections={sections} basePath={basePath} />
-        <main className="min-w-0 flex-1 overflow-y-auto p-[var(--space-shell-4)]">
-          <div className="mx-auto h-full max-w-[1200px] overflow-hidden rounded-[var(--radius-entry)] border border-platform-border">
+        <NavigationDrawer
+          open={navOpen}
+          sections={sections}
+          basePath={basePath}
+          onClose={() => setNavOpen(false)}
+        />
+        {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
+            390 é 8% da largura gasta em moldura. O canvas encosta e a borda
+            some junto, porque filete em tela cheia não separa nada. */}
+        <main className="min-w-0 flex-1 overflow-y-auto p-0 pb-[env(safe-area-inset-bottom)] lg:p-[var(--space-shell-4)]">
+          <div className="mx-auto h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
             {children}
           </div>
         </main>

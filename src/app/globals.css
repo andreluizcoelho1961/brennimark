@@ -86,6 +86,11 @@
   /* Elevação discreta. A moldura separa por superfície, não por sombra forte. */
   --shadow-panel: 0 1px 2px rgb(0 0 0 / 0.28), 0 8px 24px rgb(0 0 0 / 0.18);
 
+  /* O véu da gaveta. Preto duro sobre marca clara vira mancha; um véu derivado
+     do fundo da plataforma continua neutro nos dois extremos. */
+  --platform-scrim: color-mix(in oklab, var(--platform-bg) 78%, transparent);
+  --color-platform-scrim: var(--platform-scrim);
+
   --color-brand-bg: transparent;
   --color-brand-bg-secondary: transparent;
   --color-brand-surface: transparent;
@@ -201,4 +206,11 @@ p, blockquote, li {
   background-color: var(--color-border-default);
   border-radius: 9999px;
   border: 2px solid var(--color-background-secondary);
+}
+
+
+/* A gaveta entra pela borda de onde a coluna do desktop viria. */
+@keyframes gaveta {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
