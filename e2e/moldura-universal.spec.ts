@@ -515,3 +515,51 @@ for (const [largura, nome] of [
     expect(["BODY", "HTML"]).toContain(foco.marcador);
   });
 }
+
+// ─── As funcionalidades pertencem à marca ───────────────────────────────────
+
+/**
+ * Cada fixture declara um conjunto diferente de funcionalidades, e elas
+ * atravessam parseBrandRow como o resto. A seleção vinha da instância global —
+ * `unconfigured`, com zero utilidades —, então a seção "Inteligência" ficava
+ * vazia para qualquer marca.
+ */
+test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  await page.goto("/dev/marcas?marca=institucional"); // só chat
+  const coluna = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toBeVisible();
+  await expect(coluna.getByRole("link", { name: "Análise de aplicações" })).toHaveCount(0);
+
+  await page.goto("/dev/marcas?marca=mercado"); // análise e histórico, sem chat
+  await expect(coluna.getByRole("link", { name: "Análise de aplicações" })).toBeVisible();
+  await expect(coluna.getByRole("link", { name: "Histórico e calibração" })).toBeVisible();
+  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toHaveCount(0);
+
+  await page.goto("/dev/marcas?marca=festival"); // todas
+  for (const destino of [
+    "Chat da marca",
+    "Análise de aplicações",
+    "Histórico e calibração",
+    "Configurações — Conecte sua IA",
+  ]) {
+    await expect(coluna.getByRole("link", { name: destino })).toBeVisible();
+  }
+
+  // E a volta: a marca só com chat não herdou nada das anteriores.
+  await page.goto("/dev/marcas?marca=institucional");
+  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toBeVisible();
+  await expect(coluna.getByRole("link", { name: "Histórico e calibração" })).toHaveCount(0);
+});
+
+test("marca sem funcionalidades não mostra a seção Inteligência", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/dev/marcas?marca=sobria");
+
+  const coluna = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(coluna).toBeVisible();
+  await expect(coluna.getByText("Inteligência")).toHaveCount(0);
+  // A navegação continua existindo: a marca tem guia e acervo.
+  await expect(coluna.getByRole("link", { name: "Visão geral" })).toBeVisible();
+});

@@ -33,7 +33,11 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
         statusLabels={brand?.statusLabels}
       >
         <AppShellV2
-          sections={shellSections({ capabilities, locale })}
+          sections={shellSections({
+            capabilities,
+            locale,
+            utilityLinks: brand?.navigation.utilityLinks,
+          })}
           docs={docs}
           userEmail={userEmail}
           brandName={brand?.brand.name}

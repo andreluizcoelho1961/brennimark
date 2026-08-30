@@ -555,3 +555,46 @@ test("não existe uma segunda navegação de documentos", () => {
   );
   assert.match(lerCodigo("src/app/docs/layout.tsx"), /AppShellV2/);
 });
+
+/**
+ * Patch 5.1. A moldura não conhece marca global. Este era o último fio: a
+ * seleção das funcionalidades vinha de `brandvilleUtilityLinks`, que lia a
+ * instância — e a instância é `unconfigured`, com zero utilidades. A seção
+ * "Inteligência" ficava permanentemente vazia, em qualquer marca.
+ */
+const MOLDURA_SEM_MARCA_GLOBAL = [
+  "src/components/shell/navigation.ts",
+  "src/components/shell/AppShellV2.tsx",
+  "src/components/shell/DesktopSidebar.tsx",
+  "src/components/shell/NavigationDrawer.tsx",
+  "src/components/shell/PlatformTopBar.tsx",
+  "src/components/shell/WorkspaceIdentity.tsx",
+];
+
+test("a moldura não importa a configuração global de marca", () => {
+  for (const arquivo of MOLDURA_SEM_MARCA_GLOBAL) {
+    const codigo = lerCodigo(arquivo);
+    for (const proibido of [/brandvilleInstance/, /brandvilleUtilityLinks/, /brandville\/config/]) {
+      assert.doesNotMatch(
+        codigo,
+        proibido,
+        `${arquivo} lê a marca de um objeto de módulo em vez da requisição`,
+      );
+    }
+  }
+});
+
+test("as funcionalidades chegam por parâmetro", () => {
+  const navegacao = lerCodigo("src/components/shell/navigation.ts");
+  assert.match(navegacao, /utilityLinks\?: readonly BrandvilleUtilityKey\[\]/);
+  // O catálogo é da plataforma; a seleção é da marca.
+  assert.match(navegacao, /CATALOGO_DE_UTILIDADES/);
+});
+
+test("o layout real passa as funcionalidades da marca resolvida", () => {
+  assert.match(
+    lerCodigo("src/app/docs/layout.tsx"),
+    /utilityLinks: brand\?\.navigation\.utilityLinks/,
+    "sem isto a navegação real volta a ficar sem a seção Inteligência",
+  );
+});

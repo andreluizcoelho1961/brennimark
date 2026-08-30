@@ -38,6 +38,9 @@ function linha(
   language: string,
   theme: Record<string, string>,
   status_labels: Record<string, string> | null = null,
+  /** As funcionalidades contratadas por esta marca. Cada fixture tem um
+   *  conjunto diferente: é o que torna um vazamento entre marcas visível. */
+  utilityLinks: string[] = [],
 ): LinhaDeMarcaFicticia {
   return {
     id,
@@ -51,7 +54,7 @@ function linha(
       groups: ["Sistema"],
       groupCodes: { Sistema: "SI" },
       defaultDocSlug: "abertura",
-      utilityLinks: [],
+      utilityLinks,
     },
     theme: { ...theme, fontStack: "var(--font-ui)" },
     ai: { knowledgeMode: "docs", chatRole: `Guia da ${name}.`, analysisRole: `Avalia peças da ${name}.` },
@@ -69,6 +72,8 @@ export const MARCA_ESCURA = linha(
     surfaceLight: "#1c1c1c", foreground: "#f2f2f2", muted: "#8a8a8a",
     accent: "#e8e8e8", accentSecondary: "#6f6f6f", border: "#2a2a2a", focus: "#ffffff",
   },
+  null,
+  [], // Sem utilidades: a seção "Inteligência" não deve aparecer.
 );
 
 /** Branca e azul: obrigatória, pelo motivo no cabeçalho. */
@@ -80,6 +85,8 @@ export const MARCA_CLARA = linha(
     surfaceLight: "#ffffff", foreground: "#0d1b2a", muted: "#5a6b7d",
     accent: "#0b4f9e", accentSecondary: "#3d7dd0", border: "#d3dde8", focus: "#0b4f9e",
   },
+  null,
+  ["chat"], // Só o assistente.
 );
 
 /** Saturada: vermelho e laranja, que vibram contra qualquer filete. */
@@ -91,6 +98,8 @@ export const MARCA_SATURADA = linha(
     surfaceLight: "#ffc629", foreground: "#ffffff", muted: "#ffe0c2",
     accent: "#ffc629", accentSecondary: "#ffffff", border: "#ff8a1f", focus: "#ffffff",
   },
+  null,
+  ["analysis", "history"], // Análise e histórico, sem chat.
 );
 
 /**
@@ -109,6 +118,7 @@ export const MARCA_EXPRESSIVA = linha(
     accent: "#ff2d95", accentSecondary: "#00c2a8", border: "#5a2d82", focus: "#ffe66d",
   },
   { ready: "Documented", draft: "Under review", pending: "No guidance" },
+  ["chat", "analysis", "history", "ai-settings"], // Todas.
 );
 
 export const MARCAS_OPOSTAS = [

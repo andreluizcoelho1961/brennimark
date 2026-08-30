@@ -32,7 +32,7 @@ export default async function ShellV2Preview({
   return (
     <LocaleProvider locale={locale}>
     <AppShellV2
-      sections={shellSections({ capabilities, locale })}
+      sections={shellSections({ capabilities, locale, utilityLinks: brand?.navigation.utilityLinks })}
       docs={docs}
       userEmail={userEmail}
       brandName={brand?.brand.name}

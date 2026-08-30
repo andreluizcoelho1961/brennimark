@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 import { generatedBrandvilleInstances } from "./instances/generated";
 import { brandvilleInstanceDefinition as unconfiguredInstance } from "./instances/unconfigured";
 import { platformAliasVars, platformCssVars } from "../platform/tokens";
-import type { BrandvilleInstance, BrandvilleUtilityKey } from "./types";
+import type { BrandvilleInstance } from "./types";
 
 export const brandvilleInstances = {
   unconfigured: unconfiguredInstance,
@@ -47,30 +47,10 @@ export const platformThemeStyle = {
   ...platformAliasVars(),
 } as CSSProperties;
 
-const utilityCatalog: Record<BrandvilleUtilityKey, { href: string; code: string; label: string }> = {
-  chat: { href: "/docs/chat", code: "CH", label: "Chat da marca" },
-  analysis: { href: "/docs/analise", code: "AN", label: "Análise de aplicações" },
-  history: { href: "/docs/historico", code: "HI", label: "Histórico e calibração" },
-  "ai-settings": { href: "/docs/configuracoes/ia", code: "CF", label: "Configurações — Conecte sua IA" },
-};
+// O catálogo de utilidades saiu daqui para components/shell/navigation.ts: ele
+// é da plataforma, e a seleção é da marca da requisição. Aqui ele dependia da
+// instância global e da linguagem do manual.
 
-const utilityCatalogEn: Record<BrandvilleUtilityKey, { href: string; code: string; label: string }> = {
-  chat: { href: "/docs/chat", code: "CH", label: "Brand assistant" },
-  analysis: { href: "/docs/analise", code: "AN", label: "Application review" },
-  history: { href: "/docs/historico", code: "HI", label: "History & calibration" },
-  "ai-settings": { href: "/docs/configuracoes/ia", code: "CF", label: "AI settings" },
-};
-
-/**
- * Os destinos de utilidade da navegação, no idioma da INTERFACE.
- *
- * O rótulo "Chat da marca" é do produto, não do manual: um manual em inglês
- * não deve renomear a navegação de quem está lendo em português.
- */
-export function brandvilleUtilityLinks(locale: string) {
-  const catalogo = locale === "en" ? utilityCatalogEn : utilityCatalog;
-  return brandvilleInstance.navigation.utilityLinks.map((key) => catalogo[key]);
-}
 export const activeDocsRegistry = [...brandvilleInstance.docs];
 
 export function getActiveDocBySlug(slug: string) {

@@ -64,7 +64,13 @@ export default async function MarcasOpostas({
     <LocaleProvider locale={PRODUCT_LOCALE}>
       <BrandVocabularyProvider language={marca.metadata.language} statusLabels={marca.statusLabels}>
         <AppShellV2
-          sections={shellSections({ capabilities: capabilitiesForRole("owner"), locale: PRODUCT_LOCALE })}
+          sections={shellSections({
+            capabilities: capabilitiesForRole("owner"),
+            locale: PRODUCT_LOCALE,
+            // Pelo caminho real: as chaves saem da marca que parseBrandRow
+            // traduziu, não de uma lista escrita nesta rota.
+            utilityLinks: marca.navigation.utilityLinks,
+          })}
           docs={paginas}
           userEmail="pessoa@exemplo.invalid"
           brandName={marca.brand.name}

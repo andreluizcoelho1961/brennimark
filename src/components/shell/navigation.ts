@@ -1,4 +1,4 @@
-import { brandvilleUtilityLinks } from "../../brandville/config";
+import type { BrandvilleUtilityKey } from "../../brandville/types";
 import type { ProductLocale } from "../../platform/locale";
 import { can, type BrandCapability } from "../../platform/capabilities";
 
@@ -17,6 +17,32 @@ export interface ShellSection {
   destinations: ShellDestination[];
 }
 
+/**
+ * O catálogo das funcionalidades é da PLATAFORMA: rota e rótulo são do
+ * produto, e o rótulo fala o idioma da interface.
+ *
+ * Quais delas existem é da MARCA. Uma conta pode ter contratado o assistente e
+ * não a análise de peças, e essa escolha é da instalação, não do produto.
+ *
+ * A seleção vinha de `brandvilleUtilityLinks`, que lia a instância global — e
+ * a instância global é `unconfigured`, com zero utilidades. A seção
+ * "Inteligência" ficava permanentemente vazia, e a promoção da V2 levou esse
+ * fio junto.
+ */
+const CATALOGO_DE_UTILIDADES: Record<
+  BrandvilleUtilityKey,
+  { href: string; pt: string; en: string }
+> = {
+  chat: { href: "/docs/chat", pt: "Chat da marca", en: "Brand assistant" },
+  analysis: { href: "/docs/analise", pt: "Análise de aplicações", en: "Application review" },
+  history: { href: "/docs/historico", pt: "Histórico e calibração", en: "History & calibration" },
+  "ai-settings": {
+    href: "/docs/configuracoes/ia",
+    pt: "Configurações — Conecte sua IA",
+    en: "AI settings",
+  },
+};
+
 
 
 /**
@@ -30,14 +56,21 @@ export interface ShellSection {
 export function shellSections({
   capabilities,
   locale,
+  utilityLinks = [],
 }: {
   capabilities: readonly BrandCapability[];
   /** Idioma da INTERFACE. Os destinos da moldura são do produto; o manual pode
    *  estar em outra língua sem que a navegação mude. */
   locale: ProductLocale;
+  /** As funcionalidades desta MARCA, vindas da requisição. Ausente = nenhuma,
+   *  que é o estado de quem ainda não tem marca. */
+  utilityLinks?: readonly BrandvilleUtilityKey[];
 }): ShellSection[] {
   const t = (pt: string, en: string) => (locale === "en" ? en : pt);
-  const utilities = brandvilleUtilityLinks(locale).map((link) => ({ href: link.href, label: link.label }));
+  const utilities = utilityLinks
+    .map((chave) => CATALOGO_DE_UTILIDADES[chave])
+    .filter(Boolean)
+    .map((item) => ({ href: item.href, label: locale === "en" ? item.en : item.pt }));
 
   const sections: ShellSection[] = [
     {
