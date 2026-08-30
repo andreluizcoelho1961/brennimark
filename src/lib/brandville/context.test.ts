@@ -108,18 +108,25 @@ function espionar({
   profile,
   marca,
   docs,
+  comSessao = false,
 }: {
   auth: { role: "owner" | "member"; email?: string } | null;
+  /** Existe sessão sem conta? É o estado do primeiro usuário do produto. */
+  comSessao?: boolean;
   profile?: { fullName: string } | null;
   marca?: ActiveBrand | null;
   docs?: DocPageEntry[];
 }) {
-  const contagem = { getAuth: 0, getProfile: 0, getActiveBrand: 0, getDocsByBrandId: 0 };
+  const contagem = { getAuth: 0, getProfile: 0, getActiveBrand: 0, getDocsByBrandId: 0, temSessao: 0 };
   const brandIdsPedidos: string[] = [];
   return {
     contagem,
     brandIdsPedidos,
     deps: {
+      temSessao: async () => {
+        contagem.temSessao += 1;
+        return comSessao;
+      },
       getAuth: async () => {
         contagem.getAuth += 1;
         return auth;
@@ -150,6 +157,8 @@ test("com sessão e marca, cada dependência roda exatamente uma vez", async () 
     getProfile: 1,
     getActiveBrand: 1,
     getDocsByBrandId: 1,
+    // Com conta, não é preciso perguntar se existe sessão: getAuth já provou.
+    temSessao: 0,
   });
   assert.equal(ctx.access, "ready");
   assert.equal(ctx.docs.length, 1);
@@ -182,6 +191,9 @@ test("sem sessão, nada além da autenticação é consultado", async () => {
     getProfile: 0,
     getActiveBrand: 0,
     getDocsByBrandId: 0,
+    // Uma pergunta a mais, e ela é a que separa visitante de quem só falta
+    // completar o cadastro.
+    temSessao: 1,
   });
   assert.equal(ctx.access, "anonymous");
   assert.deepEqual(ctx.capabilities, []);
@@ -272,4 +284,30 @@ test("marca sem vocabulário próprio continua usando os rótulos do produto", (
 
   assert.match(prompt, /status="PRONTO"/);
   assert.doesNotMatch(prompt, /DOCUMENTADO/);
+});
+
+test("sessão sem conta vai para o cadastro, não para o login", async () => {
+  // O primeiro usuário do produto vive exatamente aqui: e-mail confirmado,
+  // nenhum workspace. Tratá-lo como visitante o mandava ao login, e o login —
+  // vendo que ele tem sessão — o mandava de volta. Laço fechado, e o cadastro
+  // que criaria a conta era inalcançável.
+  const espiao = espionar({ auth: null, comSessao: true });
+  const ctx = await carregarWorkspaceContext(espiao.deps);
+
+  assert.equal(ctx.access, "onboarding");
+  assert.deepEqual(ctx.capabilities, [], "ainda não há papel");
+  assert.equal(espiao.contagem.getActiveBrand, 0, "sem conta não há marca a buscar");
+});
+
+test("sem sessão nenhuma continua sendo visitante", async () => {
+  const espiao = espionar({ auth: null, comSessao: false });
+  const ctx = await carregarWorkspaceContext(espiao.deps);
+  assert.equal(ctx.access, "anonymous");
+});
+
+test("o preview local não consulta a sessão", async () => {
+  const espiao = espionar({ auth: null, comSessao: true });
+  const ctx = await carregarWorkspaceContext({ ...espiao.deps, devPreview: true });
+  assert.equal(ctx.access, "development-preview");
+  assert.equal(espiao.contagem.temSessao, 0, "modo local não pergunta ao Supabase");
 });

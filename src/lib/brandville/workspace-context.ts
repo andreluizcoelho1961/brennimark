@@ -5,6 +5,7 @@ import {
   getBrandvilleAuthContext,
   getProfileSummary,
   resolveActiveBrand,
+  temSessao,
   type BrandvilleAuthContext,
 } from "./server";
 
@@ -28,6 +29,7 @@ const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
 export const resolveWorkspaceContext = cache(
   async (): Promise<WorkspaceContext> =>
     carregarWorkspaceContext<BrandvilleAuthContext & { role: "owner" | "member"; email?: string }>({
+      temSessao,
       getAuth: async () => {
         const auth = await getBrandvilleAuthContext();
         return auth ? { ...auth, email: auth.user.email ?? undefined } : null;

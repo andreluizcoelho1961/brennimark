@@ -40,6 +40,20 @@ export const getBrandvilleAuthContext = cache(async (): Promise<BrandvilleAuthCo
 
 
 
+/**
+ * Só a sessão, sem exigir conta.
+ *
+ * `getBrandvilleAuthContext` devolve null tanto para quem não entrou quanto
+ * para quem entrou e ainda não tem workspace — e essa ambiguidade prendia o
+ * primeiro usuário do produto num laço de redirecionamento.
+ */
+export const temSessao = cache(async (): Promise<boolean> => {
+  if (SKIP_AUTH) return false;
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  return Boolean(data.user);
+});
+
 export function validImages(value: unknown): value is DocPageImage[] {
   return Array.isArray(value) && value.every((item) => {
     if (!item || typeof item !== "object") return false;

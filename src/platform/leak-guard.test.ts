@@ -730,3 +730,33 @@ test("falha ao limpar uma importação abandonada vira pendência", () => {
     "sem isto o caminho só existe no estado da aba e some quando ela fecha",
   );
 });
+
+/**
+ * O primeiro usuário do produto não pode ficar preso.
+ *
+ * Sessão sem conta (workspace) era tratada como visitante: a moldura mandava
+ * ao login, e o login — vendo que a pessoa tem sessão — mandava de volta.
+ * Laço fechado, e o cadastro que criaria a conta era inalcançável.
+ */
+test("sessão sem conta é distinguida de visitante", () => {
+  const contexto = lerCodigo("src/lib/brandville/context.ts");
+  assert.match(contexto, /temSessao/, "getAuth nulo não separa os dois casos");
+  assert.match(contexto, /"onboarding"/);
+});
+
+test("o cadastro fala a língua da interface", () => {
+  const cadastro = lerCodigo("src/app/onboarding/page.tsx");
+  // Cada rótulo precisa passar pela escolha de idioma. O texto em inglês DENTRO
+  // do ternário é legítimo — o que não pode é rótulo solto no JSX.
+  for (const rotulo of ["Falta um passo", "Diga quem você é", "Entrou como", "Nome"]) {
+    assert.ok(
+      cadastro.includes(`t("${rotulo}"`),
+      `o cadastro não tem tradução para "${rotulo}"`,
+    );
+  }
+  assert.doesNotMatch(
+    cadastro,
+    />\s*(One more step|Tell us who you are|Saving…)\s*</,
+    "rótulo fixo em inglês, fora da escolha de idioma",
+  );
+});

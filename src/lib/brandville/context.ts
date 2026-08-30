@@ -27,6 +27,11 @@ import type { BrandPromptContext } from "../ai/brand-context";
  * como valor nomeado justamente para não virar uma regra de autorização
  * disfarçada. Ele dispensa o redirecionamento e nada mais — as capacidades
  * continuam vazias, como para qualquer visitante sem papel.
+ *
+ * `onboarding` cobre DOIS casos que pareciam um só, e confundi-los prendia o
+ * primeiro usuário do produto num laço: quem tem sessão mas ainda não tem
+ * conta (workspace), e quem tem conta mas não completou o perfil. Os dois
+ * precisam do cadastro; nenhum dos dois é visitante.
  */
 export type AccessState = "anonymous" | "onboarding" | "ready" | "development-preview";
 
@@ -90,6 +95,13 @@ export function montarContexto({
  * `brandId` que já foi resolvido, em vez de resolvê-lo de novo.
  */
 export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
+  /**
+   * Existe sessão? Diferente de `getAuth`, que devolve null tanto para quem
+   * não entrou quanto para quem entrou e ainda não tem conta. Tratar os dois
+   * como visitante mandava a segunda pessoa para o login, e o login — vendo
+   * que ela tem sessão — mandava de volta. Laço fechado, cadastro inalcançável.
+   */
+  temSessao: () => Promise<boolean>;
   getAuth: () => Promise<A | null>;
   getProfile: (auth: A) => Promise<{ fullName: string } | null>;
   getActiveBrand: (auth: A) => Promise<ActiveBrand | null>;
@@ -100,8 +112,13 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
   const auth = await deps.getAuth();
 
   if (!auth) {
+    const comSessao = deps.devPreview ? false : await deps.temSessao();
     return montarContexto({
-      access: deps.devPreview ? "development-preview" : "anonymous",
+      access: deps.devPreview
+        ? "development-preview"
+        : comSessao
+          ? "onboarding"
+          : "anonymous",
       auth: null,
       marca: null,
       docs: [],

@@ -11,6 +11,8 @@
 !.yarn/versions
 
 # testing
+/test-results/
+/.diag/
 /coverage
 /.tmp/
 /brandville/imports/
