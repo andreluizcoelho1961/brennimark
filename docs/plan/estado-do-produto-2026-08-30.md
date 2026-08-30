@@ -24,9 +24,20 @@ com quatro marcas opostas.
 |---|---|
 | Repositório | `~/meus-projetos/Brennimark` · `github.com/andreluizcoelho1961/brennimark` (privado) |
 | Supabase | projeto `brennimark`, ref `ijnpigdmlswhkxqbjeru`, região sa-east-1 |
+| Produção | `https://brennimark.vercel.app` — projeto Vercel `brennimark`, deploy em 30/08 |
 | Ambiente local | `.env.local` (fora do git) com URL, chave publicável e uma chave de cifra gerada localmente |
 | Servidor | `npm --prefix ~/meus-projetos/Brennimark run dev` — porta 3000 |
 | Testes | `npm run verify` = lint, tipos, 176 unidades, build, 71 de navegador |
+
+**Configuração de autenticação (Supabase → Authentication → URL Configuration):**
+o *Site URL* e a lista de *Redirect URLs* precisam conter o domínio de produção,
+senão o link de confirmação do cadastro aponta para `localhost` e o e-mail vira
+um beco sem saída. Valores:
+
+- Site URL: `https://brennimark.vercel.app`
+- Redirect URLs: `https://brennimark.vercel.app/**` e `http://localhost:3000/**`
+
+É a única peça do ciclo que não está no código nem em migração — mora no painel.
 
 **Atenção ao rodar local:** o Next recusa duas instâncias no mesmo diretório.
 Com o servidor de desenvolvimento no ar, `npm run verify` falha ao subir o
