@@ -374,3 +374,35 @@ test("as funções de prompt exigem a marca, sem cair em padrão", () => {
     assert.match(trecho.slice(0, 200), /brand: BrandPromptContext/, `${fn} precisa receber a marca`);
   }
 });
+
+/**
+ * Patch 3.2. Uma segunda tabela de status é o começo de duas verdades: a tela
+ * mostra um termo, o assistente cita outro, e a pessoa não sabe se está vendo
+ * a mesma página. Havia exatamente isso — o prompt trazia a sua própria tabela
+ * e ignorava o vocabulário que a marca declara.
+ */
+test("o prompt não mantém tabela de status própria", () => {
+  const modulo = lerCodigo("src/lib/ai/brand-context.ts");
+  for (const termo of [/"PRONTO"/, /"RASCUNHO"/, /"EM CONSTRUÇÃO"/, /"READY"/, /"DRAFT"/, /"IN PROGRESS"/]) {
+    assert.doesNotMatch(modulo, termo, `rótulo de status fixo no prompt: ${termo}`);
+  }
+  assert.match(
+    modulo,
+    /resolveStatusLabels/,
+    "o vocabulário precisa vir da mesma função que a interface usa",
+  );
+});
+
+test("o reconhecimento de citação não tem vocabulário fixo", () => {
+  const modulo = lerCodigo("src/lib/ai/citations.ts");
+  for (const termo of [/PRONTO\|/, /READY\|/, /STATUS_PATTERN/]) {
+    assert.doesNotMatch(modulo, termo, "uma marca com rótulo próprio não seria reconhecida");
+  }
+});
+
+test("nenhum nome de seção de cliente sobrou no reconhecimento de citação", () => {
+  // Havia uma tabela traduzindo ids técnicos para "Guia de Cores", "Símbolos e
+  // Logotipos", "Tom de Voz" — as seções do manual de um cliente, no núcleo.
+  const modulo = lerCodigo("src/lib/ai/citations.ts");
+  assert.doesNotMatch(modulo, /SOURCE_TITLES|Guia de Cores|Símbolos e Logotipos|Tom de Voz/);
+});

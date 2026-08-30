@@ -1,10 +1,15 @@
-export type BrandCitationStatus = "PRONTO" | "RASCUNHO" | "EM CONSTRUÇÃO" | "READY" | "DRAFT" | "IN PROGRESS";
+import { promptStatusLabels, statusKeyForLabel, type StatusLabels } from "../../components/docs/status";
+import type { DocStatus } from "../../content/docs";
 
 export interface BrandCitation {
   type: "citation";
   raw: string;
   title: string;
-  status: BrandCitationStatus;
+  /** O texto do status como o modelo o escreveu — o vocabulário da marca. */
+  status: string;
+  /** A qual dos três estados aquele texto corresponde, para estilo e ícone.
+   *  Nulo quando o modelo escreveu algo fora do vocabulário. */
+  statusKey: DocStatus | null;
   path: string;
 }
 
@@ -15,53 +20,54 @@ export interface CitationText {
 
 export type CitationSegment = BrandCitation | CitationText;
 
-const STATUS_PATTERN = "PRONTO|RASCUNHO|EM CONSTRUÇÃO|READY|DRAFT|IN PROGRESS";
 const PATH_PATTERN = "\\/docs\\/[^\\]\\s]+";
-const CITATION_PATTERN = new RegExp(
-  `\\[(?:Fonte|Source):\\s*(.+?)\\s+—\\s+(?:(${STATUS_PATTERN})\\s+·\\s+(${PATH_PATTERN})|(${PATH_PATTERN})\\s+·\\s+(${STATUS_PATTERN}))\\]`,
-  "g",
-);
 
-const SOURCE_TITLES: Record<string, string> = {
-  "structured:positioning": "Posicionamento estruturado",
-  "structured:colors": "Guia de Cores",
-  "structured:typography": "Tipografia",
-  "structured:logos": "Símbolos e Logotipos",
-  "structured:voice": "Tom de Voz",
-  "structured:photography": "Direção Fotográfica",
-  "structured:motion": "Movimento",
-  "structured:iconography": "Iconografia",
-  "assets:official": "Catálogo de Assets Oficiais",
-};
+function escapar(valor: string) {
+  return valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-const SOURCE_TITLES_EN: Record<string, string> = {
-  "structured:positioning": "Structured positioning",
-  "structured:colors": "Color Guide",
-  "structured:typography": "Typography",
-  "structured:logos": "Symbols & Logos",
-  "structured:voice": "Voice & Tone",
-  "structured:photography": "Photography Direction",
-  "structured:motion": "Motion",
-  "structured:iconography": "Iconography",
-  "assets:official": "Official Asset Catalog",
-};
+/**
+ * O padrão de citação é montado a partir do vocabulário DAQUELA marca.
+ *
+ * Ele já foi uma constante com os seis rótulos embutidos — PRONTO, RASCUNHO,
+ * EM CONSTRUÇÃO e os equivalentes em inglês. Uma marca que chamasse o estado
+ * de "Documentado" veria o assistente citar corretamente e a interface não
+ * reconhecer a citação: o texto viraria parágrafo solto, sem link e sem selo.
+ */
+function padraoDeCitacao(labels: StatusLabels): RegExp {
+  const caixaAlta = promptStatusLabels(labels);
+  // Aceita as duas caixas: o prompt pede caixa alta, mas modelos normalizam.
+  const vocabulario = [...new Set([
+    ...Object.values(caixaAlta),
+    ...Object.values(labels),
+  ])].map(escapar).join("|");
 
-/** Converts only the assistant's documented internal citation format. */
-export function parseBrandCitations(content: string, isEnglish = false): CitationSegment[] {
+  return new RegExp(
+    `\\[(?:Fonte|Source):\\s*(.+?)\\s+—\\s+(?:(${vocabulario})\\s+·\\s+(${PATH_PATTERN})|(${PATH_PATTERN})\\s+·\\s+(${vocabulario}))\\]`,
+    "g",
+  );
+}
+
+/** Converte apenas o formato de citação interno e documentado do assistente. */
+export function parseBrandCitations(
+  content: string,
+  labels: StatusLabels,
+): CitationSegment[] {
   const segments: CitationSegment[] = [];
-  const titles = isEnglish ? SOURCE_TITLES_EN : SOURCE_TITLES;
+  const padrao = padraoDeCitacao(labels);
   let cursor = 0;
 
-  for (const match of content.matchAll(CITATION_PATTERN)) {
+  for (const match of content.matchAll(padrao)) {
     const index = match.index ?? 0;
     if (index > cursor) segments.push({ type: "text", value: content.slice(cursor, index) });
 
-    const sourceName = match[1].trim();
+    const status = match[2] ?? match[5];
     segments.push({
       type: "citation",
       raw: match[0],
-      title: titles[sourceName] ?? sourceName,
-      status: (match[2] ?? match[5]) as BrandCitationStatus,
+      title: match[1].trim(),
+      status,
+      statusKey: statusKeyForLabel(labels, status),
       path: match[3] ?? match[4],
     });
     cursor = index + match[0].length;

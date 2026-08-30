@@ -9,6 +9,8 @@ import {
 } from "./brand-context";
 import type { BrandPromptContext } from "./brand-context";
 import type { DocPageEntry } from "../../content/docs";
+import { resolveStatusLabels } from "../../components/docs/status";
+import { parseBrandCitations } from "./citations";
 
 /** Uma marca de teste; o idioma e os papéis chegam por parâmetro. */
 const MARCA: BrandPromptContext = {
@@ -42,12 +44,12 @@ test("cada página vira uma fonte, e só o que a marca importou entra", () => {
 
 test("sem marca importada, o contexto é vazio em vez de inventado", () => {
   assert.deepEqual(getBrandKnowledgeSources([]), []);
-  assert.equal(buildBrandContext([], "pt-BR").trim(), "");
+  assert.equal(buildBrandContext([], MARCA).trim(), "");
 });
 
 test("a análise recebe só as páginas com bloco visual", () => {
-  const context = buildAnalysisBrandContext(PAGINAS, "pt-BR");
-  const fullContext = buildBrandContext(PAGINAS, "pt-BR");
+  const context = buildAnalysisBrandContext(PAGINAS, MARCA);
+  const fullContext = buildBrandContext(PAGINAS, MARCA);
 
   assert.match(context, /id="doc:cores"/);
   assert.doesNotMatch(context, /id="doc:voz"/, "página sem bloco visual não deveria entrar");
@@ -56,13 +58,13 @@ test("a análise recebe só as páginas com bloco visual", () => {
 
 test("guia sem nenhum bloco visual cai para o guia inteiro, em vez de mandar vazio", () => {
   const semBlocos = PAGINAS.filter((p) => !p.blocks);
-  const context = buildAnalysisBrandContext(semBlocos, "pt-BR");
+  const context = buildAnalysisBrandContext(semBlocos, MARCA);
   assert.match(context, /id="doc:voz"/);
   assert.ok(buildAnalysisSystemPrompt(semBlocos, MARCA).includes(context), "o prompt de análise precisa embutir o contexto");
 });
 
 test("o valor de um bloco chega ao contexto, com o status da página que o contém", () => {
-  const context = buildBrandContext(PAGINAS, "pt-BR");
+  const context = buildBrandContext(PAGINAS, MARCA);
 
   assert.match(context, /#2B6CB0/, "o hex do swatch precisa chegar à IA");
   assert.match(context, /PRONTO/, "a página aprovada precisa se anunciar como tal");
@@ -189,7 +191,10 @@ test("nada atravessa de uma marca para a outra no mesmo processo", () => {
   assert.match(vermelha, /Regras de fundamentação/);
   assert.match(vermelha, /status="PRONTO"/);
   assert.match(azul, /Grounding rules/);
-  assert.match(azul, /status="READY"/);
+  // "APPROVED", não "READY": o prompt passou a usar o mesmo vocabulário da
+  // interface, que em inglês diz "Approved". Antes divergiam mesmo sem a marca
+  // declarar rótulo próprio.
+  assert.match(azul, /status="APPROVED"/);
   assert.doesNotMatch(azul, /Regras de fundamentação/);
 });
 
@@ -211,4 +216,111 @@ test("a ordem das chamadas não muda o resultado de nenhuma delas", () => {
   buildAnalysisSystemPrompt(PAGINAS_VERMELHA, MARCA_VERMELHA);
   const azulDepois = buildAnalysisSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
   assert.equal(azulPrimeiro, azulDepois);
+});
+
+// ─── Vocabulário editorial próprio ──────────────────────────────────────────
+
+/**
+ * A marca pode nomear os próprios estados.
+ *
+ * A interface já respeitava `statusLabels`; o prompt não. O assistente citava
+ * "PRONTO" enquanto a tela mostrava "Documentado" — a mesma página com dois
+ * nomes, e a pessoa sem saber se estava vendo a mesma coisa. Em inglês
+ * divergiam mesmo sem rótulo próprio: a tela dizia "Approved" e o prompt,
+ * "READY".
+ */
+const MARCA_COM_VOCABULARIO: BrandPromptContext = {
+  language: "pt-BR",
+  chatRole: "Você é o guia da Editorial.",
+  analysisRole: "Você avalia peças da Editorial.",
+  statusLabels: {
+    ready: "Documentado",
+    draft: "Em validação",
+    pending: "Sem diretriz",
+  },
+};
+
+const PAGINAS_EDITORIAL: DocPageEntry[] = [
+  { slug: "grade", group: "Sistema", title: "Grade", status: "ready", body: ["Doze colunas."] },
+  { slug: "voz", group: "Verbal", title: "Voz", status: "draft", body: ["Frase curta."] },
+  { slug: "selo", group: "Verbal", title: "Selo", status: "pending", body: [] },
+];
+
+test("o prompt usa o vocabulário que a marca declarou", () => {
+  const prompt = buildChatSystemPrompt(PAGINAS_EDITORIAL, MARCA_COM_VOCABULARIO);
+
+  // Nas fontes, marcando cada página.
+  assert.match(prompt, /status="DOCUMENTADO"/);
+  assert.match(prompt, /status="EM VALIDAÇÃO"/);
+  assert.match(prompt, /status="SEM DIRETRIZ"/);
+
+  // E nas regras, que explicam o que cada estado significa.
+  assert.match(prompt, /DOCUMENTADO é regra estabelecida/);
+  assert.match(prompt, /EM VALIDAÇÃO é orientação provisória/);
+  assert.match(prompt, /SEM DIRETRIZ significa que ainda não há regra/);
+
+  // A instrução de citação precisa listar os termos aceitos, senão o modelo
+  // inventa um e a interface não reconhece a citação.
+  assert.match(prompt, /STATUS é exatamente um destes: DOCUMENTADO, EM VALIDAÇÃO, SEM DIRETRIZ/);
+});
+
+test("sem o vocabulário da marca, o prompt não diria a mesma coisa", () => {
+  // A prova de que o teste acima depende do override, e não passaria de graça.
+  const semOverride: BrandPromptContext = {
+    ...MARCA_COM_VOCABULARIO,
+    statusLabels: undefined,
+  };
+  const prompt = buildChatSystemPrompt(PAGINAS_EDITORIAL, semOverride);
+
+  assert.doesNotMatch(prompt, /DOCUMENTADO/);
+  assert.match(prompt, /status="PRONTO"/, "sem override, valem os rótulos do produto");
+});
+
+test("o prompt e a interface leem o vocabulário da mesma função", () => {
+  const daInterface = resolveStatusLabels({
+    language: MARCA_COM_VOCABULARIO.language,
+    override: MARCA_COM_VOCABULARIO.statusLabels,
+  });
+  const prompt = buildChatSystemPrompt(PAGINAS_EDITORIAL, MARCA_COM_VOCABULARIO);
+
+  // O que a tela mostra tem que ser o que o assistente cita — em caixa alta,
+  // que é a única diferença permitida entre os dois.
+  for (const rotulo of Object.values(daInterface)) {
+    assert.ok(
+      prompt.includes(rotulo.toLocaleUpperCase()),
+      `a tela mostra "${rotulo}" e o prompt não usa esse termo`,
+    );
+  }
+});
+
+test("o vocabulário de uma marca não vaza para a outra: azul, própria, azul", () => {
+  const azulPrimeiro = buildChatSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
+  const propria = buildChatSystemPrompt(PAGINAS_EDITORIAL, MARCA_COM_VOCABULARIO);
+  const azulDepois = buildChatSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
+
+  assert.equal(azulPrimeiro, azulDepois, "a chamada do meio não pode contaminar a terceira");
+  assert.match(azulDepois, /status="APPROVED"/);
+  assert.doesNotMatch(azulDepois, /DOCUMENTADO|EM VALIDAÇÃO|SEM DIRETRIZ/);
+  assert.doesNotMatch(propria, /APPROVED|status="PRONTO"/);
+});
+
+test("a citação da interface reconhece o vocabulário da marca", () => {
+  const labels = resolveStatusLabels({
+    language: MARCA_COM_VOCABULARIO.language,
+    override: MARCA_COM_VOCABULARIO.statusLabels,
+  });
+  const resposta = "A grade tem doze colunas. [Fonte: Grade — DOCUMENTADO · /docs/grade]";
+  const segmentos = parseBrandCitations(resposta, labels);
+  const citacao = segmentos.find((s) => s.type === "citation");
+
+  // Sem isto o assistente citaria certo e a tela não reconheceria: o texto
+  // viraria parágrafo solto, sem link e sem selo.
+  assert.ok(citacao, "a citação com vocabulário próprio precisa ser reconhecida");
+  assert.equal(citacao.status, "DOCUMENTADO");
+  assert.equal(citacao.statusKey, "ready", "o estilo do selo vem da chave, não do texto");
+
+  // E o vocabulário padrão não reconhece esse termo — a prova de que o
+  // reconhecimento depende mesmo do que a marca declarou.
+  const comPadrao = parseBrandCitations(resposta, resolveStatusLabels({ language: "pt-BR" }));
+  assert.ok(!comPadrao.some((s) => s.type === "citation"));
 });

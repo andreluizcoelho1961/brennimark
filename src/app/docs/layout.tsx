@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { LocaleProvider } from "@/platform/locale-client";
+import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { DocsNav } from "@/components/docs/DocsNav";
 import { SignOutButton } from "@/components/SignOutButton";
 
@@ -14,13 +15,14 @@ import { SignOutButton } from "@/components/SignOutButton";
  * na mesma requisição.
  */
 export default async function DocsLayout({ children }: { children: React.ReactNode }) {
-  const { access, docs, capabilities, userEmail, locale } = await resolveWorkspaceContext();
+  const { access, docs, capabilities, userEmail, locale, brand } = await resolveWorkspaceContext();
 
   if (access === "anonymous") redirect("/login");
   if (access === "onboarding") redirect("/onboarding");
 
   return (
     <LocaleProvider locale={locale}>
+    <BrandVocabularyProvider language={brand?.metadata.language} statusLabels={brand?.statusLabels}>
     <div className="flex h-dvh flex-col md:flex-row">
       <DocsNav docs={docs} isOwner={capabilities.includes("administrar")} />
       <div className="flex flex-1 flex-col overflow-y-auto">
@@ -33,6 +35,7 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
         <main className="flex-1">{children}</main>
       </div>
     </div>
+    </BrandVocabularyProvider>
     </LocaleProvider>
   );
 }

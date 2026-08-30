@@ -36,3 +36,32 @@ export function resolveStatusLabels({
   if (override) return override;
   return language === "en" ? EN : PT;
 }
+
+/**
+ * De volta do rótulo para a chave.
+ *
+ * O assistente cita o status como TEXTO — e esse texto é o vocabulário da
+ * marca, que pode ser "Documentado" ou "Em validação". A interface precisa
+ * saber a qual dos três estados aquele texto corresponde para pintar o selo,
+ * e não pode fazer isso comparando com uma lista fixa.
+ */
+export function statusKeyForLabel(
+  labels: StatusLabels,
+  texto: string,
+): DocStatus | null {
+  const alvo = texto.trim().toLocaleUpperCase();
+  for (const chave of ["ready", "draft", "pending"] as const) {
+    if (labels[chave].trim().toLocaleUpperCase() === alvo) return chave;
+  }
+  return null;
+}
+
+/** O vocabulário como o prompt o escreve: em caixa alta, para o modelo repetir
+ *  exatamente o mesmo token na citação. */
+export function promptStatusLabels(labels: StatusLabels): StatusLabels {
+  return {
+    ready: labels.ready.toLocaleUpperCase(),
+    draft: labels.draft.toLocaleUpperCase(),
+    pending: labels.pending.toLocaleUpperCase(),
+  };
+}
