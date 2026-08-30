@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { platformIdentity } from "@/platform/identity";
 
 /**
@@ -7,7 +8,7 @@ import { platformIdentity } from "@/platform/identity";
  * controle que não funciona. O envio de PDF ainda não existe; anunciá-lo como
  * botão morto seria pior do que descrevê-lo em texto.
  */
-export function EmptyBrandState() {
+export function EmptyBrandState({ podeImportar = false }: { podeImportar?: boolean }) {
   return (
     <div className="flex min-h-full items-center justify-center px-[var(--space-shell-5)] py-[var(--space-shell-8,4rem)]">
       <div className="max-w-[34rem]">
@@ -23,6 +24,15 @@ export function EmptyBrandState() {
           Um manual de marca costuma ser um PDF que ninguém lê e onde ninguém acha nada. Aqui ele
           vira um sistema que responde perguntas — e que mostra de onde veio cada resposta.
         </p>
+
+        {podeImportar && (
+          <Link
+            href="/docs/importar"
+            className="mt-[var(--space-shell-5)] inline-flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
+          >
+            Enviar o primeiro manual
+          </Link>
+        )}
 
         <div className="mt-[var(--space-shell-6)] border-t border-platform-border pt-[var(--space-shell-4)]">
           <h2 className="text-[13px] font-semibold text-platform-text">Como uma marca começa</h2>
@@ -48,8 +58,7 @@ export function EmptyBrandState() {
         </div>
 
         <p className="mt-[var(--space-shell-5)] text-[12px] leading-relaxed text-platform-text-muted">
-          O envio de manuais ainda está sendo construído. Enquanto isso, uma marca pode ser criada
-          diretamente no banco.
+          Só quem administra a conta pode importar um manual.
         </p>
       </div>
     </div>

@@ -11,11 +11,13 @@ import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
  * estado vazio mentia sobre o banco.
  */
 export default async function DocsIndexPage() {
-  const { brand, defaultDocSlug } = await resolveWorkspaceContext();
+  const { brand, defaultDocSlug, capabilities } = await resolveWorkspaceContext();
 
   // Marca sem documento de entrada declarado: mostrar o estado vazio é melhor
   // que redirecionar para /docs/ e entrar em laço.
-  if (!brand || !defaultDocSlug) return <EmptyBrandState />;
+  if (!brand || !defaultDocSlug) {
+    return <EmptyBrandState podeImportar={capabilities.includes("administrar")} />;
+  }
 
   redirect(`/docs/${defaultDocSlug}`);
 }

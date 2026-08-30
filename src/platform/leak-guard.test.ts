@@ -598,3 +598,45 @@ test("o layout real passa as funcionalidades da marca resolvida", () => {
     "sem isto a navegação real volta a ficar sem a seção Inteligência",
   );
 });
+
+/**
+ * O importador. Ele é o caminho que cria conteúdo, então é onde um descuido
+ * vira dado errado no banco de um cliente.
+ */
+test("o importador não usa chave privilegiada", () => {
+  for (const arquivo of [
+    "src/components/import/BrandImporter.tsx",
+    "src/app/docs/importar/page.tsx",
+  ]) {
+    const codigo = lerCodigo(arquivo);
+    assert.doesNotMatch(
+      codigo,
+      /service_role|SERVICE_ROLE|createServiceClient/,
+      `${arquivo} usa credencial privilegiada; a importação corre com a sessão de quem importa`,
+    );
+  }
+});
+
+test("o rascunho nasce rascunho, sem caminho alternativo", () => {
+  const rascunho = lerCodigo("src/lib/import/draft.ts");
+  assert.match(rascunho, /status: "draft"/);
+  // Nenhum outro status pode ser escrito por este módulo.
+  assert.doesNotMatch(rascunho, /status: "ready"|status: "pending"/);
+});
+
+test("a importação é publicada por RPC, não por escrita solta", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.match(importador, /rpc\("publish_brand_import"/, "marca e documentos entram juntos");
+  assert.doesNotMatch(
+    importador,
+    /from\("brands"\)|from\("brand_documents"\)/,
+    "escrita direta escaparia da transação e poderia deixar marca sem conteúdo",
+  );
+});
+
+test("a rota de importação exige quem administra", () => {
+  assert.match(
+    lerCodigo("src/app/docs/importar/page.tsx"),
+    /capabilities\.includes\("administrar"\)/,
+  );
+});

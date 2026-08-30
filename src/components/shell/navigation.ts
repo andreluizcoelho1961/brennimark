@@ -94,6 +94,7 @@ export function shellSections({
       id: "governance",
       label: t("Governança", "Governance"),
       destinations: [
+        { href: "/docs/importar", label: t("Importar manual", "Import a manual"), requires: "administrar" },
         { href: "/docs/admin", label: t("Administração", "Administration"), requires: "administrar" },
       ],
     },
