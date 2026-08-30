@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { getBrandvilleAuthContext, getDeletedPages } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 
 export default async function AdminPage() {
   // Leitura e escrita, as duas pela marca da requisição.
@@ -18,6 +19,12 @@ export default async function AdminPage() {
   const excluidas = auth
     ? await getDeletedPages(auth, brand.id, docs.map((doc) => doc.slug))
     : [];
+
+  // A administração drena a fila de arquivos ao abrir. Sem isto, uma pendência
+  // só seria tentada de novo na próxima exclusão de marca — que numa conta com
+  // uma marca só talvez nunca aconteça. Falhar aqui não pode impedir a tela de
+  // abrir: a fila continua pendente e será tentada na próxima vez.
+  if (auth) await drenarFilaDeExclusao(auth).catch(() => undefined);
 
   return (
     <AdminPanel

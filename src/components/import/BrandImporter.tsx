@@ -202,9 +202,28 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
 
     setPublicando(false);
     if (error) {
-      // Seguro agora: o caminho inclui a identidade desta importação, então o
-      // objeto é só dela. Antes, remover podia apagar o arquivo de outra marca.
-      if (objetoNovo) await supabase.storage.from("brand-imports").remove([caminho]);
+      /**
+       * A limpeza também precisa ser durável.
+       *
+       * Remover na hora é o caminho feliz. Se ele falhar, o arquivo existiria
+       * sem marca, sem procedência e sem entrada na fila — o caminho sobrevive
+       * só no estado desta aba, e some quando alguém a fecha. A pendência vai
+       * para a mesma fila que a exclusão de marca usa, e a administração a
+       * drena depois.
+       *
+       * O objeto é exclusivo desta importação, então remover não pode levar o
+       * arquivo de nenhuma outra marca.
+       */
+      if (objetoNovo) {
+        const remocao = await supabase.storage.from("brand-imports").remove([caminho]);
+        if (remocao.error) {
+          await supabase.rpc("enqueue_import_cleanup", {
+            p_workspace_id: workspaceId,
+            p_import_id: importId,
+            p_pdf_sha256: hash,
+          });
+        }
+      }
       // Chave repetida é conflito, não erro genérico: já existe uma marca com
       // este nome, e sobrescrever apagaria curadoria.
       const conflito = error.code === "23505" || /duplicate key/i.test(error.message);

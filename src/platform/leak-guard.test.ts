@@ -657,12 +657,6 @@ test("a exclusão de marca enfileira os arquivos na mesma transação", () => {
   );
 });
 
-test("a fila de exclusão é drenada e só fecha o que o Storage confirmou", () => {
-  const rota = lerCodigo("src/app/api/admin/brand/route.ts");
-  assert.match(rota, /brand_deletions/);
-  assert.match(rota, /confirmados/, "fechar sem confirmação perderia o arquivo de vista");
-});
-
 test("o caminho do arquivo é exclusivo da importação", () => {
   const importador = lerCodigo("src/components/import/BrandImporter.tsx");
   assert.match(
@@ -701,5 +695,38 @@ test("o idioma do manual não vem do idioma da interface", () => {
     importador,
     /p_language: isEnglish/,
     "o idioma de quem importa não é o idioma do PDF",
+  );
+});
+
+/**
+ * Patch 5.4. Uma fila durável que ninguém alcança é só uma tabela crescendo.
+ */
+test("a exclusão de marca é idempotente e sempre drena", () => {
+  const rota = lerCodigo("src/app/api/admin/brand/route.ts");
+  assert.match(
+    rota,
+    /jaNaoExiste/,
+    "marca ausente significa exclusão já feita; devolver 404 antes da fila a torna inalcançável",
+  );
+  assert.match(rota, /export async function POST/, "drenar precisa existir sem apagar nada");
+});
+
+test("a administração drena a fila ao abrir", () => {
+  assert.match(lerCodigo("src/app/docs/admin/page.tsx"), /drenarFilaDeExclusao/);
+});
+
+test("a fila fecha por observação, não pela resposta do Storage", () => {
+  const limpeza = lerCodigo("src/lib/import/limpeza.ts");
+  // A documentação não define o retorno quando o objeto já não existe, e esse
+  // é o caso mais comum numa segunda tentativa.
+  assert.match(limpeza, /objetoAusente/);
+  assert.match(limpeza, /\.list\(/, "a ausência é verificada, não presumida");
+});
+
+test("falha ao limpar uma importação abandonada vira pendência", () => {
+  assert.match(
+    lerCodigo("src/components/import/BrandImporter.tsx"),
+    /enqueue_import_cleanup/,
+    "sem isto o caminho só existe no estado da aba e some quando ela fecha",
   );
 });
