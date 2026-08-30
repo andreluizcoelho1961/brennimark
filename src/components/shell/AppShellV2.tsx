@@ -101,7 +101,15 @@ export function AppShellV2({
    */
   useEffect(() => {
     if (modal !== "none") return;
+
     const origem = origemDoFoco.current;
+    // Sem origem não houve modal: este efeito também roda na montagem, e sem
+    // esta saída a cadeia de reserva focava a navegação ou o conteúdo assim
+    // que a página carregava. Restaurar foco e inicializar foco são coisas
+    // diferentes — a segunda não é trabalho da moldura, e atropela a ordem
+    // natural do teclado e o anúncio de um leitor de tela.
+    if (!origem) return;
+
     origemDoFoco.current = null;
 
     // `isConnected` não basta: o botão da navegação continua no documento e

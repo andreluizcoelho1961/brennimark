@@ -474,3 +474,44 @@ test("a busca aberta direto devolve o foco a quem a abriu", async ({ page }) => 
   expect(foco.corpo).toBe(false);
   expect(foco.rotulo).toBe("Buscar");
 });
+
+// ─── Carregar não é restaurar ───────────────────────────────────────────────
+
+/**
+ * A moldura devolve o foco depois de um modal. Ela não escolhe onde o foco
+ * começa.
+ *
+ * O efeito de devolução também roda na montagem, e sem uma saída explícita ele
+ * caía na cadeia de reserva: a página carregava e já focava a navegação (no
+ * desktop) ou o conteúdo (no mobile). Isso atropela a ordem natural do teclado
+ * e faz um leitor de tela começar no meio da página, sem o anúncio que
+ * normalmente precede.
+ */
+for (const [largura, nome] of [
+  [390, "mobile"],
+  [1440, "desktop"],
+] as const) {
+  test(`ao carregar em ${nome}, a moldura não rouba o foco`, async ({ page }) => {
+    await page.setViewportSize({ width: largura, height: 844 });
+    await page.goto("/dev/marcas?marca=institucional");
+
+    // Espera a hidratação: o defeito é de efeito do React, e antes dela não
+    // haveria o que verificar.
+    await expect(page.getByRole("button", { name: "Buscar" })).toBeVisible();
+    await page.waitForTimeout(300);
+
+    const foco = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      return {
+        marcador: el?.tagName ?? null,
+        naNavegacao: Boolean(el?.closest("[data-nav-destination]")),
+        noConteudo: Boolean(el?.closest("[data-shell-main]")),
+      };
+    });
+
+    expect(foco.noConteudo, "a página focou o conteúdo sozinha").toBe(false);
+    expect(foco.naNavegacao, "a página focou a navegação sozinha").toBe(false);
+    // O foco de partida é do documento, como em qualquer página.
+    expect(["BODY", "HTML"]).toContain(foco.marcador);
+  });
+}

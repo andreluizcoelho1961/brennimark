@@ -526,3 +526,17 @@ test("os destinos são localizados por marcador, não por texto", () => {
   // Texto de destino é traduzido; um seletor por rótulo quebraria em inglês.
   assert.match(lerCodigo("src/components/shell/DesktopSidebar.tsx"), /data-nav-destination/);
 });
+
+/**
+ * Patch 4.4. O efeito que devolve o foco também roda na montagem. Sem uma
+ * saída explícita, ele cai na cadeia de reserva e a página foca a navegação ou
+ * o conteúdo sozinha, assim que carrega.
+ */
+test("a moldura devolve o foco, mas não o inicializa", () => {
+  const shell = lerCodigo("src/components/shell/AppShellV2.tsx");
+  assert.match(
+    shell,
+    /if \(!origem\) return;/,
+    "sem origem não houve modal, e restaurar foco não é o mesmo que inicializá-lo",
+  );
+});
