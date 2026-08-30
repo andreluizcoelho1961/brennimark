@@ -640,3 +640,42 @@ test("a rota de importação exige quem administra", () => {
     /capabilities\.includes\("administrar"\)/,
   );
 });
+
+/**
+ * Patch 5.2. Apagar uma marca é ato total, e o PDF é a cópia mais completa do
+ * conteúdo. A cascata do banco não alcança o Storage.
+ */
+test("a exclusão de marca remove o arquivo antes do banco", () => {
+  const rota = lerCodigo("src/app/api/admin/brand/route.ts");
+  const corpo = rota.slice(rota.indexOf("export async function DELETE"));
+  const ordemStorage = corpo.indexOf('.storage');
+  const ordemBanco = corpo.indexOf('.from("brands")\n    .delete()');
+  assert.ok(ordemStorage > 0, "a rota precisa remover o PDF");
+  assert.ok(
+    ordemStorage < ordemBanco,
+    "apagar a marca antes do arquivo deixaria o PDF órfão e inalcançável",
+  );
+});
+
+test("nenhuma linha de storage.objects é tocada por SQL", () => {
+  // Quem remove é a API do Storage; mexer na tabela deixa o arquivo no disco.
+  for (const arquivo of ["src/app/api/admin/brand/route.ts"]) {
+    assert.doesNotMatch(lerCodigo(arquivo), /storage\.objects/);
+  }
+});
+
+test("o upload por hash é imutável", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.match(importador, /upsert: false/, "upsert exigiria política de UPDATE que não existe");
+  assert.match(importador, /objetoNovo/, "só remove o arquivo se esta tentativa o criou");
+});
+
+test("o idioma do manual não vem do idioma da interface", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.match(importador, /p_language: idiomaDoManual/);
+  assert.doesNotMatch(
+    importador,
+    /p_language: isEnglish/,
+    "o idioma de quem importa não é o idioma do PDF",
+  );
+});

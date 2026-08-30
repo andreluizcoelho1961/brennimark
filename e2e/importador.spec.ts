@@ -57,6 +57,22 @@ test("a página sem texto vira aviso, não conteúdo inventado", async ({ page }
   await expect(page.getByText(/Página 3: Nenhum texto extraível/)).toBeVisible();
 });
 
+test("o idioma do manual é campo próprio, separado do idioma da interface", async ({ page }) => {
+  await page.goto("/dev/importar");
+  await page.setInputFiles('input[type="file"]', PDF);
+
+  // Uma pessoa com a interface em português pode importar um manual em inglês.
+  // Derivar um do outro faria o assistente traduzir termos que a marca definiu.
+  const opcoes = page.getByRole("radio");
+  await expect(opcoes).toHaveCount(2);
+  await expect(page.getByRole("radio", { name: "Português" })).toBeChecked();
+
+  await page.getByRole("radio", { name: "Inglês" }).check();
+  await expect(page.getByRole("radio", { name: "Inglês" })).toBeChecked();
+  // E a interface segue em português.
+  await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible();
+});
+
 test("as funcionalidades são escolha explícita, e nenhuma vem marcada", async ({ page }) => {
   await page.goto("/dev/importar");
   await page.setInputFiles('input[type="file"]', PDF);

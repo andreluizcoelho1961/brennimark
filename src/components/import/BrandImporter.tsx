@@ -73,6 +73,17 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
   const [mensagem, setMensagem] = useState("");
   const [nome, setNome] = useState("");
   const [utilidades, setUtilidades] = useState<BrandvilleUtilityKey[]>([]);
+  /**
+   * O idioma do MANUAL, e não o de quem está importando.
+   *
+   * Ele já foi derivado do locale da interface, o que desfazia a fronteira do
+   * patch 3: uma pessoa com a interface em português importando um manual em
+   * inglês faria o assistente responder sobre ele em português, traduzindo
+   * termos que a marca definiu. Vem pré-selecionado, mas quem importa confirma.
+   */
+  const [idiomaDoManual, setIdiomaDoManual] = useState<"pt-BR" | "en">(
+    isEnglish ? "en" : "pt-BR",
+  );
 
   const chave = useMemo(() => slugify(nome), [nome]);
   const podePublicar =
@@ -111,13 +122,32 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
     const supabase = createClient();
     const caminho = `${workspaceId}/${hash}.pdf`;
 
+    /**
+     * O objeto é IMUTÁVEL, e o caminho é a impressão digital do arquivo.
+     *
+     * `upsert` exigiria política de UPDATE no bucket, que não existe — e não
+     * deveria existir: mesmo hash significa mesmo arquivo, byte a byte, então
+     * não há o que atualizar. Um conflito aqui é reencontro, não erro.
+     *
+     * Isso é o que torna a tentativa repetível: se a RPC falhar por chave
+     * duplicada, a pessoa corrige o nome e tenta de novo; o upload reencontra
+     * o objeto e segue.
+     */
+    let objetoNovo = false;
     const envio = await supabase.storage
       .from("brand-imports")
-      .upload(caminho, arquivo, { contentType: "application/pdf", upsert: true });
+      .upload(caminho, arquivo, { contentType: "application/pdf", upsert: false });
+
     if (envio.error) {
-      setPublicando(false);
-      setMensagem(t("Não foi possível enviar o arquivo.", "Couldn't upload the file."));
-      return;
+      const jaExiste =
+        "statusCode" in envio.error && String(envio.error.statusCode) === "409";
+      if (!jaExiste) {
+        setPublicando(false);
+        setMensagem(t("Não foi possível enviar o arquivo.", "Couldn't upload the file."));
+        return;
+      }
+    } else {
+      objetoNovo = true;
     }
 
     const { data, error } = await supabase.rpc("publish_brand_import", {
@@ -126,8 +156,8 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
       p_name: nome.trim(),
       p_short_name: nome.trim().slice(0, 60),
       p_descriptor: t("manual importado, em revisão", "imported manual, under review"),
-      p_language: isEnglish ? "en" : "pt-BR",
-      p_metadata: { title: nome.trim(), description: "", language: isEnglish ? "en" : "pt-BR" },
+      p_language: idiomaDoManual,
+      p_metadata: { title: nome.trim(), description: "", language: idiomaDoManual },
       p_navigation: {
         groups: ["Manual"],
         groupCodes: { Manual: "MA" },
@@ -153,6 +183,10 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
 
     setPublicando(false);
     if (error) {
+      // O arquivo só é removido se ESTA tentativa o criou. Um objeto que já
+      // estava lá pode pertencer a outra importação — apagá-lo levaria junto a
+      // procedência de uma marca que deu certo.
+      if (objetoNovo) await supabase.storage.from("brand-imports").remove([caminho]);
       // Chave repetida é conflito, não erro genérico: já existe uma marca com
       // este nome, e sobrescrever apagaria curadoria.
       const conflito = error.code === "23505" || /duplicate key/i.test(error.message);
@@ -289,6 +323,32 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
                   </span>
                 )}
               </label>
+
+              <fieldset className="mt-[var(--space-shell-5)]">
+                <legend className="text-[13px] font-medium text-platform-text">
+                  {t("Idioma do manual", "Manual language")}
+                </legend>
+                <p className="mt-1 text-[12px] leading-relaxed text-platform-text-muted">
+                  {t(
+                    "O idioma em que o PDF está escrito. Não é o idioma da interface: o assistente cita o manual e precisa falar a língua dele.",
+                    "The language the PDF is written in. Not the interface language: the assistant quotes the manual and must speak its language.",
+                  )}
+                </p>
+                <div className="mt-[var(--space-shell-3)] flex flex-col gap-[var(--space-shell-2)]">
+                  {(["pt-BR", "en"] as const).map((idioma) => (
+                    <label key={idioma} className="flex min-h-11 items-center gap-[var(--space-shell-3)] text-[14px] text-platform-text">
+                      <input
+                        type="radio"
+                        name="idioma-do-manual"
+                        value={idioma}
+                        checked={idiomaDoManual === idioma}
+                        onChange={() => setIdiomaDoManual(idioma)}
+                      />
+                      <span>{idioma === "en" ? t("Inglês", "English") : t("Português", "Portuguese")}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
               <fieldset className="mt-[var(--space-shell-5)]">
                 <legend className="text-[13px] font-medium text-platform-text">
