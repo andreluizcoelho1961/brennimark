@@ -35,12 +35,10 @@ export function NavigationDrawer({
 }) {
   const isEnglish = useIsEnglish();
   const painelRef = useRef<HTMLDivElement>(null);
-  const focoAnterior = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!open) return;
 
-    focoAnterior.current = document.activeElement;
     const overflowAnterior = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -73,16 +71,26 @@ export function NavigationDrawer({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = overflowAnterior;
-      // Devolver o foco ao acionador é o que faz a gaveta ser um desvio e não
-      // um recomeço para quem usa teclado.
-      (focoAnterior.current as HTMLElement | null)?.focus?.();
+      // A devolução do foco é da moldura, não daqui: só ela sabe quando o
+      // `inert` saiu, e focar elemento inerte não faz nada. Ver AppShellV2.
     };
   }, [open, onClose]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 lg:hidden">
+    /*
+      Sem `lg:hidden`. A gaveta era escondida por CSS ao passar de 1024px, e
+      escondida não é fechada: `modal` continuava "nav", o resto da aplicação
+      continuava inerte, e a única coisa capaz de destravar a tela tinha
+      sumido. Girar o aparelho com a navegação aberta travava o aplicativo.
+
+      Ela some quando alguém a fecha, e só então. A alternativa — fechar no
+      cruzamento do breakpoint — obrigaria a mandar o foco para algum destino
+      do desktop, porque o botão que o receberia acabou de desaparecer; é mais
+      peça móvel para resolver um problema que não precisa existir.
+    */
+    <div className="fixed inset-0 z-50">
       {/*
         O véu é suplementar: fechar clicando fora é atalho de mouse, e já
         existem Escape e um botão explícito. Como botão ele entrava na ordem de

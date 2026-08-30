@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocPageEntry } from "@/content/docs";
 import type { StatusLabels } from "@/components/docs/status";
 import { CommandPalette } from "./CommandPalette";
@@ -61,8 +61,37 @@ export function AppShellV2({
    */
   const [modal, setModal] = useState<"none" | "nav" | "search">("none");
 
-  const abrirBusca = useCallback(() => setModal("search"), []);
+  const origemDoFoco = useRef<HTMLElement | null>(null);
+
+  /** Guarda a origem ANTES de abrir: no instante em que o `inert` entra, o
+   *  navegador já tirou o foco do elemento, e ele vira inalcançável. */
+  const abrir = useCallback((qual: "nav" | "search") => {
+    origemDoFoco.current ??= document.activeElement as HTMLElement | null;
+    setModal(qual);
+  }, []);
+
+  const abrirBusca = useCallback(() => abrir("search"), [abrir]);
   const fechar = useCallback(() => setModal("none"), []);
+
+  /**
+   * De onde a pessoa veio, para onde ela volta.
+   *
+   * Cada modal tentava devolver o foco por conta própria, e isso não funciona
+   * aqui por um motivo específico: enquanto há modal aberto, o resto da
+   * aplicação está `inert`, e focar um elemento inerte não faz nada. Ao trocar
+   * a gaveta pela busca, a gaveta devolvia o foco a um botão naquele instante
+   * inerte — o foco caía no corpo do documento, e a busca, ao fechar, devolvia
+   * para lá.
+   *
+   * Quem sabe quando o `inert` saiu é a moldura. Este efeito roda depois da
+   * renderização que o removeu.
+   */
+  useEffect(() => {
+    if (modal !== "none") return;
+    const origem = origemDoFoco.current;
+    origemDoFoco.current = null;
+    if (origem?.isConnected) origem.focus();
+  }, [modal]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -96,7 +125,7 @@ export function AppShellV2({
           brandDescriptor={brandDescriptor}
           navigationOpen={modal === "nav"}
           onOpenSearch={abrirBusca}
-          onOpenNavigation={() => setModal("nav")}
+          onOpenNavigation={() => abrir("nav")}
         />
         <div className="flex min-h-0 flex-1">
           <DesktopSidebar sections={sections} basePath={basePath} />

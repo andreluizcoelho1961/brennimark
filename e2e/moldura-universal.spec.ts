@@ -251,12 +251,21 @@ test("fechar a busca aberta por cima da gaveta devolve o foco de forma coerente"
   await page.keyboard.press("Escape");
 
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  // Nada pode ficar aberto por trás.
-  await expect(page.getByRole("button", { name: "Abrir navegação" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Abrir navegação" })).toHaveAttribute(
     "aria-expanded",
     "false",
   );
+
+  // "O botão está visível" não é devolução de foco: passaria com o foco no
+  // corpo do documento, que é onde ele cai quando ninguém o recolhe.
+  const focado = await page.evaluate(() => ({
+    marcador: document.activeElement?.tagName,
+    rotulo: document.activeElement?.getAttribute("aria-label"),
+    noCorpo: document.activeElement === document.body,
+  }));
+  expect(focado.noCorpo, "o foco caiu no corpo em vez de voltar a um controle").toBe(false);
+  expect(focado.marcador).toBe("BUTTON");
+  expect(focado.rotulo).toBe("Abrir navegação");
 });
 
 test("o botão da navegação declara se ela está aberta", async ({ page }) => {
@@ -265,8 +274,14 @@ test("o botão da navegação declara se ela está aberta", async ({ page }) => 
 
   const botao = page.getByRole("button", { name: "Abrir navegação" });
   await expect(botao).toHaveAttribute("aria-expanded", "false");
+
   await botao.click();
   await expect(page.getByRole("dialog", { name: "Navegação principal" })).toBeVisible();
+  // O valor `false` sozinho passaria mesmo se o atributo fosse constante.
+  await expect(botao).toHaveAttribute("aria-expanded", "true");
+
+  await page.keyboard.press("Escape");
+  await expect(botao).toHaveAttribute("aria-expanded", "false");
 });
 
 test("com a gaveta aberta, o resto da aplicação fica inerte", async ({ page }) => {
@@ -343,4 +358,62 @@ test("a barra usa os insets do aparelho, e não valores fixos", async ({ page })
     return header.className.includes("safe-area-inset");
   });
   expect(usaEnv, "a barra ignora o recorte do aparelho").toBe(true);
+});
+
+// ─── Estado modal contra breakpoint ─────────────────────────────────────────
+
+/**
+ * Girar o aparelho com a navegação aberta travava o aplicativo.
+ *
+ * A gaveta era escondida por CSS acima de 1024px — e escondida não é fechada.
+ * O estado continuava "nav", o resto seguia inerte, e a única coisa capaz de
+ * destravar a tela tinha desaparecido: nenhum diálogo na página, nada
+ * clicável, navegação de desktop visível e inerte.
+ *
+ * Nenhum teste pegava porque nenhum cruzava estado modal com largura: os de
+ * gaveta ficavam em 390 e os de desktop nunca abriam a gaveta.
+ */
+test("girar para desktop com a gaveta aberta não trava o aplicativo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=institucional");
+  await abrirGaveta(page);
+
+  await page.setViewportSize({ width: 1024, height: 800 });
+
+  // Ou ela continua visível, ou foi fechada. O que não pode existir é o meio
+  // do caminho: inerte sem nada para fechar.
+  const gaveta = page.getByRole("dialog", { name: "Navegação principal" });
+  const aindaAberta = await gaveta.isVisible();
+  const inerte = await page.locator("[inert]").count();
+
+  if (inerte > 0) {
+    expect(aindaAberta, "aplicação inerte sem caminho visível para destravar").toBe(true);
+  }
+
+  if (aindaAberta) {
+    await page.keyboard.press("Escape");
+    await expect(gaveta).toBeHidden();
+  }
+
+  // E, fechada, a aplicação volta inteira.
+  await expect(page.locator("[inert]")).toHaveCount(0);
+});
+
+test("depois de destravar, a navegação do desktop aceita foco e clique", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=institucional");
+  await abrirGaveta(page);
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await page.keyboard.press("Escape");
+
+  const coluna = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(coluna).toBeVisible();
+
+  const destino = coluna.getByRole("link", { name: "Biblioteca de assets" });
+  await destino.focus();
+  const focado = await page.evaluate(() => document.activeElement?.textContent?.trim());
+  expect(focado, "o destino do desktop precisa aceitar foco").toBe("Biblioteca de assets");
+
+  await destino.click();
+  await expect(page).toHaveURL(/biblioteca/);
 });

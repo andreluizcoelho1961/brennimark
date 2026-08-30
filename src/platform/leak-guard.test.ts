@@ -467,3 +467,30 @@ test("a moldura declara viewport-fit cover", () => {
   // Sem isso todo env(safe-area-inset-*) do repositório vale zero.
   assert.match(lerCodigo("src/app/layout.tsx"), /viewportFit: "cover"/);
 });
+
+/**
+ * Patch 4.2. Estado modal não pode depender de largura de tela. A gaveta era
+ * escondida por CSS acima de 1024px — e escondida não é fechada: o estado
+ * continuava aberto, o resto seguia inerte, e a única coisa capaz de destravar
+ * a tela havia sumido.
+ */
+test("a gaveta não é escondida por breakpoint", () => {
+  const gaveta = lerCodigo("src/components/shell/NavigationDrawer.tsx");
+  assert.doesNotMatch(
+    gaveta,
+    /fixed inset-0[^"]*lg:hidden/,
+    "esconder o overlay por CSS deixa a aplicação inerte sem caminho para destravar",
+  );
+});
+
+test("a devolução do foco é da moldura, não de cada modal", () => {
+  // Focar elemento inerte não faz nada: quem sabe quando o `inert` saiu é a
+  // moldura, e é lá que a origem do foco é guardada e restaurada.
+  const shell = lerCodigo("src/components/shell/AppShellV2.tsx");
+  assert.match(shell, /origemDoFoco/);
+  assert.doesNotMatch(
+    lerCodigo("src/components/shell/NavigationDrawer.tsx"),
+    /focoAnterior/,
+    "dois donos da devolução de foco disputam e o último a rodar vence",
+  );
+});
