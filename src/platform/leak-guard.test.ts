@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 
 /**
@@ -305,7 +305,6 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/components/shell/navigation.ts",
   "src/components/shell/PlatformTopBar.tsx",
   "src/components/shell/CommandPalette.tsx",
-  "src/components/docs/DocsNav.tsx",
   "src/components/docs/DocPage.tsx",
   "src/components/admin/AdminPanel.tsx",
   "src/components/admin/VersionHistory.tsx",
@@ -539,4 +538,20 @@ test("a moldura devolve o foco, mas não o inicializa", () => {
     /if \(!origem\) return;/,
     "sem origem não houve modal, e restaurar foco não é o mesmo que inicializá-lo",
   );
+});
+
+/**
+ * Patch 5. Duas interfaces no mesmo produto significam que a que está sendo
+ * revisada não é a que as pessoas usam. O DocsNav foi removido; esta guarda
+ * impede que um caminho paralelo volte.
+ */
+test("não existe uma segunda navegação de documentos", () => {
+  const componentes = readdirSync(path.join(raiz, "src/components/docs"));
+  assert.ok(!componentes.includes("DocsNav.tsx"), "a V1 voltou ao repositório");
+  assert.doesNotMatch(
+    lerCodigo("src/app/docs/layout.tsx"),
+    /DocsNav/,
+    "o layout real voltou a montar a V1",
+  );
+  assert.match(lerCodigo("src/app/docs/layout.tsx"), /AppShellV2/);
 });

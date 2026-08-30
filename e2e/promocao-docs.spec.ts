@@ -1,0 +1,127 @@
+import { expect, test, type Page } from "@playwright/test";
+
+/**
+ * A V2 é a interface real de /docs.
+ *
+ * Até aqui ela existia numa rota de laboratório e /docs montava o DocsNav —
+ * duas interfaces no mesmo produto, e a que estava sendo revisada não era a
+ * que as pessoas usavam.
+ *
+ * O que estes testes NÃO cobrem, e é honesto dizer: o manual vestido pela
+ * marca nas rotas reais. Isso exige uma marca no banco e uma sessão real, e o
+ * projeto tem zero usuários. A renderização vestida está coberta em
+ * /dev/marcas, que usa os mesmos componentes e o mesmo tradutor de linha.
+ * Aqui o que se prova é a moldura, a navegação e o comportamento.
+ */
+
+const ROTAS_DO_MANUAL = ["/docs"];
+const ROTAS_UTILITARIAS = [
+  "/docs/biblioteca",
+  "/docs/chat",
+  "/docs/analise",
+  "/docs/historico",
+  "/docs/configuracoes/ia",
+];
+const TODAS = [...ROTAS_DO_MANUAL, ...ROTAS_UTILITARIAS];
+
+async function molduraV2(page: Page) {
+  // A barra da plataforma é a assinatura da V2.
+  await expect(page.getByRole("banner", { name: "Brennimark" })).toBeVisible();
+}
+
+for (const rota of TODAS) {
+  test(`${rota} monta a V2, e não o DocsNav`, async ({ page }) => {
+    const resposta = await page.goto(rota);
+    expect(resposta?.status()).toBe(200);
+    await molduraV2(page);
+
+    // O rail de siglas de duas letras era a marca registrada da V1.
+    const railDaV1 = await page.evaluate(() =>
+      Boolean(document.querySelector('[data-docsnav], nav[aria-label="Guia da marca"]')),
+    );
+    expect(railDaV1, "a V1 ainda está montada nesta rota").toBe(false);
+  });
+}
+
+test("as rotas utilitárias são superfícies da plataforma, fora do canvas", async ({ page }) => {
+  for (const rota of ROTAS_UTILITARIAS) {
+    await page.goto(rota);
+    // Administração, IA, biblioteca e histórico são instrumentos do produto:
+    // eles não podem estar dentro do escopo de tema da marca.
+    const dentroDoCanvas = await page.evaluate(() =>
+      Boolean(document.querySelector("[data-brand-canvas] h1")),
+    );
+    expect(dentroDoCanvas, `${rota} está vestida pela marca`).toBe(false);
+  }
+});
+
+test("sem capacidade não há destino nenhum, e isso é a regra funcionando", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/docs");
+
+  // O preview local não concede papel — nem `consultar`. Um destino aqui
+  // seria link que termina em 403. A afirmação é mais forte que "o
+  // administrativo está escondido": NADA aparece sem capacidade.
+  await expect(page.locator("[data-nav-destination]")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Administração" })).toHaveCount(0);
+});
+
+test("a sessão vive na barra, não numa faixa própria", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/docs");
+  // A V1 empilhava um cabeçalho só para o e-mail acima do conteúdo.
+  const faixas = await page.locator("header").count();
+  expect(faixas, "sobrou uma faixa de sessão da V1").toBe(1);
+});
+
+// ─── Promoção × gaveta × rota filha × largura ──────────────────────────────
+
+test("sem destinos, a moldura não oferece navegação", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/docs/chat");
+  await molduraV2(page);
+
+  // Coerência com a regra de capacidades: se nenhum destino existe, mostrar o
+  // botão que abriria uma gaveta vazia — ou uma coluna de 224px em branco —
+  // sugere que algo falhou ao carregar.
+  await expect(page.getByRole("button", { name: "Abrir navegação" })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(0);
+});
+
+/**
+ * A gaveta ABERTA numa rota filha — navegar por dentro dela, fechar, conferir
+ * URL e foco — precisa de destinos, e destinos precisam de capacidade, que o
+ * preview local não concede por decisão de produto. Esse cruzamento está
+ * coberto em moldura-universal.spec, na rota de fixtures, com os mesmos
+ * componentes e capacidades de owner.
+ *
+ * Nas rotas reais ele depende de uma sessão de verdade — o mesmo bloqueio do
+ * manual vestido pela marca.
+ */
+
+for (const [largura, nome] of [
+  [390, "mobile"],
+  [1440, "desktop"],
+] as const) {
+  for (const rota of ["/docs", "/docs/biblioteca"]) {
+    test(`carregar ${rota} direto em ${nome}`, async ({ page }) => {
+      await page.setViewportSize({ width: largura, height: 844 });
+      const resposta = await page.goto(rota);
+      expect(resposta?.status()).toBe(200);
+      await molduraV2(page);
+
+      // Geometria e foco de partida, na rota real.
+      const medida = await page.evaluate(() => ({
+        documento: document.documentElement.scrollWidth,
+        janela: window.innerWidth,
+        focoNoCorpo: document.activeElement === document.body,
+      }));
+      expect(medida.documento).toBeLessThanOrEqual(medida.janela);
+      expect(medida.focoNoCorpo, "a moldura roubou o foco no carregamento").toBe(true);
+
+      // Sem capacidade não há coluna em largura nenhuma. A regra de breakpoint
+      // está coberta em moldura-universal.spec, onde há destinos.
+      await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(0);
+    });
+  }
+}

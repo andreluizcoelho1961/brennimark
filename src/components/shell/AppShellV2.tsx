@@ -42,6 +42,7 @@ export function AppShellV2({
   brandDescriptor,
   brandLanguage,
   statusLabels,
+  sessionControl,
   basePath,
   children,
 }: {
@@ -56,6 +57,9 @@ export function AppShellV2({
    *  esse rótulo é da marca — ver StatusBadge. */
   brandLanguage?: string;
   statusLabels?: StatusLabels;
+  /** Sair da conta. Vive na barra, não numa faixa própria empilhada por cima
+   *  da navegação — que era o que a V1 fazia. */
+  sessionControl?: React.ReactNode;
   /** Prefixo alternativo para os destinos. Existe para a rota de comparação
    *  manter a navegação dentro da V2; em produção fica ausente e os destinos
    *  são os reais. String, não função: não atravessa a fronteira de servidor
@@ -151,6 +155,8 @@ export function AppShellV2({
   );
 
   const emModal = modal !== "none";
+  // O botão da gaveta só existe se houver para onde ir.
+  const temDestinos = sections.length > 0;
 
   return (
     <div className="flex h-dvh flex-col bg-platform-bg text-platform-text">
@@ -167,8 +173,10 @@ export function AppShellV2({
           brandDescriptor={brandDescriptor}
           navigationOpen={modal === "nav"}
           onOpenSearch={abrirBusca}
-          onOpenNavigation={() => abrir("nav")}
-        />
+          onOpenNavigation={temDestinos ? () => abrir("nav") : undefined}
+        >
+          {sessionControl}
+        </PlatformTopBar>
         <div className="flex min-h-0 flex-1">
           <DesktopSidebar sections={sections} basePath={basePath} />
           {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de

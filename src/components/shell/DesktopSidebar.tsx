@@ -84,6 +84,11 @@ export function DesktopSidebar({
   sections: ShellSection[];
   basePath?: string;
 }) {
+  // Sem destino não há navegação. Uma coluna vazia de 224px é área morta que
+  // sugere que algo falhou ao carregar — e destinos só existem com capacidade,
+  // então quem não tem nenhuma não deve ver o lugar onde eles estariam.
+  if (sections.length === 0) return null;
+
   return (
     <nav
       aria-label="Navegação principal"

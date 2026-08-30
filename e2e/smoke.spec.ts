@@ -9,10 +9,8 @@ import { expect, test } from "@playwright/test";
  * mobile existir produz teste que nasce vermelho e é desligado na primeira
  * pressa.
  *
- * O QUE ESTES TESTES PROTEGEM HOJE: a V1. /docs ainda monta DocsNav. A V2
- * entra nesta suíte no patch 4, quando ganhar mobile, e passa a ser o objeto
- * definitivo destes testes depois da promoção no patch 5. Até lá, verde aqui
- * não é afirmação nenhuma sobre a V2.
+ * Desde o patch 5 estes testes exercitam a V2, que é a interface real de
+ * /docs. A V1 foi removida.
  */
 
 const LARGURAS = [320, 375, 390, 768, 1024, 1440];
@@ -36,7 +34,9 @@ test("o estado sem marca é o que aparece antes do primeiro manual", async ({ pa
   ).toBeVisible();
 
   // Quem está sem marca ainda precisa saber em que produto está.
-  await expect(page.getByText("Brennimark", { exact: true })).toBeVisible();
+  // Depois da promoção o nome aparece também na barra da moldura; aqui
+  // interessa o do estado vazio, dentro do conteúdo.
+  await expect(page.getByRole("main").getByText("Brennimark", { exact: true })).toBeVisible();
 
   // `nextjs-portal` existe sempre em desenvolvimento: é o host das ferramentas
   // do Next, não o erro. O overlay de erro é o diálogo dentro dele — o seletor
