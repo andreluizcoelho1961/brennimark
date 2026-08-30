@@ -87,7 +87,13 @@ function LoginForm() {
         {platformIdentity.displayName}
       </p>
       <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-release-analog-white">
-        {mode === "signin" ? "Sign in to access the brand guide" : "Create your account"}
+        {mode === "signin"
+          ? isEnglish
+            ? "Sign in to access the brand guide"
+            : "Entre para acessar o guia da marca"
+          : isEnglish
+            ? "Create your account"
+            : "Crie sua conta"}
       </h1>
 
       <div className="mt-6 flex gap-6 border-b border-border-default">
@@ -125,7 +131,7 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="sr-only">
-              Email
+              {isEnglish ? "Email" : "E-mail"}
             </label>
             <input
               id="email"
@@ -170,7 +176,8 @@ function LoginForm() {
 
           {status === "error" && (
             <p id="login-error" role="alert" className="text-xs text-release-analog-blue">
-              {errorMessage || "Something went wrong. Try again."}
+              {errorMessage ||
+                (isEnglish ? "Something went wrong. Try again." : "Algo deu errado. Tente de novo.")}
             </p>
           )}
         </form>
