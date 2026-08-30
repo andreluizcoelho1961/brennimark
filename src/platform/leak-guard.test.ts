@@ -494,3 +494,35 @@ test("a devolução do foco é da moldura, não de cada modal", () => {
     "dois donos da devolução de foco disputam e o último a rodar vence",
   );
 });
+
+/**
+ * Patch 4.3. `isConnected` mente: o botão da navegação mobile continua no
+ * documento e some acima de 1024px. Devolver o foco para ele depois de uma
+ * rotação manda o foco ao corpo, e quem usa teclado perde a posição.
+ */
+test("a devolução do foco exige elemento com caixa, não só conectado", () => {
+  const shell = lerCodigo("src/components/shell/AppShellV2.tsx");
+  assert.match(shell, /getClientRects\(\)\.length > 0/, "elemento sem caixa não recebe foco");
+  assert.match(shell, /data-nav-active/, "a reserva é o destino ativo da navegação");
+  assert.match(shell, /data-shell-main/, "e o conteúdo como último recurso");
+});
+
+test("só a moldura devolve o foco", () => {
+  // Dois donos disputam e o último a rodar vence — e o que vence pode ser o
+  // que não sabe se a origem ainda está visível.
+  for (const arquivo of [
+    "src/components/shell/CommandPalette.tsx",
+    "src/components/shell/NavigationDrawer.tsx",
+  ]) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /restoreFocusTo|focoAnterior/,
+      `${arquivo} devolve o foco por conta própria`,
+    );
+  }
+});
+
+test("os destinos são localizados por marcador, não por texto", () => {
+  // Texto de destino é traduzido; um seletor por rótulo quebraria em inglês.
+  assert.match(lerCodigo("src/components/shell/DesktopSidebar.tsx"), /data-nav-destination/);
+});

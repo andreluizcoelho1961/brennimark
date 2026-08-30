@@ -37,7 +37,6 @@ export function CommandPalette({
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
-  const restoreFocusTo = useRef<Element | null>(null);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
 
@@ -62,12 +61,12 @@ export function CommandPalette({
   // em vez de esconder, garante campo limpo a cada ⌘K — e é o que faz o foco
   // voltar corretamente para quem abriu.
   useEffect(() => {
-    restoreFocusTo.current = document.activeElement;
     inputRef.current?.focus();
-    return () => {
-      // O foco volta para quem abriu, não para o topo do documento.
-      (restoreFocusTo.current as HTMLElement | null)?.focus?.();
-    };
+    // A devolução do foco NÃO acontece aqui. Ela é da moldura, que é a única
+    // que sabe quando o `inert` saiu e se a origem continua visível — a busca
+    // pode ter sido aberta por cima da gaveta, e a origem pode ter ficado
+    // escondida por uma mudança de largura enquanto ela estava aberta.
+    // Ver AppShellV2.
   }, []);
 
   const go = useCallback(

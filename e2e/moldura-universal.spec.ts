@@ -399,7 +399,39 @@ test("girar para desktop com a gaveta aberta não trava o aplicativo", async ({ 
   await expect(page.locator("[inert]")).toHaveCount(0);
 });
 
-test("depois de destravar, a navegação do desktop aceita foco e clique", async ({ page }) => {
+test("ao destravar depois da rotação, o foco vai para algo visível", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=institucional");
+  await abrirGaveta(page);
+
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await page.keyboard.press("Escape");
+
+  await expect(page.locator("[inert]")).toHaveCount(0);
+
+  // NADA de .focus() antes desta verificação: chamar foco no teste prova que o
+  // elemento aceita foco, não que a moldura o devolveu. A origem — o botão da
+  // navegação mobile — continua no documento e some acima de 1024px, então
+  // devolver para ela manda o foco ao corpo e a pessoa perde a posição.
+  const foco = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    return {
+      corpo: el === document.body,
+      comCaixa: (el?.getClientRects().length ?? 0) > 0,
+      naNavegacao: Boolean(el?.closest("[data-nav-destination]")),
+      noConteudo: Boolean(el?.closest("[data-shell-main]")),
+    };
+  });
+
+  expect(foco.corpo, "quem usa teclado perdeu a posição").toBe(false);
+  expect(foco.comCaixa, "o foco foi para um elemento sem caixa").toBe(true);
+  expect(
+    foco.naNavegacao || foco.noConteudo,
+    "o foco precisa cair na navegação do desktop ou no conteúdo",
+  ).toBe(true);
+});
+
+test("a navegação do desktop continua clicável depois de destravar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dev/marcas?marca=institucional");
   await abrirGaveta(page);
@@ -408,12 +440,37 @@ test("depois de destravar, a navegação do desktop aceita foco e clique", async
 
   const coluna = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(coluna).toBeVisible();
-
-  const destino = coluna.getByRole("link", { name: "Biblioteca de assets" });
-  await destino.focus();
-  const focado = await page.evaluate(() => document.activeElement?.textContent?.trim());
-  expect(focado, "o destino do desktop precisa aceitar foco").toBe("Biblioteca de assets");
-
-  await destino.click();
+  await coluna.getByRole("link", { name: "Biblioteca de assets" }).click();
   await expect(page).toHaveURL(/biblioteca/);
+});
+
+test("no mobile, fechar normalmente devolve o foco ao botão que abriu", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dev/marcas?marca=institucional");
+  await abrirGaveta(page);
+  await page.keyboard.press("Escape");
+
+  // Sem mudança de largura, a origem continua visível e é para lá que se volta.
+  const foco = await page.evaluate(() => ({
+    rotulo: document.activeElement?.getAttribute("aria-label"),
+    corpo: document.activeElement === document.body,
+  }));
+  expect(foco.corpo).toBe(false);
+  expect(foco.rotulo).toBe("Abrir navegação");
+});
+
+test("a busca aberta direto devolve o foco a quem a abriu", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/dev/marcas?marca=institucional");
+
+  await page.getByRole("button", { name: "Buscar" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await page.keyboard.press("Escape");
+
+  const foco = await page.evaluate(() => ({
+    rotulo: document.activeElement?.getAttribute("aria-label"),
+    corpo: document.activeElement === document.body,
+  }));
+  expect(foco.corpo).toBe(false);
+  expect(foco.rotulo).toBe("Buscar");
 });

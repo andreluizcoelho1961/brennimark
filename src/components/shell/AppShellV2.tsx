@@ -21,6 +21,19 @@ import type { ShellSection } from "./navigation";
  * também é escura, ou quando a marca é branca. Um filete encostado numa cor
  * saturada vibra; um vão não.
  */
+/**
+ * Um elemento só recebe foco se estiver no documento, alcançável e com caixa.
+ *
+ * `isConnected` sozinho mente: o botão da navegação continua no documento e
+ * some acima de 1024px. Focar algo sem caixa manda o foco para o corpo, que é
+ * onde quem usa teclado perde a posição.
+ */
+function podeReceberFoco(el: HTMLElement | null): boolean {
+  if (!el?.isConnected) return false;
+  if (el.closest("[inert]")) return false;
+  return el.getClientRects().length > 0;
+}
+
 export function AppShellV2({
   sections,
   docs,
@@ -90,7 +103,28 @@ export function AppShellV2({
     if (modal !== "none") return;
     const origem = origemDoFoco.current;
     origemDoFoco.current = null;
-    if (origem?.isConnected) origem.focus();
+
+    // `isConnected` não basta: o botão da navegação continua no documento e
+    // fica escondido acima de 1024px. Abrir a gaveta no celular, girar para
+    // paisagem e fechar devolvia o foco a um elemento sem caixa — ou seja,
+    // para o corpo do documento, e quem usa teclado perdia a posição.
+    if (podeReceberFoco(origem)) {
+      origem!.focus();
+      return;
+    }
+
+    // A origem sumiu com a mudança de largura. O equivalente visível é o
+    // destino ativo da navegação: é onde a pessoa estaria se tivesse chegado
+    // até aqui pelo desktop.
+    const ativo = document.querySelector<HTMLElement>("[data-nav-active]");
+    if (podeReceberFoco(ativo)) {
+      ativo!.focus();
+      return;
+    }
+
+    // Último recurso: o conteúdo. Melhor que o corpo do documento, porque
+    // dali a tabulação continua de onde a pessoa está olhando.
+    document.querySelector<HTMLElement>("[data-shell-main]")?.focus();
   }, [modal]);
 
   useEffect(() => {
@@ -132,7 +166,14 @@ export function AppShellV2({
           {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
               390 é 8% da largura gasta em moldura. O canvas encosta e a borda
               some junto, porque filete em tela cheia não separa nada. */}
-          <main className="min-w-0 flex-1 overflow-y-auto p-0 pb-[env(safe-area-inset-bottom)] lg:p-[var(--space-shell-4)]">
+          <main
+            data-shell-main
+            /* Recebe o foco só quando não há para onde devolvê-lo. Não entra
+               na ordem de tabulação: -1 aceita foco por programa, não por
+               Tab. */
+            tabIndex={-1}
+            className="min-w-0 flex-1 overflow-y-auto p-0 pb-[env(safe-area-inset-bottom)] outline-none lg:p-[var(--space-shell-4)]"
+          >
             <div className="mx-auto h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
               {children}
             </div>

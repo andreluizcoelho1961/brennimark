@@ -42,6 +42,8 @@ export function NavigationSections({
                 href={withBase(destination.href, basePath)}
                 aria-current={active ? "page" : undefined}
                 onClick={onNavigate}
+                data-nav-destination
+                data-nav-active={active ? "true" : undefined}
                 className={`relative flex min-h-11 items-center rounded-[var(--radius-control)] px-[var(--space-shell-3)] text-[13px] transition-colors duration-[var(--motion-control)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus ${
                   active
                     ? "bg-platform-signal-soft font-medium text-platform-text"
