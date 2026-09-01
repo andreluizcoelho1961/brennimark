@@ -100,6 +100,8 @@ test("um arquivo que não é PDF é recusado antes de qualquer leitura", async (
     buffer: Buffer.from("isto não é um PDF"),
   });
 
-  await expect(page.getByText("O arquivo precisa ser um PDF.")).toBeVisible();
+  // A recusa deixou de olhar o MIME e passou a olhar os bytes — a mensagem
+  // acompanhou. Os casos de assinatura estão em importador-leitura.spec.
+  await expect(page.getByText(/não é um PDF/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toHaveCount(0);
 });
