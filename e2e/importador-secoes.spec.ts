@@ -73,12 +73,12 @@ test("o foco não some depois de unir", async ({ page }) => {
 
   // Depois de uma operação que remove um item da lista, o foco precisa pousar
   // na seção resultante — não no corpo do documento.
-  const foco = await page.evaluate(() => ({
-    corpo: document.activeElement === document.body,
-    rotulo: document.activeElement?.getAttribute("aria-label"),
-  }));
-  expect(foco.corpo, "quem usa teclado perdeu a posição").toBe(false);
-  expect(foco.rotulo).toBe("Título da seção");
+  //
+  // A espera é do locator, não um `evaluate` imediato: a devolução do foco
+  // acontece no quadro seguinte à re-renderização, e ler `activeElement` no
+  // instante do clique mede a corrida, não o comportamento. Se o foco nunca
+  // voltar, isto continua falhando — a espera tem teto.
+  await expect(page.locator("[data-secao] [data-titulo]").first()).toBeFocused();
 });
 
 test("a busca alcança seções que não estão renderizadas", async ({ page }) => {

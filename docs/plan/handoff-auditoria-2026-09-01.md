@@ -135,3 +135,14 @@ Valem como aviso porque são de processo, não de código:
 - **Testes desta suíte importam por caminho relativo**, nunca por `@/` — o alias
   exige a configuração do Next e faria a compilação inteira parar. Há guarda.
 - As fixtures de PDF são geradas por `scripts/gerar-fixtures-pdf.py`.
+- **O aceite com manual real exige `BRENNIMARK_ACCEPTANCE_PDF`.** Sem a
+  variável — ou apontando para arquivo inexistente — os dois testes de
+  `e2e/importador-aceite-externo.spec.ts` se pulam dizendo o motivo. Não há
+  caminho padrão no código: um caminho pessoal versionado é um teste que só
+  roda numa máquina e finge estar rodando nas outras. O CI não define a
+  variável, e não deve. Para rodar nos três motores:
+
+  ```
+  BRENNIMARK_ACCEPTANCE_PDF="/caminho/do/manual.pdf" \
+    npx playwright test importador-aceite-externo
+  ```

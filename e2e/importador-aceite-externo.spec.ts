@@ -6,8 +6,13 @@ import { existsSync, statSync } from "node:fs";
  *
  * O arquivo não entra no repositório e não é copiado para lugar nenhum: ele é
  * material de trabalho, e versionar PDF de cliente é como o produto começou
- * errado da primeira vez. O caminho é lido do ambiente, e o teste se pula
- * sozinho onde o volume não estiver montado — no CI, por exemplo.
+ * errado da primeira vez.
+ *
+ * O caminho vem OBRIGATORIAMENTE de BRENNIMARK_ACCEPTANCE_PDF. Não há padrão
+ * embutido: um caminho da máquina de quem escreveu o teste é um teste que só
+ * roda numa máquina, e pior, um que finge estar rodando em todas as outras.
+ * Sem a variável, o teste se pula dizendo o motivo. O CI não a define, e não
+ * deve: o manual não está lá e não deveria estar.
  *
  * O que este teste NÃO faz, de propósito: não envia nada ao Storage e não
  * publica marca. Ele exercita a leitura, o agrupamento e a prévia, que é onde
@@ -15,16 +20,19 @@ import { existsSync, statSync } from "node:fs";
  * rastro num projeto de produção.
  *
  * Rodar apenas este aceite:
- *   PDF_DE_ACEITE="/caminho/para/o.pdf" npx playwright test importador-aceite-externo
+ *   BRENNIMARK_ACCEPTANCE_PDF="/caminho/para/o.pdf" \\
+ *     npx playwright test importador-aceite-externo
  */
-const CAMINHO =
-  process.env.PDF_DE_ACEITE ??
-  "/Volumes/Bunny 1T/@Design/Manuais de identidade visual/GE_ID000.PDF";
+const CAMINHO = process.env.BRENNIMARK_ACCEPTANCE_PDF ?? "";
 
-const disponivel = existsSync(CAMINHO);
+const motivoDoPulo = !CAMINHO
+  ? "BRENNIMARK_ACCEPTANCE_PDF não está definida: sem manual de aceite, nada a medir."
+  : !existsSync(CAMINHO)
+    ? `BRENNIMARK_ACCEPTANCE_PDF aponta para um arquivo que não existe: ${CAMINHO}`
+    : "";
 
 test.describe("aceite com manual real", () => {
-  test.skip(!disponivel, `PDF de aceite não encontrado em ${CAMINHO}`);
+  test.skip(motivoDoPulo !== "", motivoDoPulo);
 
   test("um manual de centenas de páginas chega à prévia", async ({ page }, info) => {
     test.setTimeout(600_000);
