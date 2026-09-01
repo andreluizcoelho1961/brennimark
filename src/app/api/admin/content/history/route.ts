@@ -6,19 +6,21 @@ import {
   parseSnapshot,
   type VersionSnapshot,
 } from "@/lib/brandville/version-snapshot";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
 import { historyActionLabel, type HistoryAction } from "@/lib/brandville/history-action";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-async function contextoDeAdministracao() {
-  const [contexto, auth] = await Promise.all([
-    resolveWorkspaceContext(),
-    getBrandvilleAuthContext(),
-  ]);
-  if (!auth || !contexto.capabilities.includes("administrar") || !contexto.brand) return null;
-  return { ...contexto, brand: contexto.brand, auth };
+async function contextoDeAdministracao(request: Request) {
+  // O alvo vem da requisição. Sem ele, resolve se houver uma marca só; havendo
+  // mais, a resposta é 409 com as opções — nunca um palpete silencioso.
+  const resolvido = await conteudoDaRota(request);
+  if (!resolvido.ok) return resolvido;
+  const { contexto, auth } = resolvido;
+  if (!contexto.capabilities.includes("administrar") || !contexto.brand) {
+    return { ok: false as const, resposta: null };
+  }
+  return { ok: true as const, dados: { ...contexto, brand: contexto.brand, auth } };
 }
 
 const SEM_PERMISSAO = { message: "Apenas quem administra a marca pode ver o histórico." };
@@ -41,7 +43,11 @@ function changedFields(current: VersionSnapshot, previous: VersionSnapshot | nul
 }
 
 export async function GET(request: Request) {
-  const contexto = await contextoDeAdministracao();
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok) {
+    if (resolvido.resposta) return resolvido.resposta;
+  }
+  const contexto = resolvido.ok ? resolvido.dados : null;
   if (!contexto) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const slug = new URL(request.url).searchParams.get("slug") ?? "";
@@ -111,7 +117,11 @@ export async function GET(request: Request) {
  * 20260829160000.
  */
 export async function POST(request: Request) {
-  const contexto = await contextoDeAdministracao();
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok) {
+    if (resolvido.resposta) return resolvido.resposta;
+  }
+  const contexto = resolvido.ok ? resolvido.dados : null;
   if (!contexto) {
     return NextResponse.json(
       { message: "Apenas quem administra a marca pode recuperar versões." },

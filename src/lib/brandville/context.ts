@@ -7,6 +7,7 @@ import {
 import { resolveInterfaceLocale, type ProductLocale } from "../../platform/locale";
 import type { ActiveBrand } from "./brand-row";
 import type { BrandPromptContext } from "../ai/brand-context";
+import type { WorkspaceDisponivel } from "./selecao";
 
 /**
  * A forma do contexto de requisição, a regra que o monta, e o carregador.
@@ -33,10 +34,31 @@ import type { BrandPromptContext } from "../ai/brand-context";
  * conta (workspace), e quem tem conta mas não completou o perfil. Os dois
  * precisam do cadastro; nenhum dos dois é visitante.
  */
-export type AccessState = "anonymous" | "onboarding" | "ready" | "development-preview";
+/**
+ * `not-found` cobre três causas com uma resposta só — endereço inexistente,
+ * workspace do qual a pessoa não participa, marca que não é daquele workspace.
+ * Distingui-las confirmaria para quem sonda que o endereço é real.
+ *
+ * `ambiguous` é o estado que não existia e cuja ausência era o defeito: mais de
+ * uma marca alcançável e nenhuma escolhida. Antes isso virava "a primeira".
+ */
+export type AccessState =
+  | "anonymous"
+  | "onboarding"
+  | "ready"
+  | "development-preview"
+  | "not-found"
+  | "ambiguous";
 
 export interface WorkspaceContext {
   access: AccessState;
+  /** O workspace resolvido. Nulo enquanto não houver um só candidato. */
+  workspaceSlug: string | null;
+  /**
+   * Tudo que a pessoa alcança. Preenchido quando `access` é `ambiguous`, para
+   * o seletor perguntar sem consultar o banco de novo.
+   */
+  opcoes: readonly WorkspaceDisponivel[];
   /** Nulo quando não há sessão, ou quando a conta ainda não tem marca. */
   brand: ActiveBrand | null;
   docs: readonly DocPageEntry[];
@@ -62,15 +84,21 @@ export function montarContexto({
   auth,
   marca,
   docs,
+  workspaceSlug = null,
+  opcoes = [],
 }: {
   access: AccessState;
   auth: AuthShape | null;
   marca: ActiveBrand | null;
   docs: readonly DocPageEntry[];
+  workspaceSlug?: string | null;
+  opcoes?: readonly WorkspaceDisponivel[];
 }): WorkspaceContext {
   const slug = marca?.navigation.defaultDocSlug;
   return {
     access,
+    workspaceSlug,
+    opcoes,
     brand: marca,
     docs,
     // Sem papel, sem capacidade. Um `?? "member"` aqui daria `consultar` a
@@ -108,6 +136,8 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
   getDocsByBrandId: (auth: A, brandId: string) => Promise<readonly DocPageEntry[]>;
   /** Verdadeiro apenas no preview local. Decisão da camada de servidor. */
   devPreview?: boolean;
+  /** Já resolvido pelo adaptador; entra no contexto para quem monta URL. */
+  workspaceSlug?: string | null;
 }): Promise<WorkspaceContext> {
   const auth = await deps.getAuth();
 
@@ -134,7 +164,9 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
   }
 
   const docs = marca ? await deps.getDocsByBrandId(auth, marca.id) : [];
-  return montarContexto({ access: "ready", auth, marca, docs });
+  return montarContexto({
+    access: "ready", auth, marca, docs, workspaceSlug: deps.workspaceSlug ?? null,
+  });
 }
 
 /**

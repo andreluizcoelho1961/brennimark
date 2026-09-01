@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentWorkspaceId, listSettings } from "@/lib/ai/settings";
+import { listSettings } from "@/lib/ai/settings";
+import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  const contexto = await workspaceDaRota(request);
+  if (!contexto.ok) return contexto.resposta;
+  const workspaceId = contexto.workspaceId;
 
   const body = await request.json().catch(() => null);
   const isActive = body?.isActive as boolean | undefined;
@@ -30,10 +32,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ settings });
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  const contexto = await workspaceDaRota(request);
+  if (!contexto.ok) return contexto.resposta;
+  const workspaceId = contexto.workspaceId;
 
   const supabase = await createClient();
   const { error } = await supabase.from("ai_settings").delete().eq("id", id).eq("workspace_id", workspaceId);

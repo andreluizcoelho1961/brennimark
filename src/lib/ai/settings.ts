@@ -1,3 +1,4 @@
+import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
 import { createClient } from "@/lib/supabase/server";
 import { decryptApiKey } from "@/lib/ai/crypto";
 import {
@@ -23,22 +24,34 @@ export type StoredAISetting = {
   updatedAt: string;
 };
 
-/** The signed-in user's workspace id, or null if unauthenticated (e.g. BRANDVILLE_DEV_SKIP_AUTH dev mode). */
-export async function getCurrentWorkspaceId(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
+/**
+ * O workspace desta requisição, ou o motivo de não haver um.
+ *
+ * Antes: `.limit(1)` em workspace_members. Para quem participa de dois, isso
+ * gravava a chave de IA — e a fatura dela — no workspace que o banco devolvesse
+ * primeiro. Agora a resolução é a mesma do resto do produto: com slug, aquele;
+ * sem slug, o único; havendo mais de um, uma recusa nomeada em vez de um
+ * palpite.
+ */
+export async function resolverWorkspaceDaRequisicao(
+  workspaceSlug?: string,
+): Promise<{ id: string } | { motivo: "anonimo" | "ambiguo" | "nao-encontrado" }> {
+  const r = await resolverWorkspaceAtivo(workspaceSlug);
+  if (r.tipo === "workspace") return { id: r.workspace.id };
+  if (r.tipo === "nao-encontrado") return { motivo: "nao-encontrado" };
+  if (r.tipo === "escolher") {
+    // Zero opções não é ambiguidade: é conta inexistente, e quem chama trata
+    // como sessão sem conta.
+    return { motivo: r.opcoes.length === 0 ? "anonimo" : "ambiguo" };
+  }
+  return { motivo: "anonimo" };
+}
 
-  const { data } = await supabase
-    .from("workspace_members")
-    .select("workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
-
-  return data?.workspace_id ?? null;
+/** Compatibilidade: null tanto para sem sessão quanto para ambíguo. Quem
+ *  precisa distinguir usa resolverWorkspaceDaRequisicao. */
+export async function getCurrentWorkspaceId(workspaceSlug?: string): Promise<string | null> {
+  const r = await resolverWorkspaceDaRequisicao(workspaceSlug);
+  return "id" in r ? r.id : null;
 }
 
 export async function listSettings(workspaceId: string): Promise<StoredAISetting[]> {
@@ -115,6 +128,10 @@ export async function getActiveConfig(workspaceId: string, role: "chat" | "analy
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
     .in("role", [role, "both"])
+    // Este `limit(1)` NÃO decide workspace nem marca: o workspace já veio
+    // resolvido no parâmetro, e a ordenação por `updated_at` torna a escolha
+    // determinística — a configuração mais recente daquele papel. É o único
+    // limite de uma linha que sobreviveu ao M1, e sobreviveu por isso.
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();

@@ -2,19 +2,23 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_ROUTING_TIMEOUT_MS,
-  getCurrentWorkspaceId,
   listRoutingPolicies,
   roleCoversFeature,
 } from "@/lib/ai/settings";
 import type { AIProvider, AIRole, AIRoutingFeature } from "@/lib/ai/provider";
+import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
 
 const FEATURES = new Set<AIRoutingFeature>(["chat", "analysis"]);
 const MIN_TIMEOUT_MS = 3_000;
 const MAX_TIMEOUT_MS = 60_000;
 
-export async function GET() {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) {
+export async function GET(request: Request) {
+  const contexto = await workspaceDaRota(request);
+  // Sem sessão devolve a política padrão, não editável. Ambiguidade e
+  // não-encontrado sobem como estão: fingir "padrão" esconderia que existe
+  // política configurada — na outra conta.
+  if (!contexto.ok) {
+    if (contexto.resposta.status !== 401) return contexto.resposta;
     return NextResponse.json({
       editable: false,
       policies: (["chat", "analysis"] as const).map((feature) => ({
@@ -27,12 +31,16 @@ export async function GET() {
     });
   }
 
-  return NextResponse.json({ editable: true, policies: await listRoutingPolicies(workspaceId) });
+  return NextResponse.json({
+    editable: true,
+    policies: await listRoutingPolicies(contexto.workspaceId),
+  });
 }
 
 export async function PUT(request: Request) {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
+  const contexto = await workspaceDaRota(request);
+  if (!contexto.ok) return contexto.resposta;
+  const workspaceId = contexto.workspaceId;
 
   const body = await request.json().catch(() => null);
   const feature = body?.feature as AIRoutingFeature | undefined;

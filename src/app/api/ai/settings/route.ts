@@ -2,24 +2,31 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { encryptApiKey, last4 } from "@/lib/ai/crypto";
 import { PROVIDERS, type AIProvider, type AIRole } from "@/lib/ai/provider";
-import { getCurrentWorkspaceId, listSettings } from "@/lib/ai/settings";
+import { listSettings } from "@/lib/ai/settings";
+import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
 
 const VALID_PROVIDERS = new Set(PROVIDERS.map((p) => p.value));
 const VALID_ROLES = new Set<AIRole>(["chat", "analysis", "both"]);
 
-export async function GET() {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return NextResponse.json({ settings: [] });
+export async function GET(request: Request) {
+  const contexto = await workspaceDaRota(request);
+  // Lista vazia só para quem não tem sessão. Ambiguidade responde 409 e diz as
+  // opções: devolver `[]` faria parecer que a conta não tem configuração
+  // nenhuma, quando ela tem — na outra conta.
+  if (!contexto.ok) {
+    return contexto.resposta.status === 401
+      ? NextResponse.json({ settings: [] })
+      : contexto.resposta;
+  }
 
-  const settings = await listSettings(workspaceId);
+  const settings = await listSettings(contexto.workspaceId);
   return NextResponse.json({ settings });
 }
 
 export async function POST(request: Request) {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) {
-    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
-  }
+  const contexto = await workspaceDaRota(request);
+  if (!contexto.ok) return contexto.resposta;
+  const workspaceId = contexto.workspaceId;
 
   const body = await request.json().catch(() => null);
   const provider = body?.provider as AIProvider | undefined;

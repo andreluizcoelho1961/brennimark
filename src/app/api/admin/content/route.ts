@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { DocStatus } from "@/content/docs";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
 
 const VALID_STATUS = new Set<DocStatus>(["ready", "draft", "pending"]);
 
@@ -19,22 +18,27 @@ const VALID_STATUS = new Set<DocStatus>(["ready", "draft", "pending"]);
  * — antes era preciso lê-los antes e regravá-los, e esquecer esse passo
  * apagaria conteúdo publicado.
  */
-async function contextoDeAdministracao() {
-  // As duas leituras são memorizadas por requisição: nenhuma abre segunda
-  // chamada à Auth API.
-  const [contexto, auth] = await Promise.all([
-    resolveWorkspaceContext(),
-    getBrandvilleAuthContext(),
-  ]);
-  if (!auth || !contexto.capabilities.includes("administrar") || !contexto.brand) return null;
-  return { ...contexto, brand: contexto.brand, auth };
+async function contextoDeAdministracao(request: Request) {
+  // O alvo vem da requisição. Sem ele, resolve se houver uma marca só; havendo
+  // mais, a resposta é 409 com as opções — nunca um palpete silencioso.
+  const resolvido = await conteudoDaRota(request);
+  if (!resolvido.ok) return resolvido;
+  const { contexto, auth } = resolvido;
+  if (!contexto.capabilities.includes("administrar") || !contexto.brand) {
+    return { ok: false as const, resposta: null };
+  }
+  return { ok: true as const, dados: { ...contexto, brand: contexto.brand, auth } };
 }
 
 const SEM_PERMISSAO = { message: "Apenas quem administra a marca pode editar o guia." };
 const SEM_PAGINA = { message: "Esta página não existe nesta marca." };
 
 export async function PUT(request: Request) {
-  const contexto = await contextoDeAdministracao();
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok) {
+    if (resolvido.resposta) return resolvido.resposta;
+  }
+  const contexto = resolvido.ok ? resolvido.dados : null;
   if (!contexto) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const { auth } = contexto;
@@ -96,7 +100,11 @@ export async function PUT(request: Request) {
  * recuperá-lo depois.
  */
 export async function DELETE(request: Request) {
-  const contexto = await contextoDeAdministracao();
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok) {
+    if (resolvido.resposta) return resolvido.resposta;
+  }
+  const contexto = resolvido.ok ? resolvido.dados : null;
   if (!contexto) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const input = await request.json().catch(() => null);

@@ -891,3 +891,50 @@ test("rotas de servidor não importam constantes de módulos de cliente", () => 
     }
   }
 });
+
+/**
+ * M1. As guardas do contexto ativo.
+ *
+ * O defeito que elas impedem não dá erro: ele responde. Com duas marcas
+ * alcançáveis, `.limit(1)` devolvia uma delas — e a tela ficava certa. Só
+ * ficava certa para a marca errada.
+ */
+test("nenhuma consulta decide workspace pela primeira linha", () => {
+  const arquivos = [
+    "src/lib/brandville/server.ts",
+    "src/lib/ai/settings.ts",
+    "src/lib/analysis/server.ts",
+  ];
+  for (const arquivo of arquivos) {
+    const codigo = lerCodigo(arquivo);
+    // Cada `from("workspace_members")` seguido de um limite é a assinatura
+    // exata do defeito: "quantos workspaces você tem? um, o primeiro".
+    const consultas = codigo.split('from("workspace_members")').slice(1);
+    for (const consulta of consultas) {
+      const trecho = consulta.slice(0, 400);
+      assert.doesNotMatch(
+        trecho,
+        /\.limit\(/,
+        `${arquivo}: limitar workspace_members transforma "participa de dois" em "participa de um"`,
+      );
+    }
+  }
+});
+
+test("a marca ativa não vem de variável de ambiente", () => {
+  const codigo = lerCodigo("src/lib/brandville/server.ts");
+  assert.doesNotMatch(
+    codigo,
+    /NEXT_PUBLIC_BRANDVILLE_INSTANCE/,
+    "escolher marca por variável de build amarra um processo a um cliente e exige rebuild para trocar",
+  );
+});
+
+test("a regra de seleção não conhece Supabase, React nem ambiente", () => {
+  // Se ela conhecesse, deixaria de ser verificável sem subir a aplicação — e
+  // é a regra que decide qual cliente aparece na tela.
+  const codigo = lerCodigo("src/lib/brandville/selecao.ts");
+  for (const proibido of ["supabase", "process.env", 'from "react"']) {
+    assert.ok(!codigo.includes(proibido), `selecao.ts não deve conhecer ${proibido}`);
+  }
+});

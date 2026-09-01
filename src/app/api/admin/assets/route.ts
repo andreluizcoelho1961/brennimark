@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { brandvilleInstance } from "@/brandville/config";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
+import { autenticacaoDaRota } from "@/lib/brandville/contexto-da-rota";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
@@ -45,11 +45,26 @@ async function contentMatchesType(file: File, declaredType: string): Promise<boo
   if (declaredType === "image/webp") return hex.slice(16, 24) === "57454250";
   return true;
 }
-async function ownerContext() { const context = await getBrandvilleAuthContext(); return context?.role === "owner" ? context : null; }
+/**
+ * Dono do workspace resolvido pela requisição.
+ *
+ * Devolve a resposta da resolução quando ela não é "pronto": com duas contas
+ * alcançáveis, a rota respondia 401 e mandava entrar de novo numa sessão que já
+ * era válida. A migração desta rota para `brand_id` é o M2; a ambiguidade é do
+ * M1 e não podia ficar esperando.
+ */
+async function ownerContext(request: Request) {
+  const r = await autenticacaoDaRota(request);
+  if (!r.ok) return { ok: false as const, resposta: r.resposta };
+  if (r.contexto.role !== "owner") return { ok: false as const, resposta: null };
+  return { ok: true as const, contexto: r.contexto };
+}
 function safeName(name: string) { return name.normalize("NFKD").replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-160) || "asset"; }
 
 export async function POST(request: Request) {
-  const context = await ownerContext();
+  const resolvido = await ownerContext(request);
+  if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
+  const context = resolvido.ok ? resolvido.contexto : null;
   if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can upload assets." : "Apenas o proprietário pode enviar assets." }, { status: 403 });
   const form = await request.formData();
   const file = form.get("file");
@@ -78,7 +93,9 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const context = await ownerContext();
+  const resolvido = await ownerContext(request);
+  if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
+  const context = resolvido.ok ? resolvido.contexto : null;
   if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can remove assets." : "Apenas o proprietário pode remover assets." }, { status: 403 });
   const input = await request.json().catch(() => null);
   const id = typeof input?.id === "string" ? input.id : "";

@@ -1,18 +1,17 @@
 import { NextResponse } from "next/server";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
-async function contextoDeAdministracao() {
-  const [contexto, auth] = await Promise.all([
-    resolveWorkspaceContext(),
-    getBrandvilleAuthContext(),
-  ]);
-  if (!auth || !contexto.capabilities.includes("administrar")) return null;
-  return auth;
+async function contextoDeAdministracao(request: Request) {
+  const resolvido = await conteudoDaRota(request);
+  if (!resolvido.ok) return { ok: false as const, resposta: resolvido.resposta };
+  if (!resolvido.contexto.capabilities.includes("administrar")) {
+    return { ok: false as const, resposta: null };
+  }
+  return { ok: true as const, auth: resolvido.auth };
 }
 
 const SEM_PERMISSAO = {
@@ -34,7 +33,9 @@ const SEM_PERMISSAO = {
  * aconteceu, e o que resta é terminar de limpar.
  */
 export async function DELETE(request: Request) {
-  const auth = await contextoDeAdministracao();
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
+  const auth = resolvido.ok ? resolvido.auth : null;
   if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const entrada = await request.json().catch(() => null);
@@ -81,8 +82,10 @@ export async function DELETE(request: Request) {
  * administração a chama ao abrir, então uma pendência de ontem não espera a
  * próxima exclusão para ser tentada de novo.
  */
-export async function POST() {
-  const auth = await contextoDeAdministracao();
+export async function POST(request: Request) {
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
+  const auth = resolvido.ok ? resolvido.auth : null;
   if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const fila = await drenarFilaDeExclusao(auth);

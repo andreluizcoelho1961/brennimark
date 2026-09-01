@@ -3,6 +3,11 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { parseBrandRow, parseDocumentRow, type ActiveBrand } from "./brand-row";
 import type { DocPageEntry, DocPageImage } from "@/content/docs";
 import { createClient } from "@/lib/supabase/server";
+import {
+  resolverWorkspace,
+  type ResolucaoDeWorkspace,
+  type WorkspaceDisponivel,
+} from "./selecao";
 
 const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
 
@@ -10,6 +15,8 @@ export type BrandvilleAuthContext = {
   supabase: SupabaseClient;
   user: User;
   workspaceId: string;
+  /** O slug do workspace resolvido. Quem monta URL não precisa consultar. */
+  workspaceSlug: string;
   role: "owner" | "member";
 };
 
@@ -20,22 +27,63 @@ export type BrandvilleAuthContext = {
  * rota que precisasse do cliente Supabase abriria outra chamada à Auth API,
  * que é justamente a duplicação que o patch 1.1 removeu do layout.
  */
-export const getBrandvilleAuthContext = cache(async (): Promise<BrandvilleAuthContext | null> => {
-  if (SKIP_AUTH) return null;
+export const getBrandvilleAuthContext = cache(
+  async (workspaceSlug?: string): Promise<BrandvilleAuthContext | null> => {
+    if (SKIP_AUTH) return null;
 
+    const resolucao = await resolverWorkspaceAtivo(workspaceSlug);
+    if (resolucao.tipo !== "workspace") return null;
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    return {
+      supabase,
+      user,
+      workspaceId: resolucao.workspace.id,
+      workspaceSlug: resolucao.workspace.slug,
+      role: resolucao.workspace.papel,
+    };
+  },
+);
+
+/**
+ * O workspace desta requisição, pela regra e não pela ordem de inserção.
+ *
+ * O `.limit(1)` que estava aqui respondia "o primeiro workspace" para quem
+ * participa de dois. Não era uma escolha errada — era a ausência de escolha,
+ * disfarçada de resposta. Agora: com slug, resolve aquele e confere
+ * participação; sem slug, resolve se houver exatamente um e RECUSA se houver
+ * mais, em vez de sortear.
+ */
+export const resolverWorkspaceAtivo = cache(
+  async (workspaceSlug?: string): Promise<ResolucaoDeWorkspace> => {
+    const disponiveis = await listarDisponiveis();
+    if (disponiveis === null) return { tipo: "anonimo" };
+
+    const perfilOk = await temPerfilCompleto();
+    return resolverWorkspace(
+      { temSessao: true, cadastroCompleto: perfilOk, disponiveis },
+      workspaceSlug,
+    );
+  },
+);
+
+/**
+ * Nome no perfil — o segundo dos dois casos de onboarding.
+ *
+ * Separado de getProfileSummary porque a resolução de workspace precisa dele
+ * antes de existir um contexto de autenticação para passar adiante.
+ */
+export const temPerfilCompleto = cache(async (): Promise<boolean> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
+  if (!user) return false;
   const { data, error } = await supabase
-    .from("workspace_members")
-    .select("workspace_id, role")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
+    .from("profiles").select("full_name").eq("id", user.id).maybeSingle();
   if (error) throw error;
-  if (!data?.workspace_id || (data.role !== "owner" && data.role !== "member")) return null;
-  return { supabase, user, workspaceId: data.workspace_id, role: data.role };
+  return typeof data?.full_name === "string" && data.full_name.length > 0;
 });
 
 
@@ -63,30 +111,82 @@ export function validImages(value: unknown): value is DocPageImage[] {
   });
 }
 
+const COLUNAS_DA_MARCA =
+  "id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal, status_labels";
+
 /**
- * A marca ativa desta requisição.
+ * Tudo a que esta pessoa tem acesso — workspaces e as marcas de cada um.
  *
- * Enquanto a instância é escolhida por variável de ambiente em build, ela
- * seleciona qual linha carregar. A migração 2 substitui isso por resolução em
- * tempo de execução, e então uma conta poderá servir várias marcas.
+ * Uma consulta, sem `.limit(1)`. O limite era o defeito: ele transformava "a
+ * pessoa participa de dois workspaces" em "a pessoa participa de um", e a
+ * escolha de qual era a ordem de inserção. Aqui a lista vem inteira e quem
+ * decide é a regra em selecao.ts, que sabe perguntar quando há mais de uma.
+ *
+ * A RLS já devolve só o que a associação permite. A regra confere de novo, com
+ * a mesma lista: duas consultas separadas — uma para autorizar, outra para
+ * carregar — são duas chances de divergir, e divergir aqui é servir o conteúdo
+ * de um cliente sob a URL de outro.
+ *
+ * Ordem estável por nome e depois por id. O desempate por id não é decoração:
+ * dois workspaces de mesmo nome trocariam de posição entre requisições, e o
+ * seletor mudaria de lugar debaixo do cursor de quem está clicando.
  */
-export async function resolveActiveBrand(
-  context?: BrandvilleAuthContext | null,
-): Promise<ActiveBrand | null> {
-  const auth = context === undefined ? await getBrandvilleAuthContext() : context;
-  if (!auth) return null;
+export const listarDisponiveis = cache(async (): Promise<readonly WorkspaceDisponivel[] | null> => {
+  if (SKIP_AUTH) return null;
 
-  const chave = process.env.NEXT_PUBLIC_BRANDVILLE_INSTANCE;
-  let consulta = auth.supabase
-    .from("brands")
-    .select("id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal, status_labels")
-    .eq("workspace_id", auth.workspaceId);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
 
-  if (chave && chave !== "unconfigured") consulta = consulta.eq("key", chave);
-
-  const { data, error } = await consulta.order("created_at", { ascending: true }).limit(1).maybeSingle();
+  const { data, error } = await supabase
+    .from("workspace_members")
+    .select("role, workspaces!inner(id, slug, name, brands(id, key, name))")
+    .eq("user_id", user.id);
   if (error) throw error;
 
+  const porNome = <T extends { nome: string; id: string }>(a: T, b: T) =>
+    a.nome.localeCompare(b.nome) || a.id.localeCompare(b.id);
+
+  return (data ?? [])
+    .flatMap((linha) => {
+      const w = linha.workspaces as unknown as
+        | { id: string; slug: string; name: string; brands: { id: string; key: string; name: string }[] }
+        | null;
+      const papel = linha.role;
+      if (!w?.id || !w.slug || (papel !== "owner" && papel !== "member")) return [];
+      return [{
+        id: w.id,
+        slug: w.slug,
+        nome: w.name ?? w.slug,
+        papel,
+        marcas: (w.brands ?? [])
+          .map((m) => ({ id: m.id, key: m.key, nome: m.name ?? m.key }))
+          .sort(porNome),
+      } satisfies WorkspaceDisponivel];
+    })
+    .sort(porNome);
+});
+
+/**
+ * A marca resolvida, por identificador.
+ *
+ * Recebe o id que a regra já validou, e filtra TAMBÉM por workspace. O filtro
+ * duplo é de propósito: um id de marca de outro workspace, chegando por
+ * qualquer caminho, não encontra linha em vez de encontrar a marca errada. A
+ * RLS impediria o vazamento entre contas; ela não impede a confusão entre dois
+ * workspaces da mesma pessoa.
+ */
+export async function carregarMarca(
+  auth: BrandvilleAuthContext,
+  brandId: string,
+): Promise<ActiveBrand | null> {
+  const { data, error } = await auth.supabase
+    .from("brands")
+    .select(COLUNAS_DA_MARCA)
+    .eq("id", brandId)
+    .eq("workspace_id", auth.workspaceId)
+    .maybeSingle();
+  if (error) throw error;
   return parseBrandRow(data);
 }
 

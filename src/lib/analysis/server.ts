@@ -1,3 +1,4 @@
+import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -15,23 +16,24 @@ export type AnalysisAuthContext = {
   workspaceId: string;
 };
 
-export async function getAnalysisAuthContext(): Promise<AnalysisAuthContext | null> {
+/**
+ * Sessão e workspace para as rotas de análise.
+ *
+ * O `.limit(1)` que estava aqui gravava o histórico de análise da pessoa no
+ * primeiro workspace que o banco devolvesse. Agora usa a mesma resolução do
+ * resto: o pedido, o único, ou nenhum — nunca "o primeiro".
+ */
+export async function getAnalysisAuthContext(
+  workspaceSlug?: string,
+): Promise<AnalysisAuthContext | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from("workspace_members")
-    .select("workspace_id")
-    .eq("user_id", user.id)
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!data?.workspace_id) return null;
+  const r = await resolverWorkspaceAtivo(workspaceSlug);
+  if (r.tipo !== "workspace") return null;
 
-  return { supabase, user, workspaceId: data.workspace_id };
+  return { supabase, user, workspaceId: r.workspace.id };
 }
 
 export async function persistAnalysisRun(input: {
