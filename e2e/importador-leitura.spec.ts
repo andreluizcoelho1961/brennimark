@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
+import { readFileSync } from "node:fs";
 
 const fixture = (nome: string) => path.join(process.cwd(), "e2e/fixtures", nome);
 
@@ -27,7 +28,7 @@ test("PDF válido com MIME vazio é aceito", async ({ page }) => {
   await page.setInputFiles('input[type="file"]', {
     name: "sem-mime.pdf",
     mimeType: "",
-    buffer: require("node:fs").readFileSync(fixture("manual-de-teste.pdf")),
+    buffer: readFileSync(fixture("manual-de-teste.pdf")),
   });
   await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible();
 });
@@ -38,7 +39,7 @@ test("arquivo que se declara PDF mas não é, é recusado", async ({ page }) => 
   await page.setInputFiles('input[type="file"]', {
     name: "mentiroso.pdf",
     mimeType: "application/pdf",
-    buffer: require("node:fs").readFileSync(fixture("nao-e-pdf.pdf")),
+    buffer: readFileSync(fixture("nao-e-pdf.pdf")),
   });
   await expect(page.getByText(/não é um PDF/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toHaveCount(0);
