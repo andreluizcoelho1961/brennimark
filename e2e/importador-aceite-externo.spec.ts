@@ -1,0 +1,124 @@
+import { expect, test } from "@playwright/test";
+import { existsSync, statSync } from "node:fs";
+
+/**
+ * Aceite com um manual de marca REAL, lido de onde ele mora.
+ *
+ * O arquivo não entra no repositório e não é copiado para lugar nenhum: ele é
+ * material de trabalho, e versionar PDF de cliente é como o produto começou
+ * errado da primeira vez. O caminho é lido do ambiente, e o teste se pula
+ * sozinho onde o volume não estiver montado — no CI, por exemplo.
+ *
+ * O que este teste NÃO faz, de propósito: não envia nada ao Storage e não
+ * publica marca. Ele exercita a leitura, o agrupamento e a prévia, que é onde
+ * um manual de 743 páginas quebra. Publicar exigiria sessão real e deixaria
+ * rastro num projeto de produção.
+ *
+ * Rodar apenas este aceite:
+ *   PDF_DE_ACEITE="/caminho/para/o.pdf" npx playwright test importador-aceite-externo
+ */
+const CAMINHO =
+  process.env.PDF_DE_ACEITE ??
+  "/Volumes/Bunny 1T/@Design/Manuais de identidade visual/GE_ID000.PDF";
+
+const disponivel = existsSync(CAMINHO);
+
+test.describe("aceite com manual real", () => {
+  test.skip(!disponivel, `PDF de aceite não encontrado em ${CAMINHO}`);
+
+  test("um manual de centenas de páginas chega à prévia", async ({ page }, info) => {
+    test.setTimeout(600_000);
+
+    const bytes = statSync(CAMINHO).size;
+
+    const chamadasDeEscrita: string[] = [];
+    page.on("request", (requisicao) => {
+      const url = requisicao.url();
+      if (/\/storage\/v1\/object|\/rest\/v1\/rpc\//.test(url)) {
+        chamadasDeEscrita.push(`${requisicao.method()} ${new URL(url).pathname}`);
+      }
+    });
+
+    await page.goto("/dev/importar");
+
+    const comeco = Date.now();
+    await page.setInputFiles('input[type="file"]', CAMINHO);
+    await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible({
+      timeout: 540_000,
+    });
+    const duracaoMs = Date.now() - comeco;
+
+    const metricas = await page.evaluate(() => {
+      const texto = document.body.innerText;
+      const numero = (padrao: RegExp) => Number(texto.match(padrao)?.[1] ?? 0);
+      const memoria = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+      return {
+        paginas: numero(/(\d+) páginas no PDF/),
+        secoes: numero(/·\s*(\d+) seções/),
+        semTexto: numero(/·\s*(\d+) sem texto/),
+        naTela: document.querySelectorAll("li[data-secao]").length,
+        // Só o Chromium expõe isto; nos outros fica nulo, e tudo bem.
+        heapMb: memoria ? Math.round(memoria.usedJSHeapSize / 1024 / 1024) : null,
+      };
+    });
+
+    // As métricas ficam no relatório do teste. Nenhum trecho do manual é
+    // registrado: o conteúdo é do cliente, e o que interessa aqui é a escala.
+    console.log(
+      `[aceite ${info.project.name}] ${JSON.stringify({
+        arquivoMib: Math.round((bytes / 1024 / 1024) * 10) / 10,
+        duracaoSegundos: Math.round(duracaoMs / 100) / 10,
+        ...metricas,
+      })}`,
+    );
+
+    await info.attach("metricas-do-aceite", {
+      contentType: "application/json",
+      body: JSON.stringify(
+        {
+          motor: info.project.name,
+          arquivoMib: Math.round((bytes / 1024 / 1024) * 10) / 10,
+          duracaoSegundos: Math.round(duracaoMs / 100) / 10,
+          ...metricas,
+        },
+        null,
+        2,
+      ),
+    });
+
+    // O manual foi lido inteiro, e virou seções revisáveis em vez de uma
+    // página de manual por página do PDF.
+    expect(metricas.paginas).toBeGreaterThan(100);
+    expect(metricas.secoes).toBeGreaterThan(0);
+    expect(metricas.secoes).toBeLessThanOrEqual(500);
+    expect(metricas.secoes).toBeLessThan(metricas.paginas);
+
+    // A prévia continua paginada: o custo da tela não acompanha o do manual.
+    expect(metricas.naTela).toBeLessThanOrEqual(40);
+
+    // Nada saiu da máquina. O botão de publicar está habilitado — a prévia
+    // terminou e o fluxo está pronto —, e o que este teste garante é que ele
+    // NÃO foi acionado: nenhuma chamada ao Storage nem à função de publicação.
+    expect(chamadasDeEscrita, "o aceite não pode publicar nada").toEqual([]);
+  });
+
+  test("a busca alcança o manual inteiro", async ({ page }) => {
+    test.setTimeout(600_000);
+    await page.goto("/dev/importar");
+    await page.setInputFiles('input[type="file"]', CAMINHO);
+    await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible({
+      timeout: 540_000,
+    });
+
+    const total = Number(
+      (await page.getByText(/Mostrando \d+ de (\d+)/).textContent())?.match(/de (\d+)/)?.[1] ?? 0,
+    );
+    expect(total).toBeGreaterThan(40);
+
+    // Um termo que não existe precisa devolver zero — se a busca só olhasse o
+    // que está na tela, qualquer termo do fim do manual daria zero também, e o
+    // teste não distinguiria os dois casos.
+    await page.getByPlaceholder(/Buscar por título/).fill("zzzznaoexisteaqui");
+    await expect(page.getByText("Nenhuma seção corresponde à busca.")).toBeVisible();
+  });
+});
