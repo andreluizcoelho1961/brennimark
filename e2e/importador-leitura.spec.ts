@@ -86,7 +86,15 @@ test("cabeçalho repetido e número de página não viram seção", async ({ pag
   for (const numero of ["12", "13"]) {
     await expect(page.getByText(numero, { exact: true })).toHaveCount(0);
   }
-  await expect(page.getByText("Conteudo da pagina 12", { exact: true })).toBeVisible();
+
+  // O corpo continua lá: a busca percorre o texto de todas as seções, e é por
+  // ela que se confirma que só a moldura saiu.
+  const busca = page.getByPlaceholder(/Buscar por título/);
+  await busca.fill("Conteudo da pagina 12");
+  await expect(page.getByText(/Mostrando 1 de 1/)).toBeVisible();
+
+  await busca.fill("Brand Guidelines");
+  await expect(page.getByText(/Mostrando 0 de 0/)).toBeVisible();
 });
 
 test("o índice declarado pelo PDF é preservado", async ({ page }) => {

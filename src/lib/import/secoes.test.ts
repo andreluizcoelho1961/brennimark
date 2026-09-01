@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   agrupar, dividir, faixaLegivel, fimDe, inicioDe, moverPagina, normalizar,
-  paginasDe, renomear, unir, validarInvariantes, type Secao,
+  paginasDe, renomear, unir, validarInvariantes, MAXIMO_DE_SECOES, type Secao,
 } from "./secoes";
 import { detectarRepetidos, type ItemDeTexto, type PaginaExtraida } from "./texto";
 import type { ItemDeOutline } from "./tipos";
@@ -142,7 +142,7 @@ test("a validacao acusa pagina em duas secoes", () => {
       { id: "b", titulo: "B", metodo: "outline", confianca: 1,
         sourcePageRanges: [{ de: 3, ate: 5 }], linhas: [] },
     ] as Secao[],
-    ignoradas: [], removidos: [],
+    ignoradas: [], removidos: [], unidasPeloLimite: 0,
   };
   const violacoes = validarInvariantes(agrupamento, [1, 2, 3, 4, 5]);
   assert.equal(violacoes.length, 1);
@@ -153,7 +153,7 @@ test("a validacao acusa pagina sem destino", () => {
   const agrupamento = {
     secoes: [{ id: "a", titulo: "A", metodo: "outline", confianca: 1,
       sourcePageRanges: [{ de: 1, ate: 2 }], linhas: [] }] as Secao[],
-    ignoradas: [], removidos: [],
+    ignoradas: [], removidos: [], unidasPeloLimite: 0,
   };
   const violacoes = validarInvariantes(agrupamento, [1, 2, 3]);
   assert.deepEqual(violacoes.map((v) => v.tipo), ["pagina-sem-destino"]);
@@ -213,7 +213,7 @@ test("dividir preserva todas as paginas", () => {
   const [a, b] = depois;
   assert.deepEqual([...paginasDe(a), ...paginasDe(b)].sort((x, y) => x - y), antes);
   assert.deepEqual(validarInvariantes(
-    { secoes: depois, ignoradas: [], removidos: [] },
+    { secoes: depois, ignoradas: [], removidos: [], unidasPeloLimite: 0 },
     todasAsPaginasComTexto(paginasDeEdicao),
   ), []);
 });
@@ -226,7 +226,7 @@ test("unir soma as procedencias sem perder pagina", () => {
   assert.equal(depois.length, 1);
   assert.deepEqual(paginasDe(depois[0]), esperado);
   assert.deepEqual(validarInvariantes(
-    { secoes: depois, ignoradas: [], removidos: [] },
+    { secoes: depois, ignoradas: [], removidos: [], unidasPeloLimite: 0 },
     todasAsPaginasComTexto(paginasDeEdicao),
   ), []);
 });
@@ -244,7 +244,7 @@ test("mover pagina deixa a origem descontinua, e o modelo diz isso", () => {
   assert.ok(paginasDe(depois.find((s) => s.id === secoes[1].id)!).includes(2));
 
   assert.deepEqual(validarInvariantes(
-    { secoes: depois, ignoradas: [], removidos: [] },
+    { secoes: depois, ignoradas: [], removidos: [], unidasPeloLimite: 0 },
     todasAsPaginasComTexto(paginasDeEdicao),
   ), [], "mover nao pode quebrar cobertura nem criar sobreposicao");
 });
@@ -259,4 +259,63 @@ test("mover leva o texto da pagina junto", () => {
 test("mover uma pagina para a secao onde ela ja esta nao muda nada", () => {
   const { secoes } = agrupar({ paginas: paginasDeEdicao });
   assert.deepEqual(moverPagina(secoes, 1, secoes[0].id, mapa), secoes);
+});
+
+// ─── O teto de secoes ───────────────────────────────────────────────────────
+
+test("mil paginas com fronteira em cada uma cabem no teto, sem perder pagina", () => {
+  // Um manual valido com indice muito detalhado produziria 1000 secoes, e a
+  // RPC recusaria a importacao inteira. Recusar um manual VALIDO por causa de
+  // um teto do produto seria o produto culpando o cliente pelo proprio limite.
+  const paginas = Array.from({ length: 1000 }, (_, i) => soCorpo(i + 1, `corpo ${i + 1}`));
+  const outline: ItemDeOutline[] = Array.from({ length: 1000 }, (_, i) => ({
+    titulo: `Item ${i + 1}`, pagina: i + 1, nivel: 0, filhos: [],
+  }));
+
+  const agrupamento = agrupar({ paginas, outline });
+
+  assert.ok(agrupamento.secoes.length <= MAXIMO_DE_SECOES, "precisa caber no teto");
+  assert.ok(agrupamento.unidasPeloLimite > 0, "o produto precisa dizer que uniu");
+
+  // Nenhuma pagina se perdeu, e nenhuma foi para duas secoes.
+  const todas = agrupamento.secoes.flatMap(paginasDe).sort((a, b) => a - b);
+  assert.equal(todas.length, 1000);
+  assert.equal(new Set(todas).size, 1000);
+  assert.deepEqual(
+    validarInvariantes(agrupamento, todasAsPaginasComTexto(paginas)),
+    [],
+  );
+});
+
+test("o teto nao inventa conteudo: o texto todo continua la", () => {
+  const paginas = Array.from({ length: 600 }, (_, i) => soCorpo(i + 1, `corpo ${i + 1}`));
+  const outline: ItemDeOutline[] = Array.from({ length: 600 }, (_, i) => ({
+    titulo: `Item ${i + 1}`, pagina: i + 1, nivel: 0, filhos: [],
+  }));
+
+  const { secoes } = agrupar({ paginas, outline });
+  const linhas = secoes.flatMap((s) => s.linhas);
+  assert.equal(linhas.length, 600);
+  assert.ok(linhas.includes("corpo 599"));
+});
+
+test("a primeira secao nunca perde a fronteira", () => {
+  const paginas = Array.from({ length: 700 }, (_, i) => soCorpo(i + 1, `c${i + 1}`));
+  const outline: ItemDeOutline[] = Array.from({ length: 700 }, (_, i) => ({
+    titulo: `Item ${i + 1}`, pagina: i + 1, nivel: 0, filhos: [],
+  }));
+  const { secoes } = agrupar({ paginas, outline });
+  // Dissolver a primeira deixaria o comeco do manual sem secao.
+  assert.equal(secoes[0].titulo, "Item 1");
+  assert.equal(inicioDe(secoes[0]), 1);
+});
+
+test("um manual dentro do teto nao e unido a toa", () => {
+  const paginas = Array.from({ length: 40 }, (_, i) => soCorpo(i + 1, `c${i + 1}`));
+  const outline: ItemDeOutline[] = Array.from({ length: 40 }, (_, i) => ({
+    titulo: `Item ${i + 1}`, pagina: i + 1, nivel: 0, filhos: [],
+  }));
+  const agrupamento = agrupar({ paginas, outline });
+  assert.equal(agrupamento.unidasPeloLimite, 0);
+  assert.equal(agrupamento.secoes.length, 40);
 });

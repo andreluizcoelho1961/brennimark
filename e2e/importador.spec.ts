@@ -27,34 +27,31 @@ test("ler o PDF produz prévia, e nada é gravado", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible();
 
-  // Duas páginas com texto viram documentos; a terceira, vazia, não.
-  await expect(page.getByText("3 páginas no PDF")).toBeVisible();
-  await expect(page.getByText("2 virariam páginas do manual")).toBeVisible();
-  await expect(page.getByText("1 sem texto")).toBeVisible();
+  // Páginas viram SEÇÕES, não uma página de manual cada. A terceira, vazia,
+  // não entra em seção nenhuma e aparece com motivo.
+  await expect(page.getByText(/3 páginas no PDF/)).toBeVisible();
+  await expect(page.getByText(/1 sem texto/)).toBeVisible();
 
-  await expect(page.getByText("Cores", { exact: true })).toBeVisible();
-  await expect(page.getByText("/cores")).toBeVisible();
-  await expect(page.getByText("Tipografia", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Título da seção").first()).toHaveValue("Cores");
 });
 
-test("toda página importada aparece como rascunho na prévia", async ({ page }) => {
+test("cada seção mostra de quais páginas veio e como foi detectada", async ({ page }) => {
   await page.goto("/dev/importar");
   await page.setInputFiles('input[type="file"]', PDF);
 
-  // Extração automática não é aprovação, e a prévia diz isso antes de alguém
-  // decidir publicar.
-  const selos = page.getByText("Rascunho", { exact: true });
-  await expect(selos).toHaveCount(2);
-  await expect(page.getByText("Pronto", { exact: true })).toHaveCount(0);
+  // Procedência visível antes de publicar: sem ela, ninguém consegue conferir
+  // a seção contra o original.
+  await expect(page.getByText(/Páginas 1/).first()).toBeVisible();
+  // O método de detecção aparece como rótulo — aqui não há índice no PDF.
+  await expect(page.getByText(/^(Título|Faixa)$/).first()).toBeVisible();
 });
 
-test("a página sem texto vira aviso, não conteúdo inventado", async ({ page }) => {
+test("a página sem texto vira registro, não conteúdo inventado", async ({ page }) => {
   await page.goto("/dev/importar");
   await page.setInputFiles('input[type="file"]', PDF);
 
-  await page.getByRole("group").first().isVisible().catch(() => {});
-  await page.getByText(/avisos$/).click();
-  await expect(page.getByText(/Página 3: Nenhum texto extraível/)).toBeVisible();
+  await page.getByText(/páginas sem texto/).click();
+  await expect(page.getByText(/Provavelmente são imagens/)).toBeVisible();
 });
 
 test("o idioma do manual é campo próprio, separado do idioma da interface", async ({ page }) => {

@@ -67,6 +67,13 @@ def documento(paginas: list[list[str]], com_outline: bool = False,
             conteudo = fluxo(["Brand Guidelines"], 8, 72, 780)
             conteudo += b"\n" + fluxo(conteudo_linhas, 14, 72, 700)
             conteudo += b"\n" + fluxo([str(i + 1)], 8, 520, 30)
+        elif conteudo_linhas:
+            # A primeira linha e um TITULO: maior que o corpo. Sem esse
+            # contraste nao ha o que detectar, e um manual sem hierarquia
+            # tipografica nao e um manual.
+            conteudo = fluxo(conteudo_linhas[:1], 24, 72, 720)
+            if conteudo_linhas[1:]:
+                conteudo += b"\n" + fluxo(conteudo_linhas[1:], 12, 72, 660)
         else:
             conteudo = fluxo(conteudo_linhas)
         objetos.append(

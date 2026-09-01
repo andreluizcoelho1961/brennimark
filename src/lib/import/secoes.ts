@@ -57,9 +57,14 @@ export interface Agrupamento {
   secoes: Secao[];
   ignoradas: PaginaIgnorada[];
   removidos: RemocaoDeExtracao[];
+  /** Quantas fronteiras foram dissolvidas para caber no teto de seções. */
+  unidasPeloLimite: number;
 }
 
 const PAGINAS_POR_BLOCO = 8;
+
+/** O mesmo teto que a RPC impõe. Ver a migração 20260901100000. */
+export const MAXIMO_DE_SECOES = 500;
 
 // ─── Intervalos ─────────────────────────────────────────────────────────────
 
@@ -207,7 +212,9 @@ export function agrupar({
     .map((p) => p.numero)
     .filter((n) => (linhasPorPagina.get(n)?.length ?? 0) > 0);
 
-  if (comTexto.length === 0) return { secoes: [], ignoradas, removidos };
+  if (comTexto.length === 0) {
+    return { secoes: [], ignoradas, removidos, unidasPeloLimite: 0 };
+  }
 
   const total = Math.max(...paginas.map((p) => p.numero));
   const fronteiras = calcularFronteiras({ comTexto, total, outline, linhasPorPagina });
@@ -230,7 +237,57 @@ export function agrupar({
     };
   });
 
-  return { secoes: secoes.filter((s) => s.sourcePageRanges.length > 0), ignoradas, removidos };
+  const comPaginas = secoes.filter((s) => s.sourcePageRanges.length > 0);
+  const { secoes: dentroDoLimite, unidas } = limitarSecoes(comPaginas, MAXIMO_DE_SECOES);
+  return { secoes: dentroDoLimite, ignoradas, removidos, unidasPeloLimite: unidas };
+}
+
+/**
+ * Faz caber no teto sem perder página nem inventar conteúdo.
+ *
+ * Um manual de 1.000 páginas com um item de índice por página produziria 1.000
+ * seções, e a RPC recusaria a importação inteira. Recusar um manual VÁLIDO por
+ * causa de um teto do produto seria o produto culpando o cliente pelo próprio
+ * limite.
+ *
+ * A saída é dissolver fronteiras, não descartar páginas: as seções de menor
+ * confiança se juntam à anterior, na ordem, até caber. Nenhuma página muda de
+ * lugar — só deixa de ter fronteira própria. O título que sobrevive é o da
+ * seção que abre o trecho, e quantas foram unidas fica registrado.
+ */
+function limitarSecoes(
+  secoes: readonly Secao[],
+  maximo: number,
+): { secoes: Secao[]; unidas: number } {
+  if (secoes.length <= maximo) return { secoes: [...secoes], unidas: 0 };
+
+  // A primeira nunca perde a fronteira: dissolvê-la deixaria o começo do
+  // manual sem seção.
+  const candidatas = secoes
+    .map((secao, indice) => ({ indice, confianca: secao.confianca }))
+    .slice(1)
+    .sort((a, b) => a.confianca - b.confianca || b.indice - a.indice);
+
+  const dissolver = new Set(
+    candidatas.slice(0, secoes.length - maximo).map((c) => c.indice),
+  );
+
+  const saida: Secao[] = [];
+  for (const [indice, secao] of secoes.entries()) {
+    if (dissolver.has(indice) && saida.length > 0) {
+      const anterior = saida[saida.length - 1];
+      saida[saida.length - 1] = {
+        ...anterior,
+        sourcePageRanges: normalizar([...anterior.sourcePageRanges, ...secao.sourcePageRanges]),
+        linhas: [...anterior.linhas, ...secao.linhas],
+        confianca: Math.min(anterior.confianca, secao.confianca),
+      };
+      continue;
+    }
+    saida.push({ ...secao });
+  }
+
+  return { secoes: saida, unidas: dissolver.size };
 }
 
 /**
