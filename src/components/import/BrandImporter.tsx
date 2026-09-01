@@ -5,9 +5,13 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { montarPrevia, slugify, type Previa } from "@/lib/import/draft";
+import { lerPdf, FalhaDeLeitura, type ItemDeOutline } from "@/lib/import/pdf";
+import { diagnosticar } from "@/lib/import/pdf-erros";
+import { detectarRepetidos, linhasUteis } from "@/lib/import/texto";
 import type { BrandvilleUtilityKey } from "@/brandville/types";
 
 const TAMANHO_MAXIMO = 50 * 1024 * 1024;
+const PAGINAS_MAXIMAS = 1000;
 
 const FUNCIONALIDADES: { chave: BrandvilleUtilityKey; pt: string; en: string }[] = [
   { chave: "chat", pt: "Chat da marca", en: "Brand assistant" },
@@ -24,48 +28,13 @@ const TEMA_INICIAL = {
   focus: "#ffffff", fontStack: "var(--font-ui)",
 };
 
-async function sha256(arquivo: File): Promise<string> {
-  const buffer = await arquivo.arrayBuffer();
-  const hash = await crypto.subtle.digest("SHA-256", buffer);
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * O PDF é lido NO NAVEGADOR.
- *
- * Ele já está aqui: mandar os bytes para uma rota só para extrair texto
- * significaria transportar dezenas de megabytes por JSON, e a prévia demoraria
- * uma viagem de rede que não precisa acontecer. O arquivo vai direto para o
- * Storage privado, com a sessão da pessoa — a chave privilegiada do Supabase
- * não existe neste caminho.
- */
-async function extrairPaginas(arquivo: File) {
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url,
-  ).toString();
-
-  const documento = await pdfjs.getDocument({ data: await arquivo.arrayBuffer() }).promise;
-  const paginas = [];
-  for (let numero = 1; numero <= documento.numPages; numero += 1) {
-    const pagina = await documento.getPage(numero);
-    const conteudo = await pagina.getTextContent();
-    const linhas = conteudo.items
-      .map((item) => ("str" in item ? item.str : ""))
-      .join("\n")
-      .split("\n");
-    paginas.push({ numero, linhas });
-  }
-  return paginas;
-}
-
 export function BrandImporter({ workspaceId }: { workspaceId: string }) {
   const isEnglish = useIsEnglish();
   const router = useRouter();
   const t = useCallback((pt: string, en: string) => (isEnglish ? en : pt), [isEnglish]);
 
   const [arquivo, setArquivo] = useState<File | null>(null);
+  const [outline, setOutline] = useState<ItemDeOutline[]>([]);
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [hash, setHash] = useState("");
   /**
@@ -104,29 +73,49 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
     Boolean(previa) && previa!.erros.length === 0 && nome.trim().length > 0 && chave.length > 0;
 
   const analisar = useCallback(async (selecionado: File) => {
-    setMensagem(""); setPrevia(null); setLendo(true);
+    setMensagem(""); setPrevia(null); setOutline([]); setLendo(true);
     try {
-      if (selecionado.type !== "application/pdf") {
-        setMensagem(t("O arquivo precisa ser um PDF.", "The file must be a PDF."));
-        return;
-      }
-      if (selecionado.size > TAMANHO_MAXIMO) {
-        setMensagem(t("O PDF passa de 50 MB.", "The PDF is larger than 50 MB."));
-        return;
-      }
-      const [paginas, digest] = await Promise.all([
-        extrairPaginas(selecionado),
-        sha256(selecionado),
-      ]);
-      setHash(digest);
-      // Nova identidade a cada arquivo escolhido; estável enquanto for este.
+      /**
+       * Nada de checar o MIME.
+       *
+       * Um navegador pode não declarar tipo nenhum para um PDF perfeitamente
+       * válido, e um arquivo que se declara `application/pdf` pode ser
+       * qualquer coisa. Quem decide são os cinco primeiros bytes, dentro de
+       * lerPdf — e é lá que a leitura única acontece.
+       */
+      const documento = await lerPdf(selecionado, {
+        maxBytes: TAMANHO_MAXIMO,
+        maxPaginas: PAGINAS_MAXIMAS,
+      });
+
+      // Cabeçalho e rodapé saem antes de qualquer heurística de título: eles
+      // são exatamente o que "linha curta no alto" elegeria por engano.
+      const repetidos = detectarRepetidos(documento.paginas);
+      const paginas = documento.paginas.map((pagina) => ({
+        numero: pagina.numero,
+        linhas: linhasUteis(pagina, repetidos).map((linha) => linha.texto),
+      }));
+
+      setHash(documento.sha256);
       setImportId(crypto.randomUUID());
-      // Prévia: nada é gravado aqui.
+      setOutline(documento.outline);
       setPrevia(montarPrevia(paginas));
       setArquivo(selecionado);
       if (!nome) setNome(selecionado.name.replace(/\.pdf$/i, ""));
-    } catch {
-      setMensagem(t("Não foi possível ler este PDF.", "Couldn't read this PDF."));
+    } catch (erro) {
+      if (erro instanceof FalhaDeLeitura) {
+        const diagnostico = diagnosticar(erro.falha);
+        setMensagem(t(diagnostico.pt, diagnostico.en));
+        // O detalhe técnico fica no console e nunca na tela: ele não ajuda
+        // quem usa, e não pode carregar nada do conteúdo do arquivo.
+        if (erro.falha === "desconhecida" && erro.detalheTecnico) {
+          console.error("[importador] leitura falhou:", erro.detalheTecnico);
+        }
+        return;
+      }
+      const generico = diagnosticar("desconhecida");
+      setMensagem(t(generico.pt, generico.en));
+      console.error("[importador] falha inesperada");
     } finally {
       setLendo(false);
     }
@@ -299,6 +288,15 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
               {previa.ignoradas.length > 0 &&
                 ` · ${previa.ignoradas.length} ${t("sem texto", "with no text")}`}
             </p>
+
+            {outline.length > 0 && (
+              <p className="mt-[var(--space-shell-3)] border-l-2 border-platform-success pl-[var(--space-shell-3)] text-[13px] leading-relaxed text-platform-text">
+                {t(
+                  `Este PDF traz um índice com ${outline.length} ${outline.length === 1 ? "entrada" : "entradas"}. Ele é a estrutura declarada por quem fez o manual, e será usada para dividir as seções.`,
+                  `This PDF declares an outline with ${outline.length} ${outline.length === 1 ? "entry" : "entries"}. It's the structure its author intended, and it will be used to split the sections.`,
+                )}
+              </p>
+            )}
 
             {previa.erros.map((erro) => (
               <p

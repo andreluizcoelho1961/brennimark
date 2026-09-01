@@ -72,10 +72,15 @@ export function linhasDe(pagina: PaginaExtraida): Linha[] {
  * O sinal é a repetição em faixa vertical constante. Um número de página muda
  * de texto a cada folha, então também se compara o formato: linha que é só
  * dígitos, na mesma altura, conta como repetida.
+ *
+ * A margem é 8% da altura — cerca de 63pt numa página A4/Letter, que é a
+ * ordem de grandeza de uma margem de impressão. Com 12%, texto de corpo no
+ * alto da mancha caía na faixa e era descartado como cabeçalho: o teste de
+ * integração pegou isso, com uma linha a 88% da altura sendo engolida.
  */
 export function detectarRepetidos(
   paginas: readonly PaginaExtraida[],
-  { limiar = 0.6, margem = 0.12 }: { limiar?: number; margem?: number } = {},
+  { limiar = 0.6, margem = 0.08 }: { limiar?: number; margem?: number } = {},
 ): Set<string> {
   if (paginas.length < 3) return new Set();
 

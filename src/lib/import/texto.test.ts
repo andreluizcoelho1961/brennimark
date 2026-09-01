@@ -79,3 +79,18 @@ test("linha do meio da pagina nao e cabecalho, mesmo repetida", () => {
   // A margem e o que distingue moldura de conteudo.
   assert.equal(detectarRepetidos(paginas).size, 0);
 });
+
+test("texto de corpo no alto da mancha nao e confundido com cabecalho", () => {
+  // A margem precisa ser estreita o bastante para nao engolir a primeira linha
+  // do conteudo. Com 12% da altura, uma linha a 88% da pagina caia na faixa.
+  const paginas = [1, 2, 3, 4, 5].map((n) =>
+    pagina(n, [
+      item("Brand Guidelines", 40, 780, 8),
+      item(`Conteudo da pagina ${n}`, 40, 700, 14),
+      item(String(n), 500, 20, 8),
+    ]),
+  );
+  const repetidos = detectarRepetidos(paginas);
+  const uteis = linhasUteis(paginas[2], repetidos).map((l) => l.texto);
+  assert.deepEqual(uteis, ["Conteudo da pagina 3"]);
+});
