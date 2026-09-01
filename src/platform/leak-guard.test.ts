@@ -760,3 +760,43 @@ test("o cadastro fala a língua da interface", () => {
     "rótulo fixo em inglês, fora da escolha de idioma",
   );
 });
+
+/**
+ * Um arquivo de teste que não roda é pior que nenhum: ele conta como cobertura
+ * e não afirma nada. A suíte listava os arquivos um a um, e `lib/import` nunca
+ * entrou na lista — oito testes do importador nunca executaram.
+ */
+test("a suite descobre os testes, em vez de listá-los", () => {
+  const scripts = JSON.parse(ler("package.json")).scripts as Record<string, string>;
+  assert.match(scripts["test:brand-context"], /tsconfig\.tests\.json/);
+  assert.match(scripts["test:brand-context"], /\*\*\/\*\.test\.js/);
+  assert.doesNotMatch(
+    scripts["test:brand-context"],
+    /src\/lib\/[a-z]+\/[a-z-]+\.test\.ts/,
+    "lista explícita deixa arquivo novo de fora sem avisar",
+  );
+});
+
+test("todo teste desta suite importa por caminho relativo", () => {
+  // O alias `@/` exige a configuração do Next, que esta compilação não tem.
+  // Um teste que use alias falha ao compilar — e a suíte inteira para.
+  const raizSrc = path.join(raiz, "src");
+  const pilha = [raizSrc];
+  const arquivos: string[] = [];
+  while (pilha.length > 0) {
+    const dir = pilha.pop()!;
+    for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+      const caminho = path.join(dir, entrada.name);
+      if (entrada.isDirectory()) pilha.push(caminho);
+      else if (entrada.name.endsWith(".test.ts")) arquivos.push(caminho);
+    }
+  }
+  assert.ok(arquivos.length > 10, "a varredura precisa achar os testes");
+  for (const arquivo of arquivos) {
+    assert.doesNotMatch(
+      readFileSync(arquivo, "utf8"),
+      /^import .* from "@\//m,
+      `${path.relative(raiz, arquivo)} usa alias e não compilaria nesta suíte`,
+    );
+  }
+});
