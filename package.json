@@ -30,11 +30,11 @@
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.7",
     "ai": "^7.0.31",
-    "next": "16.2.10",
+    "next": "^16.3.4",
     "pdf-lib": "1.17.1",
+    "pdfjs-dist": "^6.3.289",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "pdfjs-dist": "^6.1.200"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -43,7 +43,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "^16.3.4",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
