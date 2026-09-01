@@ -1,5 +1,8 @@
 import { classificarErroDoParser, temAssinaturaDePdf, type FalhaDePdf } from "./pdf-erros";
 import type { PaginaExtraida } from "./texto";
+import type { ItemDeOutline } from "./tipos";
+
+export type { ItemDeOutline };
 
 /**
  * A leitura do PDF, no navegador.
@@ -11,15 +14,6 @@ import type { PaginaExtraida } from "./texto";
  * PDF.js desanexa o buffer que recebe.
  */
 
-/** Um item do índice declarado pelo autor do PDF. */
-export interface ItemDeOutline {
-  titulo: string;
-  /** Página resolvida, 1-based. Nula quando o destino não resolve. */
-  pagina: number | null;
-  /** Profundidade na hierarquia; 0 é o primeiro nível. */
-  nivel: number;
-  filhos: ItemDeOutline[];
-}
 
 export interface DocumentoLido {
   paginas: PaginaExtraida[];

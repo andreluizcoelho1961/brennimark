@@ -40,18 +40,32 @@ export interface Linha {
 const TOLERANCIA_DE_LINHA = 2;
 
 export function linhasDe(pagina: PaginaExtraida): Linha[] {
+  /**
+   * A altura vira faixa ANTES de ordenar.
+   *
+   * Comparar `Math.abs(a.y - b.y) <= tolerância` dentro do comparador não é uma
+   * ordem válida: a relação não é transitiva, e itens a 1pt de distância em
+   * cadeia acabavam ora na mesma linha, ora em linhas diferentes, dependendo da
+   * ordem em que o `sort` os comparasse. Arredondar para uma faixa dá a cada
+   * item uma posição estável.
+   */
+  const faixaDe = (y: number) => Math.round(y / TOLERANCIA_DE_LINHA);
+
   const ordenados = [...pagina.itens]
     .filter((item) => item.texto.trim().length > 0)
-    .sort((a, b) => (Math.abs(a.y - b.y) <= TOLERANCIA_DE_LINHA ? a.x - b.x : b.y - a.y));
+    .sort((a, b) => faixaDe(b.y) - faixaDe(a.y) || a.x - b.x);
 
   const linhas: Linha[] = [];
+  let faixaAtual: number | null = null;
   for (const item of ordenados) {
+    const faixa = faixaDe(item.y);
     const atual = linhas[linhas.length - 1];
-    if (atual && Math.abs(atual.y - item.y) <= TOLERANCIA_DE_LINHA) {
+    if (atual && faixa === faixaAtual) {
       atual.texto = `${atual.texto} ${item.texto.trim()}`.replace(/\s+/g, " ").trim();
       atual.altura = Math.max(atual.altura, item.altura);
       continue;
     }
+    faixaAtual = faixa;
     linhas.push({
       texto: item.texto.trim(),
       y: item.y,

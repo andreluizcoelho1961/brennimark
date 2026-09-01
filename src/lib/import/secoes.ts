@@ -1,0 +1,488 @@
+import type { PaginaExtraida } from "./texto";
+import { linhasUteis, type Linha } from "./texto";
+import type { ItemDeOutline } from "./tipos";
+
+/**
+ * De páginas soltas a seções revisáveis.
+ *
+ * A regra que organiza tudo aqui: **um intervalo de páginas é a fonte de
+ * verdade de uma seção, e o resto é derivado.**
+ *
+ * `sourcePageStart`/`sourcePageEnd` sozinhos descrevem uma seção contígua, e
+ * param de descrever a verdade no instante em que alguém move uma página de
+ * uma seção para outra — a seção passa a ser "1–5 e 9", que dois números não
+ * conseguem dizer. Guardar a lista de intervalos e derivar início e fim para
+ * exibição mantém as duas coisas verdadeiras ao mesmo tempo.
+ */
+
+export type MetodoDeDeteccao = "outline" | "heading" | "page-range";
+
+/** Fechado dos dois lados, 1-based, como as pessoas contam páginas. */
+export interface Intervalo {
+  de: number;
+  ate: number;
+}
+
+export interface Secao {
+  id: string;
+  titulo: string;
+  /** Como a fronteira foi decidida. Aparece na prévia. */
+  metodo: MetodoDeDeteccao;
+  /** 0 a 1. Baixa não é erro — é convite para revisar. */
+  confianca: number;
+  /** A FONTE DE VERDADE. Ordenada e sem sobreposição interna. */
+  sourcePageRanges: Intervalo[];
+  /** Texto integral das páginas da seção. Sem truncamento. */
+  linhas: string[];
+}
+
+export interface PaginaIgnorada {
+  pagina: number;
+  motivo: "sem-texto";
+}
+
+/**
+ * O que a extração decidiu remover.
+ *
+ * Cabeçalho e rodapé saem da leitura editorial porque não são conteúdo — mas
+ * sair sem registro é perda silenciosa. Aqui a remoção é uma decisão anotada,
+ * com o que foi removido e de quantas páginas.
+ */
+export interface RemocaoDeExtracao {
+  texto: string;
+  ocorrencias: number;
+}
+
+export interface Agrupamento {
+  secoes: Secao[];
+  ignoradas: PaginaIgnorada[];
+  removidos: RemocaoDeExtracao[];
+}
+
+const PAGINAS_POR_BLOCO = 8;
+
+// ─── Intervalos ─────────────────────────────────────────────────────────────
+
+/** Ordena, funde adjacentes e sobrepostos. Um intervalo vazio some. */
+export function normalizar(intervalos: readonly Intervalo[]): Intervalo[] {
+  const validos = intervalos.filter((i) => i.ate >= i.de).sort((a, b) => a.de - b.de);
+  const saida: Intervalo[] = [];
+  for (const intervalo of validos) {
+    const ultimo = saida[saida.length - 1];
+    if (ultimo && intervalo.de <= ultimo.ate + 1) {
+      ultimo.ate = Math.max(ultimo.ate, intervalo.ate);
+      continue;
+    }
+    saida.push({ ...intervalo });
+  }
+  return saida;
+}
+
+export function paginasDe(secao: Secao): number[] {
+  const paginas: number[] = [];
+  for (const { de, ate } of secao.sourcePageRanges) {
+    for (let n = de; n <= ate; n += 1) paginas.push(n);
+  }
+  return paginas;
+}
+
+/** Só para exibição. A verdade é a lista de intervalos. */
+export function inicioDe(secao: Secao): number | null {
+  return secao.sourcePageRanges[0]?.de ?? null;
+}
+
+export function fimDe(secao: Secao): number | null {
+  const ultimo = secao.sourcePageRanges[secao.sourcePageRanges.length - 1];
+  return ultimo?.ate ?? null;
+}
+
+/** "Páginas 40–47" ou "Páginas 1–5, 9". Contíguo ou não, sem mentir. */
+export function faixaLegivel(secao: Secao): string {
+  return secao.sourcePageRanges
+    .map(({ de, ate }) => (de === ate ? `${de}` : `${de}–${ate}`))
+    .join(", ");
+}
+
+function removerPagina(intervalos: readonly Intervalo[], pagina: number): Intervalo[] {
+  const saida: Intervalo[] = [];
+  for (const { de, ate } of intervalos) {
+    if (pagina < de || pagina > ate) {
+      saida.push({ de, ate });
+      continue;
+    }
+    if (pagina > de) saida.push({ de, ate: pagina - 1 });
+    if (pagina < ate) saida.push({ de: pagina + 1, ate });
+  }
+  return saida;
+}
+
+// ─── Detecção de fronteiras ─────────────────────────────────────────────────
+
+/**
+ * Um título, pela geometria.
+ *
+ * "Linha curta" sozinho confunde título com a última linha de um parágrafo.
+ * O que distingue de verdade é o DESTAQUE: a linha é sensivelmente maior que o
+ * corpo da página. Cabeçalho e rodapé já saíram antes de chegar aqui.
+ */
+function tituloVisual(linhas: readonly Linha[]): { texto: string; confianca: number } | null {
+  if (linhas.length === 0) return null;
+
+  const candidata = linhas[0];
+
+  /**
+   * O corpo é medido SEM a candidata.
+   *
+   * Incluí-la enviesa a mediana justamente para cima quando o título é grande —
+   * numa página com um título de 30pt e uma linha de corpo de 12pt, a mediana
+   * dava 30 e a proporção dava 1, e o título nunca era reconhecido. Página com
+   * uma linha só não tem corpo com que comparar.
+   */
+  const alturasDoCorpo = linhas.slice(1).map((l) => l.altura).filter((a) => a > 0);
+  if (alturasDoCorpo.length === 0) return null;
+  const ordenadas = [...alturasDoCorpo].sort((a, b) => a - b);
+  const mediana = ordenadas[Math.floor((ordenadas.length - 1) / 2)];
+
+  const proporcao = mediana > 0 ? candidata.altura / mediana : 1;
+
+  // Precisa ser a primeira linha, destacada, e curta o bastante para ser um
+  // rótulo e não uma frase.
+  if (proporcao < 1.25 || candidata.texto.length > 80) return null;
+
+  // Quanto maior o destaque, mais confiança — com teto, porque geometria não
+  // prova intenção.
+  return { texto: candidata.texto, confianca: Math.min(0.85, 0.45 + (proporcao - 1.25) * 0.4) };
+}
+
+/** As páginas onde o índice do PDF declara que uma seção começa. */
+function fronteirasDoOutline(
+  outline: readonly ItemDeOutline[],
+  totalDePaginas: number,
+): { pagina: number; titulo: string }[] {
+  const achatado: { pagina: number; titulo: string }[] = [];
+  const visitar = (itens: readonly ItemDeOutline[]) => {
+    for (const item of itens) {
+      // Nível 0 apenas: subitens dividiriam demais um manual de 700 páginas.
+      if (item.pagina && item.pagina >= 1 && item.pagina <= totalDePaginas) {
+        achatado.push({ pagina: item.pagina, titulo: item.titulo });
+      }
+      // Um item sem destino resolvido não vira fronteira, mas seus filhos
+      // podem ter destino próprio.
+      if (!item.pagina && item.filhos.length > 0) visitar(item.filhos);
+    }
+  };
+  visitar(outline);
+
+  const porPagina = new Map<number, string>();
+  for (const { pagina, titulo } of achatado.sort((a, b) => a.pagina - b.pagina)) {
+    if (!porPagina.has(pagina)) porPagina.set(pagina, titulo);
+  }
+  return [...porPagina.entries()]
+    .map(([pagina, titulo]) => ({ pagina, titulo }))
+    .sort((a, b) => a.pagina - b.pagina);
+}
+
+// ─── Agrupamento ────────────────────────────────────────────────────────────
+
+export function agrupar({
+  paginas,
+  outline = [],
+  repetidos = new Set<string>(),
+}: {
+  paginas: readonly PaginaExtraida[];
+  outline?: readonly ItemDeOutline[];
+  repetidos?: ReadonlySet<string>;
+}): Agrupamento {
+  const linhasPorPagina = new Map<number, Linha[]>();
+  const ignoradas: PaginaIgnorada[] = [];
+
+  for (const pagina of paginas) {
+    const uteis = linhasUteis(pagina, repetidos);
+    linhasPorPagina.set(pagina.numero, uteis);
+    if (uteis.length === 0) ignoradas.push({ pagina: pagina.numero, motivo: "sem-texto" });
+  }
+
+  const removidos = registrarRemocoes(paginas, repetidos);
+  const comTexto = paginas
+    .map((p) => p.numero)
+    .filter((n) => (linhasPorPagina.get(n)?.length ?? 0) > 0);
+
+  if (comTexto.length === 0) return { secoes: [], ignoradas, removidos };
+
+  const total = Math.max(...paginas.map((p) => p.numero));
+  const fronteiras = calcularFronteiras({ comTexto, total, outline, linhasPorPagina });
+
+  const secoes: Secao[] = fronteiras.map((fronteira, indice) => {
+    const proxima = fronteiras[indice + 1];
+    const ate = proxima ? proxima.pagina - 1 : total;
+    const paginasDaSecao = comTexto.filter((n) => n >= fronteira.pagina && n <= ate);
+    const linhas = paginasDaSecao.flatMap((n) => (linhasPorPagina.get(n) ?? []).map((l) => l.texto));
+
+    return {
+      id: `s${fronteira.pagina}`,
+      titulo: fronteira.titulo,
+      metodo: fronteira.metodo,
+      confianca: fronteira.confianca,
+      // Só as páginas COM texto entram: as vazias estão em `ignoradas`, com
+      // motivo, e uma página não pode estar nos dois lugares.
+      sourcePageRanges: normalizar(paginasDaSecao.map((n) => ({ de: n, ate: n }))),
+      linhas,
+    };
+  });
+
+  return { secoes: secoes.filter((s) => s.sourcePageRanges.length > 0), ignoradas, removidos };
+}
+
+/**
+ * A ordem de confiança, e é o coração do agrupamento.
+ *
+ * 1. O índice do PDF, quando existe: é a estrutura que o autor declarou.
+ * 2. Título detectado por destaque visual — só onde o índice não decidiu.
+ * 3. Blocos de oito páginas, com procedência explícita no rótulo.
+ *
+ * Os três se combinam: um manual com índice parcial recebe as fronteiras dele
+ * e preenche o resto pelas outras vias, em vez de escolher uma estratégia só.
+ */
+function calcularFronteiras({
+  comTexto,
+  total,
+  outline,
+  linhasPorPagina,
+}: {
+  comTexto: number[];
+  total: number;
+  outline: readonly ItemDeOutline[];
+  linhasPorPagina: Map<number, Linha[]>;
+}): { pagina: number; titulo: string; metodo: MetodoDeDeteccao; confianca: number }[] {
+  const porPagina = new Map<
+    number,
+    { pagina: number; titulo: string; metodo: MetodoDeDeteccao; confianca: number }
+  >();
+
+  for (const { pagina, titulo } of fronteirasDoOutline(outline, total)) {
+    porPagina.set(pagina, { pagina, titulo, metodo: "outline", confianca: 1 });
+  }
+
+  for (const numero of comTexto) {
+    if (porPagina.has(numero)) continue;
+    const titulo = tituloVisual(linhasPorPagina.get(numero) ?? []);
+    if (titulo) {
+      porPagina.set(numero, {
+        pagina: numero,
+        titulo: titulo.texto,
+        metodo: "heading",
+        confianca: titulo.confianca,
+      });
+    }
+  }
+
+  const fronteiras = [...porPagina.values()].sort((a, b) => a.pagina - b.pagina);
+
+  // A primeira página com texto sempre abre uma seção — senão o começo do
+  // manual ficaria fora de qualquer seção, e a invariante de cobertura cairia.
+  const primeira = comTexto[0];
+  if (fronteiras.length === 0 || fronteiras[0].pagina > primeira) {
+    fronteiras.unshift(...blocosDeFallback(primeira, (fronteiras[0]?.pagina ?? total + 1) - 1));
+  }
+
+  // Vãos longos entre fronteiras viram blocos: uma seção de 200 páginas não é
+  // revisável, e fingir que é seria pior que admitir que não houve estrutura.
+  const completas = [...fronteiras];
+  for (let i = 0; i < fronteiras.length; i += 1) {
+    const inicio = fronteiras[i].pagina;
+    const fim = (fronteiras[i + 1]?.pagina ?? total + 1) - 1;
+    if (fim - inicio + 1 > PAGINAS_POR_BLOCO) {
+      completas.push(...blocosDeFallback(inicio + PAGINAS_POR_BLOCO, fim));
+    }
+  }
+
+  return completas.sort((a, b) => a.pagina - b.pagina);
+}
+
+function blocosDeFallback(de: number, ate: number) {
+  const blocos = [];
+  for (let inicio = de; inicio <= ate; inicio += PAGINAS_POR_BLOCO) {
+    const fim = Math.min(inicio + PAGINAS_POR_BLOCO - 1, ate);
+    blocos.push({
+      pagina: inicio,
+      // O rótulo diz de onde veio. Não inventa nome de capítulo.
+      titulo: inicio === fim ? `Página ${inicio}` : `Páginas ${inicio}–${fim}`,
+      metodo: "page-range" as const,
+      confianca: 0.2,
+    });
+  }
+  return blocos;
+}
+
+function registrarRemocoes(
+  paginas: readonly PaginaExtraida[],
+  repetidos: ReadonlySet<string>,
+): RemocaoDeExtracao[] {
+  if (repetidos.size === 0) return [];
+  const contagem = new Map<string, number>();
+  for (const pagina of paginas) {
+    const todas = linhasUteis(pagina, new Set());
+    const uteis = new Set(linhasUteis(pagina, repetidos).map((l) => l.texto));
+    for (const linha of todas) {
+      if (uteis.has(linha.texto)) continue;
+      contagem.set(linha.texto, (contagem.get(linha.texto) ?? 0) + 1);
+    }
+  }
+  return [...contagem.entries()]
+    .map(([texto, ocorrencias]) => ({ texto, ocorrencias }))
+    .sort((a, b) => b.ocorrencias - a.ocorrencias);
+}
+
+// ─── Edição, preservando a procedência ──────────────────────────────────────
+
+export function renomear(secoes: readonly Secao[], id: string, titulo: string): Secao[] {
+  return secoes.map((secao) => (secao.id === id ? { ...secao, titulo } : secao));
+}
+
+/**
+ * Divide uma seção na página indicada, que passa a abrir a segunda.
+ *
+ * O texto acompanha as páginas, e a soma dos intervalos das duas partes é
+ * exatamente a da original: dividir não pode perder página.
+ */
+export function dividir(
+  secoes: readonly Secao[],
+  id: string,
+  paginaDeCorte: number,
+  linhasPorPagina: ReadonlyMap<number, string[]>,
+): Secao[] {
+  const indice = secoes.findIndex((s) => s.id === id);
+  if (indice < 0) return [...secoes];
+
+  const original = secoes[indice];
+  const paginas = paginasDe(original);
+  const antes = paginas.filter((n) => n < paginaDeCorte);
+  const depois = paginas.filter((n) => n >= paginaDeCorte);
+  if (antes.length === 0 || depois.length === 0) return [...secoes];
+
+  const monta = (numeros: number[], sufixo: string): Secao => ({
+    ...original,
+    id: `${original.id}${sufixo}`,
+    sourcePageRanges: normalizar(numeros.map((n) => ({ de: n, ate: n }))),
+    linhas: numeros.flatMap((n) => linhasPorPagina.get(n) ?? []),
+  });
+
+  const segunda = monta(depois, "b");
+  return [
+    ...secoes.slice(0, indice),
+    monta(antes, "a"),
+    { ...segunda, titulo: `${original.titulo} (continuação)` },
+    ...secoes.slice(indice + 1),
+  ];
+}
+
+/** Une duas seções. A procedência da segunda entra na primeira, sem perda. */
+export function unir(
+  secoes: readonly Secao[],
+  idA: string,
+  idB: string,
+  linhasPorPagina: ReadonlyMap<number, string[]>,
+): Secao[] {
+  const a = secoes.find((s) => s.id === idA);
+  const b = secoes.find((s) => s.id === idB);
+  if (!a || !b || a.id === b.id) return [...secoes];
+
+  const intervalos = normalizar([...a.sourcePageRanges, ...b.sourcePageRanges]);
+  const unida: Secao = {
+    ...a,
+    sourcePageRanges: intervalos,
+    linhas: paginasDe({ ...a, sourcePageRanges: intervalos }).flatMap(
+      (n) => linhasPorPagina.get(n) ?? [],
+    ),
+    // A confiança cai para a menor das duas: unir é decisão humana sobre uma
+    // fronteira que a heurística tinha traçado.
+    confianca: Math.min(a.confianca, b.confianca),
+  };
+  return secoes.filter((s) => s.id !== idB).map((s) => (s.id === idA ? unida : s));
+}
+
+/**
+ * Move uma página de uma seção para outra.
+ *
+ * É a operação que quebra `sourcePageStart`/`sourcePageEnd`: a seção de origem
+ * pode ficar com um buraco, e a de destino pode ficar descontínua. A lista de
+ * intervalos descreve as duas sem inventar nada.
+ */
+export function moverPagina(
+  secoes: readonly Secao[],
+  pagina: number,
+  idDestino: string,
+  linhasPorPagina: ReadonlyMap<number, string[]>,
+): Secao[] {
+  const destino = secoes.find((s) => s.id === idDestino);
+  if (!destino || paginasDe(destino).includes(pagina)) return [...secoes];
+  if (!secoes.some((s) => paginasDe(s).includes(pagina))) return [...secoes];
+
+  const recalcular = (secao: Secao, intervalos: Intervalo[]): Secao => ({
+    ...secao,
+    sourcePageRanges: intervalos,
+    linhas: paginasDe({ ...secao, sourcePageRanges: intervalos }).flatMap(
+      (n) => linhasPorPagina.get(n) ?? [],
+    ),
+  });
+
+  return secoes
+    .map((secao) => {
+      if (secao.id === idDestino) {
+        return recalcular(secao, normalizar([...secao.sourcePageRanges, { de: pagina, ate: pagina }]));
+      }
+      if (!paginasDe(secao).includes(pagina)) return secao;
+      return recalcular(secao, normalizar(removerPagina(secao.sourcePageRanges, pagina)));
+    })
+    .filter((secao) => secao.sourcePageRanges.length > 0);
+}
+
+// ─── Invariantes ────────────────────────────────────────────────────────────
+
+export interface Violacao {
+  tipo: "pagina-em-duas-secoes" | "pagina-sem-destino" | "intervalo-invertido";
+  detalhe: string;
+}
+
+/**
+ * O que precisa continuar verdadeiro depois de qualquer edição.
+ *
+ * Roda nos testes e depois de cada operação da prévia: uma edição que viole
+ * qualquer destas deixou de descrever o PDF, e publicar assim gravaria uma
+ * procedência falsa.
+ */
+export function validarInvariantes(
+  agrupamento: Agrupamento,
+  paginasExtraiveis: readonly number[],
+): Violacao[] {
+  const violacoes: Violacao[] = [];
+  const dona = new Map<number, string>();
+
+  for (const secao of agrupamento.secoes) {
+    for (const { de, ate } of secao.sourcePageRanges) {
+      if (ate < de) {
+        violacoes.push({ tipo: "intervalo-invertido", detalhe: `${secao.id}: ${de}–${ate}` });
+      }
+    }
+    for (const pagina of paginasDe(secao)) {
+      const anterior = dona.get(pagina);
+      if (anterior) {
+        violacoes.push({
+          tipo: "pagina-em-duas-secoes",
+          detalhe: `página ${pagina} em ${anterior} e ${secao.id}`,
+        });
+        continue;
+      }
+      dona.set(pagina, secao.id);
+    }
+  }
+
+  const ignoradas = new Set(agrupamento.ignoradas.map((i) => i.pagina));
+  for (const pagina of paginasExtraiveis) {
+    if (!dona.has(pagina) && !ignoradas.has(pagina)) {
+      violacoes.push({ tipo: "pagina-sem-destino", detalhe: `página ${pagina}` });
+    }
+  }
+
+  return violacoes;
+}
