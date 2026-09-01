@@ -18,7 +18,8 @@
     "evaluate:brand-chat": "node scripts/evaluate-brand-chat.mjs",
     "test:ci": "npm run test:brandville-scaffold && npm run test:brandville-import && npm run test:brand-context",
     "verify": "npm run lint && npm run typecheck && npm run test:ci && npm run build && npm run test:e2e",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "fixtures:pdf": "python3 scripts/gerar-fixtures-pdf.py"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.16",

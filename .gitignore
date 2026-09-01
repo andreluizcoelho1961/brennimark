@@ -12,6 +12,8 @@
 
 # testing
 /test-results/
+e2e/fixtures/mil-paginas.pdf
+e2e/fixtures/mil-e-uma-paginas.pdf
 /.diag/
 /coverage
 /.tmp/

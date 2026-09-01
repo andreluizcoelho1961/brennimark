@@ -840,3 +840,54 @@ test("todo teste desta suite importa por caminho relativo", () => {
     );
   }
 });
+
+/**
+ * Um componente de servidor que importa um VALOR de um módulo `"use client"`
+ * não recebe o valor: recebe uma referência de cliente, e ler uma propriedade
+ * dela devolve `undefined`.
+ *
+ * O efeito foi silencioso e grave: os limites da importação viravam undefined,
+ * e `tamanho > undefined` é sempre falso — os dois limites deixavam de existir.
+ * Um PDF de 1.001 páginas passava direto pelo teto de 1.000.
+ */
+test("rotas de servidor não importam constantes de módulos de cliente", () => {
+  const clientes = new Set<string>();
+  const pilha = [path.join(raiz, "src")];
+  while (pilha.length > 0) {
+    const dir = pilha.pop()!;
+    for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+      const caminho = path.join(dir, entrada.name);
+      if (entrada.isDirectory()) pilha.push(caminho);
+      else if (/\.tsx?$/.test(entrada.name)) {
+        if (/^["']use client["']/m.test(readFileSync(caminho, "utf8"))) {
+          clientes.add(path.relative(path.join(raiz, "src"), caminho).replace(/\.tsx?$/, ""));
+        }
+      }
+    }
+  }
+
+  const servidores = [
+    "src/app/dev/importar/page.tsx",
+    "src/app/docs/importar/page.tsx",
+    "src/app/docs/admin/page.tsx",
+    "src/app/docs/layout.tsx",
+  ];
+
+  for (const arquivo of servidores) {
+    const codigo = lerCodigo(arquivo);
+    for (const linha of codigo.match(/^import \{[^}]*\} from "@\/[^"]+";$/gm) ?? []) {
+      const modulo = linha.match(/from "@\/([^"]+)"/)?.[1];
+      if (!modulo || !clientes.has(modulo)) continue;
+      const nomes = linha.match(/\{([^}]*)\}/)?.[1] ?? "";
+      for (const nome of nomes.split(",").map((n) => n.trim()).filter(Boolean)) {
+        if (nome.startsWith("type ")) continue;
+        assert.ok(
+          // Componente: PascalCase, digito permitido (AppShellV2).
+          /^[A-Z][A-Za-z0-9]*$/.test(nome),
+          `${arquivo} importa "${nome}" de ${modulo}, que é módulo de cliente: ` +
+            "só componentes atravessam essa fronteira; um valor vira undefined",
+        );
+      }
+    }
+  }
+});

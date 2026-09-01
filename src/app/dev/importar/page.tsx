@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BrandImporter } from "@/components/import/BrandImporter";
+import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
 import { LocaleProvider } from "@/platform/locale-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
 
@@ -16,11 +17,25 @@ export const metadata = { robots: { index: false, follow: false } };
  *
  * Fora de produção por construção.
  */
-export default async function ImportarLab() {
+export default async function ImportarLab({
+  searchParams,
+}: {
+  searchParams: Promise<{ maxBytes?: string; maxPaginas?: string }>;
+}) {
   if (process.env.NODE_ENV === "production") notFound();
+
+  // Limites reduzíveis pela URL: testar a recusa por tamanho com o limite real
+  // exigiria carregar 100 MiB num navegador de teste, e a lógica exercitada é
+  // exatamente a mesma. Só existe aqui; a rota real usa o padrão do produto.
+  const { maxBytes, maxPaginas } = await searchParams;
+  const limites = {
+    maxBytes: Number(maxBytes) || LIMITES_DE_IMPORTACAO.maxBytes,
+    maxPaginas: Number(maxPaginas) || LIMITES_DE_IMPORTACAO.maxPaginas,
+  };
+
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
-      <BrandImporter workspaceId="00000000-0000-4000-8000-000000000000" />
+      <BrandImporter workspaceId="00000000-0000-4000-8000-000000000000" limites={limites} />
     </LocaleProvider>
   );
 }

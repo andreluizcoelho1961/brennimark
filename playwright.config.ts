@@ -37,7 +37,29 @@ export default defineConfig({
     video: "retain-on-failure",
   },
 
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  /**
+   * Três motores, e não é excesso: o leitor de PDF é o ponto do produto onde
+   * eles mais divergem — worker, `import.meta`, criptografia, `crypto.subtle`.
+   * Um manual que abre no Chrome e falha no Safari é um manual que não abre
+   * para metade dos designers.
+   *
+   * Só a suíte do importador roda nos três. O resto da interface é HTML e CSS
+   * comuns; rodar tudo em triplicado triplicaria o tempo do CI sem responder a
+   * nenhuma pergunta nova.
+   */
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "webkit-importador",
+      use: { ...devices["Desktop Safari"] },
+      testMatch: /importador.*\.spec\.ts/,
+    },
+    {
+      name: "firefox-importador",
+      use: { ...devices["Desktop Firefox"] },
+      testMatch: /importador.*\.spec\.ts/,
+    },
+  ],
 
   webServer: {
     command: `npm run dev -- --port ${PORTA}`,

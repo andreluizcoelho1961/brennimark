@@ -61,10 +61,18 @@ jobs:
         env:
           NODE_ENV: production
 
-      # So o Chromium. Os outros motores custam minutos e ainda nao respondem
-      # a nenhuma pergunta que este produto tenha.
-      - name: Navegador do Playwright
-        run: npx playwright install --with-deps chromium
+      # Tres motores. O leitor de PDF e o ponto do produto onde eles mais
+      # divergem — worker, import.meta, criptografia, crypto.subtle — e um
+      # manual que abre no Chrome e falha no Safari e um manual que nao abre
+      # para metade dos designers. So a suite do importador roda nos tres; o
+      # resto e HTML e CSS comuns.
+      - name: Navegadores do Playwright
+        run: npx playwright install --with-deps chromium webkit firefox
+
+      # As fixtures grandes ficam fora do git: mil paginas de texto nao se
+      # versionam, e o gerador as reconstroi identicas.
+      - name: Fixtures de PDF
+        run: npm run fixtures:pdf
 
       # Sobe `next dev` com BRANDVILLE_DEV_SKIP_AUTH e nada mais: sem Supabase,
       # sem segredo, sem rede. Ver playwright.config.ts.

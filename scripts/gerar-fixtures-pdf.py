@@ -156,6 +156,19 @@ def main() -> int:
     (DESTINO / "protegido.pdf").write_bytes(protegido)
     print(f"protegido.pdf: {len(protegido)} bytes")
 
+    # Mil paginas: o teto do produto, exercitado de ponta a ponta. Fica fora
+    # do git — 1000 paginas de texto sao grandes demais para versionar, e o
+    # gerador as reconstroi identicas quando preciso.
+    mil = documento([[f"Secao {n}", f"Corpo da pagina {n}."] for n in range(1, 1001)])
+    (DESTINO / "mil-paginas.pdf").write_bytes(mil)
+    print(f"mil-paginas.pdf: {len(mil)} bytes")
+
+    # Mil e uma: uma a mais que o teto. Precisa ser recusada com mensagem
+    # propria, nao com erro generico.
+    mil_e_uma = documento([[f"Secao {n}"] for n in range(1, 1002)])
+    (DESTINO / "mil-e-uma-paginas.pdf").write_bytes(mil_e_uma)
+    print(f"mil-e-uma-paginas.pdf: {len(mil_e_uma)} bytes")
+
     # Nao e PDF, apesar da extensao.
     (DESTINO / "nao-e-pdf.pdf").write_bytes(b"<!doctype html>\n<h1>isto e uma pagina</h1>\n")
     print("nao-e-pdf.pdf: escrito")

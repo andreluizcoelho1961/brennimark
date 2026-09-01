@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { slugify } from "@/lib/import/draft";
+import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
 import { lerPdf, FalhaDeLeitura, type ItemDeOutline } from "@/lib/import/pdf";
 import { diagnosticar } from "@/lib/import/pdf-erros";
 import { detectarRepetidos, linhasUteis } from "@/lib/import/texto";
@@ -14,8 +15,7 @@ import {
 import { ListaDeSecoes } from "./ListaDeSecoes";
 import type { BrandvilleUtilityKey } from "@/brandville/types";
 
-const TAMANHO_MAXIMO = 50 * 1024 * 1024;
-const PAGINAS_MAXIMAS = 1000;
+
 
 const FUNCIONALIDADES: { chave: BrandvilleUtilityKey; pt: string; en: string }[] = [
   { chave: "chat", pt: "Chat da marca", en: "Brand assistant" },
@@ -32,7 +32,13 @@ const TEMA_INICIAL = {
   focus: "#ffffff", fontStack: "var(--font-ui)",
 };
 
-export function BrandImporter({ workspaceId }: { workspaceId: string }) {
+export function BrandImporter({
+  workspaceId,
+  limites = LIMITES_DE_IMPORTACAO,
+}: {
+  workspaceId: string;
+  limites?: { maxBytes: number; maxPaginas: number };
+}) {
   const isEnglish = useIsEnglish();
   const router = useRouter();
   const t = useCallback((pt: string, en: string) => (isEnglish ? en : pt), [isEnglish]);
@@ -90,10 +96,7 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
        * qualquer coisa. Quem decide são os cinco primeiros bytes, dentro de
        * lerPdf — e é lá que a leitura única acontece.
        */
-      const documento = await lerPdf(selecionado, {
-        maxBytes: TAMANHO_MAXIMO,
-        maxPaginas: PAGINAS_MAXIMAS,
-      });
+      const documento = await lerPdf(selecionado, limites);
 
       // Cabeçalho e rodapé saem antes de qualquer heurística de título: eles
       // são exatamente o que "linha curta no alto" elegeria por engano.
@@ -133,7 +136,7 @@ export function BrandImporter({ workspaceId }: { workspaceId: string }) {
     } finally {
       setLendo(false);
     }
-  }, [nome, t]);
+  }, [nome, t, limites]);
 
   async function publicar() {
     if (!arquivo || !agrupamento) return;
