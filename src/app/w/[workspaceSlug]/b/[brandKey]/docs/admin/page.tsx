@@ -3,19 +3,21 @@ import { AdminPanel } from "@/components/admin/AdminPanel";
 import { getBrandvilleAuthContext, getDeletedPages } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
+import { caminhoDaMarca } from "@/lib/brandville/selecao";
 
-export default async function AdminPage() {
+export default async function AdminPage({ params }: { params: Promise<{ workspaceSlug: string; brandKey: string }> }) {
+  const alvo = await params;
   // Leitura e escrita, as duas pela marca da requisição.
-  const { access, capabilities, docs, brand } = await resolveWorkspaceContext();
+  const { access, capabilities, docs, brand } = await resolveWorkspaceContext(alvo);
   if (access === "anonymous") redirect("/login");
   if (access === "onboarding") redirect("/onboarding");
-  if (!capabilities.includes("administrar")) redirect("/docs");
+  if (!capabilities.includes("administrar")) redirect(caminhoDaMarca(alvo));
 
   // Sem marca não há o que administrar, e as seções são as que a marca
   // declara — não as de uma instância de código.
-  if (!brand) redirect("/docs");
+  if (!brand) redirect(caminhoDaMarca(alvo));
 
-  const auth = await getBrandvilleAuthContext();
+  const auth = await getBrandvilleAuthContext(alvo.workspaceSlug);
   const excluidas = auth
     ? await getDeletedPages(auth, brand.id, docs.map((doc) => doc.slug))
     : [];

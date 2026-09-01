@@ -5,6 +5,7 @@ import { use, useEffect, useState } from "react";
 import { FeedbackPanel } from "@/components/analysis/FeedbackPanel";
 import type { AnalysisRun, AnalysisVerdict } from "@/lib/analysis/history";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 const EXPECTED_POR_IDIOMA: Record<"en" | "pt-BR", Array<{ value: Exclude<AnalysisVerdict, "unknown">; label: string }>> = {
   en: [
@@ -35,6 +36,12 @@ function Section({ title, value }: { title: string; value: string | string[] }) 
 }
 
 export default function AnalysisHistoryDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
+  // Os links desta tela vivem dentro da marca da URL. Absolutos (`/docs/...`)
+  // sairiam do contexto e o resolvedor teria de adivinhar de volta.
+  const base = `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs`;
   const isEnglish = useIsEnglish();
   const EXPECTED = EXPECTED_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const locale = isEnglish ? "en-US" : "pt-BR";
@@ -48,7 +55,7 @@ export default function AnalysisHistoryDetailPage({ params }: { params: Promise<
   const [calibrationMessage, setCalibrationMessage] = useState("");
 
   function load() {
-    fetch(`/api/analysis/history/${id}`)
+    fetch(comAlvo(`/api/analysis/history/${id}`, alvo))
       .then(async (response) => {
         if (!response.ok) throw new Error("history");
         return response.json();
@@ -64,11 +71,11 @@ export default function AnalysisHistoryDetailPage({ params }: { params: Promise<
       .finally(() => setLoading(false));
   }
 
-  useEffect(load, [id, isEnglish]);
+  useEffect(load, [id, isEnglish, alvo]);
 
   async function saveCalibration() {
     setCalibrationMessage(isEnglish ? "Saving…" : "Salvando…");
-    const response = await fetch(`/api/analysis/history/${id}`, {
+    const response = await fetch(comAlvo(`/api/analysis/history/${id}`, alvo), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ calibrationEnabled, calibrationExpectedVerdict: expected, calibrationLabel: label }),
@@ -87,7 +94,7 @@ export default function AnalysisHistoryDetailPage({ params }: { params: Promise<
 
   return (
     <article className="px-page-inline py-12 md:py-16">
-      <Link href="/docs/historico" className="font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary hover:text-release-analog-white">{isEnglish ? "← Back to history" : "← Voltar ao histórico"}</Link>
+      <Link href={`${base}/historico`} className="font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary hover:text-release-analog-white">{isEnglish ? "← Back to history" : "← Voltar ao histórico"}</Link>
       <div className="mt-6 flex flex-wrap items-start justify-between gap-5">
         <div>
           <p className="font-display text-[10px] font-black uppercase tracking-[0.18em] text-release-analog-turquoise">{isEnglish ? "Compliance record" : "Registro de conformidade"}</p>
@@ -96,7 +103,7 @@ export default function AnalysisHistoryDetailPage({ params }: { params: Promise<
         </div>
         <div className="flex flex-wrap gap-2">
           <a href={`/api/analysis/history/${run.id}/report`} className="border border-release-analog-white px-4 py-2.5 font-display text-[10px] font-bold uppercase tracking-wide text-release-analog-white hover:bg-release-analog-white hover:text-release-analog-black">{isEnglish ? "Download PDF" : "Baixar PDF"}</a>
-          <Link href={`/docs/analise?repeat=${run.id}`} className="bg-release-analog-turquoise px-4 py-2.5 font-display text-[10px] font-bold uppercase tracking-wide text-release-analog-black">{isEnglish ? "Analyze again" : "Analisar novamente"}</Link>
+          <Link href={`${base}/analise?repeat=${run.id}`} className="bg-release-analog-turquoise px-4 py-2.5 font-display text-[10px] font-bold uppercase tracking-wide text-release-analog-black">{isEnglish ? "Analyze again" : "Analisar novamente"}</Link>
         </div>
       </div>
 

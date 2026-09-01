@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   PROVIDERS,
   PROVIDER_MODELS,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/ai/provider";
 import { AIRoutingPanel } from "@/components/ai/AIRoutingPanel";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 
 type StoredAISetting = {
@@ -45,13 +46,38 @@ function DemoBadge({ role, settings }: { role: "chat" | "analysis"; settings: St
   );
 }
 
+async function buscarConfiguracoes(alvo: { workspaceSlug?: string; brandKey?: string }) {
+  const [settingsRes, routingRes] = await Promise.all([
+    fetch(comAlvo("/api/ai/settings", alvo)),
+    fetch(comAlvo("/api/ai/routing", alvo)),
+  ]);
+  const [settingsData, routingData] = await Promise.all([settingsRes.json(), routingRes.json()]);
+  return {
+    settings: (settingsData.settings ?? []) as StoredAISetting[],
+    policies: (routingData.policies ?? []) as AIRoutingPolicy[],
+    editable: Boolean(routingData.editable),
+  };
+}
+
 export default function AISettingsPage() {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const ROLE_LABEL = ROLE_LABEL_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [settings, setSettings] = useState<StoredAISetting[]>([]);
   const [policies, setPolicies] = useState<AIRoutingPolicy[]>([]);
   const [routingEditable, setRoutingEditable] = useState(false);
-  const [loading, setLoading] = useState(true);
+  /**
+   * Nada de `setLoading` dentro de efeito.
+   *
+   * O carregando é DERIVADO: a tela está carregando enquanto os dados que ela
+   * tem não são os da marca atual. Isso resolve de uma vez as duas falhas que
+   * um booleano comandado produz aqui — não mostra as configurações da marca
+   * anterior enquanto a nova chega, e não dispara render em cascata a partir
+   * do efeito.
+   */
+  const [carregadoPara, setCarregadoPara] = useState<string | null>(null);
 
   const [provider, setProvider] = useState<AIProvider>("groq");
   const [model, setModel] = useState(PROVIDER_MODELS.groq[0]);
@@ -67,25 +93,45 @@ export default function AISettingsPage() {
   const canUseModel = !needsBillingAuthorization || billingAuthorized;
   const canSave = testState === "ok" && canUseModel;
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  // `refresh` fechou sobre o alvo: memorizada por ele, e o efeito depende
+  // dela. Sem isso, trocar de marca deixaria a tela mostrando as
+  // configurações de IA da marca anterior.
+  const chaveDoAlvo = `${alvo.workspaceSlug ?? ""}/${alvo.brandKey ?? ""}`;
+  const loading = carregadoPara !== chaveDoAlvo;
 
-  async function refresh() {
-    setLoading(true);
-    const [settingsRes, routingRes] = await Promise.all([
-      fetch("/api/ai/settings"),
-      fetch("/api/ai/routing"),
-    ]);
-    const [settingsData, routingData] = await Promise.all([settingsRes.json(), routingRes.json()]);
-    setSettings(settingsData.settings ?? []);
-    setPolicies(routingData.policies ?? []);
-    setRoutingEditable(Boolean(routingData.editable));
-    setLoading(false);
-  }
+  const refresh = useCallback(async () => {
+    const dados = await buscarConfiguracoes(alvo);
+    setSettings(dados.settings);
+    setPolicies(dados.policies);
+    setRoutingEditable(dados.editable);
+    setCarregadoPara(chaveDoAlvo);
+  }, [alvo, chaveDoAlvo]);
+
+  /**
+   * A busca inicial, e de novo a cada troca de marca.
+   *
+   * O `cancelado` não é zelo: trocar de marca duas vezes rápido faz duas
+   * buscas, e a primeira pode responder depois da segunda. Sem a guarda, a
+   * tela terminaria mostrando as configurações da marca que a pessoa acabou
+   * de deixar — com o nome da marca nova no cabeçalho.
+   */
+  useEffect(() => {
+    let cancelado = false;
+    void (async () => {
+      const dados = await buscarConfiguracoes(alvo);
+      if (cancelado) return;
+      setSettings(dados.settings);
+      setPolicies(dados.policies);
+      setRoutingEditable(dados.editable);
+      setCarregadoPara(chaveDoAlvo);
+    })();
+    return () => {
+      cancelado = true;
+    };
+  }, [alvo, chaveDoAlvo]);
 
   async function handleSaveRouting(policy: AIRoutingPolicy) {
-    const res = await fetch("/api/ai/routing", {
+    const res = await fetch(comAlvo("/api/ai/routing", alvo), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(policy),
@@ -128,7 +174,7 @@ export default function AISettingsPage() {
     setTestState("testing");
     setTestMessage("");
     try {
-      const res = await fetch("/api/ai/test-connection", {
+      const res = await fetch(comAlvo("/api/ai/test-connection", alvo), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider, model, apiKey }),
@@ -148,7 +194,7 @@ export default function AISettingsPage() {
 
   async function handleSave() {
     setSaving(true);
-    const res = await fetch("/api/ai/settings", {
+    const res = await fetch(comAlvo("/api/ai/settings", alvo), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ provider, model, apiKey, role }),
@@ -162,7 +208,7 @@ export default function AISettingsPage() {
   }
 
   async function handleToggleActive(id: string, isActive: boolean) {
-    await fetch(`/api/ai/settings/${id}`, {
+    await fetch(comAlvo(`/api/ai/settings/${id}`, alvo), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ isActive }),
@@ -171,7 +217,7 @@ export default function AISettingsPage() {
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/ai/settings/${id}`, { method: "DELETE" });
+    await fetch(comAlvo(`/api/ai/settings/${id}`, alvo), { method: "DELETE" });
     await refresh();
   }
 

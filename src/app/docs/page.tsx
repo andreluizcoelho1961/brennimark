@@ -1,23 +1,60 @@
 import { redirect } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { EscolhaDeContexto } from "@/components/shell/EscolhaDeContexto";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
+import { LocaleProvider } from "@/platform/locale-client";
 
 /**
- * A porta do manual.
+ * `/docs` deixou de ser uma página e virou um resolvedor.
  *
- * Antes esta página perguntava a `hasBrand`, uma constante calculada da
- * instância estática na inicialização do processo. Uma marca podia existir em
- * `brands` e a pessoa continuar vendo "Nenhuma marca por aqui ainda" — o
- * estado vazio mentia sobre o banco.
+ * Ele não mostra manual nenhum: decide para qual contexto a pessoa vai e sai
+ * da frente. As três saídas são as três respostas possíveis, e a do meio é a
+ * que não existia:
+ *
+ *   uma marca      redireciona, porque não há o que perguntar
+ *   várias         PERGUNTA — antes isso era "a primeira", silenciosamente
+ *   nenhuma        leva à importação da primeira
+ *
+ * O endereço continua valendo como atalho: quem digita /docs, ou tem um link
+ * antigo, chega ao lugar certo em vez de encontrar 404.
  */
-export default async function DocsIndexPage() {
-  const { brand, defaultDocSlug, capabilities } = await resolveWorkspaceContext();
+export default async function ResolvedorDeContexto() {
+  const contexto = await resolveWorkspaceContext();
 
-  // Marca sem documento de entrada declarado: mostrar o estado vazio é melhor
-  // que redirecionar para /docs/ e entrar em laço.
-  if (!brand || !defaultDocSlug) {
-    return <EmptyBrandState podeImportar={capabilities.includes("administrar")} />;
+  if (contexto.access === "anonymous") redirect("/login");
+  if (contexto.access === "onboarding") redirect("/onboarding");
+
+  if (contexto.access === "ready" && contexto.workspaceSlug && contexto.brand) {
+    redirect(`/w/${contexto.workspaceSlug}/b/${contexto.brand.key}/docs`);
   }
 
-  redirect(`/docs/${defaultDocSlug}`);
+  const pares = contexto.opcoes.flatMap((w) =>
+    w.marcas.map((m) => ({ workspaceSlug: w.slug, brandKey: m.key, conta: w.nome, marca: m.nome })),
+  );
+
+  if (pares.length === 0) {
+    return (
+      <LocaleProvider locale={contexto.locale}>
+        {/* Fora da moldura não há AppShell para prover o marco principal, e
+            uma página sem <main> deixa quem usa leitor de tela sem o atalho
+            para o conteúdo. */}
+        <main className="min-h-dvh bg-platform-bg">
+        <EmptyBrandState
+          podeImportar
+          contaImportar={
+            contexto.workspaceSlug ? `/w/${contexto.workspaceSlug}/importar` : "/onboarding"
+          }
+        />
+        </main>
+      </LocaleProvider>
+    );
+  }
+
+  return (
+    <LocaleProvider locale={contexto.locale}>
+      <main>
+        <EscolhaDeContexto opcoes={pares} />
+      </main>
+    </LocaleProvider>
+  );
 }

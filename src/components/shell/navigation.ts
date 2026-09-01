@@ -9,6 +9,12 @@ export interface ShellDestination {
   requires?: BrandCapability;
   /** Aparece na navegação inferior do mobile. */
   mobile?: boolean;
+  /**
+   * O destino é da CONTA, não da marca: `/w/<conta>/...` em vez de
+   * `/w/<conta>/b/<marca>/docs/...`. Importar é o caso — o ato cria a marca,
+   * então exigir uma marca na URL tornaria a primeira importação inalcançável.
+   */
+  foraDaMarca?: boolean;
 }
 
 export interface ShellSection {
@@ -94,7 +100,7 @@ export function shellSections({
       id: "governance",
       label: t("Governança", "Governance"),
       destinations: [
-        { href: "/docs/importar", label: t("Importar manual", "Import a manual"), requires: "administrar" },
+        { href: "/docs/importar", label: t("Importar manual", "Import a manual"), requires: "administrar", foraDaMarca: true },
         { href: "/docs/admin", label: t("Administração", "Administration"), requires: "administrar" },
       ],
     },
@@ -110,14 +116,35 @@ export function shellSections({
     .filter((section) => section.destinations.length > 0);
 }
 
-/** Ativo considerando rotas filhas: /docs/historico/42 acende /docs/historico. */
-export function isDestinationActive(href: string, pathname: string): boolean {
-  if (href === "/docs") return pathname === "/docs" || !pathname.startsWith("/docs/");
-  return pathname === href || pathname.startsWith(`${href}/`);
+/**
+ * Ativo considerando rotas filhas: /docs/historico/42 acende /docs/historico.
+ *
+ * Recebe o prefixo porque os destinos são canônicos (`/docs/...`) e a URL real
+ * carrega o contexto (`/w/<conta>/b/<marca>/docs/...`). Comparar os dois sem
+ * traduzir deixava a navegação inteira apagada dentro do contexto — nenhum
+ * destino casava, e quem navega perdia a referência de onde está.
+ */
+export function isDestinationActive(
+  href: string,
+  pathname: string,
+  basePath?: string,
+  foraDaMarca?: boolean,
+): boolean {
+  const alvo = withBase(href, basePath, foraDaMarca);
+  const raiz = withBase("/docs", basePath);
+  if (alvo === raiz) return pathname === raiz || !pathname.startsWith(`${raiz}/`);
+  return pathname === alvo || pathname.startsWith(`${alvo}/`);
 }
 
-/** Reescreve um destino para outro prefixo. Sem prefixo, devolve o original. */
-export function withBase(href: string, basePath?: string): string {
+/**
+ * Reescreve um destino para outro prefixo. Sem prefixo, devolve o original.
+ *
+ * Destinos marcados `foraDaMarca` param na conta: de
+ * `/w/x/b/y/docs` sobra `/w/x`, e o resto do caminho é acrescentado ali.
+ */
+export function withBase(href: string, basePath?: string, foraDaMarca?: boolean): string {
   if (!basePath) return href;
-  return href.replace(/^\/docs/, basePath);
+  if (!foraDaMarca) return href.replace(/^\/docs/, basePath);
+  const conta = basePath.replace(/\/b\/[^/]+\/docs$/, "");
+  return href.replace(/^\/docs/, conta);
 }

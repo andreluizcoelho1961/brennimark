@@ -28,7 +28,7 @@ export function CommandPalette({
   onClose,
 }: {
   docs: readonly DocPageEntry[];
-  destinations: readonly { href: string; label: string }[];
+  destinations: readonly { href: string; label: string; foraDaMarca?: boolean }[];
   basePath?: string;
   brandLanguage?: string;
   statusLabels?: StatusLabels;
@@ -45,7 +45,8 @@ export function CommandPalette({
   // O vocabulário editorial é da marca, não da interface: ver StatusBadge.
   const labels = resolveStatusLabels({ language: brandLanguage ?? "pt-BR", override: statusLabels });
 
-  const index = useMemo(() => buildSearchIndex({ docs, destinations }), [docs, destinations]);
+  const index = useMemo(
+() => buildSearchIndex({ docs, destinations }), [docs, destinations]);
   const results = useMemo(() => searchIndex(index, query).slice(0, 12), [index, query]);
 
   // Reset derivado durante a renderização, não em efeito: é o padrão que o
@@ -72,9 +73,13 @@ export function CommandPalette({
   const go = useCallback(
     (result: SearchResult) => {
       onClose();
-      router.push(withBase(result.href, basePath));
+      // O prefixo respeita destinos que vivem na conta, não na marca.
+      const foraDaMarca = destinations.some(
+        (d) => d.href === result.href && d.foraDaMarca,
+      );
+      router.push(withBase(result.href, basePath, foraDaMarca));
     },
-    [basePath, onClose, router],
+    [basePath, destinations, onClose, router],
   );
 
   function onKeyDown(event: React.KeyboardEvent) {

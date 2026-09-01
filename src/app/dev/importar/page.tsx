@@ -35,7 +35,8 @@ export default async function ImportarLab({
 
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
-      <BrandImporter workspaceId="00000000-0000-4000-8000-000000000000" limites={limites} />
+      <BrandImporter workspaceSlug="laboratorio"
+      workspaceId="00000000-0000-4000-8000-000000000000" limites={limites} />
     </LocaleProvider>
   );
 }

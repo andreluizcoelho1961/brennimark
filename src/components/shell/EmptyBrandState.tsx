@@ -8,7 +8,15 @@ import { platformIdentity } from "@/platform/identity";
  * controle que não funciona. O envio de PDF ainda não existe; anunciá-lo como
  * botão morto seria pior do que descrevê-lo em texto.
  */
-export function EmptyBrandState({ podeImportar = false }: { podeImportar?: boolean }) {
+export function EmptyBrandState({
+  podeImportar = false,
+  contaImportar = "/docs",
+}: {
+  podeImportar?: boolean;
+  /** Endereço de importação DA CONTA. Não da marca: a tela existe justamente
+   *  quando não há marca, e um caminho com `brandKey` seria um link morto. */
+  contaImportar?: string;
+}) {
   return (
     <div className="flex min-h-full items-center justify-center px-[var(--space-shell-5)] py-[var(--space-shell-8,4rem)]">
       <div className="max-w-[34rem]">
@@ -27,7 +35,7 @@ export function EmptyBrandState({ podeImportar = false }: { podeImportar?: boole
 
         {podeImportar && (
           <Link
-            href="/docs/importar"
+            href={contaImportar}
             className="mt-[var(--space-shell-5)] inline-flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
           >
             Enviar o primeiro manual

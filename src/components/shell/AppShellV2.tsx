@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocPageEntry } from "@/content/docs";
 import type { StatusLabels } from "@/components/docs/status";
 import { CommandPalette } from "./CommandPalette";
+import type { OpcaoDeContexto } from "./SeletorDeContexto";
 import { DesktopSidebar } from "./DesktopSidebar";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { PlatformTopBar } from "./PlatformTopBar";
@@ -44,6 +45,7 @@ export function AppShellV2({
   statusLabels,
   sessionControl,
   basePath,
+  contextoAtivo,
   children,
 }: {
   sections: ShellSection[];
@@ -65,6 +67,13 @@ export function AppShellV2({
    *  são os reais. String, não função: não atravessa a fronteira de servidor
    *  para cliente de outro jeito. */
   basePath?: string;
+  /** Conta e marca em exibição, mais tudo que a pessoa alcança. Vem da
+   *  requisição já resolvido; nenhum componente daqui consulta o banco. */
+  contextoAtivo?: {
+    workspaceSlug: string;
+    brandKey: string;
+    opcoes: readonly OpcaoDeContexto[];
+  };
   children: React.ReactNode;
 }) {
   /**
@@ -150,8 +159,15 @@ export function AppShellV2({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [abrirBusca]);
 
+  // O destino carrega `foraDaMarca` até a busca: sem a marca, `withBase`
+  // prefixaria "importar" com a marca ativa e o resultado da busca levaria a
+  // um endereço que não existe.
   const destinations = sections.flatMap((section) =>
-    section.destinations.map((d) => ({ href: d.href, label: d.label })),
+    section.destinations.map((d) => ({
+      href: d.href,
+      label: d.label,
+      foraDaMarca: d.foraDaMarca,
+    })),
   );
 
   const emModal = modal !== "none";
@@ -171,6 +187,7 @@ export function AppShellV2({
           userEmail={userEmail}
           brandName={brandName}
           brandDescriptor={brandDescriptor}
+          contextoAtivo={contextoAtivo}
           navigationOpen={modal === "nav"}
           onOpenSearch={abrirBusca}
           onOpenNavigation={temDestinos ? () => abrir("nav") : undefined}

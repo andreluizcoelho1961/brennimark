@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { AnalysisFeedback } from "@/lib/analysis/history";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 
 const OPTIONS_POR_IDIOMA: Record<"en" | "pt-BR", Array<{ value: AnalysisFeedback; label: string }>> = {
@@ -29,6 +30,9 @@ export function FeedbackPanel({
   initialNote?: string;
   onSaved?: () => void;
 }) {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const OPTIONS = OPTIONS_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [rating, setRating] = useState<AnalysisFeedback | null>(initialRating);
@@ -40,7 +44,7 @@ export function FeedbackPanel({
     if (!selected) return;
     setSaving(true);
     setMessage("");
-    const response = await fetch(`/api/analysis/history/${historyId}`, {
+    const response = await fetch(comAlvo(`/api/analysis/history/${historyId}`, alvo), {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ feedbackRating: selected, feedbackNote: note }),

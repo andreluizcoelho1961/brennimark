@@ -6,6 +6,7 @@ import type { StructuredAnalysis } from "@/lib/ai/analysis-result";
 import { FeedbackPanel } from "@/components/analysis/FeedbackPanel";
 import type { AnalysisRun } from "@/lib/analysis/history";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 
 type ProgressStage = "preparing" | "consulting" | "fallback" | "verifying";
@@ -168,6 +169,12 @@ function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: An
 }
 
 export default function AnalysisPage() {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
+  // Os links desta tela vivem dentro da marca da URL. Absolutos (`/docs/...`)
+  // sairiam do contexto e o resolvedor teria de adivinhar de volta.
+  const base = `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs`;
   const isEnglish = useIsEnglish();
   const [preview, setPreview] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -191,7 +198,7 @@ export default function AnalysisPage() {
   useEffect(() => {
     const repeatId = new URLSearchParams(window.location.search).get("repeat");
     if (!repeatId) return;
-    fetch(`/api/analysis/history/${repeatId}`)
+    fetch(comAlvo(`/api/analysis/history/${repeatId}`, alvo))
       .then(async (response) => {
         if (!response.ok) throw new Error("history");
         return response.json();
@@ -211,7 +218,7 @@ export default function AnalysisPage() {
       })
       .catch(() => setError(isEnglish ? "Couldn't retrieve the previous image. Please upload the piece again." : "Não foi possível recuperar a imagem anterior. Envie a peça novamente."))
       .finally(() => setLoadingPrevious(false));
-  }, [isEnglish]);
+  }, [isEnglish, alvo]);
 
   useEffect(() => {
     if (!loading || !startedAt) return;
@@ -281,7 +288,7 @@ export default function AnalysisPage() {
     setImageSaved(false);
 
     try {
-      const res = await fetch("/api/ai/analyze", {
+      const res = await fetch(comAlvo("/api/ai/analyze", alvo), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64, fileName, question: question || undefined, parentRunId }),
@@ -370,7 +377,7 @@ export default function AnalysisPage() {
                       </p>
                       <div className="flex gap-2">
                         <a href={`/api/analysis/history/${historyId}/report`} className="border border-border-default px-3 py-2 font-display text-[9px] font-bold uppercase text-release-analog-white">PDF</a>
-                        <Link href={`/docs/historico/${historyId}`} className="bg-release-analog-white px-3 py-2 font-display text-[9px] font-bold uppercase text-release-analog-black">{isEnglish ? "Open record" : "Abrir registro"}</Link>
+                        <Link href={`${base}/historico/${historyId}`} className="bg-release-analog-white px-3 py-2 font-display text-[9px] font-bold uppercase text-release-analog-black">{isEnglish ? "Open record" : "Abrir registro"}</Link>
                       </div>
                     </div>
                     <FeedbackPanel historyId={historyId} />

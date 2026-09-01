@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 type Asset = { id: string; label: string; description: string; category: string; file_name: string; mime_type: string; size_bytes: number; status: string; created_at: string; downloadUrl: string | null };
 function formatSize(bytes: number) { if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 
 export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
   // A biblioteca é instrumento da plataforma: rótulos, erros e estados vazios
   // são do produto. Os nomes dos arquivos é que são da marca.
   const isEnglish = useIsEnglish();
@@ -17,15 +21,15 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   const [uploading, setUploading] = useState(false);
 
   const load = useCallback(async () => {
-    const response = await fetch("/api/assets", { cache: "no-store" });
+    const response = await fetch(comAlvo("/api/assets", alvo), { cache: "no-store" });
     const data = await response.json().catch(() => ({}));
     setLoading(false);
     if (response.ok) setAssets(data.assets ?? []); else setMessage(data.message ?? (isEnglish ? "Couldn't load assets." : "Não foi possível carregar os assets."));
-  }, [isEnglish]);
+  }, [isEnglish, alvo]);
   useEffect(() => {
     let cancelled = false;
     async function loadInitial() {
-      const response = await fetch("/api/assets", { cache: "no-store" });
+      const response = await fetch(comAlvo("/api/assets", alvo), { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (cancelled) return;
       setLoading(false);
@@ -33,12 +37,12 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     }
     void loadInitial();
     return () => { cancelled = true; };
-  }, [isEnglish]);
+  }, [isEnglish, alvo]);
 
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setUploading(true); setMessage("");
     const form = event.currentTarget;
-    const response = await fetch("/api/admin/assets", { method: "POST", body: new FormData(form) });
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "POST", body: new FormData(form) });
     const data = await response.json().catch(() => ({}));
     setUploading(false); setMessage(response.ok ? (isEnglish ? "Asset added to the library." : "Asset adicionado à biblioteca.") : (data.message ?? (isEnglish ? "Couldn't upload." : "Não foi possível enviar.")));
     if (response.ok) { form.reset(); await load(); }
@@ -46,7 +50,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
 
   async function remove(id: string, label: string) {
     if (!window.confirm(isEnglish ? `Remove "${label}" from the library?` : `Remover “${label}” da biblioteca?`)) return;
-    const response = await fetch("/api/admin/assets", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Asset removed." : "Asset removido.") : (data.message ?? (isEnglish ? "Couldn't remove." : "Não foi possível remover.")));
     if (response.ok) await load();

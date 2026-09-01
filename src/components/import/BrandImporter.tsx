@@ -34,9 +34,13 @@ const TEMA_INICIAL = {
 
 export function BrandImporter({
   workspaceId,
+  workspaceSlug,
   limites = LIMITES_DE_IMPORTACAO,
 }: {
   workspaceId: string;
+  /** Para montar o endereço da marca recém-criada. O id é a chave do banco;
+   *  o slug é o que vai na URL, e os dois não são intercambiáveis. */
+  workspaceSlug: string;
   limites?: { maxBytes: number; maxPaginas: number };
 }) {
   const isEnglish = useIsEnglish();
@@ -272,7 +276,9 @@ export function BrandImporter({
     }
 
     void data;
-    router.push("/docs");
+    // A marca acabou de nascer: o destino é ela, e o endereço já existe porque
+    // a chave foi escolhida nesta tela.
+    router.push(`/w/${workspaceSlug}/b/${chave}/docs`);
     router.refresh();
   }
 

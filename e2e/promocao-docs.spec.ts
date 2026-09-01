@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * A V2 é a interface real de /docs.
+ * A V2 é a interface real do manual.
  *
  * Até aqui ela existia numa rota de laboratório e /docs montava o DocsNav —
  * duas interfaces no mesmo produto, e a que estava sendo revisada não era a
@@ -12,15 +12,22 @@ import { expect, test, type Page } from "@playwright/test";
  * projeto tem zero usuários. A renderização vestida está coberta em
  * /dev/marcas, que usa os mesmos componentes e o mesmo tradutor de linha.
  * Aqui o que se prova é a moldura, a navegação e o comportamento.
+ *
+ * As rotas carregam o contexto desde o M1: /w/<conta>/b/<marca>/docs. Os
+ * segmentos abaixo são de laboratório — no preview local não há sessão nem
+ * banco, e o que estes testes verificam é a moldura, que é a mesma. Manter as
+ * URLs antigas aqui provaria que a estrutura antiga ainda monta, que é
+ * justamente o que deixou de ser verdade.
  */
 
-const ROTAS_DO_MANUAL = ["/docs"];
+const CONTEXTO = "/w/laboratorio/b/exemplo";
+const ROTAS_DO_MANUAL = [`${CONTEXTO}/docs`];
 const ROTAS_UTILITARIAS = [
-  "/docs/biblioteca",
-  "/docs/chat",
-  "/docs/analise",
-  "/docs/historico",
-  "/docs/configuracoes/ia",
+  `${CONTEXTO}/docs/biblioteca`,
+  `${CONTEXTO}/docs/chat`,
+  `${CONTEXTO}/docs/analise`,
+  `${CONTEXTO}/docs/historico`,
+  `${CONTEXTO}/docs/configuracoes/ia`,
 ];
 const TODAS = [...ROTAS_DO_MANUAL, ...ROTAS_UTILITARIAS];
 
@@ -57,7 +64,7 @@ test("as rotas utilitárias são superfícies da plataforma, fora do canvas", as
 
 test("sem capacidade não há destino nenhum, e isso é a regra funcionando", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/docs");
+  await page.goto(`${CONTEXTO}/docs`);
 
   // O preview local não concede papel — nem `consultar`. Um destino aqui
   // seria link que termina em 403. A afirmação é mais forte que "o
@@ -68,7 +75,7 @@ test("sem capacidade não há destino nenhum, e isso é a regra funcionando", as
 
 test("a sessão vive na barra, não numa faixa própria", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/docs");
+  await page.goto(`${CONTEXTO}/docs`);
   // A V1 empilhava um cabeçalho só para o e-mail acima do conteúdo.
   const faixas = await page.locator("header").count();
   expect(faixas, "sobrou uma faixa de sessão da V1").toBe(1);
@@ -78,7 +85,7 @@ test("a sessão vive na barra, não numa faixa própria", async ({ page }) => {
 
 test("sem destinos, a moldura não oferece navegação", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/docs/chat");
+  await page.goto(`${CONTEXTO}/docs/chat`);
   await molduraV2(page);
 
   // Coerência com a regra de capacidades: se nenhum destino existe, mostrar o
@@ -103,7 +110,7 @@ for (const [largura, nome] of [
   [390, "mobile"],
   [1440, "desktop"],
 ] as const) {
-  for (const rota of ["/docs", "/docs/biblioteca"]) {
+  for (const rota of [`${CONTEXTO}/docs`, `${CONTEXTO}/docs/biblioteca`]) {
     test(`carregar ${rota} direto em ${nome}`, async ({ page }) => {
       await page.setViewportSize({ width: largura, height: 844 });
       const resposta = await page.goto(rota);

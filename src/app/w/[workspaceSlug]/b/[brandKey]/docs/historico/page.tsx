@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { AnalysisRun, AnalysisVerdict } from "@/lib/analysis/history";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 const VERDICT_LABELS_POR_IDIOMA = {
   en: { aligned: "Aligned", partially_aligned: "Partially aligned", misaligned: "Misaligned", unknown: "Unclassified" },
@@ -27,6 +28,12 @@ function normalizePattern(value: string) {
 }
 
 export default function AnalysisHistoryPage() {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
+  // Os links desta tela vivem dentro da marca da URL. Absolutos (`/docs/...`)
+  // sairiam do contexto e o resolvedor teria de adivinhar de volta.
+  const base = `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs`;
   const isEnglish = useIsEnglish();
   const VERDICT_LABELS = VERDICT_LABELS_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const locale = isEnglish ? "en-US" : "pt-BR";
@@ -37,7 +44,7 @@ export default function AnalysisHistoryPage() {
   const [verdict, setVerdict] = useState<AnalysisVerdict | "all">("all");
 
   useEffect(() => {
-    fetch("/api/analysis/history?limit=200")
+    fetch(comAlvo("/api/analysis/history?limit=200", alvo))
       .then(async (response) => {
         if (!response.ok) throw new Error("history");
         return response.json();
@@ -45,7 +52,7 @@ export default function AnalysisHistoryPage() {
       .then((data) => setRuns(data.runs ?? []))
       .catch(() => setError(isEnglish ? "Couldn't load history." : "Não foi possível carregar o histórico."))
       .finally(() => setLoading(false));
-  }, [isEnglish]);
+  }, [isEnglish, alvo]);
 
   const metrics = useMemo(() => {
     const calibrated = runs.filter((run) => run.calibrationEnabled && run.calibrationExpectedVerdict);
@@ -108,7 +115,7 @@ export default function AnalysisHistoryPage() {
               : "Evidências, validação humana e padrões recorrentes para transformar cada análise em aprendizado de marca."}
           </p>
         </div>
-        <Link href="/docs/analise" className="bg-release-analog-turquoise px-5 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-black">
+        <Link href={`${base}/analise`} className="bg-release-analog-turquoise px-5 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-black">
           {isEnglish ? "New analysis" : "Nova análise"}
         </Link>
       </div>
@@ -189,7 +196,7 @@ export default function AnalysisHistoryPage() {
             {filtered.length ? (
               <div className="mt-6 grid gap-4 xl:grid-cols-2">
                 {filtered.map((run) => (
-                  <Link key={run.id} href={`/docs/historico/${run.id}`} className="group grid min-h-40 grid-cols-[7rem_1fr] overflow-hidden border border-border-default bg-surface-primary transition-colors hover:border-release-analog-white">
+                  <Link key={run.id} href={`${base}/historico/${run.id}`} className="group grid min-h-40 grid-cols-[7rem_1fr] overflow-hidden border border-border-default bg-surface-primary transition-colors hover:border-release-analog-white">
                     <div className="bg-background-secondary">
                       {run.imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element

@@ -1,5 +1,6 @@
 "use client";
 
+import { SeletorDeContexto, type OpcaoDeContexto } from "./SeletorDeContexto";
 import { platformIdentity } from "@/platform/identity";
 import { useIsEnglish } from "@/platform/locale-client";
 import { WorkspaceIdentity } from "./WorkspaceIdentity";
@@ -14,6 +15,7 @@ import { WorkspaceIdentity } from "./WorkspaceIdentity";
 export function PlatformTopBar({
   userEmail,
   brandName,
+  contextoAtivo,
   brandDescriptor,
   onOpenSearch,
   onOpenNavigation,
@@ -22,6 +24,11 @@ export function PlatformTopBar({
 }: {
   userEmail?: string;
   brandName?: string;
+  contextoAtivo?: {
+    workspaceSlug: string;
+    brandKey: string;
+    opcoes: readonly OpcaoDeContexto[];
+  };
   brandDescriptor?: string;
   navigationOpen?: boolean;
   onOpenSearch?: () => void;
@@ -55,7 +62,13 @@ export function PlatformTopBar({
         <span className="truncate text-[13px] font-semibold tracking-tight text-platform-text">
           {platformIdentity.displayName}
         </span>
-        <WorkspaceIdentity name={brandName} descriptor={brandDescriptor} />
+        {/* Com contexto, o nome da marca É o controle de troca. Sem ele —
+            preview local, rota de comparação — continua sendo só rótulo. */}
+        {contextoAtivo ? (
+          <SeletorDeContexto {...contextoAtivo} />
+        ) : (
+          <WorkspaceIdentity name={brandName} descriptor={brandDescriptor} />
+        )}
       </span>
 
       <div className="ml-auto flex items-center gap-[var(--space-shell-3)]">

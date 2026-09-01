@@ -35,11 +35,12 @@ export function NavigationSections({
             {section.label}
           </h2>
           {section.destinations.map((destination) => {
-            const active = isDestinationActive(destination.href, pathname);
+            const alvo = withBase(destination.href, basePath, destination.foraDaMarca);
+            const active = isDestinationActive(destination.href, pathname, basePath, destination.foraDaMarca);
             return (
               <Link
                 key={destination.href}
-                href={withBase(destination.href, basePath)}
+                href={alvo}
                 aria-current={active ? "page" : undefined}
                 onClick={onNavigate}
                 data-nav-destination

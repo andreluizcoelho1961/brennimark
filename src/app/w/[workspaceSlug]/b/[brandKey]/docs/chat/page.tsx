@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AssistantMessage } from "@/components/ai/AssistantMessage";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type RequestPhase = "idle" | "connecting" | "thinking" | "answering";
@@ -22,6 +23,9 @@ const PROGRESS_COPY_POR_IDIOMA: Record<"en" | "pt-BR", Record<Exclude<RequestPha
 };
 
 export default function ChatPage() {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const progressCopy = PROGRESS_COPY_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -70,7 +74,7 @@ export default function ChatPage() {
     let receivedText = false;
 
     try {
-      const res = await fetch("/api/ai/chat", {
+      const res = await fetch(comAlvo("/api/ai/chat", alvo), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: nextMessages }),

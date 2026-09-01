@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
 import { useIsEnglish } from "@/platform/locale-client";
 import { historyActionLabel } from "@/lib/brandville/history-action";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 
 type Version = {
@@ -25,6 +26,9 @@ const STATUS_LABEL_POR_IDIOMA = {
 } satisfies Record<string, Record<DocStatus, string>>;
 
 export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovered: (document: DocPageEntry) => void }) {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const STATUS_LABEL = STATUS_LABEL_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   // O formato de data segue o idioma da interface. Antes seguia o do manual:
@@ -40,7 +44,7 @@ export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovere
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      const response = await fetch(`/api/admin/content/history?slug=${encodeURIComponent(slug)}`, { cache: "no-store" });
+      const response = await fetch(comAlvo(`/api/admin/content/history?slug=${encodeURIComponent(slug)}`, alvo), { cache: "no-store" });
       const data = await response.json().catch(() => ({}));
       if (cancelled) return;
       setLoading(false);
@@ -53,7 +57,7 @@ export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovere
     }
     void load();
     return () => { cancelled = true; };
-  }, [slug, isEnglish]);
+  }, [slug, isEnglish, alvo]);
 
   async function recover(version: Version) {
     const confirmMessage = isEnglish
@@ -61,7 +65,7 @@ export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovere
       : `Recuperar a versão de ${DATE_FORMAT.format(new Date(version.createdAt))}? A versão atual continuará preservada no histórico.`;
     if (!window.confirm(confirmMessage)) return;
     setRecoveringId(version.id); setMessage("");
-    const response = await fetch("/api/admin/content/history", {
+    const response = await fetch(comAlvo("/api/admin/content/history", alvo), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ versionId: version.id }),
     });
     const data = await response.json().catch(() => ({}));

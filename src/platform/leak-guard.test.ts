@@ -36,6 +36,15 @@ const ler = (rel: string) => readFileSync(path.join(raiz, rel), "utf8");
 const lerCodigo = (rel: string) =>
   ler(rel).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 
+/** Todos os arquivos de uma pasta, recursivamente, em caminho relativo. */
+function listarArquivos(rel: string): string[] {
+  const absoluto = path.join(raiz, rel);
+  return readdirSync(absoluto, { withFileTypes: true }).flatMap((entrada) => {
+    const filho = path.join(rel, entrada.name);
+    return entrada.isDirectory() ? listarArquivos(filho) : [filho];
+  });
+}
+
 test("nenhum componente migrado usa token com nome de release de cliente", () => {
   for (const arquivo of [...MOLDURA, ...BOUNDARY]) {
     assert.doesNotMatch(ler(arquivo), /release-analog-/, `${arquivo} ainda usa release-analog-*`);
@@ -129,9 +138,9 @@ const CAMINHO_DA_MARCA = [
   "src/components/shell/WorkspaceIdentity.tsx",
   "src/lib/brandville/context.ts",
   "src/lib/brandville/workspace-context.ts",
-  "src/app/docs/page.tsx",
-  "src/app/docs/[...slug]/page.tsx",
-  "src/app/docs/layout.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
   "src/app/layout.tsx",
 ];
 
@@ -170,7 +179,7 @@ test("os metadados da aplicação são do produto, não do manual", () => {
  * substituem, porque casar uma string prova ausência de chamada, não correção.
  */
 test("o layout de /docs não autentica por conta própria", () => {
-  const codigo = lerCodigo("src/app/docs/layout.tsx");
+  const codigo = lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx");
   assert.doesNotMatch(
     codigo,
     /getBrandvilleAuthContext/,
@@ -213,7 +222,7 @@ test("nenhum papel é presumido quando não há sessão", () => {
 const ESCRITA = [
   "src/app/api/admin/content/route.ts",
   "src/app/api/admin/content/history/route.ts",
-  "src/app/docs/admin/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx",
 ];
 
 test("a escrita não consulta o registro em código", () => {
@@ -238,7 +247,7 @@ test("a escrita não se identifica por instance_key", () => {
 
 test("a administração não veste a marca por instância global", () => {
   assert.doesNotMatch(
-    lerCodigo("src/app/docs/admin/page.tsx"),
+    lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"),
     /brandvilleInstance/,
     "as seções válidas são as da marca resolvida",
   );
@@ -274,7 +283,7 @@ test("a recuperação grava os blocos de volta", () => {
 
 test("a administração oferece as páginas excluídas", () => {
   // Recuperação que existe na API e não na tela não existe para ninguém.
-  assert.match(lerCodigo("src/app/docs/admin/page.tsx"), /getDeletedPages/);
+  assert.match(lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"), /getDeletedPages/);
   assert.match(lerCodigo("src/components/admin/AdminPanel.tsx"), /deletedPages/);
 });
 
@@ -314,11 +323,11 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/components/analysis/FeedbackPanel.tsx",
   "src/app/layout.tsx",
   "src/app/login/page.tsx",
-  "src/app/docs/analise/page.tsx",
-  "src/app/docs/chat/page.tsx",
-  "src/app/docs/historico/page.tsx",
-  "src/app/docs/biblioteca/page.tsx",
-  "src/app/docs/configuracoes/ia/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/analise/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/historico/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/biblioteca/page.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/configuracoes/ia/page.tsx",
   "src/app/api/admin/content/route.ts",
   "src/app/api/ai/chat/route.ts",
   "src/lib/ai/errors.ts",
@@ -549,11 +558,11 @@ test("não existe uma segunda navegação de documentos", () => {
   const componentes = readdirSync(path.join(raiz, "src/components/docs"));
   assert.ok(!componentes.includes("DocsNav.tsx"), "a V1 voltou ao repositório");
   assert.doesNotMatch(
-    lerCodigo("src/app/docs/layout.tsx"),
+    lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"),
     /DocsNav/,
     "o layout real voltou a montar a V1",
   );
-  assert.match(lerCodigo("src/app/docs/layout.tsx"), /AppShellV2/);
+  assert.match(lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"), /AppShellV2/);
 });
 
 /**
@@ -593,7 +602,7 @@ test("as funcionalidades chegam por parâmetro", () => {
 
 test("o layout real passa as funcionalidades da marca resolvida", () => {
   assert.match(
-    lerCodigo("src/app/docs/layout.tsx"),
+    lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"),
     /utilityLinks: brand\?\.navigation\.utilityLinks/,
     "sem isto a navegação real volta a ficar sem a seção Inteligência",
   );
@@ -606,7 +615,7 @@ test("o layout real passa as funcionalidades da marca resolvida", () => {
 test("o importador não usa chave privilegiada", () => {
   for (const arquivo of [
     "src/components/import/BrandImporter.tsx",
-    "src/app/docs/importar/page.tsx",
+    "src/app/w/[workspaceSlug]/importar/page.tsx",
   ]) {
     const codigo = lerCodigo(arquivo);
     assert.doesNotMatch(
@@ -636,7 +645,7 @@ test("a importação é publicada por RPC, não por escrita solta", () => {
 
 test("a rota de importação exige quem administra", () => {
   assert.match(
-    lerCodigo("src/app/docs/importar/page.tsx"),
+    lerCodigo("src/app/w/[workspaceSlug]/importar/page.tsx"),
     /capabilities\.includes\("administrar"\)/,
   );
 });
@@ -712,7 +721,7 @@ test("a exclusão de marca é idempotente e sempre drena", () => {
 });
 
 test("a administração drena a fila ao abrir", () => {
-  assert.match(lerCodigo("src/app/docs/admin/page.tsx"), /drenarFilaDeExclusao/);
+  assert.match(lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"), /drenarFilaDeExclusao/);
 });
 
 test("a fila fecha por observação, não pela resposta do Storage", () => {
@@ -868,9 +877,9 @@ test("rotas de servidor não importam constantes de módulos de cliente", () => 
 
   const servidores = [
     "src/app/dev/importar/page.tsx",
-    "src/app/docs/importar/page.tsx",
-    "src/app/docs/admin/page.tsx",
-    "src/app/docs/layout.tsx",
+    "src/app/w/[workspaceSlug]/importar/page.tsx",
+    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx",
+    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
   ];
 
   for (const arquivo of servidores) {
@@ -937,4 +946,37 @@ test("a regra de seleção não conhece Supabase, React nem ambiente", () => {
   for (const proibido of ["supabase", "process.env", 'from "react"']) {
     assert.ok(!codigo.includes(proibido), `selecao.ts não deve conhecer ${proibido}`);
   }
+});
+
+/**
+ * M1.2. Nenhum link sai do contexto da marca.
+ *
+ * Guarda de código e não de navegador: no preview local não existe capacidade,
+ * logo nenhum destino é renderizado, e um teste que percorresse os links da
+ * página passaria percorrendo uma lista vazia.
+ *
+ * O que ela impede: um `href="/docs/historico"` dentro de uma tela da marca.
+ * Ele não quebra — leva ao resolvedor, que escolhe uma marca e continua. A
+ * pessoa clica em "histórico" dentro da marca A e chega ao histórico da marca
+ * B, sem nenhum sinal de que trocou.
+ */
+test("as telas da marca não usam endereços absolutos de /docs", () => {
+  const arquivos = [
+    ...listarArquivos("src/app/w"),
+    ...listarArquivos("src/components"),
+  ].filter((caminho) => /\.tsx?$/.test(caminho) && !caminho.includes(".test."));
+
+  const infratores: string[] = [];
+  for (const caminho of arquivos) {
+    const codigo = lerCodigo(caminho);
+    // `navigation.ts` é a exceção declarada: os destinos ali são canônicos por
+    // construção e traduzidos por `withBase` na renderização.
+    if (caminho.endsWith("navigation.ts")) continue;
+    for (const linha of codigo.split("\n")) {
+      if (/href=["'{`]?\/docs/.test(linha) || /router\.push\(["'`]\/docs/.test(linha)) {
+        infratores.push(`${caminho}: ${linha.trim().slice(0, 90)}`);
+      }
+    }
+  }
+  assert.deepEqual(infratores, [], "link absoluto sai da marca aberta e cai no resolvedor");
 });

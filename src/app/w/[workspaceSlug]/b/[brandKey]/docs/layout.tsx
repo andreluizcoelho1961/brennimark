@@ -1,5 +1,6 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { caminhoDaMarca } from "@/lib/brandville/selecao";
 import { LocaleProvider } from "@/platform/locale-client";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
@@ -20,11 +21,27 @@ import { SignOutButton } from "@/components/SignOutButton";
  * vem do produto. Os três já existiam separados — a promoção só os liga à
  * moldura nova.
  */
-export default async function DocsLayout({ children }: { children: React.ReactNode }) {
-  const { access, docs, capabilities, userEmail, locale, brand } = await resolveWorkspaceContext();
+export default async function DocsLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ workspaceSlug: string; brandKey: string }>;
+}) {
+  const alvo = await params;
+  const { access, docs, capabilities, userEmail, locale, brand, opcoes } =
+    await resolveWorkspaceContext(alvo);
 
   if (access === "anonymous") redirect("/login");
   if (access === "onboarding") redirect("/onboarding");
+  // Endereço que não serve para esta pessoa é 404 — a mesma resposta para
+  // "não existe" e "você não participa", para não confirmar o endereço a quem
+  // sonda. `ambiguous` aqui significaria uma URL sem os dois segmentos, que
+  // esta rota não consegue produzir; ainda assim, resolver leva ao seletor.
+  if (access === "not-found") notFound();
+  if (access === "ambiguous") redirect("/docs");
+
+  const basePath = caminhoDaMarca(alvo);
 
   return (
     <LocaleProvider locale={locale}>
@@ -33,6 +50,16 @@ export default async function DocsLayout({ children }: { children: React.ReactNo
         statusLabels={brand?.statusLabels}
       >
         <AppShellV2
+          basePath={basePath}
+          contextoAtivo={{
+            workspaceSlug: alvo.workspaceSlug,
+            brandKey: alvo.brandKey,
+            opcoes: opcoes.map((w) => ({
+              slug: w.slug,
+              nome: w.nome,
+              marcas: w.marcas.map((m) => ({ key: m.key, nome: m.nome })),
+            })),
+          }}
           sections={shellSections({
             capabilities,
             locale,

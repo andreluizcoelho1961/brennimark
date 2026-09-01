@@ -6,6 +6,7 @@ import type { DocPageEntry, DocStatus } from "@/content/docs";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { VersionHistory } from "@/components/admin/VersionHistory";
 import { useIsEnglish } from "@/platform/locale-client";
+import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 const STATUS_LABEL_POR_IDIOMA = {
   en: { ready: "Approved", draft: "Draft", pending: "In progress" },
@@ -25,6 +26,9 @@ export function AdminPanel({
   deletedPages?: DeletedPage[];
   groups: readonly string[];
 }) {
+  // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
+  // saberia qual, e responderia 409 numa conta com mais de uma.
+  const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const STATUS_LABEL = STATUS_LABEL_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
   const [docs, setDocs] = useState(initialDocs);
@@ -71,7 +75,7 @@ export function AdminPanel({
   async function save() {
     if (!selected) return;
     setSaving(true); setMessage("");
-    const response = await fetch("/api/admin/content", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selected) });
+    const response = await fetch(comAlvo("/api/admin/content", alvo), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selected) });
     const result = await response.json().catch(() => ({}));
     setSaving(false);
     if (response.ok) {
@@ -95,7 +99,7 @@ export function AdminPanel({
       : `Excluir "${selected.title}"? Ela sai do guia imediatamente. O conteúdo continua no histórico de versões e pode ser recuperado de lá.`;
     if (!window.confirm(confirmacao)) return;
     setSaving(true); setMessage("");
-    const response = await fetch("/api/admin/content", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
+    const response = await fetch(comAlvo("/api/admin/content", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
     const result = await response.json().catch(() => ({}));
     if (response.ok) {
       // A página sai do guia e entra na lista de excluídas — continua
@@ -202,7 +206,7 @@ export function AdminPanel({
         <div className="border border-border-default p-5 md:p-8">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div><p className="font-mono text-[10px] text-text-secondary">/docs/{selected.slug}</p><p className="mt-1 text-xs text-text-secondary">{hasUnsavedChanges ? (isEnglish ? "Unsaved changes" : "Mudanças ainda não salvas") : (isEnglish ? "Published" : "Publicada")}</p></div>
-            <Link href={`/docs/${selected.slug}`} className="border border-border-default px-4 py-2 font-display text-xs font-bold uppercase text-release-analog-white hover:border-release-analog-white">{isEnglish ? "View page" : "Ver página"}</Link>
+            <Link href={`/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs/${selected.slug}`} className="border border-border-default px-4 py-2 font-display text-xs font-bold uppercase text-release-analog-white hover:border-release-analog-white">{isEnglish ? "View page" : "Ver página"}</Link>
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
