@@ -777,20 +777,60 @@ test("a suite descobre os testes, em vez de listá-los", () => {
   );
 });
 
-test("todo teste desta suite importa por caminho relativo", () => {
-  // O alias `@/` exige a configuração do Next, que esta compilação não tem.
-  // Um teste que use alias falha ao compilar — e a suíte inteira para.
-  const raizSrc = path.join(raiz, "src");
-  const pilha = [raizSrc];
-  const arquivos: string[] = [];
+/** Todos os .test.ts sob src, por caminho relativo à raiz. */
+function testesNaFonte(): string[] {
+  const encontrados: string[] = [];
+  const pilha = [path.join(raiz, "src")];
   while (pilha.length > 0) {
     const dir = pilha.pop()!;
     for (const entrada of readdirSync(dir, { withFileTypes: true })) {
       const caminho = path.join(dir, entrada.name);
       if (entrada.isDirectory()) pilha.push(caminho);
-      else if (entrada.name.endsWith(".test.ts")) arquivos.push(caminho);
+      else if (entrada.name.endsWith(".test.ts")) encontrados.push(caminho);
     }
   }
+  return encontrados;
+}
+
+/**
+ * Fonte, compilado e executado precisam ser o mesmo conjunto.
+ *
+ * Um .test.ts sem .test.js correspondente é cobertura declarada que nunca
+ * roda — foi o que aconteceu com draft.test.ts. Um .test.js sem fonte é o
+ * inverso: sobra de uma compilação antiga, que pode passar por engano ou
+ * duplicar um resultado. Por isso a suíte apaga o diretório temporário antes
+ * de compilar; esta guarda existe caso alguém remova essa limpeza.
+ */
+test("cada teste na fonte tem um compilado, e vice-versa", () => {
+  const fonte = new Set(
+    testesNaFonte().map((f) => path.relative(path.join(raiz, "src"), f).replace(/\.ts$/, "")),
+  );
+
+  const compilados = new Set<string>();
+  const base = path.join(raiz, ".tmp/brand-context-test");
+  const pilha = [base];
+  while (pilha.length > 0) {
+    const dir = pilha.pop()!;
+    for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+      const caminho = path.join(dir, entrada.name);
+      if (entrada.isDirectory()) pilha.push(caminho);
+      else if (entrada.name.endsWith(".test.js")) {
+        compilados.add(path.relative(base, caminho).replace(/\.js$/, ""));
+      }
+    }
+  }
+
+  const semCompilado = [...fonte].filter((f) => !compilados.has(f));
+  assert.deepEqual(semCompilado, [], "teste que existe e nunca executa");
+
+  const semFonte = [...compilados].filter((c) => !fonte.has(c));
+  assert.deepEqual(semFonte, [], "artefato velho sem fonte: pode mascarar ou duplicar");
+});
+
+test("todo teste desta suite importa por caminho relativo", () => {
+  // O alias `@/` exige a configuração do Next, que esta compilação não tem.
+  // Um teste que use alias falha ao compilar — e a suíte inteira para.
+  const arquivos = testesNaFonte();
   assert.ok(arquivos.length > 10, "a varredura precisa achar os testes");
   for (const arquivo of arquivos) {
     assert.doesNotMatch(

@@ -27,7 +27,11 @@ com quatro marcas opostas.
 | Produção | `https://brennimark.vercel.app` — projeto Vercel `brennimark`, deploy em 30/08 |
 | Ambiente local | `.env.local` (fora do git) com URL, chave publicável e uma chave de cifra gerada localmente |
 | Servidor | `npm --prefix ~/meus-projetos/Brennimark run dev` — porta 3000 |
-| Testes | `npm run verify` = lint, tipos, 176 unidades, build, 71 de navegador |
+| Testes | `npm run verify` = lint, tipos, **204** unidades, build, 71 de navegador |
+
+> **Números anteriores a 01/09 não valem.** A suíte listava os arquivos de
+> teste um a um e `lib/import` nunca entrou na lista: `draft.test.ts` existia e
+> nunca executava. O baseline correto foi estabelecido com `npm ci` limpo.
 
 **Configuração de autenticação (Supabase → Authentication → URL Configuration):**
 o *Site URL* e a lista de *Redirect URLs* precisam conter o domínio de produção,
