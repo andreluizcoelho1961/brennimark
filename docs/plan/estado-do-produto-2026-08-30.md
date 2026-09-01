@@ -1,5 +1,9 @@
 # Estado do produto — 30/08/2026
 
+> **Continuação em `handoff-auditoria-2026-09-01.md`.** A auditoria de 01/09
+> encontrou defeitos de segurança e escala; o handoff registra o que já foi
+> corrigido, o baseline novo (205 unidades / 81 navegador) e o que falta.
+
 Escrito para que qualquer pessoa (ou eu, na próxima sessão) retome sem
 reconstruir contexto. O que está provado, o que não está, e o que falta fazer.
 
