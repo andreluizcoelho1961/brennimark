@@ -72,11 +72,43 @@ que consultar o GIN e cruzar o resultado com o filtro de marca.
 Custo do que não é usado: 4,4 MB de índice com 7.460 linhas, e escrita a cada
 mudança de documento — uma importação de 500 seções faz mil inserções nele.
 
-**Recomendação, não executada:** trocar o GIN em `tsv` por um GIN composto em
-`(brand_id, tsv)` — o que exigiria a extensão `btree_gin` — ou simplesmente
-removê-lo, apoiado no teto de 500 seções. A segunda opção não adiciona
-dependência e é trivialmente reversível. Fica para decisão de quem revisa; não
-mexi por conta própria porque é esquema.
+**Decidido: o GIN foi removido** (migração `20260902100000`). `btree_gin` foi
+recusada — um GIN composto em `(brand_id, tsv)` resolveria, e adicionaria uma
+extensão ao projeto para ganhar tempo que o teto de 500 seções já garante.
+
+## Depois da remoção
+
+Mesmo roteiro, mesma semeadura, GIN ausente:
+
+| cenário | média | pior | fontes por busca |
+|---|---|---|---|
+| 152 seções, 40 clientes na tabela | **0,34 ms** | 0,99 ms | 5,6 |
+| 500 seções — o teto do produto | **0,92 ms** | 1,49 ms | 5,6 |
+
+Mais rápido que com o índice, não apenas igual. A tabela caiu de 16 MB para
+12 MB — os 4 MB eram o GIN.
+
+O plano no teto:
+
+```
+Limit  (actual time=2.158..2.161 rows=8)
+  ->  Sort  Sort Method: top-N heapsort  Memory: 25kB
+        ->  Bitmap Heap Scan on brand_chunks  (actual time=0.179..1.903 rows=500)
+              Recheck Cond: (brand_id = ...)
+              Filter: (workspace_id = ANY(...) AND tsv @@ ...)
+              Rows Removed by Filter: 500
+              Heap Blocks: exact=125
+              ->  Bitmap Index Scan on brand_chunks_brand_idx  (rows=1000)
+Execution Time: 2.854 ms
+```
+
+Mil trechos varridos, quinhentos descartados pelo filtro de texto, oito
+devolvidos. É exatamente o custo previsto pelo teto de seções, e ele não cresce
+com o número de marcas na tabela — o btree estreita antes.
+
+Nota sobre a comparação: o `EXPLAIN` isolado mostra 2,85 ms contra os 0,92 ms
+médios das cem chamadas porque inclui o custo de planejamento e a primeira
+leitura fria. A média de cem chamadas é a medida mais próxima do uso real.
 
 ## Como reproduzir
 
