@@ -42,6 +42,31 @@ function parseImageDataUrl(value: string) {
   return { mediaType: match[1], data: match[2] };
 }
 
+
+/**
+ * A base de conhecimento não respondeu.
+ *
+ * 503 e NENHUMA chamada ao provedor. Um modelo acionado sem os trechos
+ * responderia com conhecimento geral sobre uma marca que ele não conhece — e a
+ * resposta sairia com a cara de sempre, fundamentada em nada. Custa dinheiro e
+ * produz a falha mais cara do produto: uma regra de marca inventada.
+ *
+ * Distinto de "não encontrei nada", que é 200 e resposta de insuficiência de
+ * evidência. Um é uma afirmação sobre o manual; o outro é a confissão de que
+ * não deu para consultá-lo.
+ */
+function conhecimentoIndisponivel() {
+  return NextResponse.json(
+    {
+      error: "knowledge_unavailable",
+      message: isEnglish
+        ? "The brand manual couldn't be consulted right now. Try again in a moment."
+        : "Não foi possível consultar o manual da marca agora. Tente de novo em instantes.",
+    },
+    { status: 503 },
+  );
+}
+
 export async function POST(request: Request) {
   const startedAt = Date.now();
   const requestId = request.headers.get("x-vercel-id") ?? crypto.randomUUID();
@@ -96,9 +121,17 @@ export async function POST(request: Request) {
      * com procedência é melhor que muito sem relação.
      */
     const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
-    if (auth) {
-      trechos = await buscarTrechos(auth.supabase, contexto.brand.id, `${question} ${fileName}`);
-    }
+    if (!auth) return conhecimentoIndisponivel();
+
+    const recuperacao = await buscarTrechos(
+      auth.supabase,
+      contexto.brand.id,
+      `${question} ${fileName}`,
+    );
+    // Interrompe antes do provedor: julgar uma peça sem o manual seria julgar
+    // com conhecimento geral, e o veredito sairia com a mesma confiança.
+    if (!recuperacao.ok) return conhecimentoIndisponivel();
+    trechos = recuperacao.trechos;
     brandPrompt = brandPromptContext(contexto.brand);
   } catch {
     return NextResponse.json({ error: "content_unavailable", message: isEnglish ? "Couldn't load the latest guidelines right now." : "Não foi possível carregar as diretrizes atualizadas agora." }, { status: 503 });

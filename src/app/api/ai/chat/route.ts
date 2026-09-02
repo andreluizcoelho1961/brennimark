@@ -22,6 +22,31 @@ const CHAT_TIMEOUT_MS = 60_000;
 
 export const maxDuration = 120;
 
+
+/**
+ * A base de conhecimento não respondeu.
+ *
+ * 503 e NENHUMA chamada ao provedor. Um modelo acionado sem os trechos
+ * responderia com conhecimento geral sobre uma marca que ele não conhece — e a
+ * resposta sairia com a cara de sempre, fundamentada em nada. Custa dinheiro e
+ * produz a falha mais cara do produto: uma regra de marca inventada.
+ *
+ * Distinto de "não encontrei nada", que é 200 e resposta de insuficiência de
+ * evidência. Um é uma afirmação sobre o manual; o outro é a confissão de que
+ * não deu para consultá-lo.
+ */
+function conhecimentoIndisponivel() {
+  return NextResponse.json(
+    {
+      error: "knowledge_unavailable",
+      message: isEnglish
+        ? "The brand manual couldn't be consulted right now. Try again in a moment."
+        : "Não foi possível consultar o manual da marca agora. Tente de novo em instantes.",
+    },
+    { status: 503 },
+  );
+}
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const recebidas = body?.messages as ModelMessage[] | undefined;
@@ -62,13 +87,17 @@ export async function POST(request: Request) {
      * invoker`. Não existe filtro para errar aqui.
      */
     const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
-    if (auth) {
-      trechos = await buscarTrechos(
-        auth.supabase,
-        contexto.brand.id,
-        perguntaDasMensagens(messages ?? []),
-      );
-    }
+    if (!auth) return conhecimentoIndisponivel();
+
+    const recuperacao = await buscarTrechos(
+      auth.supabase,
+      contexto.brand.id,
+      perguntaDasMensagens(messages ?? []),
+    );
+    // A falha da busca interrompe AQUI, antes de resolver o roteamento e antes
+    // de qualquer chamada ao provedor.
+    if (!recuperacao.ok) return conhecimentoIndisponivel();
+    trechos = recuperacao.trechos;
     const routing = await resolveChatRouting();
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;

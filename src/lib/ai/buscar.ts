@@ -3,6 +3,22 @@ import type { Trecho } from "./recuperacao";
 import { LIMITES_DE_IA, limitarPergunta } from "./recuperacao";
 
 /**
+ * O resultado da recuperação, com a distinção que importa.
+ *
+ * "Nada encontrado" e "a busca falhou" são coisas diferentes, e confundi-las é
+ * a mesma classe de defeito que o perfil tinha: engolir o erro do Supabase
+ * fazia uma falha de infraestrutura virar uma afirmação sobre o conteúdo.
+ *
+ * "Não há diretriz documentada para isso" é uma afirmação sobre o MANUAL. O
+ * produto só pode fazê-la quando de fato consultou o manual. Se o banco, a
+ * RLS ou a RPC falharam, ele não consultou nada — e dizer que a marca não
+ * documentou é inventar um fato sobre o cliente a partir de um erro de rede.
+ */
+export type Recuperacao =
+  | { ok: true; trechos: Trecho[] }
+  | { ok: false; motivo: string };
+
+/**
  * A ponte entre a pergunta e o índice.
  *
  * Chama `buscar_trechos`, que é `security invoker`: a RLS decide o que esta
@@ -10,18 +26,20 @@ import { LIMITES_DE_IA, limitarPergunta } from "./recuperacao";
  * caminho por onde esta função devolva trecho de outra marca — nem por engano
  * de filtro, porque não existe filtro para errar aqui.
  *
- * Erro de busca devolve LISTA VAZIA, e a lista vazia produz a resposta honesta
- * de "não há diretriz documentada". A alternativa seria cair para o manual
- * inteiro, e um fallback assim reintroduz exatamente o custo que A1 remove —
- * silenciosamente, e só quando algo já está errado.
+ * Falha SOBE. Nem lista vazia, que mentiria sobre o conteúdo; nem o manual
+ * inteiro, que reintroduziria o custo silenciosamente e só quando algo já está
+ * errado. Quem chama decide o que fazer, e a decisão certa é não chamar o
+ * modelo.
  */
 export async function buscarTrechos(
   supabase: SupabaseClient,
   brandId: string,
   pergunta: string,
-): Promise<Trecho[]> {
+): Promise<Recuperacao> {
   const consulta = limitarPergunta(pergunta);
-  if (!consulta) return [];
+  // Pergunta vazia não é falha: não há o que buscar, e zero resultados é a
+  // resposta correta e verdadeira.
+  if (!consulta) return { ok: true, trechos: [] };
 
   const { data, error } = await supabase.rpc("buscar_trechos", {
     p_brand_id: brandId,
@@ -30,11 +48,20 @@ export async function buscarTrechos(
   });
 
   if (error) {
-    console.error("[ai/buscar] recuperação falhou", error.message);
-    return [];
+    // A mensagem do banco pode conter fragmento de consulta e, por ela, texto
+    // do manual do cliente. O log leva o código; o conteúdo fica de fora.
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "brand_knowledge_unavailable",
+        code: error.code ?? "unknown",
+        brandId,
+      }),
+    );
+    return { ok: false, motivo: error.code ?? "unknown" };
   }
 
-  return (data ?? []).map((linha: Record<string, unknown>) => ({
+  const trechos = (data ?? []).map((linha: Record<string, unknown>) => ({
     documentSlug: String(linha.document_slug ?? ""),
     documentTitle: String(linha.document_title ?? ""),
     groupName: String(linha.group_name ?? ""),
@@ -44,6 +71,8 @@ export async function buscarTrechos(
     pageEnd: typeof linha.page_end === "number" ? linha.page_end : null,
     content: String(linha.content ?? ""),
   }));
+
+  return { ok: true, trechos };
 }
 
 /**

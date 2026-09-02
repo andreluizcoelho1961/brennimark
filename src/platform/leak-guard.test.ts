@@ -1104,3 +1104,58 @@ test("não existe conversor de páginas para trechos no código de produção", 
   const codigo = lerCodigo("src/lib/ai/recuperacao.ts") + lerCodigo("src/lib/ai/buscar.ts");
   assert.doesNotMatch(codigo, /DocPageEntry/, "há conversão de documento para trecho em produção");
 });
+
+/**
+ * A1.2. Falha da base de conhecimento não vira afirmação sobre o conteúdo.
+ *
+ * "Não há diretriz documentada para isso" é uma afirmação sobre o MANUAL. O
+ * produto só pode fazê-la depois de consultar o manual. Se o banco, a RLS ou a
+ * RPC falharam, ele não consultou nada — e dizer que a marca não documentou
+ * seria inventar um fato sobre o cliente a partir de um erro de rede.
+ *
+ * É a mesma classe do defeito do perfil, onde engolir o erro do Supabase fazia
+ * uma falha de infraestrutura virar "esta pessoa não completou o cadastro".
+ */
+test("a busca não engole o erro do banco", () => {
+  const codigo = lerCodigo("src/lib/ai/buscar.ts");
+  // `return []` depois de um erro é exatamente a regressão. O tipo de retorno
+  // discriminado é o que impede o chamador de confundir os dois casos.
+  assert.doesNotMatch(codigo, /if \(error\)[\s\S]{0,200}return \[\]/);
+  assert.match(codigo, /ok: false/);
+});
+
+test("erro de recuperação interrompe antes do provedor de IA", () => {
+  for (const arquivo of CAMINHOS_DE_IA) {
+    const codigo = lerCodigo(arquivo);
+
+    const posicaoDaGuarda = codigo.indexOf("if (!recuperacao.ok)");
+    assert.ok(posicaoDaGuarda > 0, `${arquivo} não interrompe quando a busca falha`);
+
+    // A guarda precisa vir ANTES de qualquer coisa que gaste o provedor:
+    // resolver roteamento já lê configuração, e `streamText` é a chamada.
+    for (const depois of ["streamText(", "prepareStreamWithFallback("]) {
+      const posicao = codigo.indexOf(depois);
+      assert.ok(
+        posicao === -1 || posicao > posicaoDaGuarda,
+        `${arquivo}: ${depois} acontece antes da guarda — o modelo seria acionado sem o manual`,
+      );
+    }
+  }
+});
+
+test("a indisponibilidade tem código próprio, distinto de ausência de evidência", () => {
+  for (const arquivo of CAMINHOS_DE_IA) {
+    const codigo = lerCodigo(arquivo);
+    assert.match(codigo, /knowledge_unavailable/, `${arquivo} não nomeia a indisponibilidade`);
+    assert.match(codigo, /status: 503/, `${arquivo} não responde 503`);
+  }
+});
+
+test("o log da falha não carrega conteúdo do manual", () => {
+  // A mensagem do Postgres pode conter fragmento da consulta e, por ela, texto
+  // do cliente. Log é lido por gente que não deveria ver o manual de ninguém.
+  const codigo = lerCodigo("src/lib/ai/buscar.ts");
+  const log = codigo.slice(codigo.indexOf("console.error"), codigo.indexOf("return { ok: false"));
+  assert.doesNotMatch(log, /error\.message/, "a mensagem do banco vai para o log");
+  assert.doesNotMatch(log, /consulta|pergunta/, "a pergunta vai para o log");
+});
