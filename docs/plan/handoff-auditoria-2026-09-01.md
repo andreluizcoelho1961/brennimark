@@ -117,6 +117,16 @@ resiliência · `V1` remoção do legado visual.
 
 Valem como aviso porque são de processo, não de código:
 
+0. **O M2.2 não existe como commit.** Escrevi a migração de exclusão
+   (`20260901220000_deleting_a_brand_takes_every_file.sql`) e a reescrita da
+   fila ANTES de commitar o M2.1, e o `git add -A` do M2.1 levou tudo junto.
+   O conteúdo está em `c8d52b1`, cuja mensagem não descreve metade do que ele
+   contém — a exclusão por fila durável, os três buckets e a espera entre
+   tentativas. Não reescrevi o histórico. Quem for procurar a exclusão
+   durável deve procurar em `c8d52b1`, não numa mensagem que a mencione.
+   A regra que faltou: `git add` só do que a mensagem descreve, ou commitar
+   antes de começar o próximo passo.
+
 1. **Empurrei dois commits sem esperar o `verify` terminar**, e descrevi ambos
    como verdes. `e6cdfcc` estava vermelho no lint, o seguinte no navegador. Só
    `c17c7de` ficou verde. Conferir antes do push é regra.
