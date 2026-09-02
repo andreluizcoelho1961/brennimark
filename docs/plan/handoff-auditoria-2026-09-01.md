@@ -117,15 +117,41 @@ resiliência · `V1` remoção do legado visual.
 
 Valem como aviso porque são de processo, não de código:
 
-0. **O M2.2 não existe como commit.** Escrevi a migração de exclusão
-   (`20260901220000_deleting_a_brand_takes_every_file.sql`) e a reescrita da
-   fila ANTES de commitar o M2.1, e o `git add -A` do M2.1 levou tudo junto.
-   O conteúdo está em `c8d52b1`, cuja mensagem não descreve metade do que ele
-   contém — a exclusão por fila durável, os três buckets e a espera entre
-   tentativas. Não reescrevi o histórico. Quem for procurar a exclusão
-   durável deve procurar em `c8d52b1`, não numa mensagem que a mencione.
+0. **O M2.2 não existe como commit — está dentro de `c8d52b1`.** Escrevi a
+   migração de exclusão e a reescrita da fila antes de commitar o M2.1, e o
+   `git add -A` levou tudo junto. A mensagem de `c8d52b1` descreve só a
+   metade do conteúdo. Não reescrevi o histórico.
+
+   **O que `c8d52b1` contém além do que a mensagem dele diz:**
+
+   | arquivo | o que há nele |
+   |---|---|
+   | `supabase/migrations/20260901220000_deleting_a_brand_takes_every_file.sql` | `delete_brand_with_files` reescrita para enfileirar os TRÊS buckets; `delete_asset_with_file` nova; política de UPDATE em `brand_deletions` |
+   | `src/lib/import/limpeza.ts` | drenagem agrupada por bucket, contabilidade de tentativa, adiamento |
+   | `src/lib/import/fila.ts` + `.test.ts` | `intervaloDeEspera`: espera crescente com teto de uma hora |
+
+   **O comportamento de exclusão que ele estabelece:**
+
+   - Apagar uma marca enfileira, na MESMA transação do delete, os PDFs de
+     importação, os assets e as evidências de análise. A cascata do banco não
+     alcança o Storage; sem enfileirar antes, os arquivos ficariam sem
+     nenhuma linha apontando para eles.
+   - Apagar um asset avulso é uma transação só — a linha sai e o caminho
+     entra na fila — e o Storage é tentado DEPOIS. Falhando o Storage, a fila
+     retém e a drenagem repete. Em nenhum instante existe arquivo sem
+     registro.
+   - A fila sabe de qual bucket é cada arquivo. Sem isso a drenagem apagaria
+     tudo no bucket dos PDFs, receberia "não existe" para os outros dois,
+     observaria a ausência — correta, no bucket errado — e fecharia o
+     registro. Parece sucesso e perde o arquivo para sempre.
+   - Tentativas que falham são adiadas com espera crescente, com teto de uma
+     hora. A primeira tentativa é imediata.
+   - Análise sem `image_path` não entra na fila: um caminho vazio seria
+     tentado para sempre sem nunca sair.
+
    A regra que faltou: `git add` só do que a mensagem descreve, ou commitar
-   antes de começar o próximo passo.
+   antes de começar o passo seguinte. **Daqui em diante, um patch por
+   commit.**
 
 1. **Empurrei dois commits sem esperar o `verify` terminar**, e descrevi ambos
    como verdes. `e6cdfcc` estava vermelho no lint, o seguinte no navegador. Só
@@ -145,6 +171,13 @@ Valem como aviso porque são de processo, não de código:
 - **Testes desta suíte importam por caminho relativo**, nunca por `@/` — o alias
   exige a configuração do Next e faria a compilação inteira parar. Há guarda.
 - As fixtures de PDF são geradas por `scripts/gerar-fixtures-pdf.py`.
+- **Nunca `git checkout`, `git restore` ou equivalente sobre alteração não
+  commitada.** Rodei `git checkout src/lib/analysis/server.ts` para desfazer
+  uma sonda de regressão e apaguei junto o trabalho não commitado do M2 no
+  mesmo arquivo. Foi recuperável porque eu sabia o que havia ali — não é uma
+  garantia que se possa contar, e num repositório com outra frente em
+  andamento apagaria trabalho alheio. Para desfazer uma sonda: copiar o
+  arquivo antes (`cp` para o scratchpad) e restaurar da cópia.
 - **O aceite com manual real exige `BRENNIMARK_ACCEPTANCE_PDF`.** Sem a
   variável — ou apontando para arquivo inexistente — os dois testes de
   `e2e/importador-aceite-externo.spec.ts` se pulam dizendo o motivo. Não há
