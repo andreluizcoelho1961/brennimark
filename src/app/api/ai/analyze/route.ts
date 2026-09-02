@@ -3,17 +3,15 @@ import { streamText } from "ai";
 import { getModel, supportsVision } from "@/lib/ai/provider";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { brandPromptContext } from "@/lib/brandville/context";
 import { classifyAIError } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { getAnalysisAuthContext, persistAnalysisRun } from "@/lib/analysis/server";
-import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { alvoDaRota, portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -103,15 +101,13 @@ export async function POST(request: Request) {
   let trechos: Trecho[] = [];
   let brandPrompt;
   try {
-    const contexto = await resolveWorkspaceContext(alvoDaRota(request));
-    if (!contexto.brand) {
-      // Sem marca não há sobre o que responder — e um prompt sem papel nem
-      // idioma responderia como se fosse sobre qualquer marca.
-      return NextResponse.json(
-        { error: "no_brand", message: isEnglish ? "No brand configured yet." : "Nenhuma marca configurada ainda." },
-        { status: 409 },
-      );
-    }
+    /*
+     * O portão do G1: a marca precisa ter contratado a ANÁLISE, e não basta
+     * ter contratado o chat. Contratar uma coisa não contrata a outra.
+     */
+    const portao = await portaoDeIA(request, "analysis");
+    if (!portao.ok) return portao.resposta;
+
     /*
      * A análise também recupera, em vez de levar o manual inteiro.
      *
@@ -120,19 +116,16 @@ export async function POST(request: Request) {
      * é honesto que seja pouco: recuperar sobre pouco devolve pouco, e pouco
      * com procedência é melhor que muito sem relação.
      */
-    const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
-    if (!auth) return conhecimentoIndisponivel();
-
     const recuperacao = await buscarTrechos(
-      auth.supabase,
-      contexto.brand.id,
+      portao.auth.supabase,
+      portao.brand.id,
       `${question} ${fileName}`,
     );
     // Interrompe antes do provedor: julgar uma peça sem o manual seria julgar
     // com conhecimento geral, e o veredito sairia com a mesma confiança.
     if (!recuperacao.ok) return conhecimentoIndisponivel();
     trechos = recuperacao.trechos;
-    brandPrompt = brandPromptContext(contexto.brand);
+    brandPrompt = brandPromptContext(portao.brand);
   } catch {
     return NextResponse.json({ error: "content_unavailable", message: isEnglish ? "Couldn't load the latest guidelines right now." : "Não foi possível carregar as diretrizes atualizadas agora." }, { status: 503 });
   }

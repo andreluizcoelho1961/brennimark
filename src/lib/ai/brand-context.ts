@@ -100,26 +100,9 @@ export function getBrandKnowledgeSources(docs: readonly DocPageEntry[]): BrandKn
   return guidePages;
 }
 
-function renderSource(source: BrandKnowledgeSource, rotulos: Record<DocStatus, string>): string {
-  const status = rotulos[source.status];
-  const facts = source.facts.length > 0 ? source.facts.map((fact) => `- ${fact}`).join("\n") : "- Nenhuma diretriz foi documentada nesta fonte ainda.";
-
-  return `<source id="${source.id}" status="${status}" kind="${source.kind}">
-TÍTULO: ${source.title}
-GRUPO: ${source.group}
-CAMINHO: ${source.path}
-CONTEÚDO:
-${facts}
-</source>`;
-}
 
 
-/** Blocos que carregam informação visual — o que importa ao julgar uma peça. */
-const VISUAL_BLOCK_KINDS = new Set(["swatches", "gallery", "section"]);
 
-function hasVisualBlocks(entry: DocPageEntry): boolean {
-  return (entry.blocks ?? []).some((block) => VISUAL_BLOCK_KINDS.has(block.kind));
-}
 
 
 function regrasDeFundamentacao(brand: BrandPromptContext): string {

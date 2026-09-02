@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveWorkspaceContext, type WorkspaceContext } from "./workspace-context";
 import type { Alvo } from "./selecao";
+import { podeUsar, type Utilidade } from "../ai/permissao";
 import { getBrandvilleAuthContext, resolverWorkspaceAtivo, type BrandvilleAuthContext } from "./server";
 
 /**
@@ -177,4 +178,83 @@ export async function marcaDaRota(request: Request): Promise<MarcaDaRota> {
     auth,
     papel: auth.role,
   };
+}
+
+/**
+ * O portão das rotas de IA.
+ *
+ * Resolve a marca e aplica a matriz do G1 no SERVIDOR. A navegação já filtra
+ * destinos por capacidade, mas isso decide o que aparece — nunca decidiu o que
+ * é permitido, e quem souber a URL da API chega nela do mesmo jeito.
+ *
+ * As duas recusas respondem diferente de propósito:
+ *
+ *   404  a marca não contratou esta funcionalidade. Ela não existe aqui, e
+ *        dizer "não existe" é a verdade.
+ *   403  existe, e este papel não a usa.
+ */
+export type PortaoDeIA =
+  | {
+      ok: true;
+      contexto: WorkspaceContext;
+      auth: BrandvilleAuthContext;
+      brand: NonNullable<WorkspaceContext["brand"]>;
+    }
+  | { ok: false; resposta: NextResponse };
+
+export async function portaoDeIA(
+  request: Request,
+  utilidade: Utilidade,
+): Promise<PortaoDeIA> {
+  const resolvido = await conteudoDaRota(request);
+  if (!resolvido.ok) return resolvido;
+
+  const { contexto, auth } = resolvido;
+  if (!contexto.brand) {
+    return { ok: false, resposta: NextResponse.json({ error: "no_brand" }, { status: 409 }) };
+  }
+
+  const veredito = podeUsar({
+    utilidade,
+    capabilities: contexto.capabilities,
+    utilityLinks: contexto.brand.navigation.utilityLinks,
+  });
+
+  if (!veredito.permitido) {
+    return veredito.motivo === "nao-contratada"
+      ? {
+          ok: false,
+          resposta: NextResponse.json({ error: "utilidade_nao_contratada" }, { status: 404 }),
+        }
+      : {
+          ok: false,
+          resposta: NextResponse.json({ error: "sem_permissao" }, { status: 403 }),
+        };
+  }
+
+  return { ok: true, contexto, auth, brand: contexto.brand };
+}
+
+/**
+ * As rotas que governam a conta: chaves e roteamento de IA.
+ *
+ * A RLS já recusa a escrita de quem não administra, mas ela recusa em
+ * SILÊNCIO — um update sem linhas afetadas parece sucesso, e a tela diria
+ * "salvo" sobre algo que não foi salvo. A recusa explícita aqui é o que
+ * transforma isso em 403.
+ *
+ * As duas camadas existem de propósito: a rota é a que responde bem, e a RLS é
+ * a que continua valendo se alguém chegar pela Data API sem passar por rota
+ * nenhuma.
+ */
+export async function donoDaRota(request: Request): Promise<ContextoDaRota> {
+  const r = await workspaceDaRota(request);
+  if (!r.ok) return r;
+  if (r.papel !== "owner") {
+    return {
+      ok: false,
+      resposta: NextResponse.json({ error: "sem_permissao" }, { status: 403 }),
+    };
+  }
+  return r;
 }

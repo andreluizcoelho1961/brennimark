@@ -3,13 +3,13 @@ import { createClient } from "@/lib/supabase/server";
 import { encryptApiKey, last4 } from "@/lib/ai/crypto";
 import { PROVIDERS, type AIProvider, type AIRole } from "@/lib/ai/provider";
 import { listSettings } from "@/lib/ai/settings";
-import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
+import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
 
 const VALID_PROVIDERS = new Set(PROVIDERS.map((p) => p.value));
 const VALID_ROLES = new Set<AIRole>(["chat", "analysis", "both"]);
 
 export async function GET(request: Request) {
-  const contexto = await workspaceDaRota(request);
+  const contexto = await donoDaRota(request);
   // Lista vazia só para quem não tem sessão. Ambiguidade responde 409 e diz as
   // opções: devolver `[]` faria parecer que a conta não tem configuração
   // nenhuma, quando ela tem — na outra conta.
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const contexto = await workspaceDaRota(request);
+  const contexto = await donoDaRota(request);
   if (!contexto.ok) return contexto.resposta;
   const workspaceId = contexto.workspaceId;
 

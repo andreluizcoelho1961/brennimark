@@ -6,14 +6,14 @@ import {
   roleCoversFeature,
 } from "@/lib/ai/settings";
 import type { AIProvider, AIRole, AIRoutingFeature } from "@/lib/ai/provider";
-import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
+import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
 
 const FEATURES = new Set<AIRoutingFeature>(["chat", "analysis"]);
 const MIN_TIMEOUT_MS = 3_000;
 const MAX_TIMEOUT_MS = 60_000;
 
 export async function GET(request: Request) {
-  const contexto = await workspaceDaRota(request);
+  const contexto = await donoDaRota(request);
   // Sem sessão devolve a política padrão, não editável. Ambiguidade e
   // não-encontrado sobem como estão: fingir "padrão" esconderia que existe
   // política configurada — na outra conta.
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const contexto = await workspaceDaRota(request);
+  const contexto = await donoDaRota(request);
   if (!contexto.ok) return contexto.resposta;
   const workspaceId = contexto.workspaceId;
 

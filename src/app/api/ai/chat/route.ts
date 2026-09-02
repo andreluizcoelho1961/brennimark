@@ -5,11 +5,9 @@ import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings"
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
-import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
+import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { classifyAIError } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { brandPromptContext } from "@/lib/brandville/context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
@@ -64,16 +62,17 @@ export async function POST(request: Request) {
   let trechos: Trecho[] = [];
   let brandPrompt;
   try {
-    const contexto = await resolveWorkspaceContext(alvoDaRota(request));
-    if (!contexto.brand) {
-      // Sem marca não há sobre o que responder — e um prompt sem papel nem
-      // idioma responderia como se fosse sobre qualquer marca.
-      return NextResponse.json(
-        { error: "no_brand", message: isEnglish ? "No brand configured yet." : "Nenhuma marca configurada ainda." },
-        { status: 409 },
-      );
-    }
-    brandPrompt = brandPromptContext(contexto.brand);
+    /*
+     * O portão do G1, no servidor.
+     *
+     * Ele resolve a marca E aplica a matriz: a marca precisa ter contratado o
+     * assistente, e quem pergunta precisa ao menos consultar. A navegação já
+     * esconde o link de quem não pode — mas esconder um link não fecha a rota,
+     * e quem souber a URL chegava aqui do mesmo jeito.
+     */
+    const portao = await portaoDeIA(request, "chat");
+    if (!portao.ok) return portao.resposta;
+    brandPrompt = brandPromptContext(portao.brand);
 
     /*
      * A recuperação, e não o manual inteiro.
@@ -86,12 +85,9 @@ export async function POST(request: Request) {
      * `brand.id` vai como parâmetro à função de busca, que é `security
      * invoker`. Não existe filtro para errar aqui.
      */
-    const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
-    if (!auth) return conhecimentoIndisponivel();
-
     const recuperacao = await buscarTrechos(
-      auth.supabase,
-      contexto.brand.id,
+      portao.auth.supabase,
+      portao.brand.id,
       perguntaDasMensagens(messages ?? []),
     );
     // A falha da busca interrompe AQUI, antes de resolver o roteamento e antes

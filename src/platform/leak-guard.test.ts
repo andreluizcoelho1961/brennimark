@@ -1159,3 +1159,63 @@ test("o log da falha não carrega conteúdo do manual", () => {
   assert.doesNotMatch(log, /error\.message/, "a mensagem do banco vai para o log");
   assert.doesNotMatch(log, /consulta|pergunta/, "a pergunta vai para o log");
 });
+
+/**
+ * G1. A matriz de papéis vale no servidor, não só no menu.
+ *
+ * A navegação esconde o link de quem não pode. Esconder um link não fecha uma
+ * rota: quem souber a URL chega nela igual, e o `fetch` de um script chega sem
+ * nem passar pela navegação.
+ */
+test("chat e análise passam pelo portão, e por utilidades diferentes", () => {
+  const chat = lerCodigo("src/app/api/ai/chat/route.ts");
+  const analise = lerCodigo("src/app/api/ai/analyze/route.ts");
+
+  assert.match(chat, /portaoDeIA\(request, "chat"\)/);
+  assert.match(analise, /portaoDeIA\(request, "analysis"\)/);
+  // Contratar o chat não contrata a análise. Se as duas rotas pedissem a mesma
+  // utilidade, uma marca que contratou só o assistente responderia análises.
+  assert.doesNotMatch(analise, /portaoDeIA\(request, "chat"\)/);
+});
+
+test("o portão vem antes do provedor, nas duas rotas", () => {
+  for (const arquivo of CAMINHOS_DE_IA) {
+    const codigo = lerCodigo(arquivo);
+    const portao = codigo.indexOf("portaoDeIA(");
+    assert.ok(portao > 0, `${arquivo} não tem portão`);
+    for (const gasto of ["streamText(", "prepareStreamWithFallback(", "buscarTrechos("]) {
+      const posicao = codigo.indexOf(gasto);
+      assert.ok(
+        posicao === -1 || posicao > portao,
+        `${arquivo}: ${gasto} acontece antes do portão`,
+      );
+    }
+  }
+});
+
+test("as rotas de chave e roteamento exigem quem administra", () => {
+  // A RLS já recusa a escrita, mas recusa em silêncio: um update sem linhas
+  // afetadas parece sucesso, e a tela diria "salvo" sobre algo que não foi.
+  for (const arquivo of [
+    "src/app/api/ai/settings/route.ts",
+    "src/app/api/ai/settings/[id]/route.ts",
+    "src/app/api/ai/routing/route.ts",
+  ]) {
+    const codigo = lerCodigo(arquivo);
+    assert.match(codigo, /donoDaRota\(/, `${arquivo} aceita qualquer membro`);
+    assert.doesNotMatch(
+      codigo,
+      /await workspaceDaRota\(/,
+      `${arquivo} ainda resolve sem exigir papel`,
+    );
+  }
+});
+
+test("a matriz de permissão não conhece Supabase nem rede", () => {
+  // Ela autoriza gasto de IA e leitura de credencial. Uma regra dessas precisa
+  // ser contável sem subir aplicação nenhuma.
+  const codigo = lerCodigo("src/lib/ai/permissao.ts");
+  for (const proibido of ["supabase", "fetch(", "process.env"]) {
+    assert.ok(!codigo.includes(proibido), `permissao.ts não deve conhecer ${proibido}`);
+  }
+});

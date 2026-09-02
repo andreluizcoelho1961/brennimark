@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { listSettings } from "@/lib/ai/settings";
-import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
+import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contexto = await workspaceDaRota(request);
+  const contexto = await donoDaRota(request);
   if (!contexto.ok) return contexto.resposta;
   const workspaceId = contexto.workspaceId;
 
@@ -34,7 +34,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const contexto = await workspaceDaRota(request);
+  const contexto = await donoDaRota(request);
   if (!contexto.ok) return contexto.resposta;
   const workspaceId = contexto.workspaceId;
 
