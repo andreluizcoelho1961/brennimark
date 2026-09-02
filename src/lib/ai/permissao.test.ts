@@ -75,3 +75,45 @@ test("uma utilidade não vale por outra de nome parecido", () => {
   assert.equal(marcaOferece(["chat-beta"], "chat"), false);
   assert.equal(marcaOferece(["analysis"], "analysis"), true);
 });
+
+// ─── Lista vazia é uma escolha, não a ausência de uma ───────────────────────
+
+/**
+ * O P0 do primeiro ciclo autenticado.
+ *
+ * A marca importada nasceu com as quatro utilidades apesar de as caixas
+ * estarem desmarcadas. O contrato precisa ser inequívoco em todos os pontos:
+ * `[]` significa NENHUMA, e em lugar nenhum vira "todas".
+ */
+test("lista vazia não libera nada, para papel nenhum", () => {
+  for (const utilidade of ["chat", "analysis", "history"] as const) {
+    for (const [nome, caps] of [["owner", OWNER], ["member", MEMBER]] as const) {
+      const r = podeUsar({ utilidade, capabilities: caps, utilityLinks: [] });
+      assert.equal(r.permitido, false, `${nome} entrou em ${utilidade} com lista vazia`);
+      assert.equal(r.permitido === false && r.motivo, "nao-contratada");
+    }
+  }
+});
+
+test("lista vazia e lista ausente decidem igual", () => {
+  // Se diferissem, um dado antigo sem o campo abriria o que uma escolha
+  // explícita fecha — e a diferença passaria despercebida por ser sutil.
+  for (const utilidade of ["chat", "analysis", "history"] as const) {
+    assert.deepEqual(
+      podeUsar({ utilidade, capabilities: OWNER, utilityLinks: [] }),
+      podeUsar({ utilidade, capabilities: OWNER, utilityLinks: undefined }),
+    );
+  }
+});
+
+test("uma utilidade contratada não arrasta as outras", () => {
+  const so_chat = { capabilities: OWNER, utilityLinks: ["chat"] as const };
+  assert.equal(podeUsar({ ...so_chat, utilidade: "chat" }).permitido, true);
+  for (const outra of ["analysis", "history"] as const) {
+    assert.equal(
+      podeUsar({ ...so_chat, utilidade: outra }).permitido,
+      false,
+      `contratar chat abriu ${outra}`,
+    );
+  }
+});

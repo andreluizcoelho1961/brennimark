@@ -319,3 +319,37 @@ test("o preview local não consulta a sessão", async () => {
   assert.equal(ctx.access, "development-preview");
   assert.equal(espiao.contagem.temSessao, 0, "modo local não pergunta ao Supabase");
 });
+
+// ─── A moldura mostra o NOME, não o endereço ───────────────────────────────
+
+test("o contexto pronto carrega as opções, para o seletor achar o nome", async () => {
+  /*
+   * O defeito do primeiro ciclo autenticado: a barra mostrava `ge-id000` — a
+   * chave, que é endereço — em vez de `GE_ID000`, que é identidade.
+   *
+   * A causa não estava no seletor: `opcoes` só era preenchido nos estados
+   * ambíguos. No caminho pronto ele chegava vazio, o seletor procurava a marca
+   * aberta nessa lista, não achava, e caía no identificador da URL.
+   */
+  const espiao = espionar({ auth: { role: "owner", email: "a@b.c" } });
+  const ctx = await carregarWorkspaceContext({
+    ...espiao.deps,
+    workspaceSlug: "conta",
+    opcoes: [
+      {
+        id: "ws-1", slug: "conta", nome: "Conta", papel: "owner",
+        marcas: [{ id: MARCA.id, key: MARCA.key, nome: MARCA.brand.name }],
+      },
+    ],
+  });
+
+  assert.equal(ctx.access, "ready");
+  assert.equal(ctx.opcoes.length, 1, "o caminho pronto perdeu as opções");
+
+  // O que o seletor faz: procurar a marca aberta e usar o nome dela.
+  const encontrada = ctx.opcoes
+    .find((w) => w.slug === ctx.workspaceSlug)
+    ?.marcas.find((m) => m.key === ctx.brand?.key);
+  assert.equal(encontrada?.nome, MARCA.brand.name);
+  assert.notEqual(encontrada?.nome, MARCA.key, "a moldura mostraria a chave");
+});

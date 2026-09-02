@@ -1,6 +1,11 @@
 import { cache } from "react";
 import { carregarWorkspaceContext, montarContexto, type WorkspaceContext } from "./context";
-import { resolverAlvo, resolverSemAlvo, type Alvo } from "./selecao";
+import {
+  resolverAlvo,
+  resolverSemAlvo,
+  type Alvo,
+  type WorkspaceDisponivel,
+} from "./selecao";
 import {
   carregarMarca,
   getBrandDocs,
@@ -80,20 +85,27 @@ export const resolveWorkspaceContext = cache(
       case "ir-para":
         // Uma possibilidade só: resolve o par que ela mesma indica, em vez de
         // devolver "vá para lá" e resolver de novo do outro lado.
-        return carregarPronto(decisao.destino);
+        return carregarPronto(decisao.destino, disponiveis);
       case "pronto":
-        return carregarPronto({
-          workspaceSlug: decisao.workspace.slug,
-          brandKey: decisao.marca.key,
-        }, decisao.marca.id);
+        return carregarPronto(
+          { workspaceSlug: decisao.workspace.slug, brandKey: decisao.marca.key },
+          disponiveis,
+          decisao.marca.id,
+        );
     }
   },
 );
 
-async function carregarPronto(alvo: Alvo, brandId?: string): Promise<WorkspaceContext> {
+async function carregarPronto(
+  alvo: Alvo,
+  disponiveis: readonly WorkspaceDisponivel[],
+  brandId?: string,
+): Promise<WorkspaceContext> {
   return carregarWorkspaceContext<BrandvilleAuthContext & { role: "owner" | "member"; email?: string }>({
     temSessao,
     workspaceSlug: alvo.workspaceSlug,
+    // O seletor da barra procura a marca aberta AQUI para achar o nome dela.
+    opcoes: disponiveis,
     getAuth: async () => {
       const auth = await getBrandvilleAuthContext(alvo.workspaceSlug);
       return auth ? { ...auth, email: auth.user.email ?? undefined } : null;

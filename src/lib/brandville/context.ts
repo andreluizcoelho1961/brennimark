@@ -138,6 +138,16 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
   devPreview?: boolean;
   /** Já resolvido pelo adaptador; entra no contexto para quem monta URL. */
   workspaceSlug?: string | null;
+  /**
+   * Tudo que a pessoa alcança, TAMBÉM no caminho pronto.
+   *
+   * Antes só chegava nos estados ambíguos, e a consequência aparecia na barra:
+   * o seletor procurava a marca aberta nesta lista, não a encontrava, e caía
+   * no identificador da URL. A moldura mostrava `ge-id000` em vez de
+   * `GE_ID000` — o slug, que é endereço, ocupando o lugar do nome, que é
+   * identidade.
+   */
+  opcoes?: readonly WorkspaceDisponivel[];
 }): Promise<WorkspaceContext> {
   const auth = await deps.getAuth();
 
@@ -165,7 +175,9 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
 
   const docs = marca ? await deps.getDocsByBrandId(auth, marca.id) : [];
   return montarContexto({
-    access: "ready", auth, marca, docs, workspaceSlug: deps.workspaceSlug ?? null,
+    access: "ready", auth, marca, docs,
+    workspaceSlug: deps.workspaceSlug ?? null,
+    opcoes: deps.opcoes ?? [],
   });
 }
 

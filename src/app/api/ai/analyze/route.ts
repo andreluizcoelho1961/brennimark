@@ -137,7 +137,10 @@ export async function POST(request: Request) {
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
   } catch (error) {
-    const { code, message } = classifyAIError(error);
+    const { code, message, detalheTecnico } = classifyAIError(error);
+    // O detalhe fica no log do servidor. A resposta leva só a mensagem de
+    // produto — ela atravessa a rede e aparece na tela.
+    console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
     return NextResponse.json({ error: code, message }, { status: 503 });
   }
 
@@ -326,7 +329,8 @@ export async function POST(request: Request) {
         }
       } catch (error) {
         const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-        const { code, message } = classifyAIError(rootError);
+        const { code, message, detalheTecnico } = classifyAIError(rootError);
+        console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
         console.error(JSON.stringify({
           level: "error",
           msg: "analysis_failed",

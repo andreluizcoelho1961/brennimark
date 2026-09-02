@@ -8,6 +8,7 @@ import {
   vizinhos,
 } from "./documentos";
 import type { DocPageEntry } from "../../content/docs";
+import { shellSections } from "./navigation";
 
 const pag = (slug: string, group = "Manual"): DocPageEntry => ({
   slug, group, title: slug.toUpperCase(), status: "ready", body: [],
@@ -110,4 +111,33 @@ test("o grupo da trilha não é link, porque não existe página de grupo", () =
 
 test("na visão geral a trilha é só a marca", () => {
   assert.deepEqual(trilha({ marca: "Padaria", base: "/b" }).map((m) => m.rotulo), ["Padaria"]);
+});
+
+// ─── A navegação não oferece o que a marca não contratou ───────────────────
+
+test("marca sem utilidades não ganha destino de utilidade", () => {
+  // A contrapartida na moldura do que `podeUsar` decide no servidor: com
+  // `[]`, a seção "Inteligência" não existe — e não existe vazia, existe
+  // ausente, porque cabeçalho sem nada embaixo é ruído.
+  const semNada = shellSections({
+    capabilities: ["consultar", "editar", "aprovar", "administrar"],
+    locale: "pt-BR",
+    utilityLinks: [],
+  });
+  const destinos = semNada.flatMap((s) => s.destinations.map((d) => d.href));
+  for (const rota of ["/docs/chat", "/docs/analise", "/docs/historico", "/docs/configuracoes/ia"]) {
+    assert.ok(!destinos.includes(rota), `${rota} apareceu com lista vazia`);
+  }
+  assert.ok(!semNada.some((s) => s.id === "intelligence"));
+});
+
+test("a navegação oferece exatamente o que a marca contratou", () => {
+  const soChat = shellSections({
+    capabilities: ["consultar"],
+    locale: "pt-BR",
+    utilityLinks: ["chat"],
+  });
+  const destinos = soChat.flatMap((s) => s.destinations.map((d) => d.href));
+  assert.ok(destinos.includes("/docs/chat"));
+  assert.ok(!destinos.includes("/docs/analise"));
 });

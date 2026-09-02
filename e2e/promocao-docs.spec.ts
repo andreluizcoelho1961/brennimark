@@ -22,13 +22,22 @@ import { expect, test, type Page } from "@playwright/test";
 
 const CONTEXTO = "/w/laboratorio/b/exemplo";
 const ROTAS_DO_MANUAL = [`${CONTEXTO}/docs`];
-const ROTAS_UTILITARIAS = [
-  `${CONTEXTO}/docs/biblioteca`,
-  `${CONTEXTO}/docs/chat`,
-  `${CONTEXTO}/docs/analise`,
-  `${CONTEXTO}/docs/historico`,
-  `${CONTEXTO}/docs/configuracoes/ia`,
-];
+/*
+ * Só a biblioteca.
+ *
+ * Chat, análise, histórico e configurações passaram a ser CONTRATADAS por
+ * marca, e uma porta no servidor as fecha com 404 quando a marca não as
+ * declara. No preview local não existe marca, logo elas não existem — e é o
+ * comportamento certo, não uma limitação do teste.
+ *
+ * A biblioteca não é utilidade contratável: ela é o acervo da marca, e existe
+ * sempre que a marca existe.
+ *
+ * A moldura NAS utilidades continua coberta, em /dev/marcas, onde há marca com
+ * utilidades declaradas — mesma moldura, mesmos componentes. E o fechamento
+ * por URL é o assunto de utilidades-contratadas.spec.ts.
+ */
+const ROTAS_UTILITARIAS = [`${CONTEXTO}/docs/biblioteca`];
 const TODAS = [...ROTAS_DO_MANUAL, ...ROTAS_UTILITARIAS];
 
 async function molduraV2(page: Page) {

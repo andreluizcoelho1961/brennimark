@@ -149,9 +149,17 @@ export async function getActiveConfig(workspaceId: string, role: "chat" | "analy
 export function getDemoConfig(): AIProviderConfig {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    throw new Error(
-      "No AI provider configured and GROQ_API_KEY is not set. Add GROQ_API_KEY to .env.local for the free-tier demo fallback, or configure a provider in Configurações — Conecte sua IA."
-    );
+    /*
+     * Erro NOMEADO, e mensagem sem receita de configuração.
+     *
+     * A anterior dizia qual variável de ambiente falta e em qual arquivo
+     * colocá-la — e chegou à tela de quem só queria fazer uma pergunta ao
+     * manual. O nome da classe é o que a camada de erro usa para escolher a
+     * mensagem de produto; a mensagem aqui existe para o log.
+     */
+    const erro = new Error("nenhum provedor de IA configurado para esta conta");
+    erro.name = "SemProvedorDeIA";
+    throw erro;
   }
   return { provider: DEMO_PROVIDER, model: DEMO_MODEL, apiKey };
 }
