@@ -157,6 +157,10 @@ export function BrandImporter({
         title: secao.titulo,
         status: "draft" as const,
         body: secao.linhas,
+        // A procedência vai no DOCUMENTO, não só no relatório. O relatório é
+        // registro da importação; o documento é o que a recuperação consulta
+        // depois, e sem a faixa aqui a citação diria apenas "está no manual".
+        sourcePageRanges: secao.sourcePageRanges,
       };
     });
 
