@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { LimiteDeErro } from "@/components/shell/LimiteDeErro";
 
 /**
- * Falha fora da moldura do manual: login, cadastro, resolvedor.
+ * Falha fora do contexto de marca: login, cadastro, resolvedor.
  *
- * Igual à de dentro no que importa: a mensagem do erro não aparece, porque
- * pode carregar caminho de arquivo e fragmento de consulta. Só o `digest`, que
- * é opaco e liga o que a pessoa viu ao que o servidor registrou.
+ * A mais externa das fronteiras com layout. Ela ocupa a tela inteira porque
+ * aqui não há moldura montada para preservar.
  */
 export default function ErroDaAplicacao({
   error,
@@ -16,33 +15,19 @@ export default function ErroDaAplicacao({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  useEffect(() => {
-    console.error("[app] falha ao renderizar:", error.name, error.digest ?? "");
-  }, [error]);
-
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-platform-bg px-[var(--space-shell-5)]">
-      <div className="max-w-[34rem]">
-        <h1 className="text-[clamp(1.5rem,3vw,2rem)] font-semibold tracking-tight text-platform-text">
-          Algo falhou aqui
-        </h1>
-        <p className="mt-[var(--space-shell-3)] text-[15px] leading-relaxed text-platform-text-muted">
-          Nada foi alterado. Tente de novo.
-        </p>
-        <div className="mt-[var(--space-shell-5)] flex flex-wrap items-center gap-[var(--space-shell-3)]">
-          <button
-            type="button"
-            onClick={reset}
-            className="flex min-h-11 items-center rounded-[var(--radius-control)] border border-platform-border px-[var(--space-shell-4)] text-[14px] text-platform-text hover:border-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
-          >
-            Tentar de novo
-          </button>
-          {error.digest && (
-            <p className="font-mono text-[11px] text-platform-text-muted">
-              Referência: {error.digest}
-            </p>
-          )}
-        </div>
+    <main className="flex min-h-dvh items-center justify-center bg-platform-bg">
+      <div className="w-full max-w-[38rem]">
+        <LimiteDeErro
+          error={error}
+          reset={reset}
+          contexto="aplicacao"
+          titulo="Algo falhou aqui"
+          tituloEn="Something failed here"
+          descricao="Nada foi alterado. Tente de novo, ou volte para escolher uma marca."
+          descricaoEn="Nothing was changed. Try again, or go back to choose a brand."
+          retorno={{ href: "/docs", rotulo: "Escolher uma marca", rotuloEn: "Choose a brand" }}
+        />
       </div>
     </main>
   );

@@ -293,6 +293,9 @@ test("as rotas de laboratório continuam fechadas em produção", () => {
   for (const rota of [
     "src/app/dev/shell-v2/[[...slug]]/page.tsx",
     "src/app/dev/admin-panel/page.tsx",
+    // A rota que falha de propósito para exercitar a fronteira de erro. Aberta
+    // em produção, ela seria um jeito de derrubar a tela de qualquer marca.
+    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/dev-falha/page.tsx",
   ]) {
     const codigo = lerCodigo(rota);
     assert.match(codigo, /NODE_ENV === "production"/, `${rota} não verifica o ambiente`);
@@ -1218,4 +1221,81 @@ test("a matriz de permissão não conhece Supabase nem rede", () => {
   for (const proibido of ["supabase", "fetch(", "process.env"]) {
     assert.ok(!codigo.includes(proibido), `permissao.ts não deve conhecer ${proibido}`);
   }
+});
+
+/**
+ * Q1. Toda superfície crítica tem fronteira de erro.
+ *
+ * Fronteira de erro é a peça que nunca aparece quando tudo vai bem, e por isso
+ * é a que mais facilmente falta sem ninguém notar. A lista abaixo é o escopo
+ * revisado: perder qualquer uma delas devolve a pessoa à tela genérica do
+ * Next, que a tira do produto — some a barra, some a navegação, e a única saída
+ * é o botão de voltar do navegador.
+ */
+const SUPERFICIES_COM_FRONTEIRA = [
+  ["contexto de marca", "src/app/w/[workspaceSlug]/b/[brandKey]/error.tsx"],
+  ["manual", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/error.tsx"],
+  ["documento", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/error.tsx"],
+  ["chat", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/error.tsx"],
+  ["análise", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/analise/error.tsx"],
+  ["administração", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/error.tsx"],
+  ["importação", "src/app/w/[workspaceSlug]/importar/error.tsx"],
+  ["aplicação", "src/app/error.tsx"],
+] as const;
+
+test("cada superfície crítica tem a sua fronteira de erro", () => {
+  for (const [superficie, arquivo] of SUPERFICIES_COM_FRONTEIRA) {
+    const codigo = lerCodigo(arquivo);
+    assert.match(codigo, /"use client"/, `${superficie}: fronteira precisa ser de cliente`);
+    assert.match(codigo, /LimiteDeErro/, `${superficie}: não usa a peça compartilhada`);
+    assert.match(codigo, /reset/, `${superficie}: não oferece tentar de novo`);
+  }
+});
+
+test("nenhuma fronteira renderiza a mensagem do erro", () => {
+  // Ela pode carregar caminho de arquivo, fragmento de consulta e, por ele,
+  // texto do manual de um cliente. A tela é o lugar mais público onde isso
+  // sairia — inclusive numa captura colada num chat de equipe.
+  for (const [superficie, arquivo] of SUPERFICIES_COM_FRONTEIRA) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /error\.message/,
+      `${superficie}: a mensagem técnica chega à tela`,
+    );
+  }
+  assert.doesNotMatch(lerCodigo("src/components/shell/LimiteDeErro.tsx"), /error\.message/);
+});
+
+test("a copy da falha é do produto, e diz o que NÃO aconteceu", () => {
+  // "Nenhuma alteração foi salva" é a frase que importa numa tela de edição:
+  // a dúvida sobre o que ficou gravado pela metade custa mais que a falha.
+  const escrita: Record<string, RegExp> = {
+    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/error.tsx": /Nenhuma alteração foi salva/,
+    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/error.tsx": /Nenhuma pergunta foi enviada/,
+    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/analise/error.tsx": /Nenhuma peça foi enviada/,
+    "src/app/w/[workspaceSlug]/importar/error.tsx": /Nenhuma marca foi criada/,
+  };
+  for (const [arquivo, frase] of Object.entries(escrita)) {
+    assert.match(lerCodigo(arquivo), frase, `${arquivo}: falta dizer o que não aconteceu`);
+  }
+});
+
+test("toda fronteira oferece uma saída além de tentar de novo", () => {
+  // "Tentar de novo" pode falhar de novo. Sem outra saída, a pessoa fica presa
+  // numa tela cujo único botão não funciona.
+  for (const [superficie, arquivo] of SUPERFICIES_COM_FRONTEIRA) {
+    assert.match(lerCodigo(arquivo), /retorno=/, `${superficie}: sem saída segura`);
+  }
+});
+
+test("a moldura publica quando os atalhos estão registrados", () => {
+  // Sem esse sinal, um teste de atalho só pode esperar por tempo — e esperar
+  // por tempo passa mesmo com o atalho quebrado, desde que se espere bastante.
+  const codigo = lerCodigo("src/components/shell/AppShellV2.tsx");
+  const efeito = codigo.slice(codigo.indexOf("addEventListener(\"keydown\""));
+  assert.match(
+    efeito.slice(0, 400),
+    /data-shell-ready/,
+    "o sinal precisa ser publicado no mesmo efeito que registra os atalhos",
+  );
 });

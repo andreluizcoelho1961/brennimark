@@ -52,12 +52,12 @@ export default defineConfig({
     {
       name: "webkit-importador",
       use: { ...devices["Desktop Safari"] },
-      testMatch: /(importador|navegacao-do-manual).*\.spec\.ts/,
+      testMatch: /(importador|navegacao-do-manual|limites-de-erro).*\.spec\.ts/,
     },
     {
       name: "firefox-importador",
       use: { ...devices["Desktop Firefox"] },
-      testMatch: /(importador|navegacao-do-manual).*\.spec\.ts/,
+      testMatch: /(importador|navegacao-do-manual|limites-de-erro).*\.spec\.ts/,
     },
   ],
 

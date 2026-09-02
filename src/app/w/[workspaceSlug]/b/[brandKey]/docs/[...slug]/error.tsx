@@ -4,12 +4,13 @@ import { LimiteDeErro } from "@/components/shell/LimiteDeErro";
 import { useAlvo } from "@/platform/alvo-client";
 
 /**
- * Falha dentro do manual, fora das telas que têm fronteira própria.
+ * Falha ao renderizar UMA página do manual.
  *
- * Dentro do layout: quem está lendo continua com a navegação e o seletor de
- * marca, e a falha fica contida na área de conteúdo em vez de derrubar a tela.
+ * Mais estreita que a de `/docs`, e por isso melhor: a moldura, a navegação e o
+ * seletor de marca continuam montados, e a falha fica contida na área de
+ * conteúdo. Quem estava lendo troca de página e segue.
  */
-export default function ErroNoManual({
+export default function Erro({
   error,
   reset,
 }: {
@@ -22,10 +23,10 @@ export default function ErroNoManual({
     <LimiteDeErro
       error={error}
       reset={reset}
-      contexto="manual"
-      titulo="Não foi possível abrir esta tela"
-      tituloEn="Couldn't open this screen"
-      descricao="O conteúdo não foi alterado. O resto do manual continua acessível pela navegação."
+      contexto="documento"
+      titulo="Não foi possível abrir esta página"
+      tituloEn="Couldn't open this page"
+      descricao="O conteúdo não foi alterado. O resto do manual continua acessível pela navegação ao lado."
       descricaoEn="Nothing was changed. The rest of the manual is still reachable from the navigation."
       retorno={{
         href: `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs`,

@@ -24,26 +24,22 @@ async function mobile(page: Page) {
 }
 
 /**
- * Abre a busca pelo atalho, esperando a página estar viva.
+ * Abre a busca pelo atalho, UMA vez, depois da moldura declarar-se pronta.
  *
- * O ouvinte de teclado é registrado num efeito: antes da hidratação, a tecla
- * não chega a lugar nenhum. Sob carga — três motores em paralelo — o teste
- * pressionava antes disso e falhava por corrida, não por defeito.
+ * O ouvinte de teclado é registrado num efeito: entre a moldura aparecer e a
+ * hidratação terminar, ⌘K não chega a lugar nenhum. A primeira versão deste
+ * ajudante insistia na tecla até três vezes, e isso estava errado por dois
+ * motivos: media o escalonamento em vez do comportamento, e um atalho quebrado
+ * poderia passar se alguém aumentasse o número de tentativas.
  *
- * A repetição é limitada de propósito: um atalho realmente quebrado não abre
- * na terceira tentativa, e o teste continua ficando vermelho. O que ela
- * absorve é só a janela entre renderizar e hidratar.
+ * A moldura publica `data-shell-ready` no mesmo efeito que registra os
+ * atalhos, depois do registro. Esperar por ele é esperar pela condição certa —
+ * e uma tecla só, depois disso, torna a regressão do atalho sempre vermelha.
  */
 async function abrirBuscaPeloAtalho(page: Page) {
-  for (let tentativa = 0; tentativa < 3; tentativa += 1) {
-    await page.keyboard.press("ControlOrMeta+k");
-    try {
-      await expect(page.getByRole("dialog")).toBeVisible({ timeout: 2_000 });
-      return;
-    } catch {
-      if (tentativa === 2) throw new Error("o atalho de busca não abriu a busca");
-    }
-  }
+  await expect(page.locator("[data-shell-ready]")).toHaveCount(1);
+  await page.keyboard.press("ControlOrMeta+k");
+  await expect(page.getByRole("dialog")).toBeVisible();
 }
 
 test("a barra lista as páginas do manual, agrupadas", async ({ page }) => {

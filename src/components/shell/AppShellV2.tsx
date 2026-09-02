@@ -159,6 +159,21 @@ export function AppShellV2({
     document.querySelector<HTMLElement>("[data-shell-main]")?.focus();
   }, [modal]);
 
+  /**
+   * Os atalhos, e o sinal de que eles existem.
+   *
+   * O ouvinte é registrado num efeito: entre a moldura aparecer na tela e a
+   * hidratação terminar, ⌘K não chega a lugar nenhum. É uma janela curta e
+   * real — quem apertar nela não abre a busca, e nada avisa.
+   *
+   * `data-shell-ready` é publicado DEPOIS do registro, no mesmo efeito. Ele
+   * existe para que quem espera pela moldura espere pela condição certa, em
+   * vez de por um tempo arbitrário: um teste que insiste na tecla até
+   * funcionar mede o escalonamento, e passa mesmo com o atalho quebrado se
+   * insistir o bastante.
+   */
+  const raiz = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
@@ -167,7 +182,21 @@ export function AppShellV2({
       }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+
+    // Atributo no DOM, não estado do React: isto é sinal para fora, e um
+    // `setState` aqui provocaria render em cascata para publicar algo que a
+    // aplicação nem consome.
+    //
+    // O nó é copiado para uma variável: na limpeza, `raiz.current` já pode
+    // apontar para outro elemento — ou para nada —, e removeríamos o atributo
+    // do lugar errado.
+    const no = raiz.current;
+    no?.setAttribute("data-shell-ready", "true");
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      no?.removeAttribute("data-shell-ready");
+    };
   }, [abrirBusca]);
 
   // O destino carrega `foraDaMarca` até a busca: sem a marca, `withBase`
@@ -189,7 +218,7 @@ export function AppShellV2({
   const temDestinos = sections.length > 0 || docs.length > 0;
 
   return (
-    <div className="flex h-dvh flex-col bg-platform-bg text-platform-text">
+    <div ref={raiz} className="flex h-dvh flex-col bg-platform-bg text-platform-text">
       {/*
         `inert` desliga o resto da aplicação enquanto um modal está aberto.
         Prender o foco resolve a tabulação e não resolve a navegação virtual de
