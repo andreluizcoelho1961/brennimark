@@ -3,6 +3,10 @@ import { streamText, type ModelMessage } from "ai";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
+import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
+import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
+import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { classifyAIError } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
@@ -20,7 +24,11 @@ export const maxDuration = 120;
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
-  const messages = body?.messages as ModelMessage[] | undefined;
+  const recebidas = body?.messages as ModelMessage[] | undefined;
+  // Histórico limitado pelas duas pontas antes de qualquer outra coisa: as
+  // últimas mensagens, cada uma cortada por tamanho. Uma única mensagem colada
+  // estouraria o orçamento e as outras deixariam de caber.
+  const messages = recebidas ? limitarMensagens(recebidas) : undefined;
 
   if (!messages || !Array.isArray(messages) || messages.length === 0) {
     return NextResponse.json({ error: "invalid_input", message: isEnglish ? "Send at least one message." : "Envie ao menos uma mensagem." }, { status: 400 });
@@ -28,10 +36,10 @@ export async function POST(request: Request) {
 
   let attempts: ResolvedChatAttempt[];
   let firstChunkTimeoutMs: number;
-  let brandDocs;
+  let trechos: Trecho[] = [];
   let brandPrompt;
   try {
-    const contexto = await resolveWorkspaceContext();
+    const contexto = await resolveWorkspaceContext(alvoDaRota(request));
     if (!contexto.brand) {
       // Sem marca não há sobre o que responder — e um prompt sem papel nem
       // idioma responderia como se fosse sobre qualquer marca.
@@ -40,8 +48,27 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    brandDocs = contexto.docs;
     brandPrompt = brandPromptContext(contexto.brand);
+
+    /*
+     * A recuperação, e não o manual inteiro.
+     *
+     * A busca é sobre a ÚLTIMA pergunta de quem escreve, não sobre a conversa
+     * toda: buscar sobre o histórico inteiro traz os assuntos já encerrados e
+     * afoga a pergunta atual — a recuperação pioraria quanto mais longa a
+     * conversa, que é o oposto do esperado.
+     *
+     * `brand.id` vai como parâmetro à função de busca, que é `security
+     * invoker`. Não existe filtro para errar aqui.
+     */
+    const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
+    if (auth) {
+      trechos = await buscarTrechos(
+        auth.supabase,
+        contexto.brand.id,
+        perguntaDasMensagens(messages ?? []),
+      );
+    }
     const routing = await resolveChatRouting();
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
@@ -59,7 +86,7 @@ export async function POST(request: Request) {
       start: (attempt, abortSignal) =>
         streamText({
           model: getModel(attempt.config),
-          system: buildChatSystemPrompt(brandDocs, brandPrompt),
+          system: buildChatSystemPrompt(trechos, brandPrompt),
           messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,

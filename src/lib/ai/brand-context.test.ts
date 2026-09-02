@@ -2,14 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildAnalysisSystemPrompt,
-  buildAnalysisBrandContext,
-  buildBrandContext,
   buildChatSystemPrompt,
   getBrandKnowledgeSources,
 } from "./brand-context";
+import { montarContextoRecuperado, type Trecho } from "./recuperacao";
 import type { BrandPromptContext } from "./brand-context";
 import type { DocPageEntry } from "../../content/docs";
-import { resolveStatusLabels } from "../../components/docs/status";
+import { promptStatusLabels, resolveStatusLabels } from "../../components/docs/status";
 import { parseBrandCitations } from "./citations";
 
 /** Uma marca de teste; o idioma e os papéis chegam por parâmetro. */
@@ -19,6 +18,47 @@ const MARCA: BrandPromptContext = {
   analysisRole: "Você avalia peças da Marca A.",
   statusLabels: undefined,
 };
+
+/**
+ * Trechos RECUPERADOS, que é o que os prompts recebem desde A1.
+ *
+ * A conversão de página para trecho vive aqui, no teste, e não no código: no
+ * produto quem produz trechos é a busca no Postgres. Se houvesse um conversor
+ * de conveniência em `src/`, ele seria o caminho por onde o manual inteiro
+ * voltaria a entrar no prompt.
+ */
+function comoTrechos(paginas: readonly DocPageEntry[]): Trecho[] {
+  return paginas.map((pagina) => ({
+    documentSlug: pagina.slug,
+    documentTitle: pagina.title,
+    groupName: pagina.group,
+    section: null,
+    status: pagina.status,
+    pageStart: null,
+    pageEnd: null,
+    content: [
+      ...(pagina.body ?? []),
+      ...(pagina.blocks ?? []).flatMap((bloco) =>
+        JSON.stringify(bloco).match(/"[^"]+"/g)?.map((s) => s.slice(1, -1)) ?? [],
+      ),
+    ].join(" "),
+  }));
+}
+
+/**
+ * O contexto como o prompt o monta — inclusive os rótulos.
+ *
+ * `promptStatusLabels` é a mesma função que o código de produção usa. Montar
+ * os rótulos à mão aqui deixaria o teste passar com um vocabulário que o
+ * produto não usa, que é o defeito que o patch 3.2 corrigiu.
+ */
+const contextoDe = (paginas: readonly DocPageEntry[], marca: BrandPromptContext) =>
+  montarContextoRecuperado(
+    comoTrechos(paginas),
+    promptStatusLabels(
+      resolveStatusLabels({ language: marca.language, override: marca.statusLabels }),
+    ),
+  ).texto;
 
 const PAGINAS: DocPageEntry[] = [
   {
@@ -45,27 +85,35 @@ test("cada página vira uma fonte, e só o que a marca importou entra", () => {
 
 test("sem marca importada, o contexto é vazio em vez de inventado", () => {
   assert.deepEqual(getBrandKnowledgeSources([]), []);
-  assert.equal(buildBrandContext([], MARCA).trim(), "");
+  assert.equal(contextoDe([], MARCA).trim(), "");
 });
 
-test("a análise recebe só as páginas com bloco visual", () => {
-  const context = buildAnalysisBrandContext(PAGINAS, MARCA);
-  const fullContext = buildBrandContext(PAGINAS, MARCA);
-
-  assert.match(context, /id="doc:cores"/);
-  assert.doesNotMatch(context, /id="doc:voz"/, "página sem bloco visual não deveria entrar");
-  assert.ok(context.length < fullContext.length);
+test("sem trecho recuperado, o prompt diz isso em vez de ficar em branco", () => {
+  // Bloco vazio é pior que ausente: o modelo preenche silêncio, e o silêncio
+  // é indistinguível de "a marca não documentou isso".
+  const prompt = buildChatSystemPrompt([], MARCA);
+  assert.match(prompt, /não há diretriz documentada/i);
 });
 
-test("guia sem nenhum bloco visual cai para o guia inteiro, em vez de mandar vazio", () => {
+test("o prompt do chat não tem como receber o manual inteiro", () => {
+  // A assinatura aceita trechos, não documentos. Enquanto ela aceitasse a
+  // lista de páginas, o custo voltaria na primeira chamada que esquecesse de
+  // buscar — aqui não há como enviar o manual inteiro sem reescrever a função.
+  const oitoTrechos = comoTrechos(PAGINAS).concat(comoTrechos(PAGINAS)).concat(comoTrechos(PAGINAS));
+  const prompt = buildChatSystemPrompt(oitoTrechos, MARCA);
+  const fontes = prompt.match(/<source /g)?.length ?? 0;
+  assert.ok(fontes <= 8, `${fontes} fontes no prompt`);
+});
+
+test("o prompt de análise embute o contexto recuperado", () => {
   const semBlocos = PAGINAS.filter((p) => !p.blocks);
-  const context = buildAnalysisBrandContext(semBlocos, MARCA);
+  const context = contextoDe(semBlocos, MARCA);
   assert.match(context, /id="doc:voz"/);
-  assert.ok(buildAnalysisSystemPrompt(semBlocos, MARCA).includes(context), "o prompt de análise precisa embutir o contexto");
+  assert.ok(buildAnalysisSystemPrompt(comoTrechos(semBlocos), MARCA).includes(context));
 });
 
 test("o valor de um bloco chega ao contexto, com o status da página que o contém", () => {
-  const context = buildBrandContext(PAGINAS, MARCA);
+  const context = contextoDe(PAGINAS, MARCA);
 
   assert.match(context, /#2B6CB0/, "o hex do swatch precisa chegar à IA");
   assert.match(context, /PRONTO/, "a página aprovada precisa se anunciar como tal");
@@ -87,8 +135,8 @@ test("preserva status e caminho para respostas verificáveis", () => {
 });
 
 test("prompts exigem citação, incerteza e separação de interpretação", () => {
-  const chatPrompt = buildChatSystemPrompt(PAGINAS, MARCA);
-  const analysisPrompt = buildAnalysisSystemPrompt(PAGINAS, MARCA);
+  const chatPrompt = buildChatSystemPrompt(comoTrechos(PAGINAS), MARCA);
+  const analysisPrompt = buildAnalysisSystemPrompt(comoTrechos(PAGINAS), MARCA);
 
   for (const prompt of [chatPrompt, analysisPrompt]) {
     assert.match(prompt, /Toda afirmação material deve terminar.*com uma citação/);
@@ -158,7 +206,7 @@ test("nenhuma cor de cliente sobrevive dentro da regra universal", () => {
     [PAGINAS_VERMELHA, MARCA_VERMELHA],
     [PAGINAS_AZUL, MARCA_AZUL],
   ] as const) {
-    const prompt = buildAnalysisSystemPrompt(docs, marca);
+    const prompt = buildAnalysisSystemPrompt(comoTrechos(docs), marca);
     assert.doesNotMatch(prompt, /Turquoise/i, "o prompt julgava toda marca contra o turquesa de um cliente");
     assert.doesNotMatch(prompt, /turquesa/i);
     // "lançamento analisado" era o vocabulário de release de outro cliente.
@@ -167,15 +215,15 @@ test("nenhuma cor de cliente sobrevive dentro da regra universal", () => {
 });
 
 test("a regra de cor aponta para a paleta daquela marca, não para uma fixa", () => {
-  const vermelha = buildAnalysisSystemPrompt(PAGINAS_VERMELHA, MARCA_VERMELHA);
+  const vermelha = buildAnalysisSystemPrompt(comoTrechos(PAGINAS_VERMELHA), MARCA_VERMELHA);
   assert.match(vermelha, /cores documentadas DESTA marca/);
   // Sem cor documentada, a resposta é não avaliar — não presumir referência.
   assert.match(vermelha, /Se esta marca não documenta cor nenhuma/);
 });
 
 test("nada atravessa de uma marca para a outra no mesmo processo", () => {
-  const vermelha = buildAnalysisSystemPrompt(PAGINAS_VERMELHA, MARCA_VERMELHA);
-  const azul = buildAnalysisSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
+  const vermelha = buildAnalysisSystemPrompt(comoTrechos(PAGINAS_VERMELHA), MARCA_VERMELHA);
+  const azul = buildAnalysisSystemPrompt(comoTrechos(PAGINAS_AZUL), MARCA_AZUL);
 
   // Conteúdo
   assert.match(vermelha, /#E1251B/);
@@ -202,8 +250,8 @@ test("nada atravessa de uma marca para a outra no mesmo processo", () => {
 });
 
 test("o chat também não mistura papel nem idioma entre marcas", () => {
-  const vermelha = buildChatSystemPrompt(PAGINAS_VERMELHA, MARCA_VERMELHA);
-  const azul = buildChatSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
+  const vermelha = buildChatSystemPrompt(comoTrechos(PAGINAS_VERMELHA), MARCA_VERMELHA);
+  const azul = buildChatSystemPrompt(comoTrechos(PAGINAS_AZUL), MARCA_AZUL);
 
   assert.match(vermelha, /guia da Vermelha/);
   assert.match(vermelha, /Formato recomendado/);
@@ -215,9 +263,9 @@ test("o chat também não mistura papel nem idioma entre marcas", () => {
 test("a ordem das chamadas não muda o resultado de nenhuma delas", () => {
   // A prova contra estado de módulo: se algo fosse memorizado no processo, a
   // segunda chamada herdaria a primeira.
-  const azulPrimeiro = buildAnalysisSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
-  buildAnalysisSystemPrompt(PAGINAS_VERMELHA, MARCA_VERMELHA);
-  const azulDepois = buildAnalysisSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
+  const azulPrimeiro = buildAnalysisSystemPrompt(comoTrechos(PAGINAS_AZUL), MARCA_AZUL);
+  buildAnalysisSystemPrompt(comoTrechos(PAGINAS_VERMELHA), MARCA_VERMELHA);
+  const azulDepois = buildAnalysisSystemPrompt(comoTrechos(PAGINAS_AZUL), MARCA_AZUL);
   assert.equal(azulPrimeiro, azulDepois);
 });
 
@@ -250,7 +298,7 @@ const PAGINAS_EDITORIAL: DocPageEntry[] = [
 ];
 
 test("o prompt usa o vocabulário que a marca declarou", () => {
-  const prompt = buildChatSystemPrompt(PAGINAS_EDITORIAL, MARCA_COM_VOCABULARIO);
+  const prompt = buildChatSystemPrompt(comoTrechos(PAGINAS_EDITORIAL), MARCA_COM_VOCABULARIO);
 
   // Nas fontes, marcando cada página.
   assert.match(prompt, /status="DOCUMENTADO"/);
@@ -273,7 +321,7 @@ test("sem o vocabulário da marca, o prompt não diria a mesma coisa", () => {
     ...MARCA_COM_VOCABULARIO,
     statusLabels: undefined,
   };
-  const prompt = buildChatSystemPrompt(PAGINAS_EDITORIAL, semOverride);
+  const prompt = buildChatSystemPrompt(comoTrechos(PAGINAS_EDITORIAL), semOverride);
 
   assert.doesNotMatch(prompt, /DOCUMENTADO/);
   assert.match(prompt, /status="PRONTO"/, "sem override, valem os rótulos do produto");
@@ -284,7 +332,7 @@ test("o prompt e a interface leem o vocabulário da mesma função", () => {
     language: MARCA_COM_VOCABULARIO.language,
     override: MARCA_COM_VOCABULARIO.statusLabels,
   });
-  const prompt = buildChatSystemPrompt(PAGINAS_EDITORIAL, MARCA_COM_VOCABULARIO);
+  const prompt = buildChatSystemPrompt(comoTrechos(PAGINAS_EDITORIAL), MARCA_COM_VOCABULARIO);
 
   // O que a tela mostra tem que ser o que o assistente cita — em caixa alta,
   // que é a única diferença permitida entre os dois.
@@ -297,9 +345,9 @@ test("o prompt e a interface leem o vocabulário da mesma função", () => {
 });
 
 test("o vocabulário de uma marca não vaza para a outra: azul, própria, azul", () => {
-  const azulPrimeiro = buildChatSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
-  const propria = buildChatSystemPrompt(PAGINAS_EDITORIAL, MARCA_COM_VOCABULARIO);
-  const azulDepois = buildChatSystemPrompt(PAGINAS_AZUL, MARCA_AZUL);
+  const azulPrimeiro = buildChatSystemPrompt(comoTrechos(PAGINAS_AZUL), MARCA_AZUL);
+  const propria = buildChatSystemPrompt(comoTrechos(PAGINAS_EDITORIAL), MARCA_COM_VOCABULARIO);
+  const azulDepois = buildChatSystemPrompt(comoTrechos(PAGINAS_AZUL), MARCA_AZUL);
 
   assert.equal(azulPrimeiro, azulDepois, "a chamada do meio não pode contaminar a terceira");
   assert.match(azulDepois, /status="APPROVED"/);

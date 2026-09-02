@@ -1051,3 +1051,56 @@ test("caminho de Storage sai do módulo de caminhos, não de literal", () => {
     }
   }
 });
+
+/**
+ * A1. A IA não recebe o manual inteiro.
+ *
+ * O defeito não dava erro: dava resposta, e resposta correta. Ele aparecia na
+ * fatura e na latência, e piorava exatamente nos manuais grandes — os que mais
+ * precisam de ajuda.
+ */
+const CAMINHOS_DE_IA = [
+  "src/app/api/ai/chat/route.ts",
+  "src/app/api/ai/analyze/route.ts",
+];
+
+test("nenhuma rota de IA passa os documentos direto para o prompt", () => {
+  for (const arquivo of CAMINHOS_DE_IA) {
+    const codigo = lerCodigo(arquivo);
+    assert.doesNotMatch(
+      codigo,
+      /(buildChatSystemPrompt|buildAnalysisSystemPrompt)\(\s*(contexto\.)?docs\b/,
+      `${arquivo} envia o manual inteiro em vez dos trechos recuperados`,
+    );
+    assert.match(codigo, /buscarTrechos\(/, `${arquivo} não recupera nada`);
+  }
+});
+
+test("a busca sempre recebe o brand_id da requisição", () => {
+  // A função do banco é `security invoker` e exige `p_brand_id`. O que esta
+  // guarda impede é a chamada passar outra coisa — o workspace, por exemplo,
+  // que compila igual e devolve vazio para sempre sem ninguém notar.
+  const codigo = lerCodigo("src/lib/ai/buscar.ts");
+  assert.match(codigo, /p_brand_id: brandId/);
+  assert.doesNotMatch(codigo, /p_brand_id: workspace/i);
+});
+
+test("os limites de IA vivem num lugar só", () => {
+  // Espalhados, viram números mágicos que ninguém revisa junto e o orçamento
+  // de uma requisição deixa de ser legível de uma vez.
+  const codigo = lerCodigo("src/lib/ai/recuperacao.ts");
+  for (const limite of [
+    "maxTrechos", "maxCaracteresPorTrecho", "maxCaracteresDeContexto",
+    "maxCaracteresDaPergunta", "maxMensagens", "maxCaracteresPorMensagem",
+  ]) {
+    assert.match(codigo, new RegExp(`${limite}:\\s*\\d`), `${limite} sem valor explícito`);
+  }
+});
+
+test("não existe conversor de páginas para trechos no código de produção", () => {
+  // Ele seria o caminho por onde o manual inteiro voltaria ao prompt: bastaria
+  // uma chamada `buildChatSystemPrompt(converter(docs), ...)`. No teste existe
+  // um, de propósito — lá é fixture, não atalho.
+  const codigo = lerCodigo("src/lib/ai/recuperacao.ts") + lerCodigo("src/lib/ai/buscar.ts");
+  assert.doesNotMatch(codigo, /DocPageEntry/, "há conversão de documento para trecho em produção");
+});

@@ -265,7 +265,11 @@ test("o prompt construído pelo caminho de produção usa o vocabulário da marc
   // Este é o teste que faltava: nada de objeto montado à mão. A marca entra
   // como ela sai do banco e o prompt sai como ele vai para o modelo.
   const prompt = buildChatSystemPrompt(
-    [{ slug: "grade", group: "Sistema", title: "Grade", status: "ready", body: ["Doze colunas."] }],
+    [{
+      documentSlug: "grade", documentTitle: "Grade", groupName: "Sistema",
+      section: null, status: "ready", pageStart: null, pageEnd: null,
+      content: "Doze colunas.",
+    }],
     brandPromptContext(MARCA_EDITORIAL),
   );
 
@@ -278,7 +282,11 @@ test("o prompt construído pelo caminho de produção usa o vocabulário da marc
 test("marca sem vocabulário próprio continua usando os rótulos do produto", () => {
   const semVocabulario = { ...MARCA_EDITORIAL, statusLabels: undefined };
   const prompt = buildChatSystemPrompt(
-    [{ slug: "grade", group: "Sistema", title: "Grade", status: "ready", body: ["Doze colunas."] }],
+    [{
+      documentSlug: "grade", documentTitle: "Grade", groupName: "Sistema",
+      section: null, status: "ready", pageStart: null, pageEnd: null,
+      content: "Doze colunas.",
+    }],
     brandPromptContext(semVocabulario),
   );
 

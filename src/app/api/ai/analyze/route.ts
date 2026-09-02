@@ -11,6 +11,9 @@ import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { getAnalysisAuthContext, persistAnalysisRun } from "@/lib/analysis/server";
 import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { buscarTrechos } from "@/lib/ai/buscar";
+import type { Trecho } from "@/lib/ai/recuperacao";
+import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -72,7 +75,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized", message: isEnglish ? "Sign in again to analyze and save this piece." : "Entre novamente para analisar e salvar a peça." }, { status: 401 });
   }
 
-  let brandDocs;
+  let trechos: Trecho[] = [];
   let brandPrompt;
   try {
     const contexto = await resolveWorkspaceContext(alvoDaRota(request));
@@ -84,7 +87,18 @@ export async function POST(request: Request) {
         { status: 409 },
       );
     }
-    brandDocs = contexto.docs;
+    /*
+     * A análise também recupera, em vez de levar o manual inteiro.
+     *
+     * Ela não tem pergunta digitada como o chat: a busca é feita sobre o que a
+     * peça declara — o nome do arquivo e a pergunta do formulário. É pouco, e
+     * é honesto que seja pouco: recuperar sobre pouco devolve pouco, e pouco
+     * com procedência é melhor que muito sem relação.
+     */
+    const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
+    if (auth) {
+      trechos = await buscarTrechos(auth.supabase, contexto.brand.id, `${question} ${fileName}`);
+    }
     brandPrompt = brandPromptContext(contexto.brand);
   } catch {
     return NextResponse.json({ error: "content_unavailable", message: isEnglish ? "Couldn't load the latest guidelines right now." : "Não foi possível carregar as diretrizes atualizadas agora." }, { status: 503 });
@@ -174,7 +188,7 @@ export async function POST(request: Request) {
           start: (attempt, abortSignal) =>
             streamText({
               model: getModel(attempt.config),
-              system: buildAnalysisSystemPrompt(brandDocs, brandPrompt),
+              system: buildAnalysisSystemPrompt(trechos, brandPrompt),
               messages: [
                 {
                   role: "user",

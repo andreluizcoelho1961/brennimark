@@ -1,5 +1,6 @@
 import { flattenBlocksToFacts } from "../../content/doc-blocks";
 import type { DocPageEntry, DocStatus } from "../../content/docs";
+import { montarContextoRecuperado, semEvidencia, type Trecho } from "./recuperacao";
 import {
   promptStatusLabels,
   resolveStatusLabels,
@@ -112,13 +113,6 @@ ${facts}
 </source>`;
 }
 
-export function buildBrandContext(
-  docs: readonly DocPageEntry[],
-  brand: BrandPromptContext,
-): string {
-  const rotulos = rotulosDeStatus(brand);
-  return getBrandKnowledgeSources(docs).map((s) => renderSource(s, rotulos)).join("\n\n");
-}
 
 /** Blocos que carregam informação visual — o que importa ao julgar uma peça. */
 const VISUAL_BLOCK_KINDS = new Set(["swatches", "gallery", "section"]);
@@ -127,26 +121,6 @@ function hasVisualBlocks(entry: DocPageEntry): boolean {
   return (entry.blocks ?? []).some((block) => VISUAL_BLOCK_KINDS.has(block.kind));
 }
 
-/**
- * Contexto compacto para análise de peça.
- *
- * Evita enviar o guia inteiro junto de cada imagem, o que aumenta latência e
- * gasta atenção do modelo com material irrelevante. Antes a seleção era uma
- * lista fixa de fontes estruturadas; agora é semântica: entram as páginas que
- * contêm bloco visual — paleta, galeria ou território.
- *
- * Se nenhuma página tiver bloco visual, cai para o guia inteiro. Um guia
- * pequeno e sem blocos ainda precisa poder ser usado na análise.
- */
-export function buildAnalysisBrandContext(
-  docs: readonly DocPageEntry[],
-  brand: BrandPromptContext,
-): string {
-  const visuais = docs.filter(hasVisualBlocks);
-  const escolhidas = visuais.length > 0 ? visuais : docs;
-  const rotulos = rotulosDeStatus(brand);
-  return getBrandKnowledgeSources(escolhidas).map((s) => renderSource(s, rotulos)).join("\n\n");
-}
 
 function regrasDeFundamentacao(brand: BrandPromptContext): string {
   const { ready, draft, pending } = rotulosDeStatus(brand);
@@ -174,12 +148,26 @@ function regrasDeFundamentacao(brand: BrandPromptContext): string {
 - Responda no idioma usado pela pessoa, mantendo nomes oficiais e termos técnicos como documentados.`;
 }
 
+/**
+ * O prompt do chat, com os trechos RECUPERADOS — não o manual inteiro.
+ *
+ * A assinatura mudou de `docs` para `trechos` de propósito: enquanto ela
+ * aceitasse a lista de documentos, o caminho antigo continuaria disponível, e
+ * o custo voltaria na primeira chamada que esquecesse de buscar. Aqui não há
+ * como enviar o manual inteiro sem reescrever a função.
+ *
+ * Sem evidência, o bloco de conhecimento não fica vazio: ele diz que a busca
+ * não encontrou nada. Um bloco vazio é pior que ausente — o modelo preenche
+ * silêncio, e o silêncio é indistinguível de "a marca não documentou isso".
+ */
 export function buildChatSystemPrompt(
-  docs: readonly DocPageEntry[],
+  trechos: readonly Trecho[],
   brand: BrandPromptContext,
 ): string {
   const regras = regrasDeFundamentacao(brand);
-  const conhecimento = buildBrandContext(docs, brand);
+  const rotulos = rotulosDeStatus(brand);
+  const { texto } = montarContextoRecuperado(trechos, rotulos);
+  const conhecimento = texto || semEvidencia(brand.language === "en");
 
   if (brand.language === "en") {
     return `${brand.chatRole} Your role is to give short, useful, verifiable answers for teams and vendors.
@@ -244,13 +232,23 @@ Regras específicas para avaliação de cor:
 - Se a documentação disser que a paleta foi amostrada da própria peça, essa evidência documental prevalece sobre uma estimativa visual incerta.`;
 }
 
+/**
+ * O prompt da análise, também por recuperação.
+ *
+ * A análise não tem pergunta digitada: a busca é feita sobre o que a peça
+ * declara — nome do arquivo e a pergunta do formulário, quando há. Quando não
+ * há termo nenhum, entram os trechos que a chamadora tiver recuperado por
+ * outro critério, e nunca o manual inteiro.
+ */
 export function buildAnalysisSystemPrompt(
-  docs: readonly DocPageEntry[],
+  trechos: readonly Trecho[],
   brand: BrandPromptContext,
 ): string {
   const regras = regrasDeFundamentacao(brand);
   const cor = regrasDeCor(brand.language);
-  const conhecimento = buildAnalysisBrandContext(docs, brand);
+  const rotulos = rotulosDeStatus(brand);
+  const { texto } = montarContextoRecuperado(trechos, rotulos);
+  const conhecimento = texto || semEvidencia(brand.language === "en");
 
   if (brand.language === "en") {
     return `${brand.analysisRole}
