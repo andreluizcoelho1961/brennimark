@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { caminhoDaMarca } from "@/lib/brandville/selecao";
+import { documentosVisiveis } from "@/content/visibilidade";
 import { LocaleProvider } from "@/platform/locale-client";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
@@ -65,7 +66,7 @@ export default async function DocsLayout({
             locale,
             utilityLinks: brand?.navigation.utilityLinks,
           })}
-          docs={docs}
+          docs={documentosVisiveis(docs, capabilities)}
           userEmail={userEmail}
           brandName={brand?.brand.name}
           brandDescriptor={brand?.brand.descriptor}

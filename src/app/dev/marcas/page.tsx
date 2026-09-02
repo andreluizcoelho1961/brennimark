@@ -39,6 +39,16 @@ const PAGINAS: DocPageEntry[] = [
     ],
   },
   { slug: "voz", group: "Sistema", title: "Voz", status: "draft", body: ["Rascunho editorial."] },
+  // Um segundo grupo, e páginas suficientes para o corte por lote acontecer.
+  // Sem elas, a navegação de documentos existiria na tela e nenhum teste
+  // conseguiria exercitar agrupamento nem "ver mais".
+  ...Array.from({ length: 15 }, (_, i) => ({
+    slug: `aplicacao-${i + 1}`,
+    group: "Aplicações",
+    title: `Aplicação ${i + 1}`,
+    status: (i % 3 === 0 ? "draft" : "ready") as DocPageEntry["status"],
+    body: [`Regra da aplicação ${i + 1}.`],
+  })),
 ];
 
 export default async function MarcasOpostas({

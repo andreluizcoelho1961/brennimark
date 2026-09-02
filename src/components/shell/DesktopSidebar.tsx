@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isDestinationActive, withBase, type ShellSection } from "./navigation";
+import { NavegacaoDeDocumentos } from "./NavegacaoDeDocumentos";
+import type { DocPageEntry } from "@/content/docs";
 
 /**
  * A lista de destinos, uma vez só.
@@ -81,14 +83,17 @@ export function NavigationSections({
 export function DesktopSidebar({
   sections,
   basePath,
+  docs = [],
 }: {
   sections: ShellSection[];
   basePath?: string;
+  /** As páginas do manual. Antes do Q1 elas não apareciam aqui, e um manual
+   *  de 152 seções só era alcançável pela busca. */
+  docs?: readonly DocPageEntry[];
 }) {
-  // Sem destino não há navegação. Uma coluna vazia de 224px é área morta que
-  // sugere que algo falhou ao carregar — e destinos só existem com capacidade,
-  // então quem não tem nenhuma não deve ver o lugar onde eles estariam.
-  if (sections.length === 0) return null;
+  // Sem destino E sem página não há navegação. Uma coluna vazia de 224px é
+  // área morta que sugere que algo falhou ao carregar.
+  if (sections.length === 0 && docs.length === 0) return null;
 
   return (
     <nav
@@ -96,6 +101,9 @@ export function DesktopSidebar({
       className="hidden w-[var(--shell-sidebar)] flex-none flex-col gap-[var(--space-shell-5)] overflow-y-auto border-r border-platform-border bg-platform-bg px-[var(--space-shell-3)] py-[var(--space-shell-5)] lg:flex"
     >
       <NavigationSections sections={sections} basePath={basePath} />
+      {/* As páginas do manual vêm DEPOIS dos destinos do produto: a moldura é
+          do produto, o conteúdo é da marca, e a ordem diz isso. */}
+      {basePath && <NavegacaoDeDocumentos docs={docs} base={basePath} />}
     </nav>
   );
 }

@@ -4,6 +4,8 @@ import { useEffect, useRef } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { NavigationSections } from "./DesktopSidebar";
 import type { ShellSection } from "./navigation";
+import { NavegacaoDeDocumentos } from "./NavegacaoDeDocumentos";
+import type { DocPageEntry } from "@/content/docs";
 
 const FOCAVEIS =
   'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -26,11 +28,14 @@ export function NavigationDrawer({
   open,
   sections,
   basePath,
+  docs = [],
   onClose,
 }: {
   open: boolean;
   sections: ShellSection[];
   basePath?: string;
+  /** As páginas do manual, para a gaveta oferecer a mesma navegação da barra. */
+  docs?: readonly DocPageEntry[];
   onClose: () => void;
 }) {
   const isEnglish = useIsEnglish();
@@ -120,6 +125,9 @@ export function NavigationDrawer({
           </button>
         </div>
         <NavigationSections sections={sections} basePath={basePath} onNavigate={onClose} />
+        {basePath && (
+          <NavegacaoDeDocumentos docs={docs} base={basePath} onNavigate={onClose} />
+        )}
       </div>
     </div>
   );

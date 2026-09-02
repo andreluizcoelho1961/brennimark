@@ -5,6 +5,7 @@ import { Suspense, useEffect, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
+import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 
 function OnboardingForm() {
   const isEnglish = useIsEnglish();
@@ -16,7 +17,7 @@ function OnboardingForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/";
+  const next = destinoDeRetorno(searchParams.get("next"));
 
   useEffect(() => {
     const supabase = createClient();

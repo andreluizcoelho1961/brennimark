@@ -31,6 +31,17 @@ import type { ShellSection } from "./navigation";
  */
 function podeReceberFoco(el: HTMLElement | null): boolean {
   if (!el?.isConnected) return false;
+  /*
+   * O corpo do documento passava nesta checagem.
+   *
+   * `document.activeElement` é o `<body>` quando nada está focado, e é
+   * exatamente esse o estado de quem abre a busca por ⌘K logo depois de
+   * carregar a página. O corpo está conectado, não é inerte e tem caixa —
+   * então ele era considerado focável, `body.focus()` era chamado, não fazia
+   * nada, e a cadeia de reserva NUNCA rodava. Fechar a busca deixava o foco no
+   * vazio, que é o defeito que a cadeia inteira existe para impedir.
+   */
+  if (el === document.body || el === document.documentElement) return false;
   if (el.closest("[inert]")) return false;
   return el.getClientRects().length > 0;
 }
@@ -171,8 +182,11 @@ export function AppShellV2({
   );
 
   const emModal = modal !== "none";
-  // O botão da gaveta só existe se houver para onde ir.
-  const temDestinos = sections.length > 0;
+  // O botão da gaveta só existe se houver para onde ir — e "para onde ir"
+  // passou a incluir as páginas do manual. Uma marca sem utilidades
+  // contratadas tem zero seções de moldura e cento e cinquenta páginas: contar
+  // só as seções esconderia a gaveta justamente de quem mais precisa dela.
+  const temDestinos = sections.length > 0 || docs.length > 0;
 
   return (
     <div className="flex h-dvh flex-col bg-platform-bg text-platform-text">
@@ -195,7 +209,7 @@ export function AppShellV2({
           {sessionControl}
         </PlatformTopBar>
         <div className="flex min-h-0 flex-1">
-          <DesktopSidebar sections={sections} basePath={basePath} />
+          <DesktopSidebar sections={sections} basePath={basePath} docs={docs} />
           {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
               390 é 8% da largura gasta em moldura. O canvas encosta e a borda
               some junto, porque filete em tela cheia não separa nada. */}
@@ -215,6 +229,7 @@ export function AppShellV2({
       </div>
 
       <NavigationDrawer
+        docs={docs}
         open={modal === "nav"}
         sections={sections}
         basePath={basePath}

@@ -1,3 +1,4 @@
+import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -41,7 +42,10 @@ export async function updateSession(request: NextRequest) {
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    url.searchParams.set("next", request.nextUrl.pathname);
+    // Mesmo vindo de dentro, passa pela mesma validação: o dia em que alguém
+    // acrescentar a query aqui, ou o pathname carregar algo inesperado, a
+    // regra continua sendo uma só.
+    url.searchParams.set("next", destinoDeRetorno(request.nextUrl.pathname));
     return NextResponse.redirect(url);
   }
 

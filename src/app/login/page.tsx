@@ -5,6 +5,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
+import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 
 type Mode = "signin" | "signup";
 type Status = "idle" | "submitting" | "check-email" | "error";
@@ -20,7 +21,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const hadAuthError = searchParams.get("error") === "auth_failed";
-  const next = searchParams.get("next") ?? "/";
+  const next = destinoDeRetorno(searchParams.get("next"));
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");

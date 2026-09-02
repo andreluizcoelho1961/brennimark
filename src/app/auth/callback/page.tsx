@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 
 function AuthCallbackInner() {
   const router = useRouter();
@@ -14,7 +15,7 @@ function AuthCallbackInner() {
 
     async function run() {
       const supabase = createClient();
-      const next = searchParams.get("next") ?? "/";
+      const next = destinoDeRetorno(searchParams.get("next"));
 
       // Implicit flow delivers the session via the URL hash fragment —
       // getSession() awaits the client's initial hash-parsing pass
