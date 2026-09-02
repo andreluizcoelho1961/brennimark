@@ -58,3 +58,17 @@ test("o importador vive na conta, não dentro de uma marca", async ({ page }) =>
   const daMarca = await page.goto(`${CONTEXTO}/docs/importar`);
   expect(daMarca?.status(), "importar não deveria existir sob uma marca").toBe(404);
 });
+
+test("rota filha que não existe na marca é 404, não a página de outra marca", async ({ page }) => {
+  // O caminho existe na marca A e não na B. A resposta certa é 404: renderizar
+  // a página de A sob a URL de B seria servir conteúdo de um cliente no
+  // endereço de outro, sem nenhum sinal na tela de que isso aconteceu.
+  const resposta = await page.goto(`${CONTEXTO}/docs/cor`);
+  expect(resposta?.status()).toBe(404);
+
+  // E o que aparece é a página de erro, não um manual vestido.
+  const canvas = await page.evaluate(() =>
+    Boolean(document.querySelector("[data-brand-canvas]")),
+  );
+  expect(canvas, "um manual foi renderizado numa rota que não existe").toBe(false);
+});

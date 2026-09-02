@@ -5,6 +5,7 @@ import {
   resolverAlvo,
   resolverSemAlvo,
   resolverWorkspace,
+  destinoAoTrocarDeMarca,
   type EstadoDaPessoa,
   type WorkspaceDisponivel,
 } from "./selecao";
@@ -149,4 +150,37 @@ test("sem conta nenhuma, nenhum workspace é inventado", () => {
   const r = resolverWorkspace(pessoa({ disponiveis: [] }));
   assert.equal(r.tipo, "escolher");
   assert.equal(r.tipo === "escolher" && r.opcoes.length, 0);
+});
+
+// ─── Trocar de marca a partir de uma rota filha ─────────────────────────────
+
+test("trocar de marca vai para a visão geral, não para a página atual", () => {
+  // Estando em /w/agencia-norte/b/padaria/docs/cor, o destino é a visão geral
+  // de "sul" — o caminho `cor` NÃO acompanha. A marca de destino pode não ter
+  // uma página com esse nome, e as três saídas de levar o caminho junto são
+  // todas erradas: mostrar a página da outra marca é vazamento entre clientes;
+  // inferir uma equivalente é inventar conteúdo; e um 404 logo depois de
+  // clicar no nome de uma marca faz a troca parecer quebrada.
+  assert.equal(
+    destinoAoTrocarDeMarca({ workspaceSlug: "sul", brandKey: "oficina" }),
+    "/w/sul/b/oficina/docs",
+  );
+});
+
+test("nenhum destino de troca carrega segmento além de /docs", () => {
+  for (const opcao of [...agencia.marcas, ...clienteSolo.marcas]) {
+    const destino = destinoAoTrocarDeMarca({ workspaceSlug: "sul", brandKey: opcao.key });
+    assert.match(destino, /^\/w\/[^/]+\/b\/[^/]+\/docs$/, `${destino} leva caminho junto`);
+  }
+});
+
+test("o documento pedido é procurado na marca da URL, não na anterior", () => {
+  // A regressão: /w/sul/b/oficina/docs/cor resolvendo para a marca "padaria"
+  // porque ela era a anterior, e servindo a página `cor` DELA. Aqui o alvo é o
+  // único que decide, e a marca resolvida é a de "oficina".
+  const estado = pessoa({ disponiveis: [agencia, clienteSolo] });
+  const r = resolverAlvo(estado, { workspaceSlug: "sul", brandKey: "oficina" });
+  assert.equal(r.tipo, "pronto");
+  assert.equal(r.tipo === "pronto" && r.marca.id, "b-3");
+  assert.notEqual(r.tipo === "pronto" && r.marca.id, "b-1");
 });

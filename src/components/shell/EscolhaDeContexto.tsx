@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { platformIdentity } from "@/platform/identity";
+import { destinoAoTrocarDeMarca } from "@/lib/brandville/selecao";
 
 /**
  * A pergunta que o produto não sabia fazer.
@@ -35,7 +36,7 @@ export function EscolhaDeContexto({
           {opcoes.map((opcao) => (
             <li key={`${opcao.workspaceSlug}/${opcao.brandKey}`}>
               <Link
-                href={`/w/${opcao.workspaceSlug}/b/${opcao.brandKey}/docs`}
+                href={destinoAoTrocarDeMarca(opcao)}
                 data-escolha-de-marca
                 className="flex min-h-11 flex-col justify-center rounded-[var(--radius-control)] border border-platform-border px-[var(--space-shell-4)] py-[var(--space-shell-3)] hover:border-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
               >

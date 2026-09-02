@@ -160,3 +160,20 @@ export function resolverWorkspace(
   // vazia diz isso sem fingir um destino.
   return { tipo: "escolher", opcoes: estado.disponiveis };
 }
+
+/**
+ * Para onde vai quem troca de marca.
+ *
+ * Sempre a visão geral da marca de destino — nunca o caminho em que a pessoa
+ * estava. Levar `/docs/cor` junto parece conveniente e é uma armadilha: a
+ * marca B pode não ter uma página `cor`, e as três saídas de "carregar mesmo
+ * assim" são todas erradas. Mostrar a página de A sob o nome de B é vazamento
+ * entre clientes. Inferir uma página equivalente é inventar conteúdo. Cair num
+ * 404 logo depois de clicar no nome de uma marca faz a troca parecer quebrada.
+ *
+ * A visão geral existe sempre e é o único destino que não depende do que a
+ * marca de destino contém.
+ */
+export function destinoAoTrocarDeMarca(destino: Alvo): string {
+  return caminhoDaMarca(destino);
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
+import { destinoAoTrocarDeMarca } from "@/lib/brandville/selecao";
 
 export interface OpcaoDeContexto {
   slug: string;
@@ -95,7 +96,7 @@ export function SeletorDeContexto({
                 return (
                   <Link
                     key={m.key}
-                    href={`/w/${opcao.slug}/b/${m.key}/docs`}
+                    href={destinoAoTrocarDeMarca({ workspaceSlug: opcao.slug, brandKey: m.key })}
                     aria-current={atual ? "true" : undefined}
                     onClick={() => setAberto(false)}
                     className={`flex min-h-11 items-center rounded-[var(--radius-control)] px-[var(--space-shell-2)] text-[13px] ${
