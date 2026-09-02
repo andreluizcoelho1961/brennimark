@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAnalysisAuthContext } from "@/lib/analysis/server";
+import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
 import {
   ANALYSIS_EVIDENCE_BUCKET,
   ANALYSIS_RUN_SELECT,
@@ -12,8 +13,8 @@ import {
 const FEEDBACK_VALUES: AnalysisFeedback[] = ["correct", "partial", "incorrect"];
 const EXPECTED_VERDICTS = ["aligned", "partially_aligned", "misaligned"] as const;
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const context = await getAnalysisAuthContext();
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const context = await getAnalysisAuthContext(alvoDaRota(request));
   if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
 
@@ -22,6 +23,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     .select(ANALYSIS_RUN_SELECT)
     .eq("id", id)
     .eq("workspace_id", context.workspaceId)
+    .eq("brand_id", context.brandId)
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: "history_unavailable", message: error.message }, { status: 500 });
@@ -33,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const context = await getAnalysisAuthContext();
+  const context = await getAnalysisAuthContext(alvoDaRota(request));
   if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
   const body = await request.json().catch(() => null);
@@ -84,6 +86,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     .update(update)
     .eq("id", id)
     .eq("workspace_id", context.workspaceId)
+    .eq("brand_id", context.brandId)
     .select(ANALYSIS_RUN_SELECT)
     .maybeSingle();
 
@@ -94,8 +97,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   return NextResponse.json({ run: mapAnalysisRow(row, row.image_path ? (urls.get(row.image_path) ?? null) : null) });
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const context = await getAnalysisAuthContext();
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const context = await getAnalysisAuthContext(alvoDaRota(request));
   if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id } = await params;
 
@@ -104,6 +107,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .select("image_path")
     .eq("id", id)
     .eq("workspace_id", context.workspaceId)
+    .eq("brand_id", context.brandId)
     .maybeSingle();
   if (!data) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
@@ -118,7 +122,8 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     .from("analysis_runs")
     .delete()
     .eq("id", id)
-    .eq("workspace_id", context.workspaceId);
+    .eq("workspace_id", context.workspaceId)
+    .eq("brand_id", context.brandId);
   if (error) return NextResponse.json({ error: "delete_failed", message: error.message }, { status: 500 });
   return new Response(null, { status: 204 });
 }

@@ -14,6 +14,9 @@ export type AnalysisAuthContext = {
   supabase: SupabaseClient;
   user: User;
   workspaceId: string;
+  /** A marca da requisição. Sem ela a análise pertencia à CONTA, e o histórico
+   *  de quatro marcas era um só. */
+  brandId: string;
 };
 
 /**
@@ -24,16 +27,26 @@ export type AnalysisAuthContext = {
  * resto: o pedido, o único, ou nenhum — nunca "o primeiro".
  */
 export async function getAnalysisAuthContext(
-  workspaceSlug?: string,
+  alvo?: { workspaceSlug?: string; brandKey?: string },
 ): Promise<AnalysisAuthContext | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const r = await resolverWorkspaceAtivo(workspaceSlug);
+  const r = await resolverWorkspaceAtivo(alvo?.workspaceSlug);
   if (r.tipo !== "workspace") return null;
 
-  return { supabase, user, workspaceId: r.workspace.id };
+  // A marca também vem da URL. Sem `brandKey`, resolve se houver uma só —
+  // mesma regra do resto do produto, e nunca "a primeira".
+  const marcas = r.workspace.marcas;
+  const marca = alvo?.brandKey
+    ? marcas.find((m) => m.key === alvo.brandKey)
+    : marcas.length === 1
+      ? marcas[0]
+      : undefined;
+  if (!marca) return null;
+
+  return { supabase, user, workspaceId: r.workspace.id, brandId: marca.id };
 }
 
 export async function persistAnalysisRun(input: {
@@ -57,6 +70,7 @@ export async function persistAnalysisRun(input: {
     .from("analysis_runs")
     .insert({
       workspace_id: context.workspaceId,
+      brand_id: context.brandId,
       created_by: context.user.id,
       parent_run_id: input.parentRunId ?? null,
       file_name: input.fileName.slice(0, 240),
@@ -77,7 +91,7 @@ export async function persistAnalysisRun(input: {
 
   if (insertError) throw insertError;
 
-  const path = evidencePath(context.workspaceId, inserted.id, input.imageMediaType);
+  const path = evidencePath(context.workspaceId, context.brandId, inserted.id, input.imageMediaType);
   const { error: uploadError } = await context.supabase.storage
     .from(ANALYSIS_EVIDENCE_BUCKET)
     .upload(path, imageBuffer, {
@@ -94,7 +108,8 @@ export async function persistAnalysisRun(input: {
     .from("analysis_runs")
     .update({ image_path: path, updated_at: new Date().toISOString() })
     .eq("id", inserted.id)
-    .eq("workspace_id", context.workspaceId);
+    .eq("workspace_id", context.workspaceId)
+    .eq("brand_id", context.brandId);
 
   if (updateError) {
     await context.supabase.storage.from(ANALYSIS_EVIDENCE_BUCKET).remove([path]);

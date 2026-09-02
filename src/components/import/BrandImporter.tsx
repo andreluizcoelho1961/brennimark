@@ -14,6 +14,7 @@ import {
 } from "@/lib/import/secoes";
 import { ListaDeSecoes } from "./ListaDeSecoes";
 import type { BrandvilleUtilityKey } from "@/brandville/types";
+import { caminhoDeImportacao } from "@/lib/storage/caminhos";
 
 
 
@@ -160,7 +161,7 @@ export function BrandImporter({
     });
 
     const supabase = createClient();
-    const caminho = `${workspaceId}/${importId}/${hash}.pdf`;
+    const caminho = caminhoDeImportacao(workspaceId, importId, hash);
 
     /**
      * O objeto é IMUTÁVEL, e o caminho é a impressão digital do arquivo.

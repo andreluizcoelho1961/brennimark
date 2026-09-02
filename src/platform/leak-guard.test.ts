@@ -667,12 +667,14 @@ test("a exclusão de marca enfileira os arquivos na mesma transação", () => {
 });
 
 test("o caminho do arquivo é exclusivo da importação", () => {
+  // O caminho saiu do componente e foi para o módulo de caminhos no M2 — um
+  // lugar só monta caminho de Storage. O que a guarda verifica aqui é que ele
+  // NÃO voltou a ser montado à mão; a forma do caminho, e a razão dela
+  // (conta+hash sozinhos fariam duas marcas compartilharem o objeto), está
+  // contada por comportamento em lib/storage/caminhos.test.ts.
   const importador = lerCodigo("src/components/import/BrandImporter.tsx");
-  assert.match(
-    importador,
-    /\$\{workspaceId\}\/\$\{importId\}\/\$\{hash\}\.pdf/,
-    "caminho só por conta+hash faz duas marcas compartilharem o objeto",
-  );
+  assert.match(importador, /caminhoDeImportacao\(/);
+  assert.doesNotMatch(importador, /\$\{workspaceId\}\//);
 });
 
 test("o caminho não é enviado pelo cliente", () => {
@@ -979,4 +981,73 @@ test("as telas da marca não usam endereços absolutos de /docs", () => {
     }
   }
   assert.deepEqual(infratores, [], "link absoluto sai da marca aberta e cai no resolvedor");
+});
+
+/**
+ * M2. Assets, análise e exportação não conhecem a instância global.
+ *
+ * `brandvilleInstance` é resolvido uma vez na inicialização do processo, a
+ * partir de uma variável de build. Num produto multimarca, cada leitura dele
+ * num caminho de conteúdo é uma marca escolhida por outra pessoa em outro
+ * momento — e nestes caminhos o resultado sai do produto: um arquivo listado,
+ * uma URL assinada, um PDF entregue ao cliente.
+ */
+const CAMINHOS_DE_CONTEUDO = [
+  "src/app/api/assets/route.ts",
+  "src/app/api/admin/assets/route.ts",
+  "src/app/api/analysis/history/route.ts",
+  "src/app/api/analysis/history/[id]/route.ts",
+  "src/app/api/analysis/history/[id]/report/route.ts",
+  "src/app/api/ai/analyze/route.ts",
+  "src/lib/analysis/server.ts",
+  "src/lib/analysis/history.ts",
+];
+
+test("nenhum caminho de assets, análise ou exportação lê a instância global", () => {
+  for (const arquivo of CAMINHOS_DE_CONTEUDO) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /brandvilleInstance|brandville\/config/,
+      `${arquivo} decide por instância de build, não pela marca da requisição`,
+    );
+  }
+});
+
+test("nenhum caminho de conteúdo consulta por instance_key", () => {
+  // A coluna saiu de brand_assets no M2.0. Uma consulta por ela agora falha —
+  // mas falharia em produção, na primeira listagem, e não aqui.
+  for (const arquivo of CAMINHOS_DE_CONTEUDO) {
+    assert.doesNotMatch(lerCodigo(arquivo), /instance_key/, `${arquivo} ainda usa instance_key`);
+  }
+});
+
+test("toda consulta de conteúdo filtra por marca, não só por conta", () => {
+  // A regressão que isto impede: `.eq("workspace_id", ...)` sozinho. Numa
+  // conta com quatro marcas, ele devolve o conteúdo das quatro — e a tela
+  // mostra tudo como se fosse da marca aberta.
+  for (const arquivo of CAMINHOS_DE_CONTEUDO) {
+    const codigo = lerCodigo(arquivo);
+    const porConta = (codigo.match(/\.eq\("workspace_id"/g) ?? []).length;
+    const porMarca = (codigo.match(/\.eq\("brand_id"/g) ?? []).length;
+    assert.ok(
+      porMarca >= porConta,
+      `${arquivo}: ${porConta} filtro(s) por conta e só ${porMarca} por marca`,
+    );
+  }
+});
+
+test("caminho de Storage sai do módulo de caminhos, não de literal", () => {
+  // Um template literal montando caminho é como a chave da marca entrou no
+  // caminho da primeira vez. Centralizar é o que permite garantir que só
+  // identificadores imutáveis apareçam ali.
+  for (const arquivo of [...CAMINHOS_DE_CONTEUDO, "src/components/import/BrandImporter.tsx"]) {
+    const codigo = lerCodigo(arquivo);
+    for (const linha of codigo.split("\n")) {
+      assert.doesNotMatch(
+        linha,
+        /`\$\{[^`]*\}\/\$\{[^`]*\}\/[^`]*`/,
+        `${arquivo} monta caminho à mão: ${linha.trim().slice(0, 70)}`,
+      );
+    }
+  }
 });

@@ -134,3 +134,47 @@ export async function conteudoDaRota(request: Request): Promise<ConteudoDaRota> 
   }
   return { ok: true, contexto, auth };
 }
+
+/**
+ * Conta e marca resolvidas, para rotas que gravam ou leem conteúdo da marca.
+ *
+ * Devolve os dois identificadores IMUTÁVEIS. É de propósito que a chave e o
+ * slug não venham juntos: eles são editáveis, e qualquer coisa gravada a
+ * partir deles — caminho de Storage, filtro de consulta — passa a mentir no
+ * dia em que alguém renomeia a marca.
+ */
+export type MarcaDaRota =
+  | {
+      ok: true;
+      workspaceId: string;
+      brandId: string;
+      brand: NonNullable<WorkspaceContext["brand"]>;
+      auth: BrandvilleAuthContext;
+      papel: "owner" | "member";
+    }
+  | { ok: false; resposta: NextResponse };
+
+export async function marcaDaRota(request: Request): Promise<MarcaDaRota> {
+  const resolvido = await conteudoDaRota(request);
+  if (!resolvido.ok) return resolvido;
+
+  const { contexto, auth } = resolvido;
+  if (!contexto.brand) {
+    // `ready` sem marca não deveria acontecer — a resolução só chega a `ready`
+    // com marca. Se acontecer, é defeito, e responder 409 é mais honesto que
+    // seguir com `brand_id` indefinido e gravar linha órfã.
+    return {
+      ok: false,
+      resposta: NextResponse.json({ error: "sem_marca" }, { status: 409 }),
+    };
+  }
+
+  return {
+    ok: true,
+    workspaceId: auth.workspaceId,
+    brandId: contexto.brand.id,
+    brand: contexto.brand,
+    auth,
+    papel: auth.role,
+  };
+}

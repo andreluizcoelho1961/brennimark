@@ -1,3 +1,4 @@
+import { caminhoDeEvidencia } from "@/lib/storage/caminhos";
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { StructuredAnalysis, AnalysisVerdict } from "@/lib/ai/analysis-result";
@@ -112,8 +113,20 @@ function extensionFor(mediaType: string) {
   return extensions[mediaType] ?? "img";
 }
 
-export function evidencePath(workspaceId: string, runId: string, mediaType: string) {
-  return `${workspaceId}/${runId}/evidence.${extensionFor(mediaType)}`;
+/**
+ * Onde a peça analisada mora.
+ *
+ * Delega ao módulo de caminhos: um lugar só monta caminho de Storage, e este
+ * era o que faltava — `workspaceId/runId/...` não dizia de qual MARCA era a
+ * peça, e uma listagem por pasta de marca não a encontrava.
+ */
+export function evidencePath(
+  workspaceId: string,
+  brandId: string,
+  runId: string,
+  mediaType: string,
+) {
+  return caminhoDeEvidencia(workspaceId, brandId, runId, `evidence.${extensionFor(mediaType)}`);
 }
 
 export function mapAnalysisRow(row: AnalysisRow, imageUrl: string | null = null): AnalysisRun {

@@ -10,6 +10,7 @@ import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { getAnalysisAuthContext, persistAnalysisRun } from "@/lib/analysis/server";
+import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
 
   let authContext;
   try {
-    authContext = await getAnalysisAuthContext();
+    authContext = await getAnalysisAuthContext(alvoDaRota(request));
   } catch {
     return NextResponse.json({ error: "auth_unavailable", message: isEnglish ? "Couldn't verify your access right now." : "Não foi possível validar seu acesso agora." }, { status: 503 });
   }
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
   let brandDocs;
   let brandPrompt;
   try {
-    const contexto = await resolveWorkspaceContext();
+    const contexto = await resolveWorkspaceContext(alvoDaRota(request));
     if (!contexto.brand) {
       // Sem marca não há sobre o que responder — e um prompt sem papel nem
       // idioma responderia como se fosse sobre qualquer marca.
