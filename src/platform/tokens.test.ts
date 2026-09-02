@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { platformTheme } from "./identity";
-import { brandCssVars, platformCssVars, platformAliasVars } from "./tokens";
+import * as tokens from "./tokens";
+import { brandCssVars, platformCssVars } from "./tokens";
 
 const BRAND_THEME = {
   background: "#0A0A0A", backgroundSecondary: "#111111", surface: "#141414",
@@ -43,9 +44,18 @@ test("todo campo do tema da marca vira token da marca", () => {
   }
 });
 
-test("os aliases de compatibilidade apontam para a plataforma", () => {
-  for (const [key, value] of Object.entries(platformAliasVars())) {
-    assert.ok(key.startsWith("--color-"), `alias fora do prefixo legado: ${key}`);
-    assert.match(String(value), /var\(--platform-/, `alias não aponta para a plataforma: ${key}`);
-  }
+test("não existem mais aliases de compatibilidade", () => {
+  // Eles apontavam o vocabulário legado para a plataforma ou para a marca,
+  // conforme o escopo, e serviram para migrar sem quebrar tudo de uma vez.
+  //
+  // Enquanto existiam, um componente novo podia consumir o nome antigo e
+  // FUNCIONAR — e funcionar era o problema: o nome legado não dizia se aquela
+  // cor era da moldura ou da marca, que é justamente a distinção que o produto
+  // precisa manter. Removidos no V1; escolher entre os dois namespaces virou
+  // obrigatório.
+  const exportado = Object.keys(tokens);
+  assert.ok(!exportado.includes("platformAliasVars"), "o alias da plataforma voltou");
+  assert.ok(!exportado.includes("brandAliasVars"), "o alias da marca voltou");
+  // E nenhum outro export com cara de ponte entre os vocabulários.
+  assert.deepEqual(exportado.filter((nome) => /alias|legad|compat/i.test(nome)), []);
 });

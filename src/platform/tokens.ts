@@ -67,65 +67,17 @@ export function brandCssVars(theme: BrandThemeInput): CSSProperties {
   } as CSSProperties;
 }
 
-/**
- * Aliases de compatibilidade. Os componentes ainda não migrados consomem
- * `--color-*` legado; enquanto existirem, estes aliases os apontam para a
- * plataforma. Removê-los é a última fase, quando um grep provar que não há uso.
+/*
+ * Os aliases de compatibilidade foram removidos no V1.
+ *
+ * Eles apontavam o vocabulário legado — `--color-release-analog-*`,
+ * `--color-background-primary` e companhia — para a plataforma ou para a
+ * marca, conforme o escopo. Serviram para migrar sem quebrar tudo de uma vez,
+ * e a última fase sempre foi removê-los.
+ *
+ * Enquanto existiam, um componente novo podia consumir o nome antigo e
+ * funcionar. Funcionar é o problema: o vocabulário legado não dizia se aquela
+ * cor era da moldura ou da marca, e essa é exatamente a distinção que o
+ * produto precisa manter. Agora só há dois namespaces, e escolher entre eles
+ * é obrigatório.
  */
-export function platformAliasVars(): CSSProperties {
-  return {
-    "--color-primitive-black": "var(--platform-bg)",
-    "--color-primitive-white": "var(--platform-text)",
-    "--color-primitive-gray": "var(--platform-text-muted)",
-    "--color-primitive-cyan": "var(--platform-focus)",
-    "--color-primitive-turquoise": "var(--platform-signal)",
-    "--color-primitive-blue": "var(--platform-signal)",
-    "--color-release-analog-black": "var(--platform-bg)",
-    "--color-release-analog-white": "var(--platform-text)",
-    "--color-release-analog-turquoise": "var(--platform-signal)",
-    "--color-release-analog-blue": "var(--platform-signal)",
-    "--color-background-primary": "var(--platform-bg)",
-    "--color-background-secondary": "var(--platform-bg)",
-    "--color-surface-primary": "var(--platform-panel)",
-    "--color-surface-light": "var(--platform-panel-muted)",
-    "--color-text-primary": "var(--platform-text)",
-    "--color-text-secondary": "var(--platform-text-muted)",
-    "--color-text-inverse": "var(--platform-bg)",
-    "--color-accent-primary": "var(--platform-signal)",
-    "--color-accent-secondary": "var(--platform-signal)",
-    "--color-border-default": "var(--platform-border)",
-    "--color-border-strong": "var(--platform-text)",
-    "--color-focus-ring": "var(--platform-focus)",
-  } as CSSProperties;
-}
-
-/**
- * Aliases legados dentro do canvas: apontam para a marca, para que componentes
- * do guide ainda não migrados vistam a marca como sempre vestiram.
- */
-export function brandAliasVars(): CSSProperties {
-  return {
-    "--color-primitive-black": "var(--brand-bg)",
-    "--color-primitive-white": "var(--brand-text)",
-    "--color-primitive-gray": "var(--brand-text-muted)",
-    "--color-primitive-cyan": "var(--brand-focus)",
-    "--color-primitive-turquoise": "var(--brand-accent)",
-    "--color-primitive-blue": "var(--brand-accent-secondary)",
-    "--color-release-analog-black": "var(--brand-bg)",
-    "--color-release-analog-white": "var(--brand-text)",
-    "--color-release-analog-turquoise": "var(--brand-accent)",
-    "--color-release-analog-blue": "var(--brand-accent-secondary)",
-    "--color-background-primary": "var(--brand-bg)",
-    "--color-background-secondary": "var(--brand-bg-secondary)",
-    "--color-surface-primary": "var(--brand-surface)",
-    "--color-surface-light": "var(--brand-surface-light)",
-    "--color-text-primary": "var(--brand-text)",
-    "--color-text-secondary": "var(--brand-text-muted)",
-    "--color-text-inverse": "var(--brand-bg)",
-    "--color-accent-primary": "var(--brand-accent)",
-    "--color-accent-secondary": "var(--brand-accent-secondary)",
-    "--color-border-default": "var(--brand-border)",
-    "--color-border-strong": "var(--brand-text)",
-    "--color-focus-ring": "var(--brand-focus)",
-  } as CSSProperties;
-}

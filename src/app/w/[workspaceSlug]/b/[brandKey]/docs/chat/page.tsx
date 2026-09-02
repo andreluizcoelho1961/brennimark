@@ -155,26 +155,26 @@ export default function ChatPage() {
 
   return (
     <article className="flex h-full flex-col px-page-inline py-12 md:py-16">
-      <div className="mb-6 inline-flex w-fit items-center gap-3 bg-release-analog-turquoise px-4 py-1.5">
-        <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-release-analog-black">
+      <div className="mb-6 inline-flex w-fit items-center gap-3 bg-platform-signal px-4 py-1.5">
+        <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-platform-bg">
           {isEnglish ? "Assistant" : "Assistente"}
         </span>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <h1
-          className="break-words font-display font-black uppercase leading-[0.9] tracking-tight text-release-analog-white"
+          className="break-words font-display font-black uppercase leading-[0.9] tracking-tight text-platform-text"
           style={{ fontSize: "clamp(2rem, 4.5vw, 4rem)", overflowWrap: "anywhere" }}
         >
-          {isEnglish ? <>Brand <span className="text-release-analog-turquoise">Chat</span></> : <>Chat da <span className="text-release-analog-turquoise">Marca</span></>}
+          {isEnglish ? <>Brand <span className="text-platform-text">Chat</span></> : <>Chat da <span className="text-platform-text">Marca</span></>}
         </h1>
         {demoMode && (
-          <span className="border border-border-default px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+          <span className="border border-platform-border px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
             {isEnglish ? "Demo mode" : "Modo demo"}
           </span>
         )}
         {routeLabel && (
-          <span className="border border-release-analog-turquoise px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-release-analog-turquoise">
+          <span className="border border-platform-signal px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-platform-text">
             {isEnglish ? "Fallback route" : "Rota alternativa"} · {routeLabel}
           </span>
         )}
@@ -183,10 +183,10 @@ export default function ChatPage() {
       <div
         ref={scrollRef}
         aria-busy={isBusy}
-        className="flex-1 space-y-5 overflow-y-auto border-l-2 border-release-analog-turquoise pl-5 md:pl-8"
+        className="flex-1 space-y-5 overflow-y-auto border-l-2 border-platform-signal pl-5 md:pl-8"
       >
         {messages.length === 0 && (
-          <p className="text-sm leading-relaxed text-text-secondary">
+          <p className="text-sm leading-relaxed text-platform-text-muted">
             {isEnglish
               ? <>Ask about positioning, voice, color, typography — anything in this brand system.</>
               : <>Pergunte sobre posicionamento, tom de voz, cor, tipografia — qualquer coisa deste sistema de marca.</>}
@@ -194,39 +194,39 @@ export default function ChatPage() {
         )}
         {messages.map((m, i) => (
           <div key={i}>
-            <p className="font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+            <p className="font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
               {m.role === "user" ? (isEnglish ? "You" : "Você") : (isEnglish ? "Assistant" : "Assistente")}
             </p>
             {m.role === "assistant" ? (
               <AssistantMessage content={m.content} />
             ) : (
-              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-release-analog-white md:text-base">
+              <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-platform-text md:text-base">
                 {m.content}
               </p>
             )}
           </div>
         ))}
         {isBusy && (
-          <div role="status" aria-live="polite" className="border border-border-default bg-surface-primary px-4 py-3">
+          <div role="status" aria-live="polite" className="border border-platform-border bg-platform-panel px-4 py-3">
             <div className="flex items-center gap-3">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-release-analog-turquoise" aria-hidden="true" />
-              <p className="text-sm text-release-analog-white">{statusText}</p>
+              <span className="h-2 w-2 animate-pulse rounded-full bg-platform-signal" aria-hidden="true" />
+              <p className="text-sm text-platform-text">{statusText}</p>
             </div>
             {elapsedSeconds >= 5 && (
-              <p className="mt-1 pl-5 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+              <p className="mt-1 pl-5 font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
                 {isEnglish ? `${elapsedSeconds}s elapsed` : `${elapsedSeconds}s decorridos`}
               </p>
             )}
           </div>
         )}
         {notice && (
-          <div role="status" className="border border-border-default px-4 py-3">
-            <p className="text-sm text-text-secondary">{notice}</p>
+          <div role="status" className="border border-platform-border px-4 py-3">
+            <p className="text-sm text-platform-text-muted">{notice}</p>
             {retryMessages && (
               <button
                 type="button"
                 onClick={retry}
-                className="mt-3 font-display text-[11px] font-bold uppercase tracking-wide text-release-analog-white underline decoration-release-analog-turquoise underline-offset-4"
+                className="mt-3 font-display text-[11px] font-bold uppercase tracking-wide text-platform-text underline decoration-platform-text underline-offset-4"
               >
                 {isEnglish ? "Try again" : "Tentar novamente"}
               </button>
@@ -234,13 +234,13 @@ export default function ChatPage() {
           </div>
         )}
         {error && (
-          <div role="alert" className="border border-release-analog-blue px-4 py-3">
-            <p className="text-sm text-release-analog-blue">{error}</p>
+          <div role="alert" className="border border-platform-border px-4 py-3">
+            <p className="text-sm text-platform-text-muted">{error}</p>
             {retryMessages && (
               <button
                 type="button"
                 onClick={retry}
-                className="mt-3 font-display text-[11px] font-bold uppercase tracking-wide text-release-analog-white underline decoration-release-analog-blue underline-offset-4"
+                className="mt-3 font-display text-[11px] font-bold uppercase tracking-wide text-platform-text underline decoration-platform-text-muted underline-offset-4"
               >
                 {isEnglish ? "Try again" : "Tentar novamente"}
               </button>
@@ -249,20 +249,20 @@ export default function ChatPage() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3 border-t border-border-default pt-6 sm:flex-row">
+      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-3 border-t border-platform-border pt-6 sm:flex-row">
         <input
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={isEnglish ? "Ask about the brand…" : "Pergunte sobre a marca…"}
           aria-label={isEnglish ? "Question for the brand assistant" : "Pergunta para o assistente da marca"}
-          className="min-w-0 flex-1 border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white placeholder:text-text-secondary focus:border-release-analog-white"
+          className="min-w-0 flex-1 border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal"
         />
         {isBusy ? (
           <button
             type="button"
             onClick={stopResponse}
-            className="border border-release-analog-white px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-white"
+            className="border border-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-text"
           >
             {isEnglish ? "Stop" : "Interromper"}
           </button>
@@ -270,7 +270,7 @@ export default function ChatPage() {
           <button
             type="submit"
             disabled={!input.trim()}
-            className="bg-release-analog-turquoise px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-black disabled:opacity-40"
+            className="bg-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-bg disabled:opacity-40"
           >
             {isEnglish ? "Send" : "Enviar"}
           </button>

@@ -1,5 +1,4 @@
 import type { CSSProperties, ElementType, ReactNode } from "react";
-import { platformAliasVars } from "@/platform/tokens";
 
 /**
  * Devolve os tokens da plataforma a um trecho que vive dentro do canvas.
@@ -12,7 +11,7 @@ import { platformAliasVars } from "@/platform/tokens";
  * Os tokens `--platform-*` já são herdados do documento; o que este componente
  * reverte são os aliases legados, que o BrandCanvas reaponta para a marca.
  */
-const PLATFORM_SCOPE = platformAliasVars() as CSSProperties;
+const PLATFORM_SCOPE = {} as CSSProperties;
 
 export function PlatformSurface({
   as: Tag = "div",

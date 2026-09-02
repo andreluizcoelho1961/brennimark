@@ -5,33 +5,20 @@
  * sem exigir mudanças nos componentes.
  */
 @theme {
-  /* Primitive */
-  --color-primitive-black: #000000;
-  --color-primitive-white: #f6f2ef;
-  --color-primitive-cyan: #2ee6c8;
-  --color-primitive-turquoise: #01a48f;
-  --color-primitive-blue: #3aa6d4;
-  --color-primitive-gray: #9aa3ad;
-
-  /* Release-specific (Call Me Analog Man) */
-  --color-release-analog-black: var(--color-primitive-black);
-  --color-release-analog-white: var(--color-primitive-white);
-  --color-release-analog-turquoise: var(--color-primitive-turquoise);
-  --color-release-analog-blue: var(--color-primitive-blue);
-
-  /* Semantic */
-  --color-background-primary: var(--color-release-analog-black);
-  --color-background-secondary: #0c0e11;
-  --color-surface-primary: #101317;
-  --color-surface-light: #1a1e23;
-  --color-text-primary: var(--color-release-analog-white);
-  --color-text-secondary: var(--color-primitive-gray);
-  --color-text-inverse: var(--color-release-analog-black);
-  --color-accent-primary: var(--color-release-analog-turquoise);
-  --color-accent-secondary: var(--color-release-analog-blue);
-  --color-border-default: #2a2f36;
-  --color-border-strong: var(--color-release-analog-white);
-  --color-focus-ring: var(--color-primitive-cyan);
+  /*
+   * A camada de cor legada foi REMOVIDA no V1.
+   *
+   * Ela nasceu do release de um cliente — "Call Me Analog Man" — e sobreviveu
+   * como se fosse vocabulário do produto: `--color-release-analog-turquoise`
+   * era o acento de toda a interface, e `--color-background-primary` era o
+   * preto daquele lançamento. Enquanto existiram, qualquer componente novo
+   * podia consumi-los sem perceber, e a moldura do Brennimark continuava
+   * vestida com a paleta de um cliente específico.
+   *
+   * Restam dois namespaces, e só eles: `--platform-*` para a moldura e
+   * `--brand-*` para o canvas. Não há mais um terceiro vocabulário onde uma
+   * cor possa se esconder.
+   */
 
   /*
    * Namespaces explícitos. Os valores chegam em tempo de execução: os da
@@ -102,8 +89,9 @@
   --color-brand-border: currentColor;
   --color-brand-focus: currentColor;
 
-  /* Véu de overlay: deriva do fundo da instância, para não virar preto duro em tema claro. */
-  --color-scrim: color-mix(in srgb, var(--color-background-primary) 72%, transparent);
+  /* Véu de overlay dentro do canvas: deriva do fundo DA MARCA, para não virar
+     preto duro sobre marca clara. O véu da moldura é o --platform-scrim. */
+  --color-scrim: color-mix(in srgb, var(--color-brand-bg) 72%, transparent);
 
   /*
    * Tipografia da INTERFACE. O aplicativo é um ambiente de trabalho e tem
@@ -149,20 +137,35 @@
   }
 }
 
+/*
+ * Estas quatro regras apontavam para tokens da camada legada, e ficaram
+ * apontando para o vazio quando ela saiu. O `body` sem fundo não apareceu na
+ * tela porque a moldura pinta o próprio contêiner — mas qualquer superfície
+ * que não pintasse o dela herdaria fundo nenhum, e o defeito só apareceria na
+ * página que ninguém abriu ainda.
+ */
 body {
-  background: var(--color-background-primary);
-  color: var(--color-text-primary);
+  background: var(--color-platform-bg);
+  color: var(--color-platform-text);
   font-family: var(--font-body);
 }
 
 ::selection {
-  background: var(--color-accent-primary);
-  color: var(--color-text-inverse);
+  background: var(--color-platform-signal);
+  color: var(--color-platform-bg);
+}
+
+/* Dentro do canvas a seleção veste a MARCA: sinal acromático da plataforma
+   sobre fundo de marca escura fica ilegível, e selecionar texto do manual é
+   ato de leitura do manual. */
+[data-brand-canvas] ::selection {
+  background: var(--color-brand-accent);
+  color: var(--color-brand-bg);
 }
 
 a:focus-visible,
 button:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
+  outline: 2px solid var(--color-platform-focus);
   outline-offset: 3px;
 }
 

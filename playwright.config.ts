@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
  * runner de unidade compila TypeScript e roda asserções; ele nunca vai saber
  * quantos pixels a página tem.
  *
- * Hermética por construção: o servidor sobe com BRANDVILLE_DEV_SKIP_AUTH, que
+ * Hermética por construção: o servidor sobe com BRENNIMARK_DEV_SKIP_AUTH, que
  * curto-circuita o middleware antes de qualquer cliente Supabase existir. Sem
  * rede, sem banco, sem segredo. Ver src/lib/supabase/middleware.ts.
  *
@@ -69,7 +69,7 @@ export default defineConfig({
     env: {
       // Só aqui. Nunca em .env, nunca na Vercel — o build de produção falha
       // de propósito se esta variável estiver ligada.
-      BRANDVILLE_DEV_SKIP_AUTH: "true",
+      BRENNIMARK_DEV_SKIP_AUTH: "true",
       // Sem marca: é o estado real do produto antes do primeiro manual.
       NEXT_PUBLIC_BRANDVILLE_INSTANCE: "",
     },

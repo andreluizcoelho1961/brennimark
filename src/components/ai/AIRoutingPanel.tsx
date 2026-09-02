@@ -103,29 +103,29 @@ function RoutingCard({
   }
 
   return (
-    <section className="border border-border-default p-5 md:p-6">
+    <section className="border border-platform-border p-5 md:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-display text-sm font-black uppercase tracking-wide text-release-analog-white">
+          <h3 className="font-display text-sm font-black uppercase tracking-wide text-platform-text">
             {FEATURE_COPY[initial.feature].title}
           </h3>
-          <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+          <p className="mt-1 text-xs leading-relaxed text-platform-text-muted">
             {FEATURE_COPY[initial.feature].description}
           </p>
         </div>
-        <span className="bg-release-analog-turquoise px-2 py-1 font-display text-[9px] font-black uppercase tracking-wide text-release-analog-black">
+        <span className="bg-platform-signal px-2 py-1 font-display text-[9px] font-black uppercase tracking-wide text-platform-bg">
           {isEnglish ? "Independent feature" : "Recurso independente"}
         </span>
       </div>
 
       {eligible.length === 0 ? (
-        <p className="mt-5 border-l-2 border-release-analog-blue pl-4 text-sm text-text-secondary">
+        <p className="mt-5 border-l-2 border-platform-border pl-4 text-sm text-platform-text-muted">
           {isEnglish ? "Register and enable at least one connection for this feature." : "Cadastre e disponibilize ao menos uma conexão para este recurso."}
         </p>
       ) : (
         <div className="mt-6 grid gap-5 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+            <label className="mb-1.5 block font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
               {isEnglish ? "Primary AI" : "IA principal"}
             </label>
             <select
@@ -137,11 +137,11 @@ function RoutingCard({
                 setMessage("");
               }}
               disabled={!editable}
-              className="w-full border border-border-default bg-transparent px-3 py-3 text-xs text-release-analog-white focus:border-release-analog-white disabled:opacity-50"
+              className="w-full border border-platform-border bg-transparent px-3 py-3 text-xs text-platform-text focus:border-platform-signal disabled:opacity-50"
             >
-              <option value="" className="bg-surface-primary">{isEnglish ? "Select" : "Selecione"}</option>
+              <option value="" className="bg-platform-panel">{isEnglish ? "Select" : "Selecione"}</option>
               {eligible.map((setting) => (
-                <option key={setting.id} value={setting.id} className="bg-surface-primary">
+                <option key={setting.id} value={setting.id} className="bg-platform-panel">
                   {settingLabel(setting)}
                 </option>
               ))}
@@ -149,7 +149,7 @@ function RoutingCard({
           </div>
 
           <div>
-            <label className="mb-1.5 block font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+            <label className="mb-1.5 block font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
               {isEnglish ? "Fallback AI" : "IA de reserva"}
             </label>
             <select
@@ -160,11 +160,11 @@ function RoutingCard({
                 setMessage("");
               }}
               disabled={!editable || !primarySettingId}
-              className="w-full border border-border-default bg-transparent px-3 py-3 text-xs text-release-analog-white focus:border-release-analog-white disabled:opacity-50"
+              className="w-full border border-platform-border bg-transparent px-3 py-3 text-xs text-platform-text focus:border-platform-signal disabled:opacity-50"
             >
-              <option value="" className="bg-surface-primary">{isEnglish ? "No fallback" : "Sem reserva"}</option>
+              <option value="" className="bg-platform-panel">{isEnglish ? "No fallback" : "Sem reserva"}</option>
               {eligible.filter((setting) => setting.id !== primarySettingId).map((setting) => (
-                <option key={setting.id} value={setting.id} className="bg-surface-primary">
+                <option key={setting.id} value={setting.id} className="bg-platform-panel">
                   {settingLabel(setting)}
                 </option>
               ))}
@@ -172,7 +172,7 @@ function RoutingCard({
           </div>
 
           <div>
-            <label className="mb-1.5 block font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+            <label className="mb-1.5 block font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
               {isEnglish ? "Maximum wait before switching" : "Espera máxima antes da troca"}
             </label>
             <div className="flex items-center gap-3">
@@ -187,14 +187,14 @@ function RoutingCard({
                   setMessage("");
                 }}
                 disabled={!editable}
-                className="w-24 border border-border-default bg-transparent px-3 py-3 text-sm text-release-analog-white focus:border-release-analog-white disabled:opacity-50"
+                className="w-24 border border-platform-border bg-transparent px-3 py-3 text-sm text-platform-text focus:border-platform-signal disabled:opacity-50"
               />
-              <span className="text-xs text-text-secondary">{isEnglish ? "seconds (3–60)" : "segundos (3–60)"}</span>
+              <span className="text-xs text-platform-text-muted">{isEnglish ? "seconds (3–60)" : "segundos (3–60)"}</span>
             </div>
           </div>
 
           <div className="flex items-end">
-            <label className={`flex gap-3 text-xs leading-relaxed ${isCrossProvider ? "text-release-analog-white" : "text-text-secondary"}`}>
+            <label className={`flex gap-3 text-xs leading-relaxed ${isCrossProvider ? "text-platform-text" : "text-platform-text-muted"}`}>
               <input
                 type="checkbox"
                 checked={allowCrossProvider}
@@ -203,7 +203,7 @@ function RoutingCard({
                   setMessage("");
                 }}
                 disabled={!editable || !isCrossProvider}
-                className="mt-0.5 h-4 w-4 accent-release-analog-turquoise disabled:opacity-50"
+                className="mt-0.5 h-4 w-4 accent-platform-signal disabled:opacity-50"
               />
               <span>
                 {isEnglish
@@ -216,34 +216,34 @@ function RoutingCard({
       )}
 
       {isCrossProvider && !allowCrossProvider && (
-        <p className="mt-4 border-l-2 border-release-analog-blue pl-4 text-xs leading-relaxed text-text-secondary">
+        <p className="mt-4 border-l-2 border-platform-border pl-4 text-xs leading-relaxed text-platform-text-muted">
           {isEnglish ? "The fallback is from a different provider. Explicit authorization is required before saving." : "A reserva é de outro fornecedor. A autorização explícita é obrigatória antes de salvar."}
         </p>
       )}
 
       {requiresBillingAuthorization && (
-        <div className="mt-5 border border-release-analog-blue p-4">
-          <p className="font-display text-[10px] font-black uppercase tracking-wide text-release-analog-blue">
+        <div className="mt-5 border border-platform-border p-4">
+          <p className="font-display text-[10px] font-black uppercase tracking-wide text-platform-text-muted">
             {isEnglish ? "Usage may incur charges" : "Uso com possível cobrança"}
           </p>
-          <div className="mt-2 space-y-2 text-xs leading-relaxed text-text-secondary">
+          <div className="mt-2 space-y-2 text-xs leading-relaxed text-platform-text-muted">
             {billableSettings.map((setting) => {
               const info = getModelCommercialInfo(setting.provider, setting.model);
               return (
                 <p key={setting.id}>
-                  <span className="text-release-analog-white">{setting.model}:</span>{" "}
+                  <span className="text-platform-text">{setting.model}:</span>{" "}
                   {info.pricing ?? info.note}
                 </p>
               );
             })}
           </div>
-          <label className="mt-4 flex gap-3 text-xs leading-relaxed text-release-analog-white">
+          <label className="mt-4 flex gap-3 text-xs leading-relaxed text-platform-text">
             <input
               type="checkbox"
               checked={billingAuthorized}
               onChange={(event) => setBillingAuthorized(event.target.checked)}
               disabled={!editable}
-              className="mt-0.5 h-4 w-4 accent-release-analog-turquoise"
+              className="mt-0.5 h-4 w-4 accent-platform-signal"
             />
             <span>{isEnglish ? "I authorize this feature to use my account's credits when this model is invoked." : "Autorizo que este recurso use os créditos da minha conta quando esse modelo for acionado."}</span>
           </label>
@@ -255,12 +255,12 @@ function RoutingCard({
           type="button"
           onClick={save}
           disabled={!canSave || saving}
-          className="bg-release-analog-turquoise px-5 py-2.5 font-display text-[10px] font-bold uppercase tracking-wide text-release-analog-black disabled:opacity-40"
+          className="bg-platform-signal px-5 py-2.5 font-display text-[10px] font-bold uppercase tracking-wide text-platform-bg disabled:opacity-40"
         >
           {saving ? (isEnglish ? "Saving…" : "Salvando…") : (isEnglish ? "Save policy" : "Salvar política")}
         </button>
         {message && (
-          <span className={`text-xs ${message === (isEnglish ? "Policy saved." : "Política salva.") ? "text-release-analog-turquoise" : "text-release-analog-blue"}`}>
+          <span className={`text-xs ${message === (isEnglish ? "Policy saved." : "Política salva.") ? "text-platform-text" : "text-platform-text-muted"}`}>
             {message}
           </span>
         )}
@@ -272,11 +272,11 @@ function RoutingCard({
 export function AIRoutingPanel({ settings, policies, editable, onSave }: Props) {
   const isEnglish = useIsEnglish();
   return (
-    <div className="mt-16 border-t border-border-default pt-10">
-      <p className="font-display text-xs font-bold uppercase tracking-wide text-release-analog-white">
+    <div className="mt-16 border-t border-platform-border pt-10">
+      <p className="font-display text-xs font-bold uppercase tracking-wide text-platform-text">
         {isEnglish ? "Feature routing" : "Roteamento por recurso"}
       </p>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-platform-text-muted">
         {isEnglish
           ? "Each feature can use a primary AI and a fallback. The switch only happens after the defined limit, and it never crosses providers without your authorization."
           : "Cada recurso pode usar uma IA principal e outra de reserva. A troca acontece apenas após o limite definido e nunca atravessa fornecedores sem sua autorização."}

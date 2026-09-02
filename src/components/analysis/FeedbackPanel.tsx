@@ -60,11 +60,11 @@ export function FeedbackPanel({
   }
 
   return (
-    <section className="border border-border-default bg-surface-primary p-5">
-      <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-release-analog-turquoise">
+    <section className="border border-platform-border bg-platform-panel p-5">
+      <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-platform-text">
         {isEnglish ? "Human review" : "Validação humana"}
       </h3>
-      <p className="mt-2 text-sm leading-relaxed text-text-secondary">
+      <p className="mt-2 text-sm leading-relaxed text-platform-text-muted">
         {isEnglish ? "Was the AI's answer correct for this piece?" : "A resposta da IA foi correta para esta peça?"}
       </p>
       <div className="mt-4 flex flex-wrap gap-2" role="group" aria-label={isEnglish ? "Analysis quality" : "Qualidade da análise"}>
@@ -79,15 +79,15 @@ export function FeedbackPanel({
             }}
             className={`border px-3 py-2 font-display text-[10px] font-bold uppercase tracking-wide transition-colors ${
               rating === option.value
-                ? "border-release-analog-turquoise bg-release-analog-turquoise text-release-analog-black"
-                : "border-border-default text-text-secondary hover:border-release-analog-white hover:text-release-analog-white"
+                ? "border-platform-signal bg-platform-signal text-platform-bg"
+                : "border-platform-border text-platform-text-muted hover:border-platform-signal hover:text-platform-text"
             }`}
           >
             {option.label}
           </button>
         ))}
       </div>
-      <label className="mt-5 block font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+      <label className="mt-5 block font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">
         {isEnglish ? "Optional note" : "Observação opcional"}
       </label>
       <textarea
@@ -95,7 +95,7 @@ export function FeedbackPanel({
         onChange={(event) => setNote(event.target.value)}
         maxLength={2000}
         rows={3}
-        className="mt-2 w-full resize-y border border-border-default bg-background-primary px-3 py-2 text-sm text-release-analog-white focus:border-release-analog-white focus:outline-none"
+        className="mt-2 w-full resize-y border border-platform-border bg-platform-bg px-3 py-2 text-sm text-platform-text focus:border-platform-signal focus:outline-none"
         placeholder={isEnglish ? "Explain what should be corrected or preserved." : "Explique o que deve ser corrigido ou preservado."}
       />
       <div className="mt-3 flex items-center gap-3">
@@ -103,11 +103,11 @@ export function FeedbackPanel({
           type="button"
           onClick={() => void save()}
           disabled={!rating || saving}
-          className="bg-release-analog-white px-4 py-2 font-display text-[10px] font-bold uppercase tracking-wide text-release-analog-black disabled:opacity-40"
+          className="bg-platform-text px-4 py-2 font-display text-[10px] font-bold uppercase tracking-wide text-platform-bg disabled:opacity-40"
         >
           {saving ? (isEnglish ? "Saving…" : "Salvando…") : (isEnglish ? "Save note" : "Salvar observação")}
         </button>
-        {message && <span className="text-xs text-text-secondary" role="status">{message}</span>}
+        {message && <span className="text-xs text-platform-text-muted" role="status">{message}</span>}
       </div>
     </section>
   );

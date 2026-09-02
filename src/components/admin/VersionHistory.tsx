@@ -79,40 +79,40 @@ export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovere
   }
 
   return (
-    <section className="mt-10 border-t border-border-default pt-8" aria-labelledby="version-history-title">
+    <section className="mt-10 border-t border-platform-border pt-8" aria-labelledby="version-history-title">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="font-display text-[10px] font-black uppercase tracking-[0.2em] text-release-analog-turquoise">{isEnglish ? "Editorial audit" : "Auditoria editorial"}</p>
-          <h2 id="version-history-title" className="mt-2 font-display text-2xl font-black uppercase text-release-analog-white">{isEnglish ? "Version history" : "Histórico de versões"}</h2>
+          <p className="font-display text-[10px] font-black uppercase tracking-[0.2em] text-platform-text">{isEnglish ? "Editorial audit" : "Auditoria editorial"}</p>
+          <h2 id="version-history-title" className="mt-2 font-display text-2xl font-black uppercase text-platform-text">{isEnglish ? "Version history" : "Histórico de versões"}</h2>
         </div>
-        {pageDeleted && <span className="border border-border-default px-3 py-1 font-display text-[10px] font-bold uppercase text-text-secondary">{isEnglish ? "Page deleted" : "Página excluída"}</span>}
+        {pageDeleted && <span className="border border-platform-border px-3 py-1 font-display text-[10px] font-bold uppercase text-platform-text-muted">{isEnglish ? "Page deleted" : "Página excluída"}</span>}
       </div>
-      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">{isEnglish ? "Every publish, restore and deletion is logged automatically. History can't be edited or deleted from the interface — a deleted page can still be recovered from here." : "Cada publicação, recuperação e exclusão é registrada automaticamente. O histórico não pode ser editado ou apagado pela interface — uma página excluída ainda pode ser recuperada daqui."}</p>
+      <p className="mt-3 max-w-2xl text-sm leading-relaxed text-platform-text-muted">{isEnglish ? "Every publish, restore and deletion is logged automatically. History can't be edited or deleted from the interface — a deleted page can still be recovered from here." : "Cada publicação, recuperação e exclusão é registrada automaticamente. O histórico não pode ser editado ou apagado pela interface — uma página excluída ainda pode ser recuperada daqui."}</p>
 
-      {loading && <p role="status" className="mt-6 text-sm text-text-secondary">{isEnglish ? "Loading history…" : "Carregando histórico…"}</p>}
-      {message && <p role="status" className="mt-5 border-l-2 border-release-analog-turquoise pl-4 text-sm text-text-secondary">{message}</p>}
-      {!loading && versions.length === 0 && !message && <p className="mt-6 border border-dashed border-border-default p-5 text-sm text-text-secondary">{isEnglish ? "No versions of this page yet. The first save will start the timeline." : "Ainda não há versões desta página. O primeiro salvamento iniciará a linha do tempo."}</p>}
+      {loading && <p role="status" className="mt-6 text-sm text-platform-text-muted">{isEnglish ? "Loading history…" : "Carregando histórico…"}</p>}
+      {message && <p role="status" className="mt-5 border-l-2 border-platform-signal pl-4 text-sm text-platform-text-muted">{message}</p>}
+      {!loading && versions.length === 0 && !message && <p className="mt-6 border border-dashed border-platform-border p-5 text-sm text-platform-text-muted">{isEnglish ? "No versions of this page yet. The first save will start the timeline." : "Ainda não há versões desta página. O primeiro salvamento iniciará a linha do tempo."}</p>}
 
       {versions.length > 0 && <ol className="mt-6 space-y-3">
-        {versions.map((version) => <li key={version.id} className="border border-border-default bg-surface-primary p-5">
+        {versions.map((version) => <li key={version.id} className="border border-platform-border bg-platform-panel p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`px-2 py-1 font-display text-[9px] font-black uppercase ${historyActionLabel(version.action).muted ? "border border-border-default text-text-secondary" : "bg-release-analog-turquoise text-release-analog-black"}`}>
+                <span className={`px-2 py-1 font-display text-[9px] font-black uppercase ${historyActionLabel(version.action).muted ? "border border-platform-border text-platform-text-muted" : "bg-platform-signal text-platform-bg"}`}>
                   {version.actionLabel}
                 </span>
-                {version.isCurrent && <span className="border border-release-analog-white px-2 py-1 font-display text-[9px] font-black uppercase text-release-analog-white">{isEnglish ? "Current version" : "Versão atual"}</span>}
-                <span className="font-display text-[9px] font-bold uppercase text-text-secondary">{STATUS_LABEL[version.status]}</span>
+                {version.isCurrent && <span className="border border-platform-signal px-2 py-1 font-display text-[9px] font-black uppercase text-platform-text">{isEnglish ? "Current version" : "Versão atual"}</span>}
+                <span className="font-display text-[9px] font-bold uppercase text-platform-text-muted">{STATUS_LABEL[version.status]}</span>
               </div>
-              <h3 className="mt-3 font-display text-base font-black uppercase text-release-analog-white">{version.title}</h3>
-              <p className="mt-1 font-mono text-[10px] text-text-secondary"><time dateTime={version.createdAt}>{DATE_FORMAT.format(new Date(version.createdAt))}</time> · {version.actorLabel}</p>
+              <h3 className="mt-3 font-display text-base font-black uppercase text-platform-text">{version.title}</h3>
+              <p className="mt-1 font-mono text-[10px] text-platform-text-muted"><time dateTime={version.createdAt}>{DATE_FORMAT.format(new Date(version.createdAt))}</time> · {version.actorLabel}</p>
             </div>
-            <button type="button" disabled={version.isCurrent || recoveringId !== null} onClick={() => recover(version)} className="border border-border-default px-4 py-2 font-display text-[10px] font-bold uppercase text-release-analog-white hover:border-release-analog-white disabled:opacity-40">
+            <button type="button" disabled={version.isCurrent || recoveringId !== null} onClick={() => recover(version)} className="border border-platform-border px-4 py-2 font-display text-[10px] font-bold uppercase text-platform-text hover:border-platform-signal disabled:opacity-40">
               {recoveringId === version.id ? (isEnglish ? "Restoring…" : "Recuperando…") : version.isCurrent ? (isEnglish ? "In use" : "Em uso") : (isEnglish ? "Restore version" : "Recuperar versão")}
             </button>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">{version.changedFields.map((field) => <span key={field} className="border border-border-default px-2 py-1 text-[10px] uppercase tracking-wide text-text-secondary">{field}</span>)}</div>
-          <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-text-secondary">{version.preview}</p>
+          <div className="mt-4 flex flex-wrap gap-2">{version.changedFields.map((field) => <span key={field} className="border border-platform-border px-2 py-1 text-[10px] uppercase tracking-wide text-platform-text-muted">{field}</span>)}</div>
+          <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-platform-text-muted">{version.preview}</p>
         </li>)}
       </ol>}
     </section>

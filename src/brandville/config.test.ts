@@ -1,45 +1,41 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { brandvilleInstances, resolveBrandvilleInstance } from "./config";
-import type { BrandvilleInstance } from "./types";
+import * as config from "./config";
 
-// Object.entries widens each value to the union of the concrete instance
-// types, and one member's groupCodes has literal keys (no string index
-// signature). Read them back through the contract type so groupCodes is
-// the declared Record<string, string> the test indexes by group name.
-// A ausência de marca não é uma marca: tem contrato próprio, verificado abaixo.
-const marcas = (Object.entries(brandvilleInstances) as [string, BrandvilleInstance][])
-  .filter(([key]) => key !== "unconfigured");
+/**
+ * A instância global não existe mais.
+ *
+ * Este arquivo testava um REGISTRO de instâncias em código: `brandvilleInstance`
+ * era resolvida por `NEXT_PUBLIC_BRANDVILLE_INSTANCE` na inicialização do
+ * processo, e o produto inteiro lia dali qual marca mostrar. Era global por
+ * processo — duas contas servidas pelo mesmo processo veriam a mesma marca.
+ *
+ * O M1 tirou a resolução de marca dali, o M2 tirou os caminhos de conteúdo, e o
+ * V1 removeu o que restava, junto do registro e das instâncias de código.
+ *
+ * O que ficou aqui é a guarda de que nada disso volta. Um teste que valida um
+ * registro vazio passa sem afirmar nada; um que exige a ausência do registro
+ * fica vermelho no dia em que alguém o recria.
+ */
+test("o módulo não expõe instância global de marca", () => {
+  const exportado = Object.keys(config);
+  assert.deepEqual(exportado, ["platformThemeStyle"]);
+});
 
-for (const [key, instance] of marcas) {
-  test(`instância ${key} tem contrato íntegro`, () => {
-    assert.equal(instance.key, key);
-    assert.ok(instance.brand.name);
-    assert.ok(instance.docs.length > 0);
-    assert.ok(instance.navigation.groups.length > 0);
-    assert.ok(instance.docs.some((doc) => doc.slug === instance.navigation.defaultDocSlug));
-    assert.equal(new Set(instance.docs.map((doc) => doc.slug)).size, instance.docs.length);
-    for (const group of instance.navigation.groups) {
-      assert.ok(instance.navigation.groupCodes[group], `código ausente para ${group}`);
-      assert.ok(instance.docs.some((doc) => doc.group === group), `grupo sem página: ${group}`);
-    }
-    for (const color of [instance.theme.background, instance.theme.foreground, instance.theme.accent]) {
-      assert.match(color, /^#[0-9a-f]{6}$/i);
-    }
-  });
-}
-
-test("o estado sem marca é vazio de propósito, e não uma marca de mentira", () => {
-  const vazio = brandvilleInstances.unconfigured;
-  assert.equal(vazio.docs.length, 0, "não pode trazer conteúdo de exemplo");
-  assert.equal(vazio.navigation.groups.length, 0);
-  assert.equal(vazio.brand.name, "", "não pode inventar nome de marca");
-  // O tema ainda precisa ser válido: é ele que pinta a tela de estado vazio.
-  for (const cor of [vazio.theme.background, vazio.theme.foreground, vazio.theme.accent]) {
-    assert.match(cor, /^#[0-9a-f]{6}$/i);
+test("nenhum export carrega marca, documento ou instância", () => {
+  for (const nome of Object.keys(config)) {
+    assert.doesNotMatch(
+      nome,
+      /instance|docs|registry|brand/i,
+      `${nome} devolveu a instância global por outro nome`,
+    );
   }
 });
 
-test("falha de forma explícita para instância desconhecida", () => {
-  assert.throws(() => resolveBrandvilleInstance("inexistente"), /Instância Brandville desconhecida/);
+test("o tema exportado é da PLATAFORMA, e só dela", () => {
+  // Se um token de marca escapasse por aqui, ele seria aplicado no <html> e
+  // valeria para a moldura inteira — inclusive nas telas de outra marca.
+  for (const chave of Object.keys(config.platformThemeStyle)) {
+    assert.match(chave, /^--(platform|color-platform)-/, `token fora da plataforma: ${chave}`);
+  }
 });

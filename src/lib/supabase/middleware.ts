@@ -8,7 +8,7 @@ export async function updateSession(request: NextRequest) {
   // Local-review escape hatch — set in .env.local only, never in
   // Vercel env vars. Lets you look at the app without going through
   // Supabase auth. Does nothing unless explicitly set to "true".
-  if (process.env.BRANDVILLE_DEV_SKIP_AUTH === "true") {
+  if (process.env.BRENNIMARK_DEV_SKIP_AUTH === "true") {
     return NextResponse.next({ request });
   }
 

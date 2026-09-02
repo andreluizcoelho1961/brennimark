@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { BrandvilleTheme } from "@/brandville/types";
-import { brandAliasVars, brandCssVars } from "@/platform/tokens";
+import { brandCssVars } from "@/platform/tokens";
 
 /**
  * Escopo do tema da marca cliente.
@@ -22,7 +22,7 @@ export function BrandCanvas({
   theme: BrandvilleTheme;
   children: React.ReactNode;
 }) {
-  const estilo = { ...brandCssVars(theme), ...brandAliasVars() } as CSSProperties;
+  const estilo = brandCssVars(theme) as CSSProperties;
   return (
     // `min-h-full`: a superfície da marca vai até o fim da área. Sem isso ela
     // parava onde o texto acabava e o fundo da moldura reaparecia embaixo,
@@ -30,7 +30,7 @@ export function BrandCanvas({
     <div
       data-brand-canvas
       style={estilo}
-      className="min-h-full bg-background-primary text-text-primary"
+      className="min-h-full bg-brand-bg text-brand-text"
     >
       {children}
     </div>

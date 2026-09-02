@@ -6,6 +6,12 @@
 >
 > Preservado porque o raciocínio continua útil e porque a opção de silo permanece disponível como
 > plano. Onde este texto divergir dos ADRs, valem os ADRs.
+>
+> **Os comandos citados aqui não existem mais.** `npm run brandville:new` e o
+> gerador de instâncias em código foram removidos no V1: eles escreviam em
+> `src/brandville/instances/`, que era o registro de marcas em arquivo. Marca
+> agora nasce no banco, pela importação de um PDF. O que este documento
+> descreve é o modelo anterior, e é assim que deve ser lido.
 
 ---
 

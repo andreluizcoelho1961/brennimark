@@ -9,7 +9,7 @@ import {
   type WorkspaceDisponivel,
 } from "./selecao";
 
-const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
+const SKIP_AUTH = process.env.BRENNIMARK_DEV_SKIP_AUTH === "true";
 
 export type BrandvilleAuthContext = {
   supabase: SupabaseClient;

@@ -84,10 +84,10 @@ function LoginForm() {
 
   return (
     <div className="w-full max-w-sm">
-      <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-release-analog-turquoise">
+      <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-platform-text">
         {platformIdentity.displayName}
       </p>
-      <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-release-analog-white">
+      <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-platform-text">
         {mode === "signin"
           ? isEnglish
             ? "Sign in to access the brand guide"
@@ -97,14 +97,14 @@ function LoginForm() {
             : "Crie sua conta"}
       </h1>
 
-      <div className="mt-6 flex gap-6 border-b border-border-default">
+      <div className="mt-6 flex gap-6 border-b border-platform-border">
         <button
           type="button"
           onClick={() => switchMode("signin")}
           className={`pb-3 font-display text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
             mode === "signin"
-              ? "border-b-2 border-release-analog-turquoise text-release-analog-white"
-              : "text-text-secondary hover:text-release-analog-white"
+              ? "border-b-2 border-platform-signal text-platform-text"
+              : "text-platform-text-muted hover:text-platform-text"
           }`}
         >
           {isEnglish ? "Sign in" : "Entrar"}
@@ -114,8 +114,8 @@ function LoginForm() {
           onClick={() => switchMode("signup")}
           className={`pb-3 font-display text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
             mode === "signup"
-              ? "border-b-2 border-release-analog-turquoise text-release-analog-white"
-              : "text-text-secondary hover:text-release-analog-white"
+              ? "border-b-2 border-platform-signal text-platform-text"
+              : "text-platform-text-muted hover:text-platform-text"
           }`}
         >
           {isEnglish ? "Create account" : "Criar conta"}
@@ -123,7 +123,7 @@ function LoginForm() {
       </div>
 
       {status === "check-email" ? (
-        <p role="status" className="mt-8 border border-border-default px-4 py-3 text-sm text-release-analog-white">
+        <p role="status" className="mt-8 border border-platform-border px-4 py-3 text-sm text-platform-text">
           {isEnglish
             ? <>Confirm your email at <strong>{email}</strong> to activate your account, then come back here and sign in.</>
             : <>Confirme seu e-mail em <strong>{email}</strong> pra ativar a conta, depois volte aqui e entre.</>}
@@ -145,7 +145,7 @@ function LoginForm() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white placeholder:text-text-secondary focus:border-release-analog-white"
+              className="w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal"
             />
           </div>
 
@@ -163,20 +163,20 @@ function LoginForm() {
               placeholder={isEnglish ? "Password" : "Senha"}
               autoComplete={mode === "signin" ? "current-password" : "new-password"}
               aria-describedby={status === "error" ? "login-error" : undefined}
-              className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white placeholder:text-text-secondary focus:border-release-analog-white"
+              className="w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal"
             />
           </div>
 
           <button
             type="submit"
             disabled={status === "submitting"}
-            className="border border-release-analog-white px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-white transition-colors duration-150 hover:bg-release-analog-white hover:text-release-analog-black disabled:opacity-50"
+            className="border border-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-text transition-colors duration-150 hover:bg-platform-text hover:text-platform-bg disabled:opacity-50"
           >
             {status === "submitting" ? "…" : mode === "signin" ? (isEnglish ? "Sign in" : "Entrar") : (isEnglish ? "Create account" : "Criar conta")}
           </button>
 
           {status === "error" && (
-            <p id="login-error" role="alert" className="text-xs text-release-analog-blue">
+            <p id="login-error" role="alert" className="text-xs text-platform-text-muted">
               {errorMessage ||
                 (isEnglish ? "Something went wrong. Try again." : "Algo deu errado. Tente de novo.")}
             </p>

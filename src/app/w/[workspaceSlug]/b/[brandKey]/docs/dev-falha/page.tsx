@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
  * Fronteira de erro é a peça que, por definição, nunca aparece quando tudo vai
  * bem — e por isso é a que mais facilmente está quebrada sem ninguém saber.
  * Testá-la exige um erro real, e no ambiente de teste não há E/S para falhar:
- * o servidor roda com `BRANDVILLE_DEV_SKIP_AUTH`, então nenhuma consulta ao
+ * o servidor roda com `BRENNIMARK_DEV_SKIP_AUTH`, então nenhuma consulta ao
  * Supabase acontece.
  *
  * A alternativa seria só verificar que os arquivos existem, o que prova que

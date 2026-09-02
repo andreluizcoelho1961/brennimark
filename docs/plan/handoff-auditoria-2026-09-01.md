@@ -171,8 +171,14 @@ Valem como aviso porque são de processo, não de código:
 - **Testes desta suíte importam por caminho relativo**, nunca por `@/` — o alias
   exige a configuração do Next e faria a compilação inteira parar. Há guarda.
 - As fixtures de PDF são geradas por `scripts/gerar-fixtures-pdf.py`.
-- **Nunca `git checkout`, `git restore` ou equivalente sobre alteração não
-  commitada.** Rodei `git checkout src/lib/analysis/server.ts` para desfazer
+- **Nunca `git checkout`, `git restore`, `git reset` ou equivalente para
+  desfazer uma sonda.** A sonda se faz em CÓPIA temporária e se desfaz
+  reaplicando o conteúdo original por edição — nunca por comando de git.
+  Aconteceu duas vezes: na primeira apaguei trabalho não commitado; na
+  segunda, o arquivo não era rastreado, o comando não restaurou nada, a
+  sonda ficou aplicada e eu quase anunciei verde com ela dentro. O fato de a
+  segunda não ter apagado nada não reduz o risco — só mudou o sintoma.
+- **Nunca `git checkout`/`restore` sobre alteração não commitada, em geral.** Rodei `git checkout src/lib/analysis/server.ts` para desfazer
   uma sonda de regressão e apaguei junto o trabalho não commitado do M2 no
   mesmo arquivo. Foi recuperável porque eu sabia o que havia ali — não é uma
   garantia que se possa contar, e num repositório com outra frente em

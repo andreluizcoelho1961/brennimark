@@ -18,21 +18,21 @@ export function SwatchesBlockView({ block }: { block: SwatchesBlock }) {
             {/* Labels sit below the chip on purpose: nothing is ever printed on
                 top of a content colour, so no contrast maths is needed. */}
             <div
-              className="aspect-square w-full border border-border-default"
+              className="aspect-square w-full border border-brand-border"
               style={{ backgroundColor: item.hex }}
             />
-            <p className="mt-3 font-display text-xs font-black uppercase tracking-wide text-release-analog-white">
+            <p className="mt-3 font-display text-xs font-black uppercase tracking-wide text-brand-text">
               {item.name}
             </p>
-            <p className="mt-1 font-mono text-[11px] uppercase text-release-analog-turquoise">{item.hex}</p>
+            <p className="mt-1 font-mono text-[11px] uppercase text-brand-accent">{item.hex}</p>
             {(item.rgb || item.cmyk) && (
-              <p className="mt-1 font-mono text-[10px] leading-relaxed text-text-secondary">
+              <p className="mt-1 font-mono text-[10px] leading-relaxed text-brand-text-muted">
                 {item.rgb && <>RGB {item.rgb}</>}
                 {item.rgb && item.cmyk && <br />}
                 {item.cmyk && <>CMYK {item.cmyk}</>}
               </p>
             )}
-            {item.note && <p className="mt-2 text-xs leading-relaxed text-text-secondary">{item.note}</p>}
+            {item.note && <p className="mt-2 text-xs leading-relaxed text-brand-text-muted">{item.note}</p>}
           </li>
         ))}
       </ul>

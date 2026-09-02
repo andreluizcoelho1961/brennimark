@@ -14,7 +14,7 @@ import {
 
 export type { WorkspaceContext };
 
-const SKIP_AUTH = process.env.BRANDVILLE_DEV_SKIP_AUTH === "true";
+const SKIP_AUTH = process.env.BRENNIMARK_DEV_SKIP_AUTH === "true";
 
 /**
  * O adaptador entre a regra e o banco.

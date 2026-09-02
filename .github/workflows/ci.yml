@@ -55,7 +55,7 @@ jobs:
       - name: Testes
         run: npm run test:ci
 
-      # O build tambem exerce a trava de BRANDVILLE_DEV_SKIP_AUTH em producao.
+      # O build tambem exerce a trava de BRENNIMARK_DEV_SKIP_AUTH em producao.
       - name: Build de producao
         run: npm run build
         env:
@@ -74,7 +74,7 @@ jobs:
       - name: Fixtures de PDF
         run: npm run fixtures:pdf
 
-      # Sobe `next dev` com BRANDVILLE_DEV_SKIP_AUTH e nada mais: sem Supabase,
+      # Sobe `next dev` com BRENNIMARK_DEV_SKIP_AUTH e nada mais: sem Supabase,
       # sem segredo, sem rede. Ver playwright.config.ts.
       - name: Testes de navegador
         run: npm run test:e2e

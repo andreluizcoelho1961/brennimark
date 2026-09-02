@@ -17,16 +17,16 @@ export function ListBlockView({ block }: { block: ListBlock }) {
       {block.variant === "cards" ? (
         <div className={`${grid} gap-y-6`}>
           {block.items.map((item, i) => (
-            <article key={i} className="border border-border-default bg-surface-primary p-7">
-              <span className="font-mono text-xs text-release-analog-turquoise">
+            <article key={i} className="border border-brand-border bg-brand-surface p-7">
+              <span className="font-mono text-xs text-brand-accent">
                 {String(i + 1).padStart(2, "0")}
               </span>
               {item.title && (
-                <h3 className="mt-4 font-display text-lg font-black uppercase leading-tight text-release-analog-white">
+                <h3 className="mt-4 font-display text-lg font-black uppercase leading-tight text-brand-text">
                   {item.title}
                 </h3>
               )}
-              <p className="mt-3 text-sm leading-relaxed text-text-secondary">{item.text}</p>
+              <p className="mt-3 text-sm leading-relaxed text-brand-text-muted">{item.text}</p>
             </article>
           ))}
         </div>
@@ -35,14 +35,14 @@ export function ListBlockView({ block }: { block: ListBlock }) {
           {block.items.map((item, i) => (
             <li key={i} className="flex gap-4">
               <span
-                className="flex-none font-mono text-xs leading-6 text-release-analog-turquoise"
+                className="flex-none font-mono text-xs leading-6 text-brand-accent"
                 aria-hidden={block.variant === "bullet"}
               >
                 {block.variant === "numbered" ? String(i + 1).padStart(2, "0") : "—"}
               </span>
-              <p className="text-base leading-relaxed text-text-secondary">
+              <p className="text-base leading-relaxed text-brand-text-muted">
                 {item.title && (
-                  <span className="font-display font-bold uppercase text-release-analog-white">
+                  <span className="font-display font-bold uppercase text-brand-text">
                     {item.title}{" "}
                   </span>
                 )}

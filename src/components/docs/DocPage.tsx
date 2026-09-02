@@ -13,11 +13,11 @@ function Title({ title }: { title: string }) {
 
   return (
     <h1
-      className="break-words font-brand font-black uppercase leading-[0.9] tracking-tight text-release-analog-white"
+      className="break-words font-brand font-black uppercase leading-[0.9] tracking-tight text-brand-text"
       style={{ fontSize: "clamp(2rem, 4.5vw, 4rem)", overflowWrap: "anywhere" }}
     >
       {rest && `${rest} `}
-      <span className={rest ? "text-release-analog-turquoise" : undefined}>{lastWord}</span>
+      <span className={rest ? "text-brand-accent" : undefined}>{lastWord}</span>
     </h1>
   );
 }
@@ -42,8 +42,8 @@ export function DocPage({
     <article className="px-page-inline py-12 md:py-16">
       <div className={`grid gap-10 ${heroImage ? "md:grid-cols-12" : ""}`}>
         <div className={heroImage ? "md:col-span-7" : "max-w-3xl"}>
-          <div className="mb-6 inline-flex w-fit items-center gap-3 bg-release-analog-turquoise px-4 py-1.5">
-            <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-release-analog-black">
+          <div className="mb-6 inline-flex w-fit items-center gap-3 bg-brand-accent px-4 py-1.5">
+            <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-brand-bg">
               {entry.group}
             </span>
           </div>
@@ -55,9 +55,9 @@ export function DocPage({
           </div>
 
           {hasBody && (
-            <div className="mt-10 space-y-5 border-l-2 border-release-analog-turquoise pl-8">
+            <div className="mt-10 space-y-5 border-l-2 border-brand-accent pl-8">
               {entry.body!.map((paragraph, i) => (
-                <p key={i} className="text-base leading-relaxed text-text-secondary md:text-lg">
+                <p key={i} className="text-base leading-relaxed text-brand-text-muted md:text-lg">
                   {paragraph}
                 </p>
               ))}
@@ -65,7 +65,7 @@ export function DocPage({
           )}
 
           {entry.status === "pending" && !hasBody && !heroImage && (
-            <p className="mt-10 border border-dashed border-border-default px-5 py-4 text-sm leading-relaxed text-text-secondary">
+            <p className="mt-10 border border-dashed border-brand-border px-5 py-4 text-sm leading-relaxed text-brand-text-muted">
               {isEnglish
                 ? "This page depends on a brand strategy decision that hasn't been made yet — it isn't something that can be written from the material we already have. It stays open until there's real input for it."
                 : "Esta página depende de uma decisão de estratégia de marca que ainda não foi feita — não é algo que se escreve a partir do material que já temos. Fica em aberto até existir input real pra isso."}
@@ -75,11 +75,11 @@ export function DocPage({
 
         {heroImage && (
           <div className="md:col-span-4 md:col-start-9">
-            <div className="relative aspect-[4/5] overflow-hidden border border-border-default">
+            <div className="relative aspect-[4/5] overflow-hidden border border-brand-border">
               <Image src={heroImage.src} alt={heroImage.alt} fill className="object-cover" />
             </div>
             {heroImage.caption && (
-              <p className="mt-3 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+              <p className="mt-3 font-display text-[10px] font-bold uppercase tracking-wide text-brand-text-muted">
                 {heroImage.caption}
               </p>
             )}
@@ -97,7 +97,7 @@ export function DocPage({
 
       {restImages.length > 0 && <AssetGrid images={restImages} />}
 
-      {children && <div className="mt-16 border-t border-border-default pt-14">{children}</div>}
+      {children && <div className="mt-16 border-t border-brand-border pt-14">{children}</div>}
     </article>
   );
 }

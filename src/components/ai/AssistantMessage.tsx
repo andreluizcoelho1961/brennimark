@@ -22,11 +22,10 @@ const STATUS_CLASS: Record<DocStatus, string> = {
 /**
  * A citação é instrumento de governança, não conteúdo da marca.
  *
- * Ela usava tokens batizados com o nome do release de um cliente —
- * `release-analog-turquoise` para o link, `-white` para o texto. Dentro de uma
- * conversa sobre a marca do cliente, isso vestia a procedência com a cor de
- * outra marca. Aqui tudo é `--platform-*`: quem afirma de onde veio a
- * informação fala a linguagem do produto, não a da marca apresentada.
+ * Ela já usou tokens batizados com o nome do release de um cliente, e dentro de
+ * uma conversa sobre a marca de OUTRO cliente isso vestia a procedência com a
+ * cor errada. Aqui tudo é `--platform-*`: quem afirma de onde veio a informação
+ * fala a linguagem do produto, não a da marca apresentada.
  */
 export function AssistantMessage({ content }: { content: string }) {
   const isEnglish = useIsEnglish();

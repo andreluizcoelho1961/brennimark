@@ -62,7 +62,7 @@ function AuthCallbackInner() {
 
   return (
     <main className="flex min-h-full flex-1 items-center justify-center px-page-inline py-24">
-      <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-text-secondary">
+      <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-platform-text-muted">
         Signing in…
       </p>
     </main>

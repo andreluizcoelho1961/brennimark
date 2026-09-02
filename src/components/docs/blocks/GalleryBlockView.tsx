@@ -28,7 +28,7 @@ export function GalleryBlockView({ block }: { block: GalleryBlock }) {
         {block.items.map((item) => (
           <figure key={item.src}>
             <div
-              className={`relative overflow-hidden border border-border-default bg-surface-light ${
+              className={`relative overflow-hidden border border-brand-border bg-brand-surface-light ${
                 aspectClasses[block.aspect ?? "4/3"]
               }`}
             >
@@ -41,7 +41,7 @@ export function GalleryBlockView({ block }: { block: GalleryBlock }) {
               />
             </div>
             {item.caption && (
-              <figcaption className="mt-3 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+              <figcaption className="mt-3 font-display text-[10px] font-bold uppercase tracking-wide text-brand-text-muted">
                 {item.caption}
               </figcaption>
             )}

@@ -6,7 +6,7 @@ export function AssetGrid({ images }: { images: DocPageImage[] }) {
     <div className="mt-10 grid gap-8 sm:grid-cols-2">
       {images.map((image) => (
         <figure key={image.src}>
-          <div className="relative aspect-[4/3] overflow-hidden border border-border-default bg-surface-primary">
+          <div className="relative aspect-[4/3] overflow-hidden border border-brand-border bg-brand-surface">
             <Image
               src={image.src}
               alt={image.alt}
@@ -16,7 +16,7 @@ export function AssetGrid({ images }: { images: DocPageImage[] }) {
             />
           </div>
           {image.caption && (
-            <figcaption className="mt-3 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">
+            <figcaption className="mt-3 font-display text-[10px] font-bold uppercase tracking-wide text-brand-text-muted">
               {image.caption}
             </figcaption>
           )}

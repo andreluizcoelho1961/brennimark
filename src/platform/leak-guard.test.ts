@@ -1299,3 +1299,116 @@ test("a moldura publica quando os atalhos estão registrados", () => {
     "o sinal precisa ser publicado no mesmo efeito que registra os atalhos",
   );
 });
+
+/**
+ * V1. Existem dois vocabulários de cor, e só dois.
+ *
+ * Havia um terceiro, e ele era o problema: `--color-release-analog-*` nasceu do
+ * release de um cliente — "Call Me Analog Man" — e virou o acento de toda a
+ * interface, junto de uma camada semântica (`background-primary`,
+ * `text-secondary`, `border-default`) que não dizia se a cor era da moldura ou
+ * da marca.
+ *
+ * Enquanto ele existia, um componente novo podia consumi-lo e FUNCIONAR — e
+ * funcionar era o problema, porque a escolha entre moldura e marca deixava de
+ * ser obrigatória.
+ */
+test("nenhum arquivo do produto usa o vocabulário de cor legado", () => {
+  const arquivos = [
+    ...listarArquivos("src/app"),
+    ...listarArquivos("src/components"),
+    ...listarArquivos("src/platform"),
+    ...listarArquivos("src/lib"),
+  ].filter((c) => /\.(tsx?|css)$/.test(c) && !c.includes(".test."));
+
+  /*
+   * Os nomes precisam ser casados com fronteira à esquerda: `accent-secondary`
+   * é sufixo de `--color-brand-accent-secondary`, que é o token NOVO e legítimo.
+   * Uma guarda por substring solta acusaria o certo junto com o errado, e a
+   * primeira coisa que alguém faria seria afrouxá-la.
+   */
+  const legado = [
+    "release-analog",
+    "text-text-secondary", "text-text-primary", "text-text-inverse",
+    "border-border-default", "border-border-strong",
+    "bg-surface-primary", "bg-surface-light",
+    "bg-background-primary", "bg-background-secondary",
+    "color-accent-primary", "color-accent-secondary", "color-focus-ring",
+    "color-background-primary", "color-text-primary", "color-text-secondary",
+  ];
+
+  const infratores: string[] = [];
+  for (const arquivo of arquivos) {
+    const codigo = lerCodigo(arquivo);
+    for (const termo of legado) {
+      const achou = new RegExp(`(?<![\\w-])${termo.replace(/[-]/g, "-")}(?![\\w-])`);
+      if (achou.test(codigo)) infratores.push(`${arquivo}: ${termo}`);
+    }
+  }
+  assert.deepEqual(infratores, [], "vocabulário legado de cor de volta no produto");
+});
+
+test("o canvas fala brand-*, e a moldura fala platform-*", () => {
+  // A separação é o produto inteiro: a marca é o conteúdo, o Brennimark é o
+  // sistema. Um `platform-*` dentro do canvas pinta o manual com a cor do
+  // aplicativo; um `brand-*` na moldura veste o aplicativo com a cor de um
+  // cliente, e a moldura é a mesma para todos.
+  const canvas = [
+    "src/components/docs/DocPage.tsx",
+    ...listarArquivos("src/components/docs/blocks").filter((c) => c.endsWith(".tsx")),
+  ];
+  for (const arquivo of canvas) {
+    const codigo = lerCodigo(arquivo);
+    assert.doesNotMatch(
+      codigo,
+      /(bg|text|border|decoration|divide|accent)-platform-/,
+      `${arquivo}: componente do canvas pintando com cor da plataforma`,
+    );
+  }
+
+  for (const arquivo of listarArquivos("src/components/shell").filter((c) => c.endsWith(".tsx"))) {
+    assert.doesNotMatch(
+      lerCodigo(arquivo),
+      /(bg|text|border|decoration|divide|accent)-brand-/,
+      `${arquivo}: componente da moldura vestindo a cor de uma marca`,
+    );
+  }
+});
+
+test("não existe instância global de marca em runtime", () => {
+  // `brandvilleInstance` era resolvida por variável de build na inicialização
+  // do processo: duas contas servidas pelo mesmo processo viam a mesma marca.
+  const arquivos = [
+    ...listarArquivos("src/app"),
+    ...listarArquivos("src/components"),
+    ...listarArquivos("src/lib"),
+    ...listarArquivos("src/brandville"),
+  ].filter((c) => /\.tsx?$/.test(c) && !c.includes(".test."));
+
+  for (const arquivo of arquivos) {
+    const codigo = lerCodigo(arquivo);
+    assert.doesNotMatch(codigo, /brandvilleInstance/, `${arquivo}: lê a instância global`);
+    assert.doesNotMatch(
+      codigo,
+      /NEXT_PUBLIC_BRANDVILLE_INSTANCE/,
+      `${arquivo}: escolhe marca por variável de build`,
+    );
+  }
+});
+
+test("o codinome legado não sobra em nome que roda", () => {
+  // Comentários podem contar a história — é assim que se sabe por que algo foi
+  // removido. O que não pode é um IDENTIFICADOR ou uma variável de ambiente
+  // carregar o codinome: esses existem em tempo de execução.
+  const arquivos = [
+    ...listarArquivos("src/app"),
+    ...listarArquivos("src/components"),
+    ...listarArquivos("src/platform"),
+  ].filter((c) => /\.(tsx?|css)$/.test(c) && !c.includes(".test."));
+
+  for (const arquivo of arquivos) {
+    const codigo = lerCodigo(arquivo);
+    assert.doesNotMatch(codigo, /BRANDVILLE_DEV_SKIP_AUTH/, `${arquivo}: variável com o codinome`);
+    assert.doesNotMatch(codigo, /Call Me Analog/, `${arquivo}: nome de release de cliente`);
+  }
+});

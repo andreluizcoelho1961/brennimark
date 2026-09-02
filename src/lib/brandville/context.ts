@@ -24,7 +24,7 @@ import type { WorkspaceDisponivel } from "./selecao";
  * O que o layout precisa saber para decidir para onde mandar a pessoa, sem
  * autenticar por conta própria.
  *
- * `development-preview` é o modo local com BRANDVILLE_DEV_SKIP_AUTH: existe
+ * `development-preview` é o modo local com BRENNIMARK_DEV_SKIP_AUTH: existe
  * como valor nomeado justamente para não virar uma regra de autorização
  * disfarçada. Ele dispensa o redirecionamento e nada mais — as capacidades
  * continuam vazias, como para qualquer visitante sem papel.

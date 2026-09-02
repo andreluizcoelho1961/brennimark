@@ -57,10 +57,10 @@ function AnalysisProgress({ stage, message, elapsedMs }: { stage: ProgressStage;
   const currentIndex = STEPS.findIndex((step) => step.stage === normalizedStage);
 
   return (
-    <div className="border border-border-default p-5" role="status" aria-live="polite">
+    <div className="border border-platform-border p-5" role="status" aria-live="polite">
       <div className="flex items-center justify-between gap-4">
-        <p className="font-display text-xs font-black uppercase tracking-wide text-release-analog-white">{isEnglish ? "Analysis in progress" : "Análise em andamento"}</p>
-        <span className="font-mono text-xs text-text-secondary">{seconds(elapsedMs, isEnglish)}</span>
+        <p className="font-display text-xs font-black uppercase tracking-wide text-platform-text">{isEnglish ? "Analysis in progress" : "Análise em andamento"}</p>
+        <span className="font-mono text-xs text-platform-text-muted">{seconds(elapsedMs, isEnglish)}</span>
       </div>
       <ol className="mt-5 grid gap-3 sm:grid-cols-3">
         {STEPS.map((step, index) => {
@@ -71,19 +71,19 @@ function AnalysisProgress({ stage, message, elapsedMs }: { stage: ProgressStage;
               <span
                 className={`grid h-5 w-5 shrink-0 place-items-center border ${
                   complete || active
-                    ? "border-release-analog-turquoise bg-release-analog-turquoise text-release-analog-black"
-                    : "border-border-default text-text-secondary"
+                    ? "border-platform-signal bg-platform-signal text-platform-bg"
+                    : "border-platform-border text-platform-text-muted"
                 }`}
                 aria-hidden="true"
               >
                 {complete ? "✓" : index + 1}
               </span>
-              <span className={active ? "text-release-analog-white" : "text-text-secondary"}>{step.label}</span>
+              <span className={active ? "text-platform-text" : "text-platform-text-muted"}>{step.label}</span>
             </li>
           );
         })}
       </ol>
-      <p className={`mt-5 border-l-2 pl-4 text-sm ${stage === "fallback" ? "border-release-analog-blue text-release-analog-white" : "border-release-analog-turquoise text-text-secondary"}`}>
+      <p className={`mt-5 border-l-2 pl-4 text-sm ${stage === "fallback" ? "border-platform-border text-platform-text" : "border-platform-signal text-platform-text-muted"}`}>
         {message}
       </p>
     </div>
@@ -94,10 +94,10 @@ function ListSection({ title, items }: { title: string; items: string[] }) {
   if (items.length === 0) return null;
   return (
     <section>
-      <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-text-secondary">{title}</h3>
-      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-release-analog-white">
+      <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-platform-text-muted">{title}</h3>
+      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-platform-text">
         {items.map((item, index) => (
-          <li key={`${title}-${index}`} className="border-l border-border-default pl-4">{item}</li>
+          <li key={`${title}-${index}`} className="border-l border-platform-border pl-4">{item}</li>
         ))}
       </ul>
     </section>
@@ -108,8 +108,8 @@ function TextSection({ title, value }: { title: string; value: string }) {
   if (!value) return null;
   return (
     <section>
-      <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-text-secondary">{title}</h3>
-      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-release-analog-white">{value}</p>
+      <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-platform-text-muted">{title}</h3>
+      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-platform-text">{value}</p>
     </section>
   );
 }
@@ -120,7 +120,7 @@ function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: An
   return (
     <div className="space-y-6">
       {meta.fallbackUsed && (
-        <div className="border-l-2 border-release-analog-blue bg-release-analog-blue/10 px-4 py-3 text-xs leading-relaxed text-release-analog-white">
+        <div className="border-l-2 border-platform-border bg-platform-panel-muted/10 px-4 py-3 text-xs leading-relaxed text-platform-text">
           {isEnglish
             ? "The primary AI didn't complete the request. This result came from the authorized fallback AI."
             : "A IA principal não concluiu a solicitação. O resultado foi produzido pela IA de reserva autorizada."}
@@ -129,9 +129,9 @@ function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: An
 
       {hasStructure ? (
         <>
-          <section className="border border-release-analog-turquoise p-5">
-            <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-release-analog-turquoise">{isEnglish ? "Verdict" : "Veredito"}</h3>
-            <p className="mt-2 font-display text-xl font-black uppercase leading-tight text-release-analog-white">
+          <section className="border border-platform-signal p-5">
+            <h3 className="font-display text-[10px] font-black uppercase tracking-[0.16em] text-platform-text">{isEnglish ? "Verdict" : "Veredito"}</h3>
+            <p className="mt-2 font-display text-xl font-black uppercase leading-tight text-platform-text">
               {result.verdict || (isEnglish ? "Assessment complete" : "Avaliação concluída")}
             </p>
           </section>
@@ -146,11 +146,11 @@ function AnalysisResult({ result, meta }: { result: StructuredAnalysis; meta: An
           <ListSection title={isEnglish ? "Sources consulted" : "Fontes consultadas"} items={result.sources} />
         </>
       ) : (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-release-analog-white md:text-base">{result.raw}</p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-platform-text md:text-base">{result.raw}</p>
       )}
 
-      <details className="border-t border-border-default pt-4 text-xs text-text-secondary">
-        <summary className="cursor-pointer font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary hover:text-release-analog-white">
+      <details className="border-t border-platform-border pt-4 text-xs text-platform-text-muted">
+        <summary className="cursor-pointer font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted hover:text-platform-text">
           {isEnglish ? "Execution details" : "Detalhes da execução"}
         </summary>
         <div className="mt-3 space-y-1 font-mono text-[11px]">
@@ -326,68 +326,68 @@ export default function AnalysisPage() {
 
   return (
     <article className="px-page-inline py-12 md:py-16">
-      <div className="mb-6 inline-flex w-fit items-center gap-3 bg-release-analog-turquoise px-4 py-1.5">
-        <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-release-analog-black">{isEnglish ? "Assistant" : "Assistente"}</span>
+      <div className="mb-6 inline-flex w-fit items-center gap-3 bg-platform-signal px-4 py-1.5">
+        <span className="font-display text-[11px] font-black uppercase tracking-[0.2em] text-platform-bg">{isEnglish ? "Assistant" : "Assistente"}</span>
       </div>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
-        <h1 className="break-words font-display font-black uppercase leading-[0.9] tracking-tight text-release-analog-white" style={{ fontSize: "clamp(2rem, 4.5vw, 4rem)", overflowWrap: "anywhere" }}>
-          {isEnglish ? <>Application <span className="text-release-analog-turquoise">Review</span></> : <>Análise de <span className="text-release-analog-turquoise">Aplicações</span></>}
+        <h1 className="break-words font-display font-black uppercase leading-[0.9] tracking-tight text-platform-text" style={{ fontSize: "clamp(2rem, 4.5vw, 4rem)", overflowWrap: "anywhere" }}>
+          {isEnglish ? <>Application <span className="text-platform-text">Review</span></> : <>Análise de <span className="text-platform-text">Aplicações</span></>}
         </h1>
-        {isDemo && <span className="border border-border-default px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-text-secondary">{isEnglish ? "Demo mode" : "Modo demo"}</span>}
+        {isDemo && <span className="border border-platform-border px-3 py-1 font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Demo mode" : "Modo demo"}</span>}
       </div>
 
       <div className="grid gap-10 md:grid-cols-12">
         <div className="md:col-span-6">
-          <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-text-secondary">{isEnglish ? "Piece image" : "Imagem da peça"}</label>
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white file:mr-4 file:border-0 file:bg-release-analog-turquoise file:px-3 file:py-1.5 file:font-display file:text-xs file:font-bold file:uppercase file:text-release-analog-black" />
-          {loadingPrevious && <p className="mt-3 text-xs text-text-secondary" role="status">{isEnglish ? "Retrieving previous piece…" : "Recuperando peça anterior…"}</p>}
-          {parentRunId && !loadingPrevious && <p className="mt-3 border-l border-release-analog-turquoise pl-3 text-xs text-text-secondary">{isEnglish ? "New round linked to the previous analysis for comparison." : "Nova rodada vinculada à análise anterior para comparação."}</p>}
+          <label className="mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Piece image" : "Imagem da peça"}</label>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text file:mr-4 file:border-0 file:bg-platform-signal file:px-3 file:py-1.5 file:font-display file:text-xs file:font-bold file:uppercase file:text-platform-bg" />
+          {loadingPrevious && <p className="mt-3 text-xs text-platform-text-muted" role="status">{isEnglish ? "Retrieving previous piece…" : "Recuperando peça anterior…"}</p>}
+          {parentRunId && !loadingPrevious && <p className="mt-3 border-l border-platform-signal pl-3 text-xs text-platform-text-muted">{isEnglish ? "New round linked to the previous analysis for comparison." : "Nova rodada vinculada à análise anterior para comparação."}</p>}
 
           {preview && (
-            <div className="relative mt-4 aspect-video overflow-hidden border border-border-default">
+            <div className="relative mt-4 aspect-video overflow-hidden border border-platform-border">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={preview} alt={isEnglish ? "Preview of the uploaded piece" : "Pré-visualização da peça enviada"} className="h-full w-full object-contain" />
             </div>
           )}
 
-          <label className="mb-1.5 mt-6 block font-display text-xs font-bold uppercase tracking-wide text-text-secondary">{isEnglish ? "Question (optional)" : "Pergunta (opcional)"}</label>
-          <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={isEnglish ? "E.g.: does this color match the system?" : "Ex.: essa cor está de acordo com o sistema?"} className="w-full border border-border-default bg-transparent px-4 py-3 text-sm text-release-analog-white placeholder:text-text-secondary focus:border-release-analog-white" />
+          <label className="mb-1.5 mt-6 block font-display text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Question (optional)" : "Pergunta (opcional)"}</label>
+          <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={isEnglish ? "E.g.: does this color match the system?" : "Ex.: essa cor está de acordo com o sistema?"} className="w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal" />
 
-          <button type="button" onClick={handleAnalyze} disabled={!imageBase64 || loading || loadingPrevious} className="mt-6 bg-release-analog-turquoise px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-release-analog-black disabled:opacity-40">
+          <button type="button" onClick={handleAnalyze} disabled={!imageBase64 || loading || loadingPrevious} className="mt-6 bg-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-bg disabled:opacity-40">
             {loading ? (isEnglish ? "Analyzing…" : "Analisando…") : (isEnglish ? "Analyze" : "Analisar")}
           </button>
         </div>
 
         <div className="md:col-span-6 md:col-start-7">
-          <p className="font-display text-xs font-bold uppercase tracking-wide text-release-analog-turquoise">{isEnglish ? "Result" : "Resultado"}</p>
+          <p className="font-display text-xs font-bold uppercase tracking-wide text-platform-text">{isEnglish ? "Result" : "Resultado"}</p>
           <div className="mt-4 min-h-[8rem]">
             {loading && <AnalysisProgress stage={stage} message={progressMessage} elapsedMs={elapsedMs} />}
-            {error && <p className="border-l-2 border-release-analog-blue pl-6 text-sm leading-relaxed text-release-analog-blue" role="alert">{error}</p>}
+            {error && <p className="border-l-2 border-platform-border pl-6 text-sm leading-relaxed text-platform-text-muted" role="alert">{error}</p>}
             {analysis && meta && (
               <div className="space-y-6">
                 <AnalysisResult result={analysis} meta={meta} />
                 {historySaved && historyId ? (
                   <>
-                    <div className="flex flex-wrap items-center justify-between gap-3 border border-border-default px-4 py-3">
-                      <p className="text-xs text-text-secondary">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border border-platform-border px-4 py-3">
+                      <p className="text-xs text-platform-text-muted">
                         {imageSaved
                           ? (isEnglish ? "Analysis and evidence saved to history." : "Análise e evidência salvas no histórico.")
                           : (isEnglish ? "Analysis saved; the image couldn't be archived." : "Análise salva; a imagem não pôde ser arquivada.")}
                       </p>
                       <div className="flex gap-2">
-                        <a href={`/api/analysis/history/${historyId}/report`} className="border border-border-default px-3 py-2 font-display text-[9px] font-bold uppercase text-release-analog-white">PDF</a>
-                        <Link href={`${base}/historico/${historyId}`} className="bg-release-analog-white px-3 py-2 font-display text-[9px] font-bold uppercase text-release-analog-black">{isEnglish ? "Open record" : "Abrir registro"}</Link>
+                        <a href={`/api/analysis/history/${historyId}/report`} className="border border-platform-border px-3 py-2 font-display text-[9px] font-bold uppercase text-platform-text">PDF</a>
+                        <Link href={`${base}/historico/${historyId}`} className="bg-platform-text px-3 py-2 font-display text-[9px] font-bold uppercase text-platform-bg">{isEnglish ? "Open record" : "Abrir registro"}</Link>
                       </div>
                     </div>
                     <FeedbackPanel historyId={historyId} />
                   </>
                 ) : (
-                  <p className="border-l-2 border-release-analog-blue pl-4 text-xs leading-relaxed text-text-secondary">{isEnglish ? "The analysis is complete but couldn't be saved to history. The result is still available on this screen." : "A análise foi concluída, mas não pôde ser salva no histórico. O resultado continua disponível nesta tela."}</p>
+                  <p className="border-l-2 border-platform-border pl-4 text-xs leading-relaxed text-platform-text-muted">{isEnglish ? "The analysis is complete but couldn't be saved to history. The result is still available on this screen." : "A análise foi concluída, mas não pôde ser salva no histórico. O resultado continua disponível nesta tela."}</p>
                 )}
               </div>
             )}
-            {!analysis && !error && !loading && <p className="border-l-2 border-release-analog-turquoise pl-8 text-sm text-text-secondary">{isEnglish ? "Upload an image and click Analyze." : "Envie uma imagem e clique em Analisar."}</p>}
+            {!analysis && !error && !loading && <p className="border-l-2 border-platform-signal pl-8 text-sm text-platform-text-muted">{isEnglish ? "Upload an image and click Analyze." : "Envie uma imagem e clique em Analisar."}</p>}
           </div>
         </div>
       </div>
