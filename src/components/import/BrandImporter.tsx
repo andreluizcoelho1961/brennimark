@@ -137,7 +137,15 @@ export function BrandImporter({
       }
       const generico = diagnosticar("desconhecida");
       setMensagem(t(generico.pt, generico.en));
-      console.error("[importador] falha inesperada");
+      // O NOME da exceção, não a mensagem: o nome é da classe do erro e não
+      // carrega conteúdo do arquivo, enquanto a mensagem pode carregar. Sem
+      // ele, uma falha aqui é indiagnosticável — foi o que aconteceu quando o
+      // manual de 743 páginas parou de ser lido e o console dizia apenas
+      // "falha inesperada".
+      console.error(
+        "[importador] falha inesperada:",
+        erro instanceof Error ? erro.name : typeof erro,
+      );
     } finally {
       setLendo(false);
     }
