@@ -94,12 +94,45 @@ test.describe("aceite com manual real", () => {
       ),
     });
 
-    // O manual foi lido inteiro, e virou seções revisáveis em vez de uma
-    // página de manual por página do PDF.
-    expect(metricas.paginas).toBeGreaterThan(100);
-    expect(metricas.secoes).toBeGreaterThan(0);
+    /*
+     * O NÚMERO, e não uma faixa frouxa.
+     *
+     * A versão anterior afirmava `secoes < paginas`, e 742 satisfaz isso. Em
+     * produção o importador estava gerando UMA SEÇÃO POR PÁGINA — 743 — e
+     * nenhuma asserção deste arquivo teria pegado, porque todas eram
+     * desigualdades largas.
+     *
+     * Se a heurística mudar de propósito, este número muda junto, no mesmo
+     * commit, com o motivo. É essa a intenção: que mexer no agrupamento exija
+     * declarar o novo resultado, em vez de deixá-lo passar por dentro de uma
+     * faixa.
+     */
+    expect(metricas.paginas).toBe(743);
+
+    /*
+     * 122, e não 152.
+     *
+     * O número caiu quando o detector de títulos passou a exigir uma palavra
+     * de verdade. Trinta das antigas fronteiras eram ESPÉCIMES: páginas de
+     * amostra de tipografia, com um "G g" em corpo enorme sobre uma legenda
+     * pequena. Elas tinham a maior proporção de destaque da página e viravam
+     * seção de uma página cada, chamada pela letra.
+     *
+     * Mudança deliberada de heurística, com o resultado novo declarado no
+     * mesmo commit — que é o contrato deste teste.
+     */
+    expect(metricas.secoes).toBe(122);
+
+    // Uma seção por página é o defeito nomeado, e merece asserção própria:
+    // ela é o estado em que o "manual" vira o índice do PDF.
+    expect(
+      metricas.secoes,
+      "uma seção por página — o agrupamento não aconteceu",
+    ).toBeLessThan(metricas.paginas / 2);
+
+    // O teto do produto. Acima dele a RPC recusa a publicação, e a prévia não
+    // deve sequer oferecer o botão com um conjunto que o banco recusaria.
     expect(metricas.secoes).toBeLessThanOrEqual(500);
-    expect(metricas.secoes).toBeLessThan(metricas.paginas);
 
     // A prévia continua paginada: o custo da tela não acompanha o do manual.
     expect(metricas.naTela).toBeLessThanOrEqual(40);
@@ -108,6 +141,54 @@ test.describe("aceite com manual real", () => {
     // terminou e o fluxo está pronto —, e o que este teste garante é que ele
     // NÃO foi acionado: nenhuma chamada ao Storage nem à função de publicação.
     expect(chamadasDeEscrita, "o aceite não pode publicar nada").toEqual([]);
+  });
+
+  test("nenhuma seção nasce de cabeçalho repetido sozinho", async ({ page }) => {
+    test.setTimeout(600_000);
+    await page.goto("/dev/importar");
+    await page.setInputFiles('input[type="file"]', CAMINHO);
+    await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible({
+      timeout: 540_000,
+    });
+
+    for (let i = 0; i < 8; i += 1) {
+      const botao = page.getByRole("button", { name: /Carregar mais/ });
+      if ((await botao.count()) === 0) break;
+      await botao.click();
+    }
+
+    const secoes = await page.evaluate(() =>
+      [...document.querySelectorAll("li[data-secao]")].map((li) => ({
+        titulo: li.querySelector<HTMLInputElement>("[data-titulo]")?.value ?? "",
+        faixa: li.querySelector("span.font-mono")?.textContent ?? "",
+      })),
+    );
+
+    /*
+     * O sintoma que apareceu em produção: títulos repetidos, uma página cada,
+     * slugs incrementais. É o cabeçalho da página virando título de seção
+     * porque a detecção de repetidos não o removeu.
+     *
+     * A asserção não proíbe título repetido — dois capítulos podem se chamar
+     * "Aplicações". Ela proíbe a COMBINAÇÃO: título repetido E faixa de uma
+     * página só, que é a assinatura do defeito.
+     */
+    const porTitulo = new Map<string, number>();
+    for (const s of secoes) porTitulo.set(s.titulo, (porTitulo.get(s.titulo) ?? 0) + 1);
+
+    const suspeitas = secoes.filter(
+      (s) => (porTitulo.get(s.titulo) ?? 0) > 1 && !s.faixa.includes("–"),
+    );
+    expect(
+      suspeitas.length,
+      `${suspeitas.length} seções de uma página com título repetido`,
+    ).toBe(0);
+
+    // E toda seção declara a sua procedência: sem faixa, a publicação gravaria
+    // documento sem `source_pages`, e a citação diria só "está no manual".
+    for (const s of secoes) {
+      expect(s.faixa, "seção sem faixa de páginas").toMatch(/\d/);
+    }
   });
 
   test("a busca alcança o manual inteiro", async ({ page }) => {

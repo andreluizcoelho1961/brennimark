@@ -154,6 +154,28 @@ function tituloVisual(linhas: readonly Linha[]): { texto: string; confianca: num
   // rótulo e não uma frase.
   if (proporcao < 1.25 || candidata.texto.length > 80) return null;
 
+  /*
+   * Destaque tipográfico não é título — pode ser espécime.
+   *
+   * Num manual de identidade, páginas inteiras mostram letras em corpo enorme:
+   * um "G g" de 200pt sobre uma legenda de 8pt tem a proporção mais alta da
+   * página e passa em todos os testes acima. O resultado eram nove seções do
+   * GE_ID000 chamadas "e", "g" e "G g", de uma página cada — o índice do
+   * manual virava a tabela de glifos.
+   *
+   * A regra: um título precisa de ao menos UMA palavra de duas letras ou mais.
+   * "Cor", "Voz" e "Grid" passam; "G g", "e" e "a b c" não. É neutra em idioma
+   * e não depende de lista de palavras.
+   *
+   * O que se perde: uma seção legitimamente chamada "A" deixa de ser detectada
+   * por título e cai na faixa de páginas — que é o comportamento certo para
+   * uma evidência tão fraca.
+   */
+  const temPalavra = candidata.texto
+    .split(/[\s\u00a0]+/)
+    .some((palavra) => palavra.replace(/[^\p{L}\p{N}]/gu, "").length >= 2);
+  if (!temPalavra) return null;
+
   // Quanto maior o destaque, mais confiança — com teto, porque geometria não
   // prova intenção.
   return { texto: candidata.texto, confianca: Math.min(0.85, 0.45 + (proporcao - 1.25) * 0.4) };

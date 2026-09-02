@@ -1412,3 +1412,63 @@ test("o codinome legado não sobra em nome que roda", () => {
     assert.doesNotMatch(codigo, /Call Me Analog/, `${arquivo}: nome de release de cliente`);
   }
 });
+
+/**
+ * P0. A rota que os testes exercitam e a que produção serve montam o MESMO
+ * importador.
+ *
+ * O laboratório `/dev/importar` é 404 em produção, por construção. Logo o
+ * `BrandImporter` publicado — em `/w/<conta>/importar` — nunca foi tocado por
+ * teste de navegador nenhum: ele exige sessão de quem administra, e o preview
+ * local não concede papel.
+ *
+ * Enquanto as duas rotas montarem o mesmo componente com os mesmos padrões, o
+ * que o laboratório prova vale para a publicada. No dia em que uma delas
+ * receber uma prop diferente, essa equivalência quebra em silêncio — e foi
+ * exatamente uma divergência entre caminho testado e caminho publicado que
+ * levantou este P0.
+ */
+test("laboratório e rota real montam o mesmo importador", () => {
+  const lab = lerCodigo("src/app/dev/importar/page.tsx");
+  const real = lerCodigo("src/app/w/[workspaceSlug]/importar/page.tsx");
+
+  for (const [nome, codigo] of [["laboratório", lab], ["rota real", real]] as const) {
+    assert.match(codigo, /<BrandImporter\b/, `${nome} não monta o BrandImporter`);
+  }
+
+  /*
+   * A ÚNICA prop que pode divergir é `limites`, e só no laboratório: testar a
+   * recusa por tamanho com o limite real exigiria carregar 100 MiB num
+   * navegador de teste. Qualquer outra diferença faz o laboratório provar algo
+   * sobre um componente que produção não monta.
+   */
+  /*
+   * Casa prop COM e SEM valor. A primeira versão desta guarda só via `nome=`,
+   * e uma prop booleana — `<BrandImporter modoDeTeste />` — passava por ela.
+   * Descobri injetando exatamente isso: a guarda ficou verde, e uma guarda que
+   * não fica vermelha na regressão que descreve não é guarda.
+   */
+  const props = (codigo: string) =>
+    [...codigo.matchAll(/<BrandImporter([\s\S]*?)\/>/g)]
+      .flatMap((m) => [...m[1].matchAll(/(?:^|\s)([a-zA-Z][\w]*)(?==|\s|$)/g)].map((p) => p[1]))
+      .sort();
+
+  const soNoLab = props(lab).filter((p) => !props(real).includes(p));
+  assert.deepEqual(soNoLab, ["limites"], "o laboratório monta o importador diferente da produção");
+
+  const soNaReal = props(real).filter((p) => !props(lab).includes(p));
+  assert.deepEqual(soNaReal, [], "a rota real passa prop que o laboratório não exercita");
+});
+
+test("o detector de títulos exige uma palavra, não só destaque", () => {
+  // Num manual de identidade, páginas inteiras mostram letras em corpo enorme.
+  // Sem esta regra, um "G g" de 200pt sobre legenda de 8pt vira seção — e o
+  // índice do manual vira a tabela de glifos. Foram nove no GE_ID000.
+  const codigo = lerCodigo("src/lib/import/secoes.ts");
+  const trecho = codigo.slice(codigo.indexOf("function tituloVisual"));
+  assert.match(
+    trecho.slice(0, 2_000),
+    /length >= 2/,
+    "destaque tipográfico voltou a bastar para virar título",
+  );
+});
