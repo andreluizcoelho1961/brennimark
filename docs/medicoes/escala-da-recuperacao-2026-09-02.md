@@ -110,6 +110,19 @@ Nota sobre a comparação: o `EXPLAIN` isolado mostra 2,85 ms contra os 0,92 ms
 médios das cem chamadas porque inclui o custo de planejamento e a primeira
 leitura fria. A média de cem chamadas é a medida mais próxima do uso real.
 
+## O que continua assumido
+
+A **forma** veio do aceite: 743 páginas, 152 seções. O **tamanho de cada
+seção** não — o texto sintético usa ~2.400 caracteres por seção, escolhido, e
+não medido no manual real.
+
+Tentei medir depois que o acesso ao volume voltou, e desisti: a sonda em Node
+não casa com a forma interna que `agrupar` espera, e o retorno não paga o
+tempo. A conclusão de escala depende do NÚMERO de trechos por marca — limitado
+pelo teto de 500 seções, e medido direto — e não do tamanho de cada um. Se um
+dia o tamanho passar a importar, a medição é reprodutível: o volume está
+legível de novo.
+
 ## Como reproduzir
 
 `scripts/medir-escala-da-recuperacao.sql`. Ele semeia, mede e **remove tudo**
