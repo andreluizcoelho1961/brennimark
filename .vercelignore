@@ -1,0 +1,21 @@
+# O que NÃO sobe para o build da Vercel.
+#
+# Existe explicitamente, e não por herança do .gitignore: quando este arquivo
+# está presente ele SUBSTITUI o .gitignore para efeito de upload, e um segredo
+# que viaja para o build é um segredo que vazou. Preferível declarar do que
+# depender de comportamento padrão.
+.env
+.env.*
+!.env.example
+
+node_modules
+.next
+.git
+.vercel
+
+# Artefatos de teste e evidência: nada disso participa do build.
+e2e/.artefatos
+.tmp
+test-results
+playwright-report
+docs/evidencias
