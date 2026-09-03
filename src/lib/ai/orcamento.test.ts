@@ -1,0 +1,129 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { consolidarExecucao, liberarReserva, mensagemDeOrcamento, reservarExecucao } from "./orcamento";
+
+/**
+ * Um Supabase de mentira, com a mesma forma do usado em buscar.test.ts.
+ *
+ * A CORREÇÃO da aritmética de orçamento — o teto, a soma por status, o kill
+ * switch, a atomicidade — é provada no banco, por teste transacional
+ * revertido (registrado no commit da migração). O que este arquivo garante é
+ * outra coisa: que o módulo TypeScript traduz o resultado da RPC certo, e
+ * que ele NUNCA finge sucesso quando a chamada falha.
+ */
+function supabaseFalso(resposta: { data?: unknown; error?: { code?: string; message: string } | null }) {
+  const chamadas: { fn: string; args: Record<string, unknown> }[] = [];
+  return {
+    chamadas,
+    cliente: {
+      rpc: async (fn: string, args: Record<string, unknown>) => {
+        chamadas.push({ fn, args });
+        return { data: resposta.data ?? null, error: resposta.error ?? null };
+      },
+    } as never,
+  };
+}
+
+const PARAMS = {
+  workspaceId: "ws-1", brandId: "brand-1", executionId: "exec-1",
+  task: "assist" as const, reservedMicros: 4000, currency: "USD",
+};
+
+test("reserva aceita: devolve ok e o execution_id", async () => {
+  const { cliente } = supabaseFalso({
+    data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
+  });
+  const r = await reservarExecucao(cliente, PARAMS);
+  assert.deepEqual(r, { ok: true, executionId: "exec-1", jaExistia: false });
+});
+
+test("reserva idempotente: motivo ja_reservado vira jaExistia true", async () => {
+  const { cliente } = supabaseFalso({
+    data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "reserved" }],
+  });
+  const r = await reservarExecucao(cliente, PARAMS);
+  assert.equal(r.ok, true);
+  assert.equal(r.ok && r.jaExistia, true);
+});
+
+test("reserva recusada: o motivo específico atravessa, não um genérico", async () => {
+  const { cliente } = supabaseFalso({
+    data: [{ ok: false, motivo: "orcamento_do_workspace_esgotado", execution_id: "exec-1", status: null }],
+  });
+  const r = await reservarExecucao(cliente, PARAMS);
+  assert.deepEqual(r, { ok: false, motivo: "orcamento_do_workspace_esgotado" });
+});
+
+test("erro de rede/banco NUNCA vira sucesso — falha fechada", async () => {
+  /*
+   * A regressão que este teste existe para impedir: um `catch` engolindo o
+   * erro e devolvendo "reservado" por engano transformaria uma falha de
+   * infraestrutura em permissão para gastar. É a mesma classe de defeito do
+   * A1 — falha de busca virando "não há evidência" em vez de "não sei".
+   */
+  const { cliente } = supabaseFalso({ error: { code: "PGRST000", message: "connection refused" } });
+  const r = await reservarExecucao(cliente, PARAMS);
+  assert.equal(r.ok, false);
+  assert.equal(r.ok === false && r.motivo, "erro_de_consulta");
+});
+
+test("o erro do banco não vaza para o resultado", async () => {
+  const { cliente } = supabaseFalso({
+    error: { code: "X", message: "detalhe interno com possível segredo" },
+  });
+  const r = await reservarExecucao(cliente, PARAMS);
+  assert.ok(!JSON.stringify(r).includes("detalhe interno"));
+});
+
+test("consolidar e liberar chamam a RPC certa, com os parâmetros certos", async () => {
+  const consolidacao = supabaseFalso({ data: null });
+  await consolidarExecucao(consolidacao.cliente, {
+    executionId: "exec-1", settledMicros: 3500, provider: "openrouter", model: "qwen/qwen3-vl-32b-instruct",
+  });
+  assert.equal(consolidacao.chamadas[0].fn, "consolidar_execucao_de_ia");
+  assert.equal(consolidacao.chamadas[0].args.p_settled_micros, 3500);
+
+  const liberacao = supabaseFalso({ data: null });
+  await liberarReserva(liberacao.cliente, "exec-2");
+  assert.equal(liberacao.chamadas[0].fn, "liberar_reserva_de_ia");
+  assert.equal(liberacao.chamadas[0].args.p_execution_id, "exec-2");
+});
+
+test("consolidar e liberar não lançam quando a RPC falha", async () => {
+  // São chamadas de ENCERRAMENTO — depois que a resposta já foi decidida (ou
+  // a falha já aconteceu). Lançar aqui derrubaria uma resposta que a pessoa
+  // já ia receber, por causa de um problema de contabilidade que é dela do
+  // produto resolver depois, não dela ver agora.
+  const { cliente } = supabaseFalso({ error: { code: "X", message: "falhou" } });
+  await assert.doesNotReject(() =>
+    consolidarExecucao(cliente, { executionId: "e", settledMicros: 1, provider: "p", model: "m" }),
+  );
+  await assert.doesNotReject(() => liberarReserva(cliente, "e"));
+});
+
+test("a mensagem de orçamento é sempre de produto, nunca o código do motivo", () => {
+  for (const motivo of [
+    "sem_orcamento_configurado", "orcamento_do_workspace_esgotado",
+    "orcamento_da_marca_esgotado", "erro_de_consulta",
+  ] as const) {
+    const msg = mensagemDeOrcamento(motivo, false);
+    assert.ok(!msg.includes(motivo), `a mensagem repete o código técnico: ${motivo}`);
+  }
+});
+
+test("kill switch tem mensagem distinta de orçamento esgotado", () => {
+  // São estados diferentes para quem administra: um é limite normal de uso,
+  // o outro é uma pausa deliberada. Confundir as duas mensagens esconderia
+  // que alguém desligou o uso de propósito.
+  const pausa = mensagemDeOrcamento("kill_switch_workspace", false);
+  const esgotado = mensagemDeOrcamento("sem_orcamento_configurado", false);
+  assert.notEqual(pausa, esgotado);
+  assert.match(pausa, /pausad/i);
+});
+
+test("mensagem em inglês existe e é diferente da portuguesa", () => {
+  const pt = mensagemDeOrcamento("sem_orcamento_configurado", false);
+  const en = mensagemDeOrcamento("sem_orcamento_configurado", true);
+  assert.notEqual(pt, en);
+  assert.match(en, /administer/i);
+});
