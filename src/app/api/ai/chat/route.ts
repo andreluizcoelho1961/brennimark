@@ -121,7 +121,10 @@ export async function POST(request: Request) {
 
     const decisao = await decidirExecucao(
       portao.auth.supabase,
-      { workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist", question: perguntaDasMensagens(messages), sources: trechos },
+      {
+        workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
+        role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: trechos,
+      },
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {

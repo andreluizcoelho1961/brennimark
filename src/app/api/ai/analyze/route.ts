@@ -105,6 +105,7 @@ export async function POST(request: Request) {
   let brandPrompt: BrandPromptContext;
   let workspaceId: string;
   let brandId: string;
+  let analysisRole: string;
   let supabase: SupabaseClient;
   // O identificador comum entre requisição, reserva e ledger — quem
   // administra consegue rastrear uma execução específica sem outro id.
@@ -118,6 +119,7 @@ export async function POST(request: Request) {
     if (!portao.ok) return portao.resposta;
     workspaceId = portao.auth.workspaceId;
     brandId = portao.brand.id;
+    analysisRole = portao.brand.ai.analysisRole;
     supabase = portao.auth.supabase;
     executionId = (body?.executionId as string | undefined) || crypto.randomUUID();
 
@@ -189,7 +191,7 @@ export async function POST(request: Request) {
     const decisao = await decidirExecucao(
       supabase,
       {
-        workspaceId, brandId, executionId, task: "analyse-image", question,
+        workspaceId, brandId, executionId, task: "analyse-image", role: analysisRole, question,
         sources: trechos, image: { mediaType: image.mediaType, sizeBytes: imageBytes },
       },
       { provider: visionAttempts[0].config.provider, model: visionAttempts[0].config.model },
