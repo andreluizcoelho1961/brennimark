@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
-import { streamText, type LanguageModelUsage } from "ai";
+import { streamText } from "ai";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getModel, supportsVision } from "@/lib/ai/provider";
+import type { ModelPricing } from "@/lib/ai/catalogo";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
 import { brandPromptContext } from "@/lib/brandville/context";
+import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
-import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { getAnalysisAuthContext, persistAnalysisRun } from "@/lib/analysis/server";
 import { alvoDaRota, portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
-import { custoDeReservaMicros, type ModelPricing } from "@/lib/ai/catalogo";
-import { decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
-import { consolidarExecucao, liberarReserva } from "@/lib/ai/orcamento";
+import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -103,11 +102,13 @@ export async function POST(request: Request) {
   }
 
   let trechos: Trecho[] = [];
-  let brandPrompt;
+  let brandPrompt: BrandPromptContext;
   let workspaceId: string;
   let brandId: string;
-  let executionId: string;
   let supabase: SupabaseClient;
+  // O identificador comum entre requisição, reserva e ledger — quem
+  // administra consegue rastrear uma execução específica sem outro id.
+  let executionId: string;
   try {
     /*
      * O portão do G1: a marca precisa ter contratado a ANÁLISE, e não basta
@@ -147,9 +148,6 @@ export async function POST(request: Request) {
   try {
     const routing = await resolveAnalysisRouting();
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
-    // Interrompe AQUI: sem isto, `prepareStreamWithFallback` lançaria um erro
-    // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
-    // mensagem que diz a quem pedir.
     if (routing.attempts.length === 0) {
       const { code, message } = semProvedorConfigurado();
       return NextResponse.json({ error: code, message }, { status: 503 });
@@ -179,12 +177,12 @@ export async function POST(request: Request) {
   }
 
   /*
-   * Um único perfil, não a lista inteira — mesmo motivo do chat/route.ts: a
-   * reserva de orçamento vale para UM par provedor+modelo, e deixar o
-   * fallback trocar de perfil por conta própria liquidaria com um preço que
-   * ninguém reservou.
+   * Um único perfil, não a lista inteira — `executarComOrcamento` também
+   * ignora qualquer um além do primeiro, mas a decisão (e a reserva) já é
+   * calculada só para este par provedor+modelo.
    */
   const visionAttempts = [modelosComVisao[0]];
+  let maxOutputTokens: number;
   let pricing: ModelPricing;
   try {
     const decisao = await decidirExecucao(
@@ -201,6 +199,7 @@ export async function POST(request: Request) {
         { status: 503 },
       );
     }
+    maxOutputTokens = decisao.maxOutputTokens;
     // decidirExecucao só devolve pode:true com preço de imagem verificado
     // (é a checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
     pricing = decisao.capabilities.pricing!;
@@ -215,6 +214,7 @@ export async function POST(request: Request) {
     msg: "analysis_start",
     route: "/api/ai/analyze",
     requestId,
+    executionId,
     imageMediaType: image.mediaType,
     imageBytesApprox: imageBytes,
     attemptCount: visionAttempts.length,
@@ -226,41 +226,12 @@ export async function POST(request: Request) {
       const send = (event: AnalysisEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       const attemptLog: AttemptLog[] = [];
       const attemptStarts = new Map<ResolvedChatAttempt, number>();
-      // Preenchido dentro de `start`, abaixo — o único jeito de ler `.usage`
-      // depois que só o stream de texto (não o resultado inteiro) foi
-      // repassado para prepareStreamWithFallback. Só a promise de uso, não o
-      // resultado inteiro de `streamText` — mais simples de tipar.
-      let streamUsage: PromiseLike<LanguageModelUsage> | null = null;
-      // Liquida com o custo REAL, ou libera se não houver uso nenhum para
-      // liquidar. Chamável mais de uma vez sem risco: a função do banco
-      // ignora silenciosamente uma segunda chamada para a mesma execução.
-      // Extraída como função própria (em vez de inline no try aninhado
-      // abaixo) porque o TypeScript, nesta profundidade de try/finally, não
-      // consegue estreitar `usage: LanguageModelUsage | null` corretamente
-      // quando o código fica no meio do bloco — mesmo padrão de
-      // chat/route.ts, onde a extração já era necessária pelo mesmo motivo.
-      const encerrarExecucao = async (provider: string, model: string) => {
-        const usage = streamUsage ? await Promise.resolve(streamUsage).catch(() => null) : null;
-        if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
-          await liberarReserva(supabase, executionId);
-          return;
-        }
-        const settledMicros = custoDeReservaMicros(pricing, {
-          entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
-        });
-        await consolidarExecucao(supabase, {
-          executionId, settledMicros, provider, model,
-          usageSnapshot: {
-            inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
-            cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens,
-          },
-        });
-      };
 
       send({ type: "progress", stage: "preparing", message: isEnglish ? "Preparing the image and brand guidelines…" : "Preparando a imagem e as diretrizes da marca…", elapsedMs: 0 });
 
       try {
-        const prepared = await prepareStreamWithFallback({
+        const execucao = await executarComOrcamento({
+          supabase, executionId, pricing,
           attempts: visionAttempts,
           firstChunkTimeoutMs,
           parentSignal: request.signal,
@@ -296,7 +267,7 @@ export async function POST(request: Request) {
               error: error instanceof Error ? error.message : String(error),
             }));
           },
-          start: (attempt, abortSignal) => {
+          dispatch: (attempt, abortSignal) => {
             const result = streamText({
               model: getModel(attempt.config),
               system: buildAnalysisSystemPrompt(trechos, brandPrompt),
@@ -315,6 +286,7 @@ export async function POST(request: Request) {
               ],
               abortSignal,
               timeout: { totalMs: ANALYSIS_COMPLETION_TIMEOUT_MS },
+              maxOutputTokens,
               maxRetries: 0,
               include: { requestBody: false },
               onError: ({ error }) => {
@@ -329,20 +301,19 @@ export async function POST(request: Request) {
                 }));
               },
             });
-            streamUsage = result.usage;
-            return result.textStream;
+            return { textStream: result.textStream, usage: result.usage };
           },
         });
 
         try {
-          let text = prepared.firstChunk;
+          let text = execucao.firstChunk;
           while (true) {
-            const next = await prepared.iterator.next();
+            const next = await execucao.iterator.next();
             if (next.done) break;
             text += next.value;
           }
 
-          const selected = prepared.attempt;
+          const selected = execucao.attempt;
           const selectedElapsedMs = Date.now() - (attemptStarts.get(selected) ?? startedAt);
           attemptLog.push({
             provider: selected.config.provider,
@@ -350,8 +321,6 @@ export async function POST(request: Request) {
             elapsedMs: selectedElapsedMs,
             status: "completed",
           });
-
-          await encerrarExecucao(selected.config.provider, selected.config.model);
 
           send({ type: "progress", stage: "verifying", message: isEnglish ? "Verifying evidence and saving the diagnosis…" : "Verificando evidências e salvando o diagnóstico…", elapsedMs: Date.now() - startedAt });
           const analysis = parseAnalysisText(text);
@@ -371,7 +340,7 @@ export async function POST(request: Request) {
               analysis,
               provider: selected.config.provider,
               model: selected.config.model,
-              fallbackUsed: prepared.fallbackUsed,
+              fallbackUsed: execucao.fallbackUsed,
               elapsedMs,
               attempts: attemptLog,
             });
@@ -395,7 +364,7 @@ export async function POST(request: Request) {
             isDemo: selected.isDemo,
             provider: selected.config.provider,
             model: selected.config.model,
-            fallbackUsed: prepared.fallbackUsed,
+            fallbackUsed: execucao.fallbackUsed,
             elapsedMs,
             attempts: attemptLog,
             historyId,
@@ -407,22 +376,21 @@ export async function POST(request: Request) {
             msg: "analysis_done",
             route: "/api/ai/analyze",
             requestId,
+            executionId,
             provider: selected.config.provider,
             model: selected.config.model,
-            fallbackUsed: prepared.fallbackUsed,
+            fallbackUsed: execucao.fallbackUsed,
             ms: Date.now() - startedAt,
           }));
         } finally {
-          prepared.cleanup();
+          execucao.cleanup();
         }
       } catch (error) {
-        // A reserva já foi feita (antes deste bloco) e a análise não
-        // produziu nenhum uso cobrável — libera, para não comer o teto do
-        // dia à toa.
-        await liberarReserva(supabase, executionId);
+        // executarComOrcamento já libera a reserva antes de repassar o
+        // erro — nenhuma chamada extra precisa acontecer aqui.
         const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
         const { code, message, detalheTecnico } = classifyAIError(rootError);
-        console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
+        console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
         console.error(JSON.stringify({
           level: "error",
           msg: "analysis_failed",
@@ -443,6 +411,7 @@ export async function POST(request: Request) {
       "Content-Type": "application/x-ndjson; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       "X-Content-Type-Options": "nosniff",
+      "X-AI-Execution-Id": executionId,
     },
   });
 }

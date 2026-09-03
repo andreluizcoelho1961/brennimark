@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { streamText, type LanguageModelUsage, type ModelMessage } from "ai";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { streamText, type ModelMessage } from "ai";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
@@ -8,12 +7,10 @@ import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
-import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
+import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { brandPromptContext } from "@/lib/brandville/context";
+import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
-import { custoDeReservaMicros, type ModelPricing } from "@/lib/ai/catalogo";
-import { decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
-import { consolidarExecucao, liberarReserva } from "@/lib/ai/orcamento";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -64,12 +61,9 @@ export async function POST(request: Request) {
   let attempts: ResolvedChatAttempt[];
   let firstChunkTimeoutMs: number;
   let trechos: Trecho[] = [];
-  let brandPrompt;
-  let workspaceId: string;
-  let brandId: string;
-  let executionId: string;
-  let pricing: ModelPricing;
-  let supabase: SupabaseClient;
+  let brandPrompt: BrandPromptContext;
+  let executionId: string | undefined;
+  let maxOutputTokens: number;
   try {
     /*
      * O portão do G1, no servidor.
@@ -82,13 +76,11 @@ export async function POST(request: Request) {
     const portao = await portaoDeIA(request, "chat");
     if (!portao.ok) return portao.resposta;
     brandPrompt = brandPromptContext(portao.brand);
-    workspaceId = portao.auth.workspaceId;
-    brandId = portao.brand.id;
-    supabase = portao.auth.supabase;
     // O cliente PODE enviar o próprio execution_id (torna um retry de rede
-    // idempotente ponta a ponta); sem ele, um novo é gerado aqui — sem
-    // idempotência entre tentativas, mas sem bloquear o produto enquanto o
-    // cliente não manda o seu.
+    // idempotente ponta a ponta, e é o identificador comum entre a
+    // requisição, a reserva e o ledger); sem ele, um novo é gerado aqui —
+    // sem idempotência entre tentativas, mas sem bloquear o produto
+    // enquanto o cliente não manda o seu.
     executionId = (body?.executionId as string | undefined) || crypto.randomUUID();
 
     /*
@@ -113,30 +105,23 @@ export async function POST(request: Request) {
     trechos = recuperacao.trechos;
     const routing = await resolveChatRouting();
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
-    // Interrompe AQUI: sem isto, `prepareStreamWithFallback` lançaria um erro
+    // Interrompe AQUI: sem isto, `executarComOrcamento` chegaria a
+    // `prepareStreamWithFallback` com uma lista vazia e lançaria um erro
     // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
     // mensagem que diz a quem pedir.
     if (routing.attempts.length === 0) {
       const { code, message } = semProvedorConfigurado();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
-    /*
-     * Um único perfil, não a lista inteira.
-     *
-     * A reserva de orçamento é calculada para UM par provedor+modelo — o
-     * preço vem do catálogo daquele par específico. Deixar
-     * `prepareStreamWithFallback` trocar para um segundo perfil por conta
-     * própria significaria liquidar com um preço que ninguém reservou. "Não
-     * usar fallback automático" enquanto o orçamento estiver ligado é essa
-     * garantia: se existe uma política de fallback configurada, ela para de
-     * valer aqui até o mecanismo suportar mais de um preço por execução.
-     */
+    // Só o primeiro perfil chega a `executarComOrcamento` — ela mesma
+    // ignora qualquer outro, mas nem monta a lista maior aqui: a reserva
+    // abaixo é calculada para ESTE par provedor+modelo.
     attempts = [routing.attempts[0]];
     firstChunkTimeoutMs = routing.timeoutMs;
 
     const decisao = await decidirExecucao(
       portao.auth.supabase,
-      { workspaceId, brandId, executionId, task: "assist", question: perguntaDasMensagens(messages), sources: trechos },
+      { workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist", question: perguntaDasMensagens(messages), sources: trechos },
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {
@@ -145,50 +130,19 @@ export async function POST(request: Request) {
         { status: 503 },
       );
     }
-    // decidirExecucao só devolve pode:true com preço verificado (é a
-    // checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
-    pricing = decisao.capabilities.pricing!;
-  } catch (error) {
-    const { code, message, detalheTecnico } = classifyAIError(error);
-    // O detalhe fica no log do servidor. A resposta leva só a mensagem de
-    // produto — ela atravessa a rede e aparece na tela.
-    console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
-    return NextResponse.json({ error: code, message }, { status: 503 });
-  }
+    maxOutputTokens = decisao.maxOutputTokens;
 
-  // Preenchido dentro de `start`, abaixo — é o único jeito de ler `.usage`
-  // depois que o stream de texto (não o resultado inteiro) já foi repassado
-  // para prepareStreamWithFallback. Só a promise de uso, não o resultado
-  // inteiro de `streamText` — mais simples de tipar.
-  let streamUsage: PromiseLike<LanguageModelUsage> | null = null;
-  // Liquida com o custo REAL, ou libera se não houver uso nenhum para
-  // liquidar. Chamável mais de uma vez sem risco: a função do banco ignora
-  // silenciosamente uma segunda chamada para a mesma execução.
-  const encerrarExecucao = async (provider: string, model: string) => {
-    const usage = streamUsage ? await Promise.resolve(streamUsage).catch(() => null) : null;
-    if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
-      await liberarReserva(supabase, executionId);
-      return;
-    }
-    const settledMicros = custoDeReservaMicros(pricing, {
-      entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
-    });
-    await consolidarExecucao(supabase, {
-      executionId, settledMicros, provider, model,
-      usageSnapshot: {
-        inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
-        cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens,
-      },
-    });
-  };
-
-  try {
-    const prepared = await prepareStreamWithFallback({
+    const execucao = await executarComOrcamento({
+      supabase: portao.auth.supabase,
+      executionId,
+      // decidirExecucao só devolve pode:true com preço verificado — a
+      // checagem que bloqueia antes de chegar aqui — não-nulo garantido.
+      pricing: decisao.capabilities.pricing!,
       attempts,
       firstChunkTimeoutMs,
       parentSignal: request.signal,
       validateInitialText: evaluateChatInitialText,
-      start: (attempt, abortSignal) => {
+      dispatch: (attempt, abortSignal) => {
         const result = streamText({
           model: getModel(attempt.config),
           system: buildChatSystemPrompt(trechos, brandPrompt),
@@ -196,17 +150,17 @@ export async function POST(request: Request) {
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: CHAT_TIMEOUT_MS },
+          maxOutputTokens,
           maxRetries: 0,
           onError: ({ error }) => {
             console.error(`[api/ai/chat] ${attempt.config.provider}/${attempt.config.model}`, error);
           },
         });
-        streamUsage = result.usage;
-        return result.textStream;
+        return { textStream: result.textStream, usage: result.usage };
       },
     });
 
-    let firstChunk = prepared.firstChunk;
+    let firstChunk = execucao.firstChunk;
     const encoder = new TextEncoder();
     const responseStream = new ReadableStream<Uint8Array>({
       async pull(controller) {
@@ -217,44 +171,44 @@ export async function POST(request: Request) {
             return;
           }
 
-          const next = await prepared.iterator.next();
+          const next = await execucao.iterator.next();
           if (next.done) {
-            prepared.cleanup();
-            await encerrarExecucao(prepared.attempt.config.provider, prepared.attempt.config.model);
+            execucao.cleanup();
             controller.close();
             return;
           }
           controller.enqueue(encoder.encode(next.value));
         } catch (error) {
-          prepared.cleanup();
-          await liberarReserva(supabase, executionId);
+          execucao.cleanup();
           controller.error(error);
         }
       },
       async cancel(reason) {
-        prepared.cancel(reason);
-        prepared.cleanup();
-        await liberarReserva(supabase, executionId);
-        if (prepared.iterator.return) await prepared.iterator.return();
+        await execucao.cancel(reason);
+        execucao.cleanup();
       },
     });
 
-    const selected = prepared.attempt;
+    const selected = execucao.attempt;
     const response = new Response(responseStream, {
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
     response.headers.set("X-AI-Demo-Mode", selected.isDemo ? "true" : "false");
     response.headers.set("X-AI-Provider", selected.config.provider);
     response.headers.set("X-AI-Model", selected.config.model);
-    response.headers.set("X-AI-Fallback-Used", prepared.fallbackUsed ? "true" : "false");
+    response.headers.set("X-AI-Fallback-Used", execucao.fallbackUsed ? "true" : "false");
+    // O identificador comum entre requisição, reserva e ledger — quem
+    // administra consegue rastrear uma execução específica sem precisar de
+    // outro id.
+    response.headers.set("X-AI-Execution-Id", executionId);
     return response;
   } catch (error) {
-    // A reserva já foi feita (antes deste bloco) e a chamada não produziu
-    // nenhum uso cobrável — libera, para não comer o teto do dia à toa.
-    await liberarReserva(supabase, executionId);
+    // executarComOrcamento já libera a reserva antes de repassar o erro —
+    // este catch cobre tanto as falhas anteriores a ela (portão, busca,
+    // roteamento) quanto o que ela deixa passar.
     const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
     const { code, message, detalheTecnico } = classifyAIError(rootError);
-        console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
+    console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }
 }
