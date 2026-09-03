@@ -501,6 +501,39 @@ export function BrandImporter({
                     </label>
                   ))}
                 </div>
+
+                {/*
+                  O que será gravado, dito em uma frase.
+                  
+                  Quatro caixas desmarcadas e uma frase dizendo "nenhuma" são a
+                  mesma informação, e não são: a caixa exige que a pessoa
+                  perceba a ausência de marca em quatro controles pequenos; a
+                  frase afirma. E o rótulo inteiro é clicável, então tocar perto
+                  do texto alterna sem que o gesto pareça um clique.
+
+                  Isto não corrige defeito nenhum — a cadeia da tela até o banco
+                  está provada gravando `[]`. Existe porque a escolha some no
+                  meio de um formulário longo, e o custo de errá-la é uma marca
+                  nascer com IA que ninguém pediu.
+                */}
+                <p
+                  data-resumo-de-utilidades
+                  className="mt-[var(--space-shell-3)] text-[12px] text-platform-text"
+                >
+                  {utilidades.length === 0
+                    ? t(
+                        "Nenhuma funcionalidade de IA será habilitada nesta marca.",
+                        "No AI feature will be enabled for this brand.",
+                      )
+                    : t(
+                        `Serão habilitadas: ${utilidades
+                          .map((c) => FUNCIONALIDADES.find((f) => f.chave === c)?.pt ?? c)
+                          .join(", ")}.`,
+                        `Will be enabled: ${utilidades
+                          .map((c) => FUNCIONALIDADES.find((f) => f.chave === c)?.en ?? c)
+                          .join(", ")}.`,
+                      )}
+                </p>
               </fieldset>
 
               <button
