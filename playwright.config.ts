@@ -72,6 +72,24 @@ export default defineConfig({
       BRENNIMARK_DEV_SKIP_AUTH: "true",
       // Sem marca: é o estado real do produto antes do primeiro manual.
       NEXT_PUBLIC_BRANDVILLE_INSTANCE: "",
+
+      /*
+       * Credenciais FALSAS, e é isso que torna a suíte hermética de verdade.
+       *
+       * O comentário no topo deste arquivo já dizia "hermética por construção",
+       * e não era: sem estas linhas o servidor herdava o `.env.local` da
+       * máquina e criava um cliente apontando para o projeto REAL. Localmente
+       * os testes passavam; no CI, que não tem `.env.local`, o cliente nem era
+       * construído e os testes que chegam até ele quebravam.
+       *
+       * Uma suíte que passa numa máquina e falha na outra não é suíte. E a
+       * dependência era invisível justamente porque funcionava aqui.
+       *
+       * Nenhuma requisição sai: os testes que exercitam Storage e RPC
+       * interceptam a rede. A URL precisa ser válida na forma, não alcançável.
+       */
+      NEXT_PUBLIC_SUPABASE_URL: "https://projeto-de-teste.supabase.invalid",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "chave-de-teste-sem-valor",
     },
   },
 });
