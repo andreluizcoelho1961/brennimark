@@ -22,7 +22,16 @@ Ollama, mas boa parte do P2 não depende:
   P2A.1 descobriu e não fechou sozinho: 1.000 caracteres, validado no
   banco, na RPC de importação e na leitura — e a reserva passou a usar o
   conteúdo real do papel, não uma suposição. **Concluído** — ver seção
-  dedicada abaixo. Com isto, **o P2A está encerrado por completo**.
+  dedicada abaixo.
+- **P2A.3 — fechamento da fronteira financeira, achado por revisão
+  externa.** Quatro pontos: reuso de `execution_id` como autorização de
+  despacho, RPCs financeiras expostas à Data API para qualquer membro,
+  constraint de orçamento global que não impedia duplicata, e conteúdo
+  estruturado de mensagem escapando o limite de tamanho. **Três dos
+  quatro concluídos.** O quarto — RPCs financeiras exclusivas do servidor
+  — está desenhado e provado por SQL isolado, mas **aguardando decisão
+  explícita** antes de aplicar (schema + credencial nova). Ver seção
+  dedicada abaixo.
 - **P2B — benchmark real, autorizado.** O ponto 4 e a ativação em si.
   Aqui sim: conta e chave da Ollama Cloud, crédito pré-pago pequeno, chave
   cadastrada pelo Studio (cifrada, nunca pelo chat nem commitada), perfil
@@ -179,6 +188,105 @@ exportada, o padrão está estabelecido), mas não há interface para aplicá-la
 ainda. Construir essa tela é decisão de produto separada — não fiz isso
 aqui sem pedir, para não repetir o que a orientação deste projeto já
 rejeitou antes (nenhuma tela nova ad hoc).
+
+## P2A.3 — fechamento da fronteira financeira, achado por revisão externa
+
+Origem: revisão de segurança/correção de terceiro sobre o P2A.2 fechado,
+recebida em 2026-09-03, com quatro achados — três P0 (bloqueantes antes de
+qualquer chave real) e um P1. Nenhum arquivo foi alterado durante a
+revisão; cada achado foi reconferido contra o código real antes de
+qualquer correção.
+
+### 1. `execution_id` reutilizado autorizava despacho, seja qual for o status — ✅ Fechado
+
+`reservar_execucao_de_ia` devolvia `ok:true` para QUALQUER linha já
+existente — `reserved`, `settled` ou `released` — e `decidirExecucao`
+nunca checava esse status. Um id repetido em voo (duas abas, duplo
+clique, retry de rede que chegou duas vezes ao servidor) ou já finalizado
+passava como se fosse reserva nova, autorizando um segundo despacho pago.
+
+Correção: `orcamento.ts` para de descartar o `status` que o banco já
+devolvia; `decidirExecucao` bloqueia como `execucao_em_andamento`
+(`reserved`) ou `execucao_ja_finalizada` (`settled`/`released`) sempre que
+a reserva não é genuinamente nova. Repetir uma resposta finalizada
+exigiria armazenar e reproduzir o resultado — não existe hoje, e não foi
+construído aqui.
+
+Provado por 4 testes novos em `execucao.test.ts`: os três status
+reutilizados bloqueiam com o motivo certo, sem chegar ao recheck de kill
+switch; uma reserva genuinamente nova continua autorizando o despacho.
+
+### 2. RPCs financeiras aceitas por qualquer membro autenticado, direto pela Data API — 🟡 Desenhado, aguardando decisão
+
+`reservar_execucao_de_ia`, `consolidar_execucao_de_ia` e
+`liberar_reserva_de_ia` são `security definer` com
+`grant execute ... to authenticated` — qualquer membro do workspace pode
+chamá-las diretamente por `/rest/v1/rpc/...`, escolhendo
+`reserved_micros`, moeda, preço, snapshot e tarefa por conta própria.
+Nada valida esses números contra o catálogo antes de aceitar. Um membro
+poderia esgotar o teto diário inteiro numa chamada direta, sem nunca
+chamar um provedor, ou fechar uma reserva própria com custo liquidado
+inventado.
+
+Correção desenhada (não aplicada):
+[20260903200000_ai_ledger_server_only_mutations.sql](../../supabase/migrations/20260903200000_ai_ledger_server_only_mutations.sql)
+— as três funções passam a exigir `p_user_id` explícito em vez de
+`auth.uid()`, e o `grant execute` migra de `authenticated` para
+`service_role` só. Isso exige uma peça nova neste projeto: um cliente
+Supabase de service-role no servidor (`SUPABASE_SERVICE_ROLE_KEY`), e a
+app deixa de confiar em "o banco confere `auth.uid()`" para confiar em
+"só o servidor, com uma sessão já verificada, consegue chamar isto".
+
+**Por que não foi aplicado ainda**: é ao mesmo tempo uma mudança de
+schema (assinatura das três funções) e a introdução de uma classe nova de
+credencial (chave de service-role) — as duas categorias que a orientação
+deste projeto pede para apresentar e esperar confirmação antes de seguir,
+não decidir sozinho. A migração está escrita e pronta para revisão; falta
+o sinal verde e, depois dele, ripple pela camada TypeScript
+(`orcamento.ts`, `execucao.ts`, `chat/route.ts`, `analyze/route.ts`) e
+testes correspondentes.
+
+### 3. Orçamento global não impedia duplicata — ✅ Fechado
+
+`unique (workspace_id, brand_id, period)` com `brand_id` anulável — o SQL
+padrão trata cada `NULL` como distinto de qualquer outro `NULL`, então a
+constraint nunca disparava para duas linhas de orçamento GLOBAL
+(`brand_id` nulo) do mesmo workspace.
+
+Correção:
+[20260903190000_ai_budgets_unique_nulls_not_distinct.sql](../../supabase/migrations/20260903190000_ai_budgets_unique_nulls_not_distinct.sql)
+— `unique nulls not distinct`. Aplicada e provada ao vivo: inserida uma
+segunda linha global real para o workspace GE dentro de uma transação,
+confirmado `unique_violation`, revertida — contagens voltaram ao ponto de
+partida. Nenhuma duplicata existe hoje; a constraint nova não rejeita
+nada existente.
+
+### 4. Conteúdo estruturado de mensagem escapava o limite e a reserva — ✅ Fechado
+
+`limitarMensagens` só cortava `content` do tipo string. A forma de partes
+de `ModelMessage.content` (`[{type:"text",...}, {type:"image",...}]`)
+atravessava inteira, sem limite, direto para `streamText` — e, por
+extensão, sem entrar na conta do teto de tokens da reserva.
+
+Correção: `limitarConteudoDaMensagem` soma o total de texto através de
+TODAS as partes (não por parte isolada) contra o mesmo teto da forma
+string, e descarta partes que não são texto — o histórico de chat não é
+multimodal; análise de imagem é rota separada com seu próprio limite. O
+teste que antes esperava uma parte de imagem "atravessar intacta" estava,
+sem perceber, afirmando a própria lacuna como comportamento esperado —
+reescrito para afirmar o descarte.
+
+A ressalva da revisão sobre "4 caracteres ≈ 1 token" ser uma média, não
+um teto seguro, também foi corrigida — ver a mudança de
+`CARACTERES_POR_TOKEN` (divisor) para `BYTES_POR_CARACTERE_PIOR_CASO`
+(multiplicador) no item 1 do P2A original, revisado nesta rodada.
+
+### O que fica registrado, não bloqueante
+
+Dois índices compostos ausentes nas chaves estrangeiras de `ai_budgets` e
+`ai_ledger`, sinalizados pelo advisor do Supabase — não impedem nada hoje,
+mas devem entrar na correção de schema junto com o item 2 quando ele for
+aplicado.
 
 ## P2B — o quarto ponto, autorizado separadamente
 
