@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { streamText, type ModelMessage } from "ai";
+import { streamText, type LanguageModelUsage, type ModelMessage } from "ai";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
@@ -10,6 +11,9 @@ import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { brandPromptContext } from "@/lib/brandville/context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
+import { custoDeReservaMicros, type ModelPricing } from "@/lib/ai/catalogo";
+import { decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { consolidarExecucao, liberarReserva } from "@/lib/ai/orcamento";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -61,6 +65,11 @@ export async function POST(request: Request) {
   let firstChunkTimeoutMs: number;
   let trechos: Trecho[] = [];
   let brandPrompt;
+  let workspaceId: string;
+  let brandId: string;
+  let executionId: string;
+  let pricing: ModelPricing;
+  let supabase: SupabaseClient;
   try {
     /*
      * O portão do G1, no servidor.
@@ -73,6 +82,14 @@ export async function POST(request: Request) {
     const portao = await portaoDeIA(request, "chat");
     if (!portao.ok) return portao.resposta;
     brandPrompt = brandPromptContext(portao.brand);
+    workspaceId = portao.auth.workspaceId;
+    brandId = portao.brand.id;
+    supabase = portao.auth.supabase;
+    // O cliente PODE enviar o próprio execution_id (torna um retry de rede
+    // idempotente ponta a ponta); sem ele, um novo é gerado aqui — sem
+    // idempotência entre tentativas, mas sem bloquear o produto enquanto o
+    // cliente não manda o seu.
+    executionId = (body?.executionId as string | undefined) || crypto.randomUUID();
 
     /*
      * A recuperação, e não o manual inteiro.
@@ -103,8 +120,34 @@ export async function POST(request: Request) {
       const { code, message } = semProvedorConfigurado();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
-    attempts = routing.attempts;
+    /*
+     * Um único perfil, não a lista inteira.
+     *
+     * A reserva de orçamento é calculada para UM par provedor+modelo — o
+     * preço vem do catálogo daquele par específico. Deixar
+     * `prepareStreamWithFallback` trocar para um segundo perfil por conta
+     * própria significaria liquidar com um preço que ninguém reservou. "Não
+     * usar fallback automático" enquanto o orçamento estiver ligado é essa
+     * garantia: se existe uma política de fallback configurada, ela para de
+     * valer aqui até o mecanismo suportar mais de um preço por execução.
+     */
+    attempts = [routing.attempts[0]];
     firstChunkTimeoutMs = routing.timeoutMs;
+
+    const decisao = await decidirExecucao(
+      portao.auth.supabase,
+      { workspaceId, brandId, executionId, task: "assist", question: perguntaDasMensagens(messages), sources: trechos },
+      { provider: attempts[0].config.provider, model: attempts[0].config.model },
+    );
+    if (!decisao.pode) {
+      return NextResponse.json(
+        { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) },
+        { status: 503 },
+      );
+    }
+    // decidirExecucao só devolve pode:true com preço verificado (é a
+    // checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
+    pricing = decisao.capabilities.pricing!;
   } catch (error) {
     const { code, message, detalheTecnico } = classifyAIError(error);
     // O detalhe fica no log do servidor. A resposta leva só a mensagem de
@@ -113,14 +156,40 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: code, message }, { status: 503 });
   }
 
+  // Preenchido dentro de `start`, abaixo — é o único jeito de ler `.usage`
+  // depois que o stream de texto (não o resultado inteiro) já foi repassado
+  // para prepareStreamWithFallback. Só a promise de uso, não o resultado
+  // inteiro de `streamText` — mais simples de tipar.
+  let streamUsage: PromiseLike<LanguageModelUsage> | null = null;
+  // Liquida com o custo REAL, ou libera se não houver uso nenhum para
+  // liquidar. Chamável mais de uma vez sem risco: a função do banco ignora
+  // silenciosamente uma segunda chamada para a mesma execução.
+  const encerrarExecucao = async (provider: string, model: string) => {
+    const usage = streamUsage ? await Promise.resolve(streamUsage).catch(() => null) : null;
+    if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
+      await liberarReserva(supabase, executionId);
+      return;
+    }
+    const settledMicros = custoDeReservaMicros(pricing, {
+      entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
+    });
+    await consolidarExecucao(supabase, {
+      executionId, settledMicros, provider, model,
+      usageSnapshot: {
+        inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
+        cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens,
+      },
+    });
+  };
+
   try {
     const prepared = await prepareStreamWithFallback({
       attempts,
       firstChunkTimeoutMs,
       parentSignal: request.signal,
       validateInitialText: evaluateChatInitialText,
-      start: (attempt, abortSignal) =>
-        streamText({
+      start: (attempt, abortSignal) => {
+        const result = streamText({
           model: getModel(attempt.config),
           system: buildChatSystemPrompt(trechos, brandPrompt),
           messages,
@@ -131,7 +200,10 @@ export async function POST(request: Request) {
           onError: ({ error }) => {
             console.error(`[api/ai/chat] ${attempt.config.provider}/${attempt.config.model}`, error);
           },
-        }).textStream,
+        });
+        streamUsage = result.usage;
+        return result.textStream;
+      },
     });
 
     let firstChunk = prepared.firstChunk;
@@ -148,18 +220,21 @@ export async function POST(request: Request) {
           const next = await prepared.iterator.next();
           if (next.done) {
             prepared.cleanup();
+            await encerrarExecucao(prepared.attempt.config.provider, prepared.attempt.config.model);
             controller.close();
             return;
           }
           controller.enqueue(encoder.encode(next.value));
         } catch (error) {
           prepared.cleanup();
+          await liberarReserva(supabase, executionId);
           controller.error(error);
         }
       },
       async cancel(reason) {
         prepared.cancel(reason);
         prepared.cleanup();
+        await liberarReserva(supabase, executionId);
         if (prepared.iterator.return) await prepared.iterator.return();
       },
     });
@@ -174,6 +249,9 @@ export async function POST(request: Request) {
     response.headers.set("X-AI-Fallback-Used", prepared.fallbackUsed ? "true" : "false");
     return response;
   } catch (error) {
+    // A reserva já foi feita (antes deste bloco) e a chamada não produziu
+    // nenhum uso cobrável — libera, para não comer o teto do dia à toa.
+    await liberarReserva(supabase, executionId);
     const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
     const { code, message, detalheTecnico } = classifyAIError(rootError);
         console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));

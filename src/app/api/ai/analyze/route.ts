@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { streamText } from "ai";
+import { streamText, type LanguageModelUsage } from "ai";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getModel, supportsVision } from "@/lib/ai/provider";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
@@ -12,6 +13,9 @@ import { getAnalysisAuthContext, persistAnalysisRun } from "@/lib/analysis/serve
 import { alvoDaRota, portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
+import { custoDeReservaMicros, type ModelPricing } from "@/lib/ai/catalogo";
+import { decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { consolidarExecucao, liberarReserva } from "@/lib/ai/orcamento";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -100,6 +104,10 @@ export async function POST(request: Request) {
 
   let trechos: Trecho[] = [];
   let brandPrompt;
+  let workspaceId: string;
+  let brandId: string;
+  let executionId: string;
+  let supabase: SupabaseClient;
   try {
     /*
      * O portão do G1: a marca precisa ter contratado a ANÁLISE, e não basta
@@ -107,6 +115,10 @@ export async function POST(request: Request) {
      */
     const portao = await portaoDeIA(request, "analysis");
     if (!portao.ok) return portao.resposta;
+    workspaceId = portao.auth.workspaceId;
+    brandId = portao.brand.id;
+    supabase = portao.auth.supabase;
+    executionId = (body?.executionId as string | undefined) || crypto.randomUUID();
 
     /*
      * A análise também recupera, em vez de levar o manual inteiro.
@@ -152,8 +164,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: code, message }, { status: 503 });
   }
 
-  const visionAttempts = attempts.filter((attempt) => supportsVision(attempt.config));
-  if (visionAttempts.length === 0) {
+  const modelosComVisao = attempts.filter((attempt) => supportsVision(attempt.config));
+  if (modelosComVisao.length === 0) {
     const configuredModels = attempts.map((attempt) => attempt.config.model).join(", ");
     return NextResponse.json(
       {
@@ -164,6 +176,38 @@ export async function POST(request: Request) {
       },
       { status: 422 }
     );
+  }
+
+  /*
+   * Um único perfil, não a lista inteira — mesmo motivo do chat/route.ts: a
+   * reserva de orçamento vale para UM par provedor+modelo, e deixar o
+   * fallback trocar de perfil por conta própria liquidaria com um preço que
+   * ninguém reservou.
+   */
+  const visionAttempts = [modelosComVisao[0]];
+  let pricing: ModelPricing;
+  try {
+    const decisao = await decidirExecucao(
+      supabase,
+      {
+        workspaceId, brandId, executionId, task: "analyse-image", question,
+        sources: trechos, image: { mediaType: image.mediaType, sizeBytes: imageBytes },
+      },
+      { provider: visionAttempts[0].config.provider, model: visionAttempts[0].config.model },
+    );
+    if (!decisao.pode) {
+      return NextResponse.json(
+        { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) },
+        { status: 503 },
+      );
+    }
+    // decidirExecucao só devolve pode:true com preço de imagem verificado
+    // (é a checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
+    pricing = decisao.capabilities.pricing!;
+  } catch (error) {
+    const { code, message, detalheTecnico } = classifyAIError(error);
+    console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
+    return NextResponse.json({ error: code, message }, { status: 503 });
   }
 
   console.log(JSON.stringify({
@@ -182,6 +226,36 @@ export async function POST(request: Request) {
       const send = (event: AnalysisEvent) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       const attemptLog: AttemptLog[] = [];
       const attemptStarts = new Map<ResolvedChatAttempt, number>();
+      // Preenchido dentro de `start`, abaixo — o único jeito de ler `.usage`
+      // depois que só o stream de texto (não o resultado inteiro) foi
+      // repassado para prepareStreamWithFallback. Só a promise de uso, não o
+      // resultado inteiro de `streamText` — mais simples de tipar.
+      let streamUsage: PromiseLike<LanguageModelUsage> | null = null;
+      // Liquida com o custo REAL, ou libera se não houver uso nenhum para
+      // liquidar. Chamável mais de uma vez sem risco: a função do banco
+      // ignora silenciosamente uma segunda chamada para a mesma execução.
+      // Extraída como função própria (em vez de inline no try aninhado
+      // abaixo) porque o TypeScript, nesta profundidade de try/finally, não
+      // consegue estreitar `usage: LanguageModelUsage | null` corretamente
+      // quando o código fica no meio do bloco — mesmo padrão de
+      // chat/route.ts, onde a extração já era necessária pelo mesmo motivo.
+      const encerrarExecucao = async (provider: string, model: string) => {
+        const usage = streamUsage ? await Promise.resolve(streamUsage).catch(() => null) : null;
+        if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
+          await liberarReserva(supabase, executionId);
+          return;
+        }
+        const settledMicros = custoDeReservaMicros(pricing, {
+          entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
+        });
+        await consolidarExecucao(supabase, {
+          executionId, settledMicros, provider, model,
+          usageSnapshot: {
+            inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
+            cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens,
+          },
+        });
+      };
 
       send({ type: "progress", stage: "preparing", message: isEnglish ? "Preparing the image and brand guidelines…" : "Preparando a imagem e as diretrizes da marca…", elapsedMs: 0 });
 
@@ -222,8 +296,8 @@ export async function POST(request: Request) {
               error: error instanceof Error ? error.message : String(error),
             }));
           },
-          start: (attempt, abortSignal) =>
-            streamText({
+          start: (attempt, abortSignal) => {
+            const result = streamText({
               model: getModel(attempt.config),
               system: buildAnalysisSystemPrompt(trechos, brandPrompt),
               messages: [
@@ -254,7 +328,10 @@ export async function POST(request: Request) {
                   error: error instanceof Error ? error.message : String(error),
                 }));
               },
-            }).textStream,
+            });
+            streamUsage = result.usage;
+            return result.textStream;
+          },
         });
 
         try {
@@ -273,6 +350,9 @@ export async function POST(request: Request) {
             elapsedMs: selectedElapsedMs,
             status: "completed",
           });
+
+          await encerrarExecucao(selected.config.provider, selected.config.model);
+
           send({ type: "progress", stage: "verifying", message: isEnglish ? "Verifying evidence and saving the diagnosis…" : "Verificando evidências e salvando o diagnóstico…", elapsedMs: Date.now() - startedAt });
           const analysis = parseAnalysisText(text);
           const elapsedMs = Date.now() - startedAt;
@@ -336,6 +416,10 @@ export async function POST(request: Request) {
           prepared.cleanup();
         }
       } catch (error) {
+        // A reserva já foi feita (antes deste bloco) e a análise não
+        // produziu nenhum uso cobrável — libera, para não comer o teto do
+        // dia à toa.
+        await liberarReserva(supabase, executionId);
         const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
         const { code, message, detalheTecnico } = classifyAIError(rootError);
         console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
