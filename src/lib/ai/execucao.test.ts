@@ -290,6 +290,61 @@ test("falha ao consultar orçamento bloqueia — falha fechada até aqui também
   assert.deepEqual(r, { pode: false, motivo: "erro_de_consulta" });
 });
 
+// ─── execution_id reutilizado NUNCA autoriza um segundo despacho ──────────
+//
+// O achado da revisão: a função do banco devolve `ok:true` para QUALQUER
+// linha já existente, seja qual for o status — é assim que ela responde
+// "reservado" de novo para um retry legítimo. Mas decidirExecucao não
+// checava `jaExistia` — um id repetido, em QUALQUER status, virava
+// `pode:true`, autorizando um segundo despacho pago sem reserva nova.
+
+test("execution_id já 'reserved' (outra tentativa pode estar em voo): bloqueia como em andamento", async () => {
+  const { cliente, chamadas } = supabaseFalso({
+    reservar_execucao_de_ia: {
+      data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "reserved" }],
+    },
+  });
+  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  assert.deepEqual(r, { pode: false, motivo: "execucao_em_andamento" });
+  // Nenhum recheck de kill switch — a decisão já foi tomada sem chegar lá.
+  assert.equal(chamadas.length, 1);
+});
+
+test("execution_id já 'settled': bloqueia como já finalizada, não despacha de novo", async () => {
+  const { cliente, chamadas } = supabaseFalso({
+    reservar_execucao_de_ia: {
+      data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "settled" }],
+    },
+  });
+  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  assert.deepEqual(r, { pode: false, motivo: "execucao_ja_finalizada" });
+  assert.equal(chamadas.length, 1);
+});
+
+test("execution_id já 'released': também bloqueia como já finalizada", async () => {
+  const { cliente } = supabaseFalso({
+    reservar_execucao_de_ia: {
+      data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "released" }],
+    },
+  });
+  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  assert.deepEqual(r, { pode: false, motivo: "execucao_ja_finalizada" });
+});
+
+test("uma reserva NOVA (não reutilizada) continua autorizando o despacho normalmente", async () => {
+  // Confirma que o novo bloqueio não pega o caminho feliz por engano —
+  // `motivo: 'reservado'` (não 'ja_reservado') é uma reserva de verdade.
+  const { cliente, chamadas } = supabaseFalso({
+    reservar_execucao_de_ia: {
+      data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
+    },
+    kill_switch_ativo: KILL_SWITCH_INATIVO,
+  });
+  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  assert.ok(r.pode);
+  assert.equal(chamadas.length, 2);
+});
+
 test("kill switch ligado ENTRE a reserva e o retorno bloqueia e libera a reserva já feita", async () => {
   /*
    * O cenário que este teste existe para provar: a reserva no banco já

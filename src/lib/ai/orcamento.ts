@@ -45,8 +45,11 @@ export type MotivoDeRecusa =
   | "orcamento_do_workspace_esgotado"
   | "orcamento_da_marca_esgotado";
 
+/** O estado do LEDGER para esta execução — não confundir com o resultado da chamada. */
+export type StatusDaExecucao = "reserved" | "settled" | "released";
+
 export type ResultadoDaReserva =
-  | { ok: true; executionId: string; jaExistia: boolean }
+  | { ok: true; executionId: string; jaExistia: boolean; status: StatusDaExecucao }
   | { ok: false; motivo: MotivoDeRecusa | "erro_de_consulta" };
 
 /**
@@ -54,8 +57,16 @@ export type ResultadoDaReserva =
  *
  * `executionId` é gerado por quem chama (o cliente da execução, não o
  * usuário do navegador) e precisa ser o MESMO em qualquer nova tentativa da
- * mesma pergunta — é isso que torna um retry seguro: reenviar não reserva
- * duas vezes, `reservado` e `ja_reservado` levam à mesma resposta adiante.
+ * mesma pergunta — é isso que torna um retry seguro de CONSULTAR de novo.
+ *
+ * Reenviar não reserva duas vezes — mas `jaExistia: true` NÃO é autorização
+ * para despachar de novo: é quem chama (`decidirExecucao`) que decide o que
+ * fazer com um `execution_id` repetido, olhando o `status` devolvido. Uma
+ * reserva que já existe pode estar em voo (`reserved` — outra tentativa
+ * pode estar despachando agora) ou já ter terminado (`settled`/`released`)
+ * — nos dois casos, despachar de NOVO seria uma segunda chamada paga sem
+ * reserva nova cobrindo ela. Esta função só traduz o que o banco devolveu;
+ * não decide se é seguro prosseguir.
  *
  * `reservedMicros` é o TETO estimado, não o custo real — superestimar aqui é
  * seguro (reserva de mais, libera a diferença na consolidação); subestimar
@@ -93,7 +104,10 @@ export async function reservarExecucao(
 
   const linha = data?.[0];
   if (!linha?.ok) return { ok: false, motivo: (linha?.motivo ?? "erro_de_consulta") as MotivoDeRecusa };
-  return { ok: true, executionId: linha.execution_id, jaExistia: linha.motivo === "ja_reservado" };
+  return {
+    ok: true, executionId: linha.execution_id, jaExistia: linha.motivo === "ja_reservado",
+    status: linha.status as StatusDaExecucao,
+  };
 }
 
 /**

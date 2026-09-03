@@ -61,6 +61,8 @@ export type MotivoDeBloqueio =
   | "preco_nao_verificado"
   | "imagem_sem_preco_verificado"
   | "imagem_maior_que_o_limite_do_modelo"
+  | "execucao_em_andamento"
+  | "execucao_ja_finalizada"
   | MotivoDeRecusa
   | "erro_de_consulta";
 
@@ -218,6 +220,28 @@ export async function decidirExecucao(
   if (!reserva.ok) return { pode: false, motivo: reserva.motivo };
 
   /*
+   * `execution_id` REUTILIZADO nunca autoriza um segundo despacho.
+   *
+   * A função do banco devolve `ok:true` para QUALQUER linha já existente,
+   * seja qual for o status — é assim que ela sabe responder "reservado" de
+   * novo para um retry legítimo, sem reservar duas vezes. Mas "a linha já
+   * existe" não é o mesmo que "está seguro despachar": se o status é
+   * `reserved`, outra tentativa para o MESMO id pode estar em voo agora
+   * (duas abas, um duplo clique, um retry de rede que chegou ao servidor
+   * duas vezes); se é `settled`/`released`, esta execução já terminou, e
+   * despachar de novo seria uma segunda chamada paga sem reserva nova
+   * cobrindo — o mesmo defeito de contabilidade que a correção pós-
+   * despacho (P2A.1) fechou para o CAMINHO de erro, agora fechado para o
+   * caminho de REPETIÇÃO.
+   */
+  if (reserva.jaExistia) {
+    return {
+      pode: false,
+      motivo: reserva.status === "reserved" ? "execucao_em_andamento" : "execucao_ja_finalizada",
+    };
+  }
+
+  /*
    * Recheck final, o mais perto possível do despacho.
    *
    * A reserva acima já checou o kill switch — mas ele pode ser ligado no
@@ -267,6 +291,14 @@ export function mensagemDeBloqueio(motivo: MotivoDeBloqueio, ingles: boolean): s
       return ingles
         ? "The image is larger than this model's limit."
         : "A imagem é maior que o limite deste modelo.";
+    case "execucao_em_andamento":
+      return ingles
+        ? "This request is already being processed. Wait for the current response before trying again."
+        : "Esta solicitação já está sendo processada. Aguarde a resposta atual antes de tentar de novo.";
+    case "execucao_ja_finalizada":
+      return ingles
+        ? "This request has already been completed. Reload the page and send a new message to try again."
+        : "Esta solicitação já foi concluída. Recarregue a página e envie uma nova mensagem para tentar de novo.";
     default:
       return mensagemDeOrcamento(motivo, ingles);
   }

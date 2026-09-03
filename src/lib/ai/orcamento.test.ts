@@ -44,7 +44,7 @@ test("reserva aceita: devolve ok e o execution_id", async () => {
     data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
   });
   const r = await reservarExecucao(cliente, PARAMS);
-  assert.deepEqual(r, { ok: true, executionId: "exec-1", jaExistia: false });
+  assert.deepEqual(r, { ok: true, executionId: "exec-1", jaExistia: false, status: "reserved" });
 });
 
 test("o snapshot de preço atravessa como p_price_snapshot, sem alteração", async () => {
@@ -55,13 +55,26 @@ test("o snapshot de preço atravessa como p_price_snapshot, sem alteração", as
   assert.deepEqual(chamadas[0].args.p_price_snapshot, SNAPSHOT_DE_PRECO);
 });
 
-test("reserva idempotente: motivo ja_reservado vira jaExistia true", async () => {
+test("reserva idempotente: motivo ja_reservado vira jaExistia true, com o status real", async () => {
   const { cliente } = supabaseFalso({
-    data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "reserved" }],
+    data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "settled" }],
   });
   const r = await reservarExecucao(cliente, PARAMS);
   assert.equal(r.ok, true);
   assert.equal(r.ok && r.jaExistia, true);
+  // O status não é decorativo: é o que decidirExecucao usa para decidir se
+  // um id repetido pode autorizar um segundo despacho (nunca pode).
+  assert.equal(r.ok && r.status, "settled");
+});
+
+test("reserva nova: status vem 'reserved', jaExistia false", async () => {
+  const { cliente } = supabaseFalso({
+    data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
+  });
+  const r = await reservarExecucao(cliente, PARAMS);
+  assert.equal(r.ok, true);
+  assert.equal(r.ok && r.jaExistia, false);
+  assert.equal(r.ok && r.status, "reserved");
 });
 
 test("reserva recusada: o motivo específico atravessa, não um genérico", async () => {
