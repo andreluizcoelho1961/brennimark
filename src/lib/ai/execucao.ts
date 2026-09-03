@@ -74,11 +74,25 @@ export type DecisaoDeExecucao =
   | { pode: false; motivo: MotivoDeBloqueio };
 
 /**
- * Caracteres por token — conversão grosseira, a mesma premissa (e a mesma
- * ressalva) do parecer do P0: docs/plan/parecer-piloto-qwen-p0.md §3,
- * "número sem premissa não é estimativa, é chute".
+ * Bytes UTF-8 por CARACTERE, pior caso — não uma média. Um ponto de código
+ * Unicode ocupa de 1 a 4 bytes em UTF-8; 4 é o teto para qualquer
+ * caractere válido, então multiplicar por 4 nunca subestima, mesmo que o
+ * texto real seja inteiramente ASCII (1 byte/caractere) ou CJK (2–3
+ * bytes/caractere).
+ *
+ * Achado da revisão de segurança pós-P2A: a conversão anterior (4
+ * caracteres = 1 token) era uma MÉDIA para texto latino, não um teto — para
+ * português com acentuação pesada, CJK, emoji ou texto adversarial
+ * (bytes que não se fundem em tokens comuns), um tokenizador BPE real pode
+ * produzir muito mais tokens por caractere. Sem um tokenizador do modelo
+ * disponível de forma uniforme entre provedores, o teto seguro é
+ * BYTES, não caracteres — tokenizadores BPE no pior caso produzem no
+ * máximo 1 token por BYTE (a maioria inclui todo byte individual no
+ * vocabulário base, como fallback). `BYTES_POR_CARACTERE_PIOR_CASO`
+ * assume o pior dos dois lados da conta: todo caractere no maior tamanho
+ * de byte possível, E cada byte desses virando um token inteiro.
  */
-const CARACTERES_POR_TOKEN = 4;
+const BYTES_POR_CARACTERE_PIOR_CASO = 4;
 
 /**
  * O texto FIXO ao redor do conhecimento recuperado dentro do prompt de
@@ -137,7 +151,11 @@ function tetoDeTokensDeEntrada(task: AITaskType, role: string): number {
   const comHistorico = task === "assist"
     ? LIMITES_DE_IA.maxCaracteresDaPergunta + LIMITES_DE_IA.maxMensagens * LIMITES_DE_IA.maxCaracteresPorMensagem
     : LIMITES_DE_IA.maxCaracteresDaPergunta;
-  return Math.ceil(((base + comHistorico) / CARACTERES_POR_TOKEN) * MARGEM_DE_PROTOCOLO);
+  // Multiplica (bytes no pior caso, depois tokens no pior caso), não divide
+  // — a inversão do formato anterior é o ponto: a conta antiga ASSUMIA que
+  // um caractere valia uma fração de token; esta assume que pode valer
+  // vários.
+  return Math.ceil((base + comHistorico) * BYTES_POR_CARACTERE_PIOR_CASO * MARGEM_DE_PROTOCOLO);
 }
 
 /**
