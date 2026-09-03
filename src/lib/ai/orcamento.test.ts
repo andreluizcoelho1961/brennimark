@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { consolidarExecucao, liberarReserva, mensagemDeOrcamento, reservarExecucao } from "./orcamento";
+import {
+  consolidarExecucao, expirarReservasAntigas, killSwitchAtivo, liberarReserva,
+  mensagemDeOrcamento, reservarExecucao,
+} from "./orcamento";
 
 /**
  * Um Supabase de mentira, com a mesma forma do usado em buscar.test.ts.
@@ -119,6 +122,44 @@ test("kill switch tem mensagem distinta de orçamento esgotado", () => {
   const esgotado = mensagemDeOrcamento("sem_orcamento_configurado", false);
   assert.notEqual(pausa, esgotado);
   assert.match(pausa, /pausad/i);
+});
+
+test("killSwitchAtivo traduz os dois escopos e chama a RPC certa", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: [{ workspace: true, marca: false }] });
+  const r = await killSwitchAtivo(cliente, { workspaceId: "ws-1", brandId: "brand-1" });
+  assert.deepEqual(r, { workspace: true, marca: false });
+  assert.equal(chamadas[0].fn, "kill_switch_ativo");
+  assert.equal(chamadas[0].args.p_workspace_id, "ws-1");
+  assert.equal(chamadas[0].args.p_brand_id, "brand-1");
+});
+
+test("killSwitchAtivo falha fechada: erro de consulta não vira 'sem kill switch'", async () => {
+  // O mesmo princípio de reservarExecucao: não saber não é o mesmo que "não
+  // há pausa ativa". Devolver {workspace:false,marca:false} por engano aqui
+  // deixaria uma execução passar durante uma falha de rede/banco.
+  const { cliente } = supabaseFalso({ error: { code: "X", message: "fora do ar" } });
+  const r = await killSwitchAtivo(cliente, { workspaceId: "ws-1", brandId: null });
+  assert.deepEqual(r, { erro: true });
+});
+
+test("expirarReservasAntigas converte o limiar em minutos e devolve a contagem", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: 3 });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: 30 });
+  assert.deepEqual(r, { liberadas: 3 });
+  assert.equal(chamadas[0].fn, "expirar_reservas_de_ia");
+  assert.equal(chamadas[0].args.p_mais_velha_que, "30 minutes");
+});
+
+test("expirarReservasAntigas usa 15 minutos como padrão quando nenhum é dado", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: 0 });
+  await expirarReservasAntigas(cliente, { workspaceId: "ws-1" });
+  assert.equal(chamadas[0].args.p_mais_velha_que, "15 minutes");
+});
+
+test("expirarReservasAntigas não lança quando a RPC falha", async () => {
+  const { cliente } = supabaseFalso({ error: { code: "X", message: "falhou" } });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1" });
+  assert.deepEqual(r, { erro: true });
 });
 
 test("mensagem em inglês existe e é diferente da portuguesa", () => {

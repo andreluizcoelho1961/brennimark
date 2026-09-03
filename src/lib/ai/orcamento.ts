@@ -119,6 +119,53 @@ export async function liberarReserva(
  * frase de propósito: a diferença entre "não configurado" e "não consultável"
  * não ajuda quem lê, e as duas pedem a mesma ação — falar com quem administra.
  */
+/**
+ * Lê o kill switch sem precisar de SELECT direto em `ai_budgets` (RLS ali é
+ * owner-only) — `kill_switch_ativo` é `security definer` e devolve só os
+ * dois booleanos, nada mais da linha de orçamento.
+ *
+ * Existe para o recheck de `decidirExecucao` IMEDIATAMENTE antes de liberar
+ * a execução: a reserva já checou o kill switch no início da mesma chamada,
+ * mas nada impede que ele seja ligado no instante entre a reserva e o
+ * retorno de `decidirExecucao`. A janela não fecha de vez — só encolhe ao
+ * mínimo que este processo consegue garantir sem uma trava distribuída.
+ */
+export async function killSwitchAtivo(
+  supabase: SupabaseClient,
+  params: { workspaceId: string; brandId: string | null },
+): Promise<{ workspace: boolean; marca: boolean } | { erro: true }> {
+  const { data, error } = await supabase.rpc("kill_switch_ativo", {
+    p_workspace_id: params.workspaceId,
+    p_brand_id: params.brandId,
+  });
+  if (error) {
+    console.error(JSON.stringify({ level: "error", msg: "kill_switch_ativo_falhou", code: error.code }));
+    return { erro: true };
+  }
+  const linha = data?.[0];
+  return { workspace: Boolean(linha?.workspace), marca: Boolean(linha?.marca) };
+}
+
+/**
+ * Libera reservas abandonadas (mais velhas que o limiar) de um workspace —
+ * ver `expirar_reservas_de_ia` na migração para o porquê do limiar e o risco
+ * aceito de uma consolidação tardia virar no-op.
+ */
+export async function expirarReservasAntigas(
+  supabase: SupabaseClient,
+  params: { workspaceId: string; maisVelhaQueMinutos?: number },
+): Promise<{ liberadas: number } | { erro: true }> {
+  const { data, error } = await supabase.rpc("expirar_reservas_de_ia", {
+    p_workspace_id: params.workspaceId,
+    p_mais_velha_que: `${params.maisVelhaQueMinutos ?? 15} minutes`,
+  });
+  if (error) {
+    console.error(JSON.stringify({ level: "error", msg: "expirar_reservas_falhou", code: error.code }));
+    return { erro: true };
+  }
+  return { liberadas: (data as number) ?? 0 };
+}
+
 export function mensagemDeOrcamento(
   motivo: MotivoDeRecusa | "erro_de_consulta",
   ingles: boolean,
