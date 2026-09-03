@@ -10,6 +10,7 @@ import {
 } from "./orcamento";
 import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
+import { contarCaracteres, MAX_CARACTERES_DO_PAPEL_DA_MARCA } from "../brandville/brand-row";
 
 /**
  * O contrato único que toda tarefa de IA atravessa, independente de provedor.
@@ -41,6 +42,15 @@ export interface AIExecutionRequest {
   brandId: string;
   executionId: string;
   task: AITaskType;
+  /**
+   * O texto REAL do `chatRole`/`analysisRole` da marca — a reserva conta o
+   * comprimento verdadeiro, não uma suposição. `decidirExecucao` ainda
+   * limita esse comprimento ao teto validado (`MAX_CARACTERES_DO_PAPEL_DA_MARCA`)
+   * antes de somar: o banco já impede um valor maior de existir, mas a
+   * reserva não confia cegamente nisso — duas camadas, não uma confiando
+   * na outra.
+   */
+  role: string;
   question: string;
   sources: readonly Trecho[];
   image?: AIImageInput;
@@ -72,27 +82,24 @@ const CARACTERES_POR_TOKEN = 4;
  * O texto FIXO ao redor do conhecimento recuperado dentro do prompt de
  * sistema — regras de fundamentação e formato para as duas tarefas, mais
  * as regras de cor só na análise (por isso o teto da análise é quase o
- * dobro do chat). MEDIDO chamando `buildChatSystemPrompt`/
- * `buildAnalysisSystemPrompt` de verdade com trechos no teto de
- * `LIMITES_DE_IA` e um papel de marca (`chatRole`/`analysisRole`) de ~150
- * caracteres — ver o teste "o boilerplate medido do prompt de sistema
- * cabe dentro do assumido pela reserva", que roda a MESMA medição e
- * quebra se o texto fixo crescer além do que este número assume.
+ * dobro do chat) — SEM o papel da marca (`chatRole`/`analysisRole`), que
+ * agora entra separadamente com o comprimento REAL, não uma suposição.
  *
- * `chatRole`/`analysisRole` são texto livre da marca, sem limite de
- * tamanho validado hoje — os números abaixo incluem ~350 caracteres de
- * folga para um papel mais longo que o medido, mas não são uma garantia
- * formal enquanto essa validação não existir (ver
- * docs/plan/p2-benchmark-multimodal-2026-09-03.md).
+ * MEDIDO chamando `buildChatSystemPrompt`/`buildAnalysisSystemPrompt` de
+ * verdade com trechos no teto de `LIMITES_DE_IA` e papel VAZIO — isola o
+ * texto que não depende do papel. Ver o teste "o boilerplate medido do
+ * prompt de sistema cabe dentro do assumido pela reserva", que roda a
+ * MESMA medição e quebra se o texto fixo crescer além do que este número
+ * assume.
  *
- * PT, o pior caso entre os dois idiomas testados:
- *   assist: 2.365 medidos + 350 de folga ≈ 2.800
- *   analyse-image: 3.783 medidos + 350 de folga ≈ 4.200
+ * PT, o pior caso entre os dois idiomas testados, com uma folga pequena:
+ *   assist: 2.219 medidos → 2.300
+ *   analyse-image: 3.632 medidos → 3.700
  */
 export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
-  assist: 2_800,
-  "analyse-image": 4_200,
-  prompt: 2_800,
+  assist: 2_300,
+  "analyse-image": 3_700,
+  prompt: 2_300,
 };
 
 /**
@@ -100,19 +107,31 @@ export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
  * caracteres não modela diretamente: overhead de protocolo (papéis e
  * estrutura de cada mensagem no formato do provedor) e a variância do
  * tokenizador real contra a conversão grosseira de 4 caracteres por
- * token. 20% é generoso de propósito, não medido contra um provedor real
- * — revisar quando o P2B tiver uma chamada de verdade para comparar.
+ * token — que varia bastante entre idiomas, e não deve ser confundida com
+ * medir o texto real. 20% é generoso de propósito, não medido contra um
+ * provedor real — revisar quando o P2B tiver uma chamada de verdade para
+ * comparar, mas continua sendo uma MARGEM sobre o texto medido, nunca um
+ * substituto para medi-lo.
  */
 const MARGEM_DE_PROTOCOLO = 1.2;
 
 /**
  * Teto de tokens de ENTRADA por tarefa — o PIOR CASO permitido pelos
- * limites do produto (`LIMITES_DE_IA`), não uma mediana. Uma reserva
- * subestimada é o erro que este produto não aceita; superestimar é seguro
- * porque a consolidação ajusta para o custo real depois.
+ * limites do produto (`LIMITES_DE_IA`), não uma mediana, MAIS o
+ * comprimento REAL do papel da marca presente nesta chamada. Duas
+ * garantias, não uma: o conteúdo real do papel entra na conta (não um
+ * chute), E o teto validado (`MAX_CARACTERES_DO_PAPEL_DA_MARCA`) limita o
+ * que a reserva aceita mesmo que, por algum defeito, um valor maior
+ * chegasse até aqui — o banco já deveria ter recusado gravar isso, mas a
+ * reserva não confia cegamente nessa garantia alheia.
+ *
+ * Uma reserva subestimada é o erro que este produto não aceita;
+ * superestimar é seguro porque a consolidação ajusta para o custo real
+ * depois.
  */
-function tetoDeTokensDeEntrada(task: AITaskType): number {
-  const base = LIMITES_DE_IA.maxCaracteresDeContexto + BOILERPLATE_DO_PROMPT_DE_SISTEMA[task];
+function tetoDeTokensDeEntrada(task: AITaskType, role: string): number {
+  const papelReal = Math.min(contarCaracteres(role), MAX_CARACTERES_DO_PAPEL_DA_MARCA);
+  const base = LIMITES_DE_IA.maxCaracteresDeContexto + BOILERPLATE_DO_PROMPT_DE_SISTEMA[task] + papelReal;
   const comHistorico = task === "assist"
     ? LIMITES_DE_IA.maxCaracteresDaPergunta + LIMITES_DE_IA.maxMensagens * LIMITES_DE_IA.maxCaracteresPorMensagem
     : LIMITES_DE_IA.maxCaracteresDaPergunta;
@@ -181,7 +200,7 @@ export async function decidirExecucao(
   // deixaria uma resposta real custar mais do que a reserva cobriu.
   const maxOutputTokens = tetoDeTokensDeSaida(request.task);
   const reservedMicros = custoDeReservaMicros(pricing, {
-    entrada: tetoDeTokensDeEntrada(request.task),
+    entrada: tetoDeTokensDeEntrada(request.task, request.role),
     saida: maxOutputTokens,
     imagem: request.image ? pricing.maxImageTokens : undefined,
   });

@@ -37,7 +37,7 @@ const KILL_SWITCH_INATIVO = { data: [{ workspace: false, marca: false }] };
 
 const REQUEST_BASE = {
   workspaceId: "ws-1", brandId: "brand-1", executionId: "exec-1",
-  task: "assist" as const, question: "qual é a cor primária?", sources: [],
+  task: "assist" as const, role: "", question: "qual é a cor primária?", sources: [],
 };
 
 // Único par do catálogo com preço de TEXTO e de IMAGEM verificados hoje —
@@ -131,6 +131,40 @@ test("a reserva é positiva e nunca fica presa em zero ou negativa", async () =>
   assert.ok(micros > 0, `reserva deveria ser positiva, veio ${micros}`);
 });
 
+test("um papel de marca mais longo reserva mais — o conteúdo real entra na conta", async () => {
+  /*
+   * A exigência do usuário: a reserva usa o CONTEÚDO REAL do papel, não
+   * só um teto genérico. Um papel de 500 caracteres precisa reservar mais
+   * do que um papel vazio, na MESMA tarefa.
+   */
+  const vazio = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(vazio.cliente, { ...REQUEST_BASE, role: "" }, PERFIL_SO_TEXTO_COM_PRECO);
+
+  const comPapel = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(comPapel.cliente, { ...REQUEST_BASE, role: "x".repeat(500) }, PERFIL_SO_TEXTO_COM_PRECO);
+
+  const microsVazio = vazio.chamadas[0].args.p_reserved_micros as number;
+  const microsComPapel = comPapel.chamadas[0].args.p_reserved_micros as number;
+  assert.ok(microsComPapel > microsVazio, "papel mais longo deveria reservar mais");
+});
+
+test("um papel além do teto validado (1.000) não infla a reserva além do teto — a defesa contra abuso", async () => {
+  /*
+   * O banco já recusa gravar um papel maior que MAX_CARACTERES_DO_PAPEL_DA_MARCA
+   * (migração 20260903180000) — mas a reserva não confia cegamente nisso.
+   * Um valor MUITO além do teto (simulando um defeito ou uma linha antiga
+   * de antes da constraint) reserva o MESMO tanto que exatamente no teto,
+   * nunca mais — é o que "o teto impede abuso" quer dizer na prática.
+   */
+  const noTeto = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(noTeto.cliente, { ...REQUEST_BASE, role: "x".repeat(1000) }, PERFIL_SO_TEXTO_COM_PRECO);
+
+  const muitoAlem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(muitoAlem.cliente, { ...REQUEST_BASE, role: "x".repeat(50_000) }, PERFIL_SO_TEXTO_COM_PRECO);
+
+  assert.equal(noTeto.chamadas[0].args.p_reserved_micros, muitoAlem.chamadas[0].args.p_reserved_micros);
+});
+
 test("maxOutputTokens devolvido é o MESMO número usado para calcular a reserva de saída", async () => {
   /*
    * A garantia do item 1 do P2A: se a rota mandasse `maxOutputTokens`
@@ -204,15 +238,16 @@ test("a diferença de reserva com imagem é EXATAMENTE o teto de tokens visuais 
   assert.equal(comImagemMicros - semImagemMicros, diferencaEsperada);
 });
 
-test("o boilerplate medido do prompt de sistema cabe dentro do assumido pela reserva", () => {
+test("o boilerplate FIXO medido do prompt de sistema (sem o papel) cabe dentro do assumido pela reserva", () => {
   /*
    * A prova de que "a reserva de entrada cobre o prompt de sistema" não é
    * um número solto — é MEDIDO chamando os construtores reais com trechos
-   * no teto de LIMITES_DE_IA e um papel de marca de ~150 caracteres (o
-   * mesmo usado para calcular BOILERPLATE_DO_PROMPT_DE_SISTEMA). Se o
-   * texto fixo do prompt crescer além do que a reserva assume — uma nova
-   * regra de fundamentação, mais uma seção de regras de cor — este teste
-   * quebra antes que a reserva comece a subestimar de verdade.
+   * no teto de LIMITES_DE_IA e papel VAZIO, isolando o texto que NÃO
+   * depende do papel (o papel entra separadamente, com o comprimento
+   * real — ver os testes de "papel de marca mais longo reserva mais").
+   * Se o texto fixo do prompt crescer além do que a reserva assume — uma
+   * nova regra de fundamentação, mais uma seção de regras de cor — este
+   * teste quebra antes que a reserva comece a subestimar de verdade.
    */
   const trechoNoTeto: Trecho = {
     documentSlug: "s", documentTitle: "t", groupName: "g", section: "s",
@@ -220,13 +255,9 @@ test("o boilerplate medido do prompt de sistema cabe dentro do assumido pela res
     content: "x".repeat(LIMITES_DE_IA.maxCaracteresPorTrecho),
   };
   const trechos = Array(LIMITES_DE_IA.maxTrechos).fill(trechoNoTeto);
-  const papelDeCerca150Caracteres = "x".repeat(150);
 
   for (const language of ["pt", "en"] as const) {
-    const brand: BrandPromptContext = {
-      language, chatRole: papelDeCerca150Caracteres, analysisRole: papelDeCerca150Caracteres,
-      statusLabels: undefined,
-    };
+    const brand: BrandPromptContext = { language, chatRole: "", analysisRole: "", statusLabels: undefined };
     const chatBoilerplate = buildChatSystemPrompt(trechos, brand).length - LIMITES_DE_IA.maxCaracteresDeContexto;
     const analysisBoilerplate = buildAnalysisSystemPrompt(trechos, brand).length - LIMITES_DE_IA.maxCaracteresDeContexto;
 
