@@ -8,6 +8,7 @@ import {
   type AIRoutingPolicy,
   type AIRole,
 } from "@/lib/ai/provider";
+import { modeloAutorizado } from "@/lib/ai/catalogo";
 
 export type StoredAISetting = {
   id: string;
@@ -135,6 +136,18 @@ export async function getActiveConfig(workspaceId: string, role: "chat" | "analy
   if (error) throw error;
   if (!data) return null;
 
+  /*
+   * Revalida contra o catálogo NA HORA da chamada, não só ao salvar.
+   *
+   * `ai/settings/route.ts` já recusa gravar um par fora do catálogo — mas o
+   * catálogo pode mudar DEPOIS de uma configuração ter sido salva (um
+   * modelo descatalogado, por exemplo). Sem esta checagem aqui, uma
+   * configuração salva quando válida continuaria sendo usada mesmo depois
+   * de deixar de ser autorizada — o catálogo vira decoração na hora de
+   * salvar e nada mais.
+   */
+  if (!modeloAutorizado(data.provider, data.model)) return null;
+
   return {
     provider: data.provider as AIProvider,
     model: data.model,
@@ -192,6 +205,9 @@ async function getSettingConfig(
 
   if (error) throw error;
   if (!data || !data.is_active || !roleCoversFeature(data.role as AIRole, feature)) return null;
+  // Mesma revalidação de getActiveConfig: o catálogo pode ter mudado desde
+  // que esta linha foi salva.
+  if (!modeloAutorizado(data.provider, data.model)) return null;
 
   return {
     settingId: data.id,
