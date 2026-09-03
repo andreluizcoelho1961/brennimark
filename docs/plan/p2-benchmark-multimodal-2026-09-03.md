@@ -8,50 +8,64 @@ integrados e protegidos. Este documento registra o que o P2 precisa provar
 sessões, e para que "nenhum vencedor antes do benchmark" seja uma regra
 escrita, não uma intenção.
 
-**Estado atual, explícito**: infraestrutura pronta; **nenhuma IA ativa**.
-Falta chave real, um perfil de execução (`ai_settings`) e a primeira
-chamada de verdade. Nada disto acontece sozinho — cada um é uma decisão
-que espera autorização explícita, não uma continuação automática deste
-documento.
+**Sequenciamento em duas fases** — a ativação depende de uma conta real da
+Ollama, mas boa parte do P2 não depende:
 
-## Os quatro pontos que o P2 precisa provar
+- **P2A — implementação hermética, sem custo.** Os três primeiros pontos
+  abaixo. Roda contra provedor falso, nenhuma chave, nenhuma conexão real.
+  **Concluído nesta rodada.**
+- **P2B — benchmark real, autorizado.** O ponto 4 e a ativação em si.
+  Aqui sim: conta e chave da Ollama Cloud, crédito pré-pago pequeno, chave
+  cadastrada pelo Studio (cifrada, nunca pelo chat nem commitada), perfil
+  da GE com `gemma4:31b-cloud`, matriz fixa de perguntas/imagens, e o
+  modelo permanece desativado se qualquer limite falhar. **Ainda não
+  autorizado.** O ponto correto para pedir autorização de novo é
+  imediatamente antes do P2B — quando existir a primeira chamada externa
+  faturável.
+
+## P2A — os três pontos que a implementação hermética precisa provar
 
 Nenhum é sobre ESCOLHER modelo — são sobre o MECANISMO aguentar uma
 execução real antes de qualquer escolha.
 
-### 1. A reserva usa o pior caso, com `maxOutputTokens` enviado ao provedor
+### 1. A reserva usa o pior caso, com `maxOutputTokens` enviado ao provedor — ✅ Fechado
 
-Hoje `decidirExecucao` reserva pelo teto de `LIMITES_DE_IA` (entrada) e um
-teto fixo de tokens de saída (2.000/2.500, ver
-[execucao.ts](../../src/lib/ai/execucao.ts)) — mas **não envia esse teto ao
-provedor**. Sem `maxOutputTokens` na chamada real, nada impede o modelo de
-responder além do que foi reservado, e o custo real pode superar a reserva
-e estourar o teto do dia. Precisa: passar `maxOutputTokens` (ou o
-equivalente do AI SDK/`streamText`) coerente com o teto já calculado em
-`decidirExecucao`, e um teste que prove que a chamada real É limitada por
-esse número, não só que o número existe.
+`decidirExecucao` devolve `maxOutputTokens` como parte da decisão — o
+MESMO número usado para calcular `reservedMicros` (uma variável só, lida
+nos dois lugares: não duas contas que deveriam bater, uma conta só). As
+duas rotas passam esse valor direto para `streamText({ maxOutputTokens
+})`. Provado por teste comparando o `reservedMicros` realmente enviado à
+reserva contra o custo recalculado a partir do `maxOutputTokens`
+devolvido — se algum dia divergirem, o teste quebra.
 
-### 2. Cancelamento, timeout e interrupção sempre liquidam ou liberam
+### 2. Cancelamento, timeout e interrupção sempre liquidam ou liberam — ✅ Fechado
 
-`chat/route.ts` e `analyze/route.ts` já cobrem os três caminhos conhecidos
-(sucesso → liquida; erro/cancelamento → libera) contra o Supabase de
-mentira, mas **nunca contra um provedor real**. O P2 precisa de prova
-contra uma chamada de verdade (ou, no mínimo, contra um dublê que se
-comporta como um provedor real sob rede instável): interrupção no meio do
-streaming, timeout do primeiro chunk, e o `AbortSignal` do cliente — os
-três têm que terminar em `settled` ou `released`, nunca presos em
-`reserved` além do limiar de expiração.
+Extraído para `executarComOrcamento` ([execucao.ts](../../src/lib/ai/execucao.ts)) —
+um wrapper sobre `prepareStreamWithFallback` cujo `iterator` liquida
+sozinho quando o stream termina e libera sozinho se lançar ou for
+cancelado. A garantia não depende de quem chama lembrar de fazer isso: as
+duas rotas só drenam o iterator do jeito que já drenavam. Provado com
+despacho falso (não é a mesma coisa que um provedor real, mas é o dublê
+que os testes deste projeto já usam para essa camada — ver
+`stream-fallback.test.ts`) nos seis caminhos: sucesso, erro imediato,
+timeout do primeiro chunk, cancelamento no meio, queda de streaming depois
+do primeiro chunk, e ausência de uso mensurável ao terminar.
 
-### 3. Kill switch: chamada já enviada é custo, não cancelamento fingido
+### 3. Kill switch: chamada já enviada é custo, não cancelamento fingido — ✅ Fechado
 
-O recheck de `decidirExecucao` cobre o kill switch ANTES do despacho —
-mas se o kill switch for acionado DEPOIS que a chamada já foi enviada ao
-provedor, essa chamada não pode ser silenciosamente tratada como
-`liberada`: ela vai gerar custo real independente do kill switch, e fingir
-que não gerou é o tipo exato de contabilidade falsa que este projeto
-rejeita em todo outro lugar. Precisa: o caminho pós-despacho sempre
-consolida com o uso real (mesmo que o kill switch tenha sido acionado no
-meio), nunca libera uma execução que já saiu para o provedor.
+`executarComOrcamento` nunca consulta o kill switch — só `decidirExecucao`
+faz isso, e só ANTES do despacho. Uma vez despachada, a execução sempre
+liquida com o que o provedor devolveu, mesmo que o kill switch tenha sido
+acionado no meio — não existe caminho de código para "fingir cancelada".
+Provado por teste estrutural: a lista de chamadas de RPC durante um
+despacho bem-sucedido nunca inclui `kill_switch_ativo`.
+
+**O que isto NÃO prova**: as três garantias acima são contra um despacho
+FALSO. Um provedor real tem falhas que um dublê não reproduz sozinho —
+antes da primeira chamada real (P2B), vale reconfirmar contra ela, não só
+assumir que o dublê generalizou.
+
+## P2B — o quarto ponto, autorizado separadamente
 
 ### 4. O benchmark compara Gemma 4, Qwen multimodal e MiniMax M3 nas MESMAS condições
 
@@ -90,12 +104,16 @@ teste web não decide a comparação sozinho — ele prova que o MECANISMO
 funciona ponta a ponta; a escolha entre os três continua em aberto até o
 benchmark comparativo (item 4) rodar.
 
-## O que falta, para o primeiro teste acontecer
+## A sequência do P2B, quando autorizada
 
-Três coisas que este documento NÃO autoriza sozinho — cada uma precisa de
+Nenhum passo abaixo está autorizado por este documento — cada um espera
 confirmação explícita quando chegar a vez:
 
-1. Uma chave real da Ollama Cloud (conta, billing, API key).
-2. Um perfil de execução (`ai_settings`) para a GE usando `gemma4:31b-cloud`.
-3. A primeira chamada real — depois dos pontos 1–3 dos "quatro pontos"
-   acima estarem provados, não antes.
+1. Você cria a conta e a chave da Ollama Cloud.
+2. Adiciona um crédito pré-pago pequeno.
+3. A chave é cadastrada pelo Studio e armazenada cifrada — nunca enviada
+   pelo chat ou commitada.
+4. Cria-se o perfil da GE com `gemma4:31b-cloud`.
+5. Executa-se a matriz fixa de perguntas e imagens.
+6. Comparam-se reserva, uso, custo, qualidade e latência.
+7. O modelo permanece desativado caso qualquer limite falhe.
