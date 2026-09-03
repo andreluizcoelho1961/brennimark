@@ -4,6 +4,7 @@ import { encryptApiKey, last4 } from "@/lib/ai/crypto";
 import { PROVIDERS, type AIProvider, type AIRole } from "@/lib/ai/provider";
 import { listSettings } from "@/lib/ai/settings";
 import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { modeloAutorizado } from "@/lib/ai/catalogo";
 
 const VALID_PROVIDERS = new Set(PROVIDERS.map((p) => p.value));
 const VALID_ROLES = new Set<AIRole>(["chat", "analysis", "both"]);
@@ -36,6 +37,21 @@ export async function POST(request: Request) {
 
   if (!provider || !VALID_PROVIDERS.has(provider) || !model || !apiKey || !role || !VALID_ROLES.has(role)) {
     return NextResponse.json({ error: "invalid_input" }, { status: 400 });
+  }
+
+  /*
+   * O modelo precisa estar no catálogo DAQUELE provedor.
+   *
+   * Antes só o provedor era validado, e qualquer string passava em `model`.
+   * Ela chegava ao adaptador e daí ao provedor: no melhor caso um erro caro,
+   * no pior um modelo que ninguém revisou processando o manual de um cliente.
+   *
+   * O par importa, e não só o nome: `anthropic/claude-sonnet-5` é um modelo do
+   * OpenRouter, e `claude-sonnet-5` é da Anthropic. Aceitar o nome solto
+   * deixaria configurar um com as credenciais do outro.
+   */
+  if (!modeloAutorizado(provider, model)) {
+    return NextResponse.json({ error: "modelo_nao_catalogado" }, { status: 400 });
   }
 
   const { ciphertext, iv } = encryptApiKey(apiKey);

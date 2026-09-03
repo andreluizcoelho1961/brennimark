@@ -5,6 +5,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import { PRODUCT_LOCALE, inEnglish } from "../../platform/locale";
+import { CATALOGO, capacidadesDe } from "./catalogo";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
@@ -96,34 +97,22 @@ export const PROVIDER_MODELS: Record<AIProvider, string[]> = {
 };
 
 /**
- * Models known to accept image input, for the analysis feature's
- * capability check. Conservative allowlist — if a model isn't listed
- * here, analysis assumes no vision support rather than guessing.
+ * Visão, pelo CATÁLOGO.
+ *
+ * Havia aqui um `VISION_MODELS` — um conjunto de nomes paralelo à lista de
+ * modelos sugeridos. Dois lugares declarando fatos sobre o mesmo modelo é uma
+ * chance de discordarem, e a discordância aqui manda imagem para um modelo que
+ * não a processa, ou recusa um que processaria.
+ *
+ * Modelo fora do catálogo devolve `false`: não sei, logo não mando imagem.
  */
-const VISION_MODELS = new Set<string>([
-  // OpenRouter's free router selects a currently available model that
-  // supports the capabilities present in the request, including images.
-  "openrouter/free",
-  "google/gemma-4-26b-a4b-it:free",
-  "qwen/qwen3.5-flash-02-23",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
-  "qwen/qwen3.6-27b",
-  "meta-llama/llama-4-scout-17b-16e-instruct",
-  "claude-sonnet-5",
-  "claude-opus-4-8",
-  "claude-haiku-4-5-20251001",
-  "gpt-5.1",
-  "gpt-5.1-mini",
-  "gpt-4o",
-  "gemini-2.5-pro",
-  "gemini-2.5-flash",
-  "anthropic/claude-sonnet-5",
-  "openai/gpt-5.1",
-]);
-
-export function supportsVision(config: Pick<AIProviderConfig, "model">): boolean {
-  return VISION_MODELS.has(config.model);
+export function supportsVision(config: Pick<AIProviderConfig, "model"> & { provider?: string }): boolean {
+  if (config.provider) return capacidadesDe(config.provider, config.model)?.vision ?? false;
+  // Sem provedor declarado, aceita se ALGUM provedor catalogado oferece visão
+  // naquele modelo. É o caminho antigo, e some quando o perfil carregar o par.
+  return CATALOGO.some((m) => m.model === config.model && m.capabilities.vision);
 }
+
 
 const MODEL_COMMERCIAL_INFO: Record<string, ModelCommercialInfo> = isEnglish
   ? {
