@@ -29,9 +29,10 @@ Ollama, mas boa parte do P2 não depende:
   constraint de orçamento global que não impedia duplicata, e conteúdo
   estruturado de mensagem escapando o limite de tamanho. **Três dos
   quatro concluídos.** O quarto — RPCs financeiras exclusivas do servidor
-  — está desenhado e provado por SQL isolado, mas **aguardando decisão
-  explícita** antes de aplicar (schema + credencial nova). Ver seção
-  dedicada abaixo.
+  — está em rollout de duas etapas: a primeira (funções `_server` novas,
+  código publicado) está aplicada; a segunda (revogar as antigas) espera
+  a chave `SUPABASE_SECRET_KEY` existir e a verificação pela Data API
+  passar. Ver seção dedicada abaixo.
 - **P2B — benchmark real, autorizado.** O ponto 4 e a ativação em si.
   Aqui sim: conta e chave da Ollama Cloud, crédito pré-pago pequeno, chave
   cadastrada pelo Studio (cifrada, nunca pelo chat nem commitada), perfil
@@ -216,7 +217,7 @@ Provado por 4 testes novos em `execucao.test.ts`: os três status
 reutilizados bloqueiam com o motivo certo, sem chegar ao recheck de kill
 switch; uma reserva genuinamente nova continua autorizando o despacho.
 
-### 2. RPCs financeiras aceitas por qualquer membro autenticado, direto pela Data API — 🟡 Desenhado, aguardando decisão
+### 2. RPCs financeiras aceitas por qualquer membro autenticado, direto pela Data API — 🟡 Rollout em duas etapas, etapa 1 concluída
 
 `reservar_execucao_de_ia`, `consolidar_execucao_de_ia` e
 `liberar_reserva_de_ia` são `security definer` com
@@ -228,23 +229,55 @@ poderia esgotar o teto diário inteiro numa chamada direta, sem nunca
 chamar um provedor, ou fechar uma reserva própria com custo liquidado
 inventado.
 
-Correção desenhada (não aplicada):
-[20260903200000_ai_ledger_server_only_mutations.sql](../../supabase/migrations/20260903200000_ai_ledger_server_only_mutations.sql)
-— as três funções passam a exigir `p_user_id` explícito em vez de
-`auth.uid()`, e o `grant execute` migra de `authenticated` para
-`service_role` só. Isso exige uma peça nova neste projeto: um cliente
-Supabase de service-role no servidor (`SUPABASE_SERVICE_ROLE_KEY`), e a
-app deixa de confiar em "o banco confere `auth.uid()`" para confiar em
-"só o servidor, com uma sessão já verificada, consegue chamar isto".
+**Correção com chave secreta moderna, sem janela de indisponibilidade** —
+ajustada após revisão do usuário sobre a proposta inicial: nem a chave
+legacy `service_role` (JWT, sem rotação por serviço), nem uma migração
+única que apaga as funções antigas antes do backend novo estar publicado.
+Rollout em duas migrações:
 
-**Por que não foi aplicado ainda**: é ao mesmo tempo uma mudança de
-schema (assinatura das três funções) e a introdução de uma classe nova de
-credencial (chave de service-role) — as duas categorias que a orientação
-deste projeto pede para apresentar e esperar confirmação antes de seguir,
-não decidir sozinho. A migração está escrita e pronta para revisão; falta
-o sinal verde e, depois dele, ripple pela camada TypeScript
-(`orcamento.ts`, `execucao.ts`, `chat/route.ts`, `analyze/route.ts`) e
-testes correspondentes.
+- **Etapa 1 — aplicada ao projeto real**:
+  [20260903210000_ai_ledger_server_only_functions.sql](../../supabase/migrations/20260903210000_ai_ledger_server_only_functions.sql)
+  cria três funções NOVAS (`reservar_execucao_de_ia_server`,
+  `consolidar_execucao_de_ia_server`, `liberar_reserva_de_ia_server`) —
+  `p_user_id` explícito em vez de `auth.uid()`, `grant execute` só para
+  `service_role`, SEM tocar nas três antigas. Puramente aditiva: nada
+  quebra entre esta migração e o deploy do backend novo. Provado por SQL
+  isolado (`p_user_id` nulo recusado, não-membro recusado, reserva nova,
+  reserva repetida idempotente, consolidação, no-op na segunda
+  consolidação, dono errado recusado, liberação — 8 casos, todos numa
+  transação revertida) e por `has_function_privilege`: as três `_server`
+  não aparecem para `authenticated`/`anon`, só para `service_role`; as três
+  antigas continuam acessíveis a `authenticated` (esperado — é a
+  etapa 2 que fecha isso).
+  Camada TypeScript publicada no mesmo commit: `src/lib/supabase/service.ts`
+  (`createServiceClient()`, `import "server-only"`, lê
+  `SUPABASE_SECRET_KEY` — nunca `service_role`; falha fechada e explícita
+  se a chave não existir) chamado SÓ pelas duas rotas (`chat/route.ts`,
+  `analyze/route.ts`), nunca por `orcamento.ts`/`execucao.ts` diretamente
+  — o pacote `server-only` lança em qualquer import fora do bundler do
+  Next.js, o que quebraria o runner de teste (`node --test`) se um módulo
+  testado importasse `service.ts` no topo do arquivo. `orcamento.ts` e
+  `execucao.ts` recebem o cliente por parâmetro (`serviceClient`), o mesmo
+  padrão de injeção de dependência do resto do arquivo — só quem chama
+  (a rota) decide qual cliente é qual. `userId` é resolvido pela rota a
+  partir de `supabase.auth.getUser()` (sessão já validada), nunca do
+  corpo da requisição.
+- **Etapa 2 — desenhada, NÃO aplicada**:
+  [20260903220000_ai_ledger_drop_legacy_authenticated_functions.sql](../../supabase/migrations/20260903220000_ai_ledger_drop_legacy_authenticated_functions.sql)
+  revoga e remove as três funções antigas. Só deve ser aplicada depois de:
+  (a) `SUPABASE_SECRET_KEY` — chave moderna `sb_secret_...`, nomeada
+  `brennimark-billing` — configurada na Vercel e localmente; (b) reserva,
+  liquidação, cancelamento e recusa testados de verdade pela Data API com
+  essa chave; (c) então confirmar via advisors (`get_advisors`, tipo
+  `security`) que nenhuma das três mutações financeiras antigas aparece
+  mais para `authenticated` — hoje o advisor ainda as lista, exatamente
+  como esperado nesta janela de transição.
+
+**O que falta, e de quem é o próximo passo**: criar a chave em Supabase →
+Settings → API Keys → Publishable and secret API keys, adicionar
+`SUPABASE_SECRET_KEY` ao `.env.local` e às variáveis de ambiente da
+Vercel (o valor nunca passa pelo chat), testar as quatro operações pela
+Data API, e só então aplicar a etapa 2.
 
 ### 3. Orçamento global não impedia duplicata — ✅ Fechado
 
