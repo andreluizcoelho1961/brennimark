@@ -55,7 +55,10 @@ export type MotivoDeBloqueio =
   | "erro_de_consulta";
 
 export type DecisaoDeExecucao =
-  | { pode: true; executionId: string; capabilities: AIModelCapabilities; maxOutputTokens: number }
+  | {
+      pode: true; executionId: string; capabilities: AIModelCapabilities;
+      maxOutputTokens: number; reservedMicros: number;
+    }
   | { pode: false; motivo: MotivoDeBloqueio };
 
 /**
@@ -66,18 +69,54 @@ export type DecisaoDeExecucao =
 const CARACTERES_POR_TOKEN = 4;
 
 /**
+ * O texto FIXO ao redor do conhecimento recuperado dentro do prompt de
+ * sistema — regras de fundamentação e formato para as duas tarefas, mais
+ * as regras de cor só na análise (por isso o teto da análise é quase o
+ * dobro do chat). MEDIDO chamando `buildChatSystemPrompt`/
+ * `buildAnalysisSystemPrompt` de verdade com trechos no teto de
+ * `LIMITES_DE_IA` e um papel de marca (`chatRole`/`analysisRole`) de ~150
+ * caracteres — ver o teste "o boilerplate medido do prompt de sistema
+ * cabe dentro do assumido pela reserva", que roda a MESMA medição e
+ * quebra se o texto fixo crescer além do que este número assume.
+ *
+ * `chatRole`/`analysisRole` são texto livre da marca, sem limite de
+ * tamanho validado hoje — os números abaixo incluem ~350 caracteres de
+ * folga para um papel mais longo que o medido, mas não são uma garantia
+ * formal enquanto essa validação não existir (ver
+ * docs/plan/p2-benchmark-multimodal-2026-09-03.md).
+ *
+ * PT, o pior caso entre os dois idiomas testados:
+ *   assist: 2.365 medidos + 350 de folga ≈ 2.800
+ *   analyse-image: 3.783 medidos + 350 de folga ≈ 4.200
+ */
+export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
+  assist: 2_800,
+  "analyse-image": 4_200,
+  prompt: 2_800,
+};
+
+/**
+ * Margem sobre TODO o teto de entrada — cobre o que a contagem de
+ * caracteres não modela diretamente: overhead de protocolo (papéis e
+ * estrutura de cada mensagem no formato do provedor) e a variância do
+ * tokenizador real contra a conversão grosseira de 4 caracteres por
+ * token. 20% é generoso de propósito, não medido contra um provedor real
+ * — revisar quando o P2B tiver uma chamada de verdade para comparar.
+ */
+const MARGEM_DE_PROTOCOLO = 1.2;
+
+/**
  * Teto de tokens de ENTRADA por tarefa — o PIOR CASO permitido pelos
  * limites do produto (`LIMITES_DE_IA`), não uma mediana. Uma reserva
  * subestimada é o erro que este produto não aceita; superestimar é seguro
  * porque a consolidação ajusta para o custo real depois.
  */
 function tetoDeTokensDeEntrada(task: AITaskType): number {
-  const PROMPT_DE_SISTEMA_CARACTERES = 1_500; // mesma estimativa do P0 §3
-  const base = LIMITES_DE_IA.maxCaracteresDeContexto + PROMPT_DE_SISTEMA_CARACTERES;
+  const base = LIMITES_DE_IA.maxCaracteresDeContexto + BOILERPLATE_DO_PROMPT_DE_SISTEMA[task];
   const comHistorico = task === "assist"
     ? LIMITES_DE_IA.maxCaracteresDaPergunta + LIMITES_DE_IA.maxMensagens * LIMITES_DE_IA.maxCaracteresPorMensagem
     : LIMITES_DE_IA.maxCaracteresDaPergunta;
-  return Math.ceil((base + comHistorico) / CARACTERES_POR_TOKEN);
+  return Math.ceil(((base + comHistorico) / CARACTERES_POR_TOKEN) * MARGEM_DE_PROTOCOLO);
 }
 
 /**
@@ -182,7 +221,7 @@ export async function decidirExecucao(
     return { pode: false, motivo: killSwitch.workspace ? "kill_switch_workspace" : "kill_switch_marca" };
   }
 
-  return { pode: true, executionId: reserva.executionId, capabilities, maxOutputTokens };
+  return { pode: true, executionId: reserva.executionId, capabilities, maxOutputTokens, reservedMicros };
 }
 
 /**
@@ -230,18 +269,60 @@ export interface ExecucaoComOrcamento<TAttempt> {
 }
 
 /**
+ * Quanto esperar pela promise de uso antes de desistir e liquidar
+ * conservador. Existe porque um cancelamento pode deixar essa promise
+ * NUNCA resolvendo (o provedor esperava terminar o stream para relatar o
+ * uso, e o stream nunca termina) — sem este teto, encerrar a execução
+ * ficaria pendurado para sempre, e ninguém receberia resposta nenhuma,
+ * nem a de erro.
+ */
+const TIMEOUT_DE_USO_PADRAO_MS = 5_000;
+
+/**
+ * Espera a promise de uso, mas nunca além do teto — `null` quer dizer
+ * "não confirmei a tempo", tratado pelo chamador do mesmo jeito que "o
+ * provedor não informou": liquidação conservadora, nunca custo zero.
+ */
+async function aguardarUsoComTimeout(
+  usage: PromiseLike<LanguageModelUsage>,
+  timeoutMs: number,
+): Promise<LanguageModelUsage | null> {
+  return Promise.race([
+    Promise.resolve(usage).catch(() => null),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+  ]);
+}
+
+/**
  * Despacha UMA execução já decidida (`decidirExecucao` retornou `pode:
  * true`) e garante — por CONSTRUÇÃO, não por disciplina de quem chama —
- * que ela termina liquidada ou liberada, nunca presa como 'reserved'.
+ * que ela termina liquidada, nunca presa como 'reserved' e nunca liberada
+ * de volta para zero depois que o pedido já pode ter saído para o
+ * provedor.
  *
- * A garantia mora no `iterator` devolvido: `next()` liquida quando o
- * stream termina (`done`) e libera se lançar; `return()` (chamado quando
- * quem consome para de puxar, como no `cancel` de um `ReadableStream`)
- * libera. Quem chama esta função não decide MAIS quando liquidar ou
- * liberar — só drena o iterator do jeito que já drenava, e a contabilidade
- * acontece sozinha. Um `encerrado` interno faz o que acontecer primeiro
- * vencer; as funções do banco também são idempotentes, então mesmo uma
- * corrida aqui seria inofensiva — duas camadas, não uma confiando na outra.
+ * A distinção que importa é ANTES ou DEPOIS do despacho, não sucesso ou
+ * falha:
+ *
+ * - **Antes do despacho** (nenhuma tentativa chegou a chamar `dispatch`, o
+ *   único caso real sendo um `parentSignal` já abortado): nada saiu para o
+ *   provedor. Libera integralmente — é o único caminho que ainda existe
+ *   para devolver o teto inteiro ao orçamento do dia.
+ * - **Depois do despacho, com uso medido**: liquida com o custo REAL.
+ * - **Depois do despacho, sem uso confiável** — erro no meio do stream,
+ *   cancelamento, ou a promise de uso não resolve com números — NUNCA
+ *   libera. O pedido já pode ter chegado ao provedor, que pode cobrar
+ *   mesmo sem devolver um relatório final de uso; transformar isso em
+ *   custo zero seria inventar uma garantia que não existe. Liquida pelo
+ *   TETO reservado (o mesmo número que já era o pior caso assumido) e
+ *   marca `usage_unknown` no ledger, para reconciliação manual se o
+ *   provedor publicar uso tardio.
+ *
+ * A garantia mora no `iterator` devolvido: quem chama só drena do jeito
+ * que já drenava — `next()` decide sozinho ao terminar ou lançar,
+ * `return()` (cancelamento) também. Um `encerrado` interno faz o que
+ * acontecer primeiro vencer; as funções do banco também são idempotentes,
+ * então mesmo uma corrida aqui seria inofensiva — duas camadas, não uma
+ * confiando na outra.
  *
  * Nenhum fallback automático: só `attempts[0]` é tentado, mesmo que
  * `attempts` traga mais — a reserva foi calculada para UM preço, e deixar
@@ -253,8 +334,13 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     supabase: SupabaseClient;
     executionId: string;
     pricing: ModelPricing;
+    /** O mesmo valor que `decidirExecucao` reservou — o teto usado na
+     *  liquidação conservadora quando o uso real não está disponível. */
+    reservedMicros: number;
     attempts: readonly TAttempt[];
     firstChunkTimeoutMs: number;
+    /** Teto de espera pela promise de uso ao encerrar — ver `TIMEOUT_DE_USO_PADRAO_MS`. */
+    usageTimeoutMs?: number;
     parentSignal?: AbortSignal;
     validateInitialText?: (text: string, streamEnded: boolean) => "accept" | "continue" | "reject";
     dispatch: (attempt: TAttempt, signal: AbortSignal) => ResultadoDoDespacho;
@@ -262,44 +348,36 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     onAttemptFailure?: (attempt: TAttempt, index: number, error: unknown) => void;
   },
 ): Promise<ExecucaoComOrcamento<TAttempt>> {
-  const { supabase, executionId, pricing, dispatch } = params;
+  const { supabase, executionId, pricing, reservedMicros, dispatch } = params;
+  const usageTimeoutMs = params.usageTimeoutMs ?? TIMEOUT_DE_USO_PADRAO_MS;
   const attemptsRestritos = params.attempts.slice(0, 1) as TAttempt[];
 
   let usageCapturado: PromiseLike<LanguageModelUsage> | null = null;
-  let prepared: PreparedFallbackStream<TAttempt>;
-  try {
-    prepared = await prepareStreamWithFallback<TAttempt>({
-      attempts: attemptsRestritos,
-      firstChunkTimeoutMs: params.firstChunkTimeoutMs,
-      parentSignal: params.parentSignal,
-      validateInitialText: params.validateInitialText,
-      onAttemptStart: params.onAttemptStart,
-      onAttemptFailure: params.onAttemptFailure,
-      start: (attempt, signal) => {
-        const resultado = dispatch(attempt, signal);
-        usageCapturado = resultado.usage;
-        return resultado.textStream;
-      },
-    });
-  } catch (error) {
-    // Nem um chunk saiu — nenhum uso cobrável aconteceu. Libera antes de
-    // repassar o erro, para quem chama não precisar lembrar de fazer isso.
-    await liberarReserva(supabase, executionId);
-    throw error;
-  }
+  // Marcado no instante em que ALGUMA tentativa chega a ser despachada —
+  // é o que decide se uma falha depois disso ainda pode liberar
+  // integralmente (não pode) ou precisa liquidar conservador (precisa).
+  let attemptDespachado: TAttempt | null = null;
 
   let encerrado = false;
-  const liberar = async () => {
-    if (encerrado) return;
-    encerrado = true;
-    await liberarReserva(supabase, executionId);
+
+  /** A liquidação conservadora — nunca vira custo zero. */
+  const consolidarConservador = async () => {
+    const usageSnapshot: SnapshotDeUso = { unknown: true };
+    await consolidarExecucao(supabase, {
+      executionId, settledMicros: reservedMicros,
+      provider: attemptDespachado?.config.provider ?? "desconhecido",
+      model: attemptDespachado?.config.model ?? "desconhecido",
+      usageSnapshot,
+    });
   };
-  const liquidar = async () => {
+
+  /** Encerramento depois do despacho — tenta o uso real, cai para o conservador. */
+  const encerrarPosDespacho = async () => {
     if (encerrado) return;
     encerrado = true;
-    const usage = usageCapturado ? await Promise.resolve(usageCapturado).catch(() => null) : null;
+    const usage = usageCapturado ? await aguardarUsoComTimeout(usageCapturado, usageTimeoutMs) : null;
     if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
-      await liberarReserva(supabase, executionId);
+      await consolidarConservador();
       return;
     }
     const settledMicros = custoDeReservaMicros(pricing, {
@@ -311,25 +389,57 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     };
     await consolidarExecucao(supabase, {
       executionId, settledMicros,
-      provider: prepared.attempt.config.provider, model: prepared.attempt.config.model,
+      provider: attemptDespachado!.config.provider, model: attemptDespachado!.config.model,
       usageSnapshot,
     });
   };
+
+  let prepared: PreparedFallbackStream<TAttempt>;
+  try {
+    prepared = await prepareStreamWithFallback<TAttempt>({
+      attempts: attemptsRestritos,
+      firstChunkTimeoutMs: params.firstChunkTimeoutMs,
+      parentSignal: params.parentSignal,
+      validateInitialText: params.validateInitialText,
+      onAttemptStart: params.onAttemptStart,
+      onAttemptFailure: params.onAttemptFailure,
+      start: (attempt, signal) => {
+        // Marcado ANTES do despacho de fato — mesmo que `dispatch` lance
+        // de forma síncrona, não há como saber se o pedido já tocou a
+        // rede, e errar para o lado conservador é a escolha segura.
+        attemptDespachado = attempt;
+        const resultado = dispatch(attempt, signal);
+        usageCapturado = resultado.usage;
+        return resultado.textStream;
+      },
+    });
+  } catch (error) {
+    if (attemptDespachado) {
+      await encerrarPosDespacho();
+    } else {
+      // Nenhuma tentativa chegou a ser despachada — o único caso real é
+      // `parentSignal` já abortado antes do primeiro attempt. Nada saiu
+      // para o provedor: aqui, e só aqui, liberar integralmente é seguro.
+      encerrado = true;
+      await liberarReserva(supabase, executionId);
+    }
+    throw error;
+  }
 
   const originalIterator = prepared.iterator;
   const iterator: AsyncIterator<string> = {
     async next() {
       try {
         const resultado = await originalIterator.next();
-        if (resultado.done) await liquidar();
+        if (resultado.done) await encerrarPosDespacho();
         return resultado;
       } catch (error) {
-        await liberar();
+        await encerrarPosDespacho();
         throw error;
       }
     },
     async return(value) {
-      await liberar();
+      await encerrarPosDespacho();
       return originalIterator.return ? originalIterator.return(value) : { done: true, value };
     },
   };
@@ -342,7 +452,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     cleanup: prepared.cleanup,
     cancel: async (reason) => {
       prepared.cancel(reason);
-      await liberar();
+      await encerrarPosDespacho();
     },
   };
 }

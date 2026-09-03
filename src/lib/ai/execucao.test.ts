@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { decidirExecucao, executarComOrcamento } from "./execucao";
-import type { ModelPricing } from "./catalogo";
+import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento } from "./execucao";
+import { custoMicros, type ModelPricing } from "./catalogo";
+import { buildChatSystemPrompt, buildAnalysisSystemPrompt, type BrandPromptContext } from "./brand-context";
+import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
 import type { LanguageModelUsage } from "ai";
 
 /**
@@ -176,6 +178,69 @@ test("uma tarefa de imagem reserva mais do que a mesma tarefa sem imagem", async
   assert.ok(comImagemMicros > semImagemMicros);
 });
 
+test("a diferença de reserva com imagem é EXATAMENTE o teto de tokens visuais do modelo", async () => {
+  /*
+   * Não basta reservar "mais" — precisa reservar o TETO documentado, nem
+   * menos (subestimaria) nem um número arbitrário maior (esconderia um
+   * erro de conta atrás de uma margem por acidente). gemma4:31b-cloud é o
+   * único modelo com `maxImageTokens` verificado hoje — ver catalogo.ts.
+   */
+  const base = { ...REQUEST_BASE, task: "analyse-image" as const };
+  const semImagem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  const r1 = await decidirExecucao(semImagem.cliente, base, PERFIL_COM_PRECO_DE_IMAGEM);
+  const comImagem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(
+    comImagem.cliente, { ...base, image: { mediaType: "image/png", sizeBytes: 1024 } }, PERFIL_COM_PRECO_DE_IMAGEM,
+  );
+
+  assert.ok(r1.pode);
+  if (!r1.pode) return;
+  const maxImageTokens = r1.capabilities.pricing!.maxImageTokens!;
+  const inputPerMillionTokensUsd = r1.capabilities.pricing!.inputPerMillionTokensUsd;
+  const diferencaEsperada = custoMicros(inputPerMillionTokensUsd, maxImageTokens);
+
+  const semImagemMicros = semImagem.chamadas[0].args.p_reserved_micros as number;
+  const comImagemMicros = comImagem.chamadas[0].args.p_reserved_micros as number;
+  assert.equal(comImagemMicros - semImagemMicros, diferencaEsperada);
+});
+
+test("o boilerplate medido do prompt de sistema cabe dentro do assumido pela reserva", () => {
+  /*
+   * A prova de que "a reserva de entrada cobre o prompt de sistema" não é
+   * um número solto — é MEDIDO chamando os construtores reais com trechos
+   * no teto de LIMITES_DE_IA e um papel de marca de ~150 caracteres (o
+   * mesmo usado para calcular BOILERPLATE_DO_PROMPT_DE_SISTEMA). Se o
+   * texto fixo do prompt crescer além do que a reserva assume — uma nova
+   * regra de fundamentação, mais uma seção de regras de cor — este teste
+   * quebra antes que a reserva comece a subestimar de verdade.
+   */
+  const trechoNoTeto: Trecho = {
+    documentSlug: "s", documentTitle: "t", groupName: "g", section: "s",
+    status: "ready", pageStart: 1, pageEnd: 1,
+    content: "x".repeat(LIMITES_DE_IA.maxCaracteresPorTrecho),
+  };
+  const trechos = Array(LIMITES_DE_IA.maxTrechos).fill(trechoNoTeto);
+  const papelDeCerca150Caracteres = "x".repeat(150);
+
+  for (const language of ["pt", "en"] as const) {
+    const brand: BrandPromptContext = {
+      language, chatRole: papelDeCerca150Caracteres, analysisRole: papelDeCerca150Caracteres,
+      statusLabels: undefined,
+    };
+    const chatBoilerplate = buildChatSystemPrompt(trechos, brand).length - LIMITES_DE_IA.maxCaracteresDeContexto;
+    const analysisBoilerplate = buildAnalysisSystemPrompt(trechos, brand).length - LIMITES_DE_IA.maxCaracteresDeContexto;
+
+    assert.ok(
+      chatBoilerplate <= BOILERPLATE_DO_PROMPT_DE_SISTEMA.assist,
+      `chat [${language}]: boilerplate medido ${chatBoilerplate} excede o assumido ${BOILERPLATE_DO_PROMPT_DE_SISTEMA.assist}`,
+    );
+    assert.ok(
+      analysisBoilerplate <= BOILERPLATE_DO_PROMPT_DE_SISTEMA["analyse-image"],
+      `análise [${language}]: boilerplate medido ${analysisBoilerplate} excede o assumido ${BOILERPLATE_DO_PROMPT_DE_SISTEMA["analyse-image"]}`,
+    );
+  }
+});
+
 test("orçamento recusado no banco vira o motivo específico, não uma recusa genérica", async () => {
   const { cliente, chamadas } = supabaseFalso({
     reservar_execucao_de_ia: {
@@ -276,10 +341,12 @@ async function drenarTudo(iterator: AsyncIterator<string>): Promise<string> {
   }
 }
 
+const RESERVED_MICROS = 5_000;
+
 test("despacho com sucesso: liquida com o uso REAL, não com o teto reservado", async () => {
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING,
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["a cor primária é", " vermelho."]),
@@ -291,72 +358,135 @@ test("despacho com sucesso: liquida com o uso REAL, não com o teto reservado", 
   assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
   assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14 + 40 * 0.40);
   assert.equal(chamadas[0].args.p_provider, "ollama-cloud");
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { inputTokens: 500, outputTokens: 40, cachedInputTokens: undefined });
+});
+
+test("sinal já abortado ANTES do primeiro attempt: libera integralmente — o único caso real de pré-despacho", async () => {
+  /*
+   * A única situação em que nada saiu para o provedor: o pedido chegou
+   * com o `AbortSignal` já abortado, e `prepareStreamWithFallback` nunca
+   * chega a chamar `dispatch`. Todos os outros testes abaixo despacham
+   * PRIMEIRO e falham depois — e por isso liquidam conservador, não
+   * liberam.
+   */
+  const controller = new AbortController();
+  controller.abort(new Error("já cancelado antes de começar"));
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  let despachou = false;
+  await assert.rejects(() =>
+    executarComOrcamento({
+      supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000, parentSignal: controller.signal,
+      dispatch: () => {
+        despachou = true;
+        return { textStream: geradorDeTexto(["nunca deveria chegar aqui"]), usage: Promise.resolve(usoFalso(1, 1)) };
+      },
+    }),
+  );
+  assert.equal(despachou, false, "dispatch não deveria ter sido chamado");
+  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
 });
 
 async function* geradorQueLancaImediatamente(): AsyncGenerator<string> {
   throw new Error("falha imediata do provedor");
 }
 
-test("despacho que falha imediatamente: libera, nunca liquida", async () => {
+test("despacho que falha imediatamente: liquida conservador pelo teto, NUNCA libera", async () => {
+  /*
+   * O pedido JÁ SAIU para o provedor quando `dispatch` foi chamado — o
+   * fato de o stream de texto lançar no primeiro `next()` não prova que
+   * o provedor não processou nada. Liberar aqui seria transformar um
+   * custo possivelmente ocorrido em custo zero — exatamente o que a
+   * correção de direção pediu para nunca acontecer.
+   */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   await assert.rejects(() =>
     executarComOrcamento({
-      supabase: cliente, executionId: "exec-1", pricing: PRICING,
+      supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
       attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
       dispatch: () => ({
         textStream: geradorQueLancaImediatamente(),
-        usage: Promise.resolve(usoFalso(0, 0)),
+        // A promise de uso rejeita — o realista para um provedor que
+        // errou antes de produzir um relatório de uso. `usoFalso(0, 0)`
+        // seria um uso CONHECIDO de zero tokens, não "desconhecido".
+        usage: Promise.reject(new Error("sem relatório de uso")),
       }),
     }),
   );
-  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
 
-test("timeout do primeiro chunk: libera, nunca liquida", async () => {
+test("timeout do primeiro chunk: liquida conservador pelo teto, NUNCA libera", async () => {
+  // O request já foi despachado antes da corrida contra o timeout começar
+  // — mesmo raciocínio do teste anterior.
   const { cliente, chamadas } = supabaseFalso({ data: null });
   await assert.rejects(() =>
     executarComOrcamento({
-      supabase: cliente, executionId: "exec-1", pricing: PRICING,
+      supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
       attempts: [ATTEMPT], firstChunkTimeoutMs: 20, // bem curto, de propósito
+      usageTimeoutMs: 20,
       dispatch: () => ({
         textStream: (async function* () {
           await new Promise((r) => setTimeout(r, 200)); // sempre além do timeout
           yield "tarde demais";
         })(),
-        usage: Promise.resolve(usoFalso(0, 0)),
+        // Nunca resolve — o realista quando o provedor não respondeu a
+        // tempo nem para o primeiro chunk, quanto mais para o uso final.
+        usage: new Promise(() => {}),
       }),
     }),
   );
-  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
 
-test("cancelamento no meio do stream: libera, nunca liquida", async () => {
+test("cancelamento depois do primeiro token: NUNCA produz custo zero", async () => {
+  /*
+   * O cenário central do P2A.1: a pessoa cancela depois de já ter
+   * recebido parte da resposta — o modelo já processou entrada e
+   * produziu tokens de saída. A Ollama pode cobrar por isso mesmo sem
+   * devolver um relatório final de uso. Liquida pelo teto reservado, não
+   * libera.
+   */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING,
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    usageTimeoutMs: 20, // bem curto — o teste não deveria depender de 5s reais
     dispatch: () => ({
       textStream: geradorDeTexto(["primeiro", "segundo", "terceiro"]),
-      usage: Promise.resolve(usoFalso(500, 40)),
+      // A promise de uso nunca resolve — como um provedor que só entrega
+      // usage no FINAL do stream, que um cancelamento nunca alcança. Sem
+      // um teto de espera, encerrar a execução ficaria pendurado para
+      // sempre — é o que `usageTimeoutMs` existe para evitar.
+      usage: new Promise(() => {}),
     }),
   });
   // Consome só o primeiro chunk, depois cancela — como um cliente que fecha
   // a aba no meio da resposta.
   await execucao.iterator.next();
   await execucao.cancel(new Error("cliente desistiu"));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.ok((chamadas[0].args.p_settled_micros as number) > 0, "custo zero é exatamente o que este teste proíbe");
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
 
-test("queda de streaming no meio (depois do primeiro chunk): libera, não liquida", async () => {
+test("queda de streaming no meio, mas com uso CONHECIDO: liquida o uso real, não o teto", async () => {
   /*
-   * Diferente do timeout — aqui o stream COMEÇOU (o primeiro chunk já saiu,
-   * já passou pelo cliente), mas quebra antes de terminar. Ainda assim é
-   * liberação, não liquidação: sem um `usage` final confiável, liquidar com
-   * um número arbitrário seria pior que não cobrar nada.
+   * Diferente do timeout — aqui o stream COMEÇOU (o primeiro chunk já
+   * saiu) e quebra antes de terminar, mas a promise de uso ainda assim
+   * resolve com números confiáveis (alguns provedores relatam uso por um
+   * canal separado do texto). "Uso conhecido" vence: liquida o número
+   * real, não o teto conservador — é exatamente a regra "falha depois do
+   * despacho com uso conhecido: liquidar o uso real".
    */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING,
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["primeiro", "segundo"], 1), // quebra na 2ª
@@ -364,7 +494,27 @@ test("queda de streaming no meio (depois do primeiro chunk): libera, não liquid
     }),
   });
   await assert.rejects(() => drenarTudo(execucao.iterator));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14 + 40 * 0.40);
+  assert.notEqual(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+});
+
+test("queda de streaming no meio, com uso DESCONHECIDO: liquida conservador pelo teto", async () => {
+  // A mesma queda, mas sem um relatório de uso confiável — aqui sim
+  // liquida pelo teto, nunca libera nem cobra zero.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["primeiro", "segundo"], 1), // quebra na 2ª
+      usage: Promise.reject(new Error("sem relatório de uso")),
+    }),
+  });
+  await assert.rejects(() => drenarTudo(execucao.iterator));
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
 
 test("nunca consulta o kill switch em voo — só decidirExecucao faz isso, antes do despacho", async () => {
@@ -378,7 +528,7 @@ test("nunca consulta o kill switch em voo — só decidirExecucao faz isso, ante
    */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING,
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["resposta completa"]),
@@ -395,7 +545,7 @@ test("um segundo attempt na lista é ignorado — nenhum fallback automático", 
   const segundoAttempt = { config: { provider: "ollama-cloud", model: "deepseek-v4-flash:cloud" } };
   const tentativas: string[] = [];
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING,
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT, segundoAttempt], firstChunkTimeoutMs: 1000,
     onAttemptStart: (attempt) => tentativas.push(attempt.config.model),
     dispatch: () => ({
@@ -408,12 +558,13 @@ test("um segundo attempt na lista é ignorado — nenhum fallback automático", 
   assert.equal(execucao.attempt.config.model, "gemma4:31b-cloud");
 });
 
-test("sem uso mensurável ao terminar: libera em vez de liquidar com zero", async () => {
+test("sem uso mensurável ao terminar: liquida conservador pelo teto, não libera nem cobra zero", async () => {
   // Um `usage` que a promise resolve mas sem nenhum token informado — o
-  // provedor não disse quanto custou. Zero não é "grátis", é "não sei".
+  // provedor não disse quanto custou. Zero não é "grátis", é "não sei", e
+  // o despacho já aconteceu.
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING,
+    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["ok"]),
@@ -421,5 +572,7 @@ test("sem uso mensurável ao terminar: libera em vez de liquidar com zero", asyn
     }),
   });
   await drenarTudo(execucao.iterator);
-  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });

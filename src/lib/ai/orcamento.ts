@@ -10,13 +10,18 @@ import type { ModelPricing } from "./catalogo";
  */
 export type SnapshotDePreco = ModelPricing & { catalogVersion: string; provider: string; model: string };
 
-/** Tokens/unidades REALMENTE medidos pelo provedor, gravados na consolidação. */
-export interface SnapshotDeUso {
-  inputTokens?: number;
-  cachedInputTokens?: number;
-  outputTokens?: number;
-  imageTokens?: number;
-}
+/**
+ * Tokens/unidades REALMENTE medidos pelo provedor, gravados na
+ * consolidação. `unknown: true` é o caso conservador: o despacho
+ * aconteceu, mas nenhum uso confiável ficou disponível (cancelamento,
+ * queda de streaming, falha depois do despacho) — `settledMicros` nesse
+ * caso é o TETO reservado, não uma medição, e a linha fica marcada para
+ * reconciliação manual se o provedor publicar uso tardio. Nunca convive
+ * com os campos de token: ou o uso é conhecido, ou é `unknown`.
+ */
+export type SnapshotDeUso =
+  | { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; imageTokens?: number; unknown?: false }
+  | { unknown: true };
 
 /**
  * A ponte entre uma execução de IA e o orçamento — reserva, consolida, libera.
