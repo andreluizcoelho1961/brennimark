@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { capacidadesDe, modeloAutorizado, podeAnalisarImagem, type ModelCapabilities } from "./catalogo";
-import { reservarExecucao, type MotivoDeRecusa } from "./orcamento";
+import { killSwitchAtivo, liberarReserva, reservarExecucao, type MotivoDeRecusa } from "./orcamento";
 import type { Trecho } from "./recuperacao";
 
 /**
@@ -92,6 +92,29 @@ export async function decidirExecucao(
   });
 
   if (!reserva.ok) return { pode: false, motivo: reserva.motivo };
+
+  /*
+   * Recheck final, o mais perto possível do despacho.
+   *
+   * A reserva acima já checou o kill switch — mas ele pode ser ligado no
+   * instante entre aquela checagem e este retorno. Sem este recheck, uma
+   * execução em voo nesse instante ainda seria autorizada a chamar o
+   * provedor, mesmo com o botão de pausa já acionado. Se este recheck
+   * bloquear, a reserva já feita é liberada: sem isso, ela ficaria presa
+   * como 'reserved' até expirar por timeout, ocupando teto sem executar.
+   */
+  const killSwitch = await killSwitchAtivo(supabase, {
+    workspaceId: request.workspaceId,
+    brandId: request.brandId,
+  });
+  if ("erro" in killSwitch) {
+    await liberarReserva(supabase, reserva.executionId);
+    return { pode: false, motivo: "erro_de_consulta" };
+  }
+  if (killSwitch.workspace || killSwitch.marca) {
+    await liberarReserva(supabase, reserva.executionId);
+    return { pode: false, motivo: killSwitch.workspace ? "kill_switch_workspace" : "kill_switch_marca" };
+  }
 
   return { pode: true, executionId: reserva.executionId, capabilities };
 }
