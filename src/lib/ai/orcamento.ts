@@ -1,4 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ModelPricing } from "./catalogo";
+
+/**
+ * O preço vigente NO MOMENTO da reserva, gravado uma vez e nunca reescrito —
+ * ver a migração do ledger (`price_snapshot`) para o porquê. `ModelPricing`
+ * já é o preço verificado do catálogo; aqui só soma provider/model/versão,
+ * que o catálogo não carrega junto (são do PAR escolhido, não do preço em
+ * si) — reaproveitar o tipo evita duas formas do mesmo preço divergirem.
+ */
+export type SnapshotDePreco = ModelPricing & { catalogVersion: string; provider: string; model: string };
+
+/** Tokens/unidades REALMENTE medidos pelo provedor, gravados na consolidação. */
+export interface SnapshotDeUso {
+  inputTokens?: number;
+  cachedInputTokens?: number;
+  outputTokens?: number;
+  imageTokens?: number;
+}
 
 /**
  * A ponte entre uma execução de IA e o orçamento — reserva, consolida, libera.
@@ -47,6 +65,7 @@ export async function reservarExecucao(
     task: "assist" | "analyse-image" | "prompt";
     reservedMicros: number;
     currency: string;
+    priceSnapshot: SnapshotDePreco;
   },
 ): Promise<ResultadoDaReserva> {
   const { data, error } = await supabase.rpc("reservar_execucao_de_ia", {
@@ -56,6 +75,7 @@ export async function reservarExecucao(
     p_task: params.task,
     p_reserved_micros: params.reservedMicros,
     p_currency: params.currency,
+    p_price_snapshot: params.priceSnapshot,
   });
 
   if (error) {
@@ -82,13 +102,17 @@ export async function reservarExecucao(
  */
 export async function consolidarExecucao(
   supabase: SupabaseClient,
-  params: { executionId: string; settledMicros: number; provider: string; model: string },
+  params: {
+    executionId: string; settledMicros: number; provider: string; model: string;
+    usageSnapshot?: SnapshotDeUso;
+  },
 ): Promise<void> {
   const { error } = await supabase.rpc("consolidar_execucao_de_ia", {
     p_execution_id: params.executionId,
     p_settled_micros: params.settledMicros,
     p_provider: params.provider,
     p_model: params.model,
+    p_usage_snapshot: params.usageSnapshot ?? null,
   });
   if (error) {
     console.error(JSON.stringify({ level: "error", msg: "consolidacao_de_orcamento_falhou", code: error.code }));

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   consolidarExecucao, expirarReservasAntigas, killSwitchAtivo, liberarReserva,
-  mensagemDeOrcamento, reservarExecucao,
+  mensagemDeOrcamento, reservarExecucao, type SnapshotDePreco,
 } from "./orcamento";
 
 /**
@@ -27,9 +27,16 @@ function supabaseFalso(resposta: { data?: unknown; error?: { code?: string; mess
   };
 }
 
+const SNAPSHOT_DE_PRECO: SnapshotDePreco = {
+  catalogVersion: "2026-09-03", provider: "ollama-cloud", model: "gemma4:31b-cloud",
+  inputPerMillionTokensUsd: 0.14, outputPerMillionTokensUsd: 0.40,
+  currency: "USD", source: "https://ollama.com/pricing", asOf: "2026-09-03",
+};
+
 const PARAMS = {
   workspaceId: "ws-1", brandId: "brand-1", executionId: "exec-1",
   task: "assist" as const, reservedMicros: 4000, currency: "USD",
+  priceSnapshot: SNAPSHOT_DE_PRECO,
 };
 
 test("reserva aceita: devolve ok e o execution_id", async () => {
@@ -38,6 +45,14 @@ test("reserva aceita: devolve ok e o execution_id", async () => {
   });
   const r = await reservarExecucao(cliente, PARAMS);
   assert.deepEqual(r, { ok: true, executionId: "exec-1", jaExistia: false });
+});
+
+test("o snapshot de preço atravessa como p_price_snapshot, sem alteração", async () => {
+  const { cliente, chamadas } = supabaseFalso({
+    data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
+  });
+  await reservarExecucao(cliente, PARAMS);
+  assert.deepEqual(chamadas[0].args.p_price_snapshot, SNAPSHOT_DE_PRECO);
 });
 
 test("reserva idempotente: motivo ja_reservado vira jaExistia true", async () => {
@@ -82,14 +97,22 @@ test("consolidar e liberar chamam a RPC certa, com os parâmetros certos", async
   const consolidacao = supabaseFalso({ data: null });
   await consolidarExecucao(consolidacao.cliente, {
     executionId: "exec-1", settledMicros: 3500, provider: "openrouter", model: "qwen/qwen3-vl-32b-instruct",
+    usageSnapshot: { inputTokens: 3000, outputTokens: 480 },
   });
   assert.equal(consolidacao.chamadas[0].fn, "consolidar_execucao_de_ia");
   assert.equal(consolidacao.chamadas[0].args.p_settled_micros, 3500);
+  assert.deepEqual(consolidacao.chamadas[0].args.p_usage_snapshot, { inputTokens: 3000, outputTokens: 480 });
 
   const liberacao = supabaseFalso({ data: null });
   await liberarReserva(liberacao.cliente, "exec-2");
   assert.equal(liberacao.chamadas[0].fn, "liberar_reserva_de_ia");
   assert.equal(liberacao.chamadas[0].args.p_execution_id, "exec-2");
+});
+
+test("consolidar sem usageSnapshot envia null, não undefined perdido", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  await consolidarExecucao(cliente, { executionId: "e", settledMicros: 1, provider: "p", model: "m" });
+  assert.equal(chamadas[0].args.p_usage_snapshot, null);
 });
 
 test("consolidar e liberar não lançam quando a RPC falha", async () => {
