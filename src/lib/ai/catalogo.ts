@@ -20,6 +20,41 @@ import type { AIProvider } from "./provider";
  * O que este arquivo NÃO é: uma lista de preços nem uma opinião sobre
  * qualidade. Essa decisão sai do benchmark com a GE, não daqui.
  */
+/**
+ * Preço VERIFICADO por fonte oficial — nunca estimado, nunca herdado de
+ * outro modelo. Ausente em `ModelCapabilities.pricing` significa "não
+ * confirmei", não "grátis": um modelo sem isto não pode ser usado para
+ * reservar orçamento nenhum, texto ou imagem.
+ */
+export interface ModelPricing {
+  /** USD por milhão de tokens de ENTRADA de texto. */
+  inputPerMillionTokensUsd: number;
+  /** USD por milhão de tokens de entrada em CACHE, quando o provedor distingue. */
+  cachedInputPerMillionTokensUsd?: number;
+  /** USD por milhão de tokens de SAÍDA. */
+  outputPerMillionTokensUsd: number;
+  currency: "USD";
+  /** URL pública de onde o preço foi conferido. */
+  source: string;
+  /** Quando foi conferido — AAAA-MM-DD. */
+  asOf: string;
+  /**
+   * Maior número de tokens que UMA imagem consome, documentado pelo
+   * provedor — não um preço separado. Nem todo provedor cobra imagem à
+   * parte: alguns (caso confirmado da Ollama Cloud para `gemma4`, ver
+   * https://ollama.com/library/gemma4) convertem a imagem para um
+   * "orçamento de tokens visuais" fixo e cobram pela MESMA taxa de entrada
+   * já verificada acima — não existe, e não precisa existir, um número de
+   * preço à parte para isso.
+   *
+   * Ausente = o custo de uma imagem não é computável com o que está
+   * documentado hoje. `podeAnalisarImagem` bloqueia nesse caso, mesmo que
+   * `vision` seja `true` — capacidade técnica não é o mesmo que custo
+   * conhecido.
+   */
+  maxImageTokens?: number;
+}
+
 export interface ModelCapabilities {
   text: boolean;
   vision: boolean;
@@ -30,20 +65,22 @@ export interface ModelCapabilities {
   maxImageBytes?: number;
   supportsStructuredOutput?: boolean;
   /**
-   * O provedor documenta, publicamente, como uma imagem vira custo?
-   *
-   * Ausente ou `false` significa "não confirmei por fonte oficial" — não
-   * significa "grátis" nem "caro". A diferença importa porque a RESERVA de
-   * orçamento precisa de um número antes da chamada, e um número inventado
-   * aqui é uma falha do provedor traduzida como falha nossa: se a conversão
-   * real for maior que a suposta, a reserva subestima e a chamada sai mais
-   * cara do que o orçamento permitia.
-   *
-   * Ver `podeAnalisarImagem`: modelo sem isto não recebe imagem, até haver
-   * preço verificável — a política que o briefing do piloto Qwen pede.
+   * Preço verificado — ver `ModelPricing`. Ausente = nenhuma reserva de
+   * orçamento pode ser calculada para este modelo, texto ou imagem; é o que
+   * `decidirExecucao` (execucao.ts) checa antes de reservar qualquer coisa.
    */
-  imagePricingVerified?: boolean;
+  pricing?: ModelPricing;
 }
+
+/**
+ * Muda sempre que `CATALOGO` muda de um jeito que afeta o que já foi
+ * reservado ou liquidado — preço, capacidade ou remoção de um modelo. Cada
+ * linha do ledger grava a versão vigente NO MOMENTO da reserva (ver
+ * `price_snapshot` na migração do ledger): se o preço mudar depois, uma
+ * execução antiga continua lendo o preço que valia quando ela aconteceu, em
+ * vez de ser reescrita silenciosamente pela mudança.
+ */
+export const CATALOGO_VERSION = "2026-09-03";
 
 export interface ModeloDoCatalogo {
   provider: AIProvider;
@@ -191,6 +228,76 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     provider: "openrouter", model: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "Nemotron 3 Ultra (gratuito)",
     capabilities: { text: true, vision: true, streaming: true },
   },
+
+  // ─── Ollama Cloud — NÃO ATIVADO ─────────────────────────────────────────
+  //
+  // Entram no catálogo (autorizados a SEREM configurados) porque o preço é
+  // publicado oficialmente — mas nenhuma chave, conexão ou linha de
+  // ai_settings existe para eles. Ativar um destes para a GE é uma decisão
+  // separada, depois do benchmark comparando Gemma 4, MiniMax M3 e Qwen
+  // (ver docs/plan/parecer-piloto-qwen-p0.md).
+  //
+  // Preços conferidos em https://ollama.com/pricing em 2026-09-03, USD por
+  // milhão de tokens. A página não publica preço de imagem separado para
+  // NENHUM modelo — a coluna de imagem abaixo vem de cada página de modelo
+  // individual, não da tabela de preços.
+  {
+    provider: "ollama-cloud", model: "gemma4:31b-cloud", label: "Gemma 4 31B (Ollama Cloud)",
+    capabilities: {
+      text: true, vision: true, streaming: true,
+      pricing: {
+        inputPerMillionTokensUsd: 0.14, cachedInputPerMillionTokensUsd: 0.05,
+        outputPerMillionTokensUsd: 0.40, currency: "USD",
+        source: "https://ollama.com/pricing", asOf: "2026-09-03",
+        // https://ollama.com/library/gemma4: "variable image resolution
+        // through a configurable visual token budget" de 70 a 1120 tokens.
+        // Uso o TETO documentado — superestimar o custo de imagem é seguro
+        // pelo mesmo motivo que superestimar qualquer reserva é seguro.
+        maxImageTokens: 1120,
+      },
+    },
+  },
+  {
+    provider: "ollama-cloud", model: "minimax-m3:cloud", label: "MiniMax M3 (Ollama Cloud)",
+    capabilities: {
+      text: true, vision: true, streaming: true, maxContextTokens: 512_000,
+      pricing: {
+        inputPerMillionTokensUsd: 0.60, cachedInputPerMillionTokensUsd: 0.12,
+        outputPerMillionTokensUsd: 2.40, currency: "USD",
+        source: "https://ollama.com/pricing", asOf: "2026-09-03",
+        // SEM maxImageTokens de propósito: https://ollama.com/library/minimax-m3
+        // confirma "Text, Image" e diz que a imagem some no mesmo preço de
+        // entrada, mas não publica um orçamento de tokens por imagem como o
+        // gemma4 publica. `vision: true` continua correto — o modelo aceita
+        // imagem tecnicamente — mas `podeAnalisarImagem` bloqueia até esse
+        // número existir, porque sem ele não há como saber quanto reservar.
+      },
+    },
+  },
+  // Texto, não motor do assistente — catalogados para comparação de custo,
+  // não como candidatos à execução real do produto.
+  {
+    provider: "ollama-cloud", model: "deepseek-v4-flash:cloud", label: "DeepSeek V4 Flash (Ollama Cloud)",
+    capabilities: {
+      text: true, vision: false, streaming: true, maxContextTokens: 1_000_000,
+      pricing: {
+        inputPerMillionTokensUsd: 0.44, cachedInputPerMillionTokensUsd: 0.014,
+        outputPerMillionTokensUsd: 1.32, currency: "USD",
+        source: "https://ollama.com/pricing", asOf: "2026-09-03",
+      },
+    },
+  },
+  {
+    provider: "ollama-cloud", model: "nemotron-3-ultra:cloud", label: "Nemotron 3 Ultra (Ollama Cloud)",
+    capabilities: {
+      text: true, vision: false, streaming: true,
+      pricing: {
+        inputPerMillionTokensUsd: 0.10, cachedInputPerMillionTokensUsd: 0.10,
+        outputPerMillionTokensUsd: 3.00, currency: "USD",
+        source: "https://ollama.com/pricing", asOf: "2026-09-03",
+      },
+    },
+  },
 ];
 
 /** O modelo está autorizado NESTE provedor? */
@@ -229,5 +336,32 @@ export function modelosDe(provider: AIProvider): readonly ModeloDoCatalogo[] {
  * preço ser confirmado.
  */
 export function podeAnalisarImagem(capabilities: ModelCapabilities): boolean {
-  return capabilities.vision === true && capabilities.imagePricingVerified === true;
+  return capabilities.vision === true && capabilities.pricing?.maxImageTokens !== undefined;
+}
+
+/**
+ * Micro-unidades da moeda do preço, a partir de tokens.
+ *
+ * A conta cabe numa linha por causa de uma coincidência de unidades: preço é
+ * USD por MILHÃO de tokens, e micro-unidade é 1 milionésimo de USD — os dois
+ * "milhão"/"milionésimo" se cancelam, e microUSD = tokens × preçoPorMilhão,
+ * sem escala nenhuma no meio. Arredonda para cima: subestimar uma reserva é
+ * o erro que este produto não aceita (ver orcamento.ts).
+ */
+export function custoMicros(precoPorMilhaoUsd: number, tokens: number): number {
+  return Math.ceil(precoPorMilhaoUsd * tokens);
+}
+
+/**
+ * O teto de reserva para UMA execução de texto: entrada + saída, no preço
+ * de entrada (sem cache — a reserva não sabe se vai cachear) e no preço de
+ * saída, cada um pelo respectivo teto de tokens.
+ */
+export function custoDeReservaMicros(
+  pricing: ModelPricing,
+  tokens: { entrada: number; saida: number; imagem?: number },
+): number {
+  const entradaTotal = tokens.entrada + (tokens.imagem ?? 0);
+  return custoMicros(pricing.inputPerMillionTokensUsd, entradaTotal)
+    + custoMicros(pricing.outputPerMillionTokensUsd, tokens.saida);
 }

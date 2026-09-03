@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CATALOGO, capacidadesDe, modelosDe, modeloAutorizado, podeAnalisarImagem } from "./catalogo";
+import {
+  CATALOGO, capacidadesDe, custoDeReservaMicros, custoMicros, modelosDe,
+  modeloAutorizado, podeAnalisarImagem, type ModelPricing,
+} from "./catalogo";
 import { PROVIDERS, PROVIDER_MODELS } from "./provider";
 
 test("modelo fora do catálogo é recusado", () => {
@@ -59,13 +62,18 @@ test("quem tem visão sem limite de imagem está na lista, e ela é curta", () =
   ).map((m) => `${m.provider}:${m.model}`);
 
   assert.deepEqual(semLimite.sort(), [
+    "ollama-cloud:gemma4:31b-cloud",
+    "ollama-cloud:minimax-m3:cloud",
     "openrouter:google/gemma-4-26b-a4b-it:free",
     "openrouter:nvidia/nemotron-3-ultra-550b-a55b:free",
     "openrouter:openrouter/free",
     "openrouter:qwen/qwen3.5-flash-02-23",
   ]);
-  // E nenhum deles é de provedor com credencial direta: lá o limite é público.
-  assert.ok(semLimite.every((m) => m.startsWith("openrouter:")));
+  // E nenhum deles é de provedor com credencial direta (anthropic/openai/
+  // google), onde o limite é sempre publicado em bytes. Os dois grupos aqui
+  // documentam o limite de outro jeito: OpenRouter por rota variável, Ollama
+  // Cloud por orçamento de TOKENS visuais (ver `maxImageTokens`).
+  assert.ok(semLimite.every((m) => m.startsWith("openrouter:") || m.startsWith("ollama-cloud:")));
 });
 
 test("não há modelo repetido no mesmo provedor", () => {
@@ -103,45 +111,121 @@ test("todo modelo do catálogo faz texto", () => {
 
 // ─── O portão de visão ──────────────────────────────────────────────────────
 
-test("modelo sem precificação de imagem verificada não recebe imagem", () => {
+const PRECO_FICTICIO: ModelPricing = {
+  inputPerMillionTokensUsd: 1, outputPerMillionTokensUsd: 2,
+  currency: "USD", source: "https://example.test", asOf: "2026-01-01",
+};
+
+test("modelo sem preço nenhum não recebe imagem", () => {
+  assert.equal(podeAnalisarImagem({ text: true, vision: true, streaming: true }), false);
+});
+
+test("modelo com preço de texto mas sem maxImageTokens não recebe imagem", () => {
   /*
-   * A alternativa que o briefing também permite — reservar um teto
-   * conservador — exigiria um número que hoje não tenho de nenhuma fonte
-   * oficial. Bloquear é a escolha mais honesta enquanto esse número não
-   * existir: nenhuma reserva pode ser melhor que uma baseada em preço
-   * confirmado.
+   * O caso real do MiniMax M3: aceita imagem tecnicamente, tem preço de
+   * TEXTO verificado, mas a Ollama não publica quantos tokens uma imagem
+   * consome nele — sem esse número não há como calcular quanto reservar.
+   * `vision: true` sozinho nunca basta.
    */
   assert.equal(
-    podeAnalisarImagem({ text: true, vision: true, streaming: true }),
+    podeAnalisarImagem({ text: true, vision: true, streaming: true, pricing: PRECO_FICTICIO }),
     false,
-    "vision:true sem imagePricingVerified não deveria bastar",
+    "pricing sem maxImageTokens não deveria bastar",
   );
 });
 
-test("modelo com precificação de imagem verificada recebe", () => {
+test("modelo com maxImageTokens documentado recebe imagem", () => {
   assert.equal(
-    podeAnalisarImagem({ text: true, vision: true, streaming: true, imagePricingVerified: true }),
+    podeAnalisarImagem({
+      text: true, vision: true, streaming: true,
+      pricing: { ...PRECO_FICTICIO, maxImageTokens: 1000 },
+    }),
     true,
   );
 });
 
-test("modelo sem visão nenhuma não recebe imagem, mesmo com preço marcado", () => {
+test("modelo sem visão nenhuma não recebe imagem, mesmo com maxImageTokens", () => {
   // Combinação que não deveria existir no catálogo, mas a função não confia
   // em dado incoerente — ela exige as DUAS condições, não uma só.
   assert.equal(
-    podeAnalisarImagem({ text: true, vision: false, streaming: true, imagePricingVerified: true }),
+    podeAnalisarImagem({
+      text: true, vision: false, streaming: true,
+      pricing: { ...PRECO_FICTICIO, maxImageTokens: 1000 },
+    }),
     false,
   );
 });
 
-test("nenhum modelo do catálogo hoje tem preço de imagem verificado", () => {
+test("gemma4:31b-cloud é o único modelo do catálogo com imagem computável hoje", () => {
   /*
-   * Este teste é sobre o ESTADO ATUAL, não sobre uma regra permanente — o dia
-   * em que alguém confirmar o preço de um modelo com fonte oficial, ele passa
-   * a `imagePricingVerified: true` e este teste precisa ser atualizado
-   * JUNTO, no mesmo commit que traz a fonte. É a mesma disciplina do teste de
-   * seções exatas do aceite: mudar o número exige declarar o motivo.
+   * Este teste é sobre o ESTADO ATUAL, não sobre uma regra permanente — o
+   * dia em que outro modelo ganhar um `maxImageTokens` com fonte oficial,
+   * a lista muda JUNTO, no mesmo commit que traz a fonte. Mesma disciplina
+   * do teste de seções exatas do aceite: mudar o número exige declarar o
+   * motivo.
    */
-  const comPrecoVerificado = CATALOGO.filter((m) => m.capabilities.imagePricingVerified);
-  assert.deepEqual(comPrecoVerificado, []);
+  const comImagemComputavel = CATALOGO
+    .filter((m) => podeAnalisarImagem(m.capabilities))
+    .map((m) => `${m.provider}:${m.model}`);
+  assert.deepEqual(comImagemComputavel, ["ollama-cloud:gemma4:31b-cloud"]);
+});
+
+test("todo modelo com preço verificado cita fonte, data e moeda", () => {
+  for (const m of CATALOGO) {
+    const p = m.capabilities.pricing;
+    if (!p) continue;
+    assert.match(p.source, /^https?:\/\//, `${m.model}: fonte não é URL`);
+    assert.match(p.asOf, /^\d{4}-\d{2}-\d{2}$/, `${m.model}: data mal formada`);
+    assert.equal(p.currency, "USD", `${m.model}: moeda`);
+    assert.ok(p.inputPerMillionTokensUsd > 0, `${m.model}: entrada não positiva`);
+    assert.ok(p.outputPerMillionTokensUsd > 0, `${m.model}: saída não positiva`);
+  }
+});
+
+test("os quatro modelos da Ollama Cloud estão catalogados, mas não configuráveis por acaso", () => {
+  // "Estar no catálogo" não é "estar ativo": nenhum tem ai_settings real.
+  // Este teste só confirma que os PARES existem e têm o formato certo —
+  // não que algum está em uso.
+  for (const par of [
+    "ollama-cloud:gemma4:31b-cloud", "ollama-cloud:minimax-m3:cloud",
+    "ollama-cloud:deepseek-v4-flash:cloud", "ollama-cloud:nemotron-3-ultra:cloud",
+  ]) {
+    const [provider, ...resto] = par.split(":");
+    assert.equal(modeloAutorizado(provider, resto.join(":")), true, par);
+  }
+});
+
+test("DeepSeek e Nemotron da Ollama Cloud são texto, não candidatos de visão", () => {
+  const deepseek = capacidadesDe("ollama-cloud", "deepseek-v4-flash:cloud");
+  const nemotron = capacidadesDe("ollama-cloud", "nemotron-3-ultra:cloud");
+  assert.equal(deepseek?.vision, false);
+  assert.equal(nemotron?.vision, false);
+});
+
+// ─── Custo, a partir do preço ───────────────────────────────────────────────
+
+test("custoMicros: microUSD = tokens × preço por milhão, sem escala extra", () => {
+  // 0,14 USD/milhão × 1.000.000 tokens = 0,14 USD = 140.000 microUSD.
+  assert.equal(custoMicros(0.14, 1_000_000), 140_000);
+  // 1 token a 1 USD/milhão = 1 microUSD.
+  assert.equal(custoMicros(1, 1), 1);
+});
+
+test("custoMicros arredonda para cima — nunca subestima", () => {
+  assert.equal(custoMicros(0.33, 1), 1); // 0.33 arredondaria para 0 sem o ceil
+});
+
+test("custoDeReservaMicros soma entrada (+imagem) e saída, nos preços certos", () => {
+  const preco: ModelPricing = {
+    inputPerMillionTokensUsd: 0.14, outputPerMillionTokensUsd: 0.40,
+    currency: "USD", source: "https://example.test", asOf: "2026-01-01",
+  };
+  // 3000 tokens de entrada + 500 de saída, sem imagem.
+  const semImagem = custoDeReservaMicros(preco, { entrada: 3000, saida: 500 });
+  assert.equal(semImagem, custoMicros(0.14, 3000) + custoMicros(0.40, 500));
+
+  // Com imagem: o teto de imagem entra pelo preço de ENTRADA, somado ao resto.
+  const comImagem = custoDeReservaMicros(preco, { entrada: 3000, saida: 500, imagem: 1120 });
+  assert.equal(comImagem, custoMicros(0.14, 3000 + 1120) + custoMicros(0.40, 500));
+  assert.ok(comImagem > semImagem);
 });

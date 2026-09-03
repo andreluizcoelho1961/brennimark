@@ -2,6 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGroq } from "@ai-sdk/groq";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import { PRODUCT_LOCALE, inEnglish } from "../../platform/locale";
@@ -9,7 +10,7 @@ import { CATALOGO, capacidadesDe } from "./catalogo";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
-export type AIProvider = "groq" | "anthropic" | "openai" | "google" | "openrouter";
+export type AIProvider = "groq" | "anthropic" | "openai" | "google" | "openrouter" | "ollama-cloud";
 export type AIRole = "chat" | "analysis" | "both";
 export type AIRoutingFeature = "chat" | "analysis";
 
@@ -53,6 +54,21 @@ export function getModel(config: AIProviderConfig): LanguageModel {
       return createGoogleGenerativeAI({ apiKey: config.apiKey })(config.model);
     case "openrouter":
       return createOpenRouter({ apiKey: config.apiKey })(config.model);
+    case "ollama-cloud":
+      /*
+       * NÃO ATIVADO — nenhuma chave real existe para este provedor ainda
+       * (ver catalogo.ts). `baseURL` segue o padrão documentado em
+       * https://docs.ollama.com/api/openai-compatibility (`/v1/` a partir da
+       * raiz da API) aplicado ao host de nuvem
+       * (https://docs.ollama.com/cloud confirma que o mesmo par
+       * host+Bearer serve local e nuvem) — mas a Ollama não documenta esse
+       * endpoint especificamente PARA nuvem. Confirmar contra uma conta real
+       * antes da primeira conexão de verdade (P2+), não presumir que
+       * funciona por analogia.
+       */
+      return createOpenAICompatible({
+        name: "ollama-cloud", baseURL: "https://ollama.com/v1", apiKey: config.apiKey,
+      })(config.model);
     default: {
       const exhaustive: never = config.provider;
       throw new Error(`Unknown AI provider: ${exhaustive}`);
@@ -78,6 +94,7 @@ export const PROVIDERS: { value: AIProvider; label: string }[] = [
   { value: "openai", label: "OpenAI" },
   { value: "google", label: "Google" },
   { value: "openrouter", label: "OpenRouter" },
+  { value: "ollama-cloud", label: "Ollama Cloud" },
 ];
 
 /** Suggested models per provider, shown in the settings dropdown. */
@@ -93,6 +110,12 @@ export const PROVIDER_MODELS: Record<AIProvider, string[]> = {
     "anthropic/claude-sonnet-5",
     "openai/gpt-5.1",
     "meta-llama/llama-4-scout",
+  ],
+  "ollama-cloud": [
+    "gemma4:31b-cloud",
+    "minimax-m3:cloud",
+    "deepseek-v4-flash:cloud",
+    "nemotron-3-ultra:cloud",
   ],
 };
 
