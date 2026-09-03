@@ -116,14 +116,25 @@ oficialmente, ver ressalva acima):
 [Qwen API Pricing — BenchLM](https://benchlm.ai/alibaba/api-pricing),
 [Qwen API Pricing — deepinfra](https://deepinfra.com/blog/qwen-api-pricing-2026-guide).
 
-**Recomendação para o P1, sujeita a revisão:** **Caminho B, com
-Qwen3 VL 32B Instruct**, por três motivos concretos — preço mais baixo da
-tabela junto do Qwen3 VL 8B; contexto de 131k confirmado por fonte primária
-(a página do próprio modelo); e o adaptador `openrouter` **já existe** no
-código (`src/lib/ai/provider.ts`), então nenhum adaptador novo é necessário —
-só uma entrada de catálogo, que é o que o P1 já sabe fazer. O caminho A fica
-registrado como alternativa de custo por-token potencialmente menor, a
-confirmar antes de trocar.
+**Recomendação para o P1, sujeita a revisão** *(retirada — ver correção
+abaixo)*: ~~Caminho B, com Qwen3 VL 32B Instruct~~, por três motivos
+concretos — preço mais baixo da tabela junto do Qwen3 VL 8B; contexto de
+131k confirmado por fonte primária (a página do próprio modelo); e o
+adaptador `openrouter` **já existe** no código (`src/lib/ai/provider.ts`),
+então nenhum adaptador novo é necessário — só uma entrada de catálogo, que é
+o que o P1 já sabe fazer. O caminho A ficava registrado como alternativa de
+custo por-token potencialmente menor, a confirmar antes de trocar.
+
+> **Correção de direção (2026-09-03), depois deste parecer:** esta
+> recomendação venceu por reduzir trabalho de código — o adaptador já
+> existir —, não pela comparação que o P2 ainda vai fazer. Isso é
+> exatamente o critério que a correção rejeitou. O Caminho B segue no
+> catálogo de comparação (`src/lib/ai/candidatos-qwen.ts`) como uma das
+> alternativas, ao lado do Caminho A direto — nenhum dos dois é o padrão. A
+> decisão de modelo/caminho fica para o P2, depois do benchmark GE rodado
+> nos dois caminhos, contexto de 131k não é critério decisivo (o Brennimark
+> limita a 8 fontes), e nenhuma chave, crédito ou conexão foi criada a
+> partir desta recomendação.
 
 ---
 
