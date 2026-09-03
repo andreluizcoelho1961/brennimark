@@ -18,6 +18,11 @@ Ollama, mas boa parte do P2 não depende:
   P2A: liberar a reserva depois que o despacho já aconteceu podia
   subestimar custo — o provedor pode cobrar mesmo sem devolver um
   relatório final de uso. **Concluído** — ver seção dedicada abaixo.
+- **P2A.2 — teto validado de chatRole/analysisRole.** A lacuna que o
+  P2A.1 descobriu e não fechou sozinho: 1.000 caracteres, validado no
+  banco, na RPC de importação e na leitura — e a reserva passou a usar o
+  conteúdo real do papel, não uma suposição. **Concluído** — ver seção
+  dedicada abaixo. Com isto, **o P2A está encerrado por completo**.
 - **P2B — benchmark real, autorizado.** O ponto 4 e a ativação em si.
   Aqui sim: conta e chave da Ollama Cloud, crédito pré-pago pequeno, chave
   cadastrada pelo Studio (cifrada, nunca pelo chat nem commitada), perfil
@@ -99,30 +104,81 @@ pessoa cancela depois de já ter recebido o primeiro token — o teste
 verifica explicitamente que `settledMicros` nunca é zero.
 
 **A segunda parte da exigência — a reserva de entrada cobre tudo que é
-faturável.** `BOILERPLATE_DO_PROMPT_DE_SISTEMA` (o texto fixo do prompt de
-sistema ao redor do conhecimento recuperado) deixou de ser um chute de
-1.500 caracteres e passou a ser MEDIDO chamando os construtores reais
-(`buildChatSystemPrompt`/`buildAnalysisSystemPrompt`) com trechos no teto
-e um papel de marca de ~150 caracteres — a análise mede quase o dobro do
-chat (regras de cor só existem lá). Uma margem de 20% (`MARGEM_DE_PROTOCOLO`)
-cobre o que a contagem de caracteres não modela: overhead de protocolo
-(papéis/estrutura de mensagem) e a variância do tokenizador real. Um teste
-roda a MESMA medição e quebra se o texto fixo crescer além do assumido. O
-teto visual (`maxImageTokens`) já entrava na conta desde o P1 — agora há
-um teste provando que a DIFERENÇA de reserva com/sem imagem é exatamente
-esse número, nem mais nem menos.
+faturável.** `BOILERPLATE_DO_PROMPT_DE_SISTEMA` (o texto FIXO do prompt de
+sistema — regras de fundamentação, formato, regras de cor só na análise)
+deixou de ser um chute de 1.500 caracteres e passou a ser MEDIDO chamando
+os construtores reais (`buildChatSystemPrompt`/`buildAnalysisSystemPrompt`)
+com trechos no teto e papel VAZIO, isolando o que não depende do papel — a
+análise mede quase o dobro do chat. O papel em si entra à parte, com o
+conteúdo REAL (ver P2A.2, abaixo — fechado na mesma rodada). Uma margem de
+20% (`MARGEM_DE_PROTOCOLO`) cobre o que a contagem de caracteres não
+modela: overhead de protocolo (papéis/estrutura de mensagem) e a variância
+do tokenizador real — permanece como margem sobre o texto medido, nunca
+como substituto de medi-lo. Um teste roda a MESMA medição do boilerplate
+fixo e quebra se ele crescer além do assumido. O teto visual
+(`maxImageTokens`) já entrava na conta desde o P1 — agora há um teste
+provando que a DIFERENÇA de reserva com/sem imagem é exatamente esse
+número, nem mais nem menos.
 
-**Lacuna descoberta, não fechada — para sua decisão**: `chatRole` e
-`analysisRole` (o "papel" que a marca declara para o assistente) são texto
-livre, sem limite de tamanho validado em nenhum lugar do código
-(`brand-row.ts` só confere se a string não está vazia). O número assumido
-na reserva inclui uma folga de ~350 caracteres além do que foi medido, mas
-não é uma garantia formal — um papel de marca muito mais longo que isso
-poderia, em teoria, fazer a reserva subestimar. Duas saídas: (a) validar
-um teto de tamanho no import/edição desses campos (uma mudança pequena,
-mas em fluxo de validação que hoje não tem esse limite — prefiro avisar
-antes de tocar nisso sem pedir), ou (b) aceitar a folga atual como
-suficiente e revisar depois do benchmark, com dado real. Qual prefere?
+## P2A.2 — teto validado de chatRole/analysisRole, e reserva com o conteúdo real
+
+Decisão: **1.000 caracteres**, com validação formal em três camadas —
+`MAX_CARACTERES_DO_PAPEL_DA_MARCA`, a mesma constante nos três lugares (o
+banco, a leitura em `brand-row.ts`, e a reserva em `execucao.ts`), para não
+haver dois números que deveriam bater e não batem:
+
+- **Banco** — migração
+  [20260903180000](../../supabase/migrations/20260903180000_brand_ai_role_length_limit.sql):
+  `check (char_length(ai->>'chatRole') <= 1000)` (e o mesmo para
+  `analysisRole`) na tabela `brands`. Impede bypass pela Data API — mesmo
+  uma escrita direta, fora de qualquer rota do produto, é recusada. Preflight
+  confirmou que a única marca real (GE) tem os dois campos vazios: a
+  constraint não rejeita nada existente.
+- **RPC de importação** (`publish_brand_import`, mesma migração) — valida
+  ANTES do insert, com uma exceção nomeada
+  (`chatRole must be at most 1000 characters`, código `22001`) em vez de
+  deixar a mensagem crua da constraint chegar a quem importa.
+- **Leitura** (`brand-row.ts`) — `papelDaMarca()` trata um valor além do
+  teto como malformado: cai para `""`, nunca é truncado em silêncio (mesma
+  disciplina do resto do arquivo — "dado malformado nunca vira conteúdo
+  aprovado").
+
+**Achado ao implementar**: `.length` do JavaScript conta unidades UTF-16,
+não pontos de código — `"😀".repeat(1000).length` dá 2000, não 1000,
+porque esse emoji ocupa duas unidades. O `char_length` do Postgres conta
+pontos de código. Sem corrigir isso, o teto do TypeScript teria sido mais
+restritivo que o do banco para qualquer texto com esse tipo de caractere —
+duas camadas contando coisas diferentes com o mesmo nome. `contarCaracteres()`
+(via `Array.from`, que itera por ponto de código) corrige isso nos dois
+lugares — validação e reserva.
+
+**A reserva agora usa o CONTEÚDO REAL do papel**, não uma suposição
+genérica: `AIExecutionRequest` ganhou o campo `role`, e
+`tetoDeTokensDeEntrada` soma `contarCaracteres(role)` — capado no teto
+validado como uma segunda camada de defesa, independente da primeira (o
+banco já deveria ter recusado um valor maior, mas a reserva não confia
+cegamente nisso). `BOILERPLATE_DO_PROMPT_DE_SISTEMA` foi remedido com
+papel VAZIO, isolando só o texto que não depende do papel — os dois
+componentes (fixo + papel real) agora entram separados, em vez de um único
+número que misturava os dois.
+
+Provado por: teste de banco (1.000 aceito, 1.001 recusado, para ASCII e
+para emoji — confirmando contagem por caractere, não por byte, e que a
+linha original não muda depois de cada tentativa recusada); testes em
+`brand-row.test.ts` (mesmos casos, na leitura); testes em
+`execucao.test.ts` (um papel de 500 caracteres reserva mais que um vazio;
+um papel muito além do teto — simulando um defeito ou uma linha anterior à
+constraint — reserva exatamente o mesmo que um papel exatamente no teto,
+nunca mais).
+
+**O que fica de fora, de propósito**: não existe hoje nenhuma tela onde um
+administrador edite `chatRole`/`analysisRole` — o único caminho de escrita
+(`BrandImporter.tsx`) sempre grava `""`. "Validação na interface e
+contador de caracteres" está pronta para ser usada (a constante é
+exportada, o padrão está estabelecido), mas não há interface para aplicá-la
+ainda. Construir essa tela é decisão de produto separada — não fiz isso
+aqui sem pedir, para não repetir o que a orientação deste projeto já
+rejeitou antes (nenhuma tela nova ad hoc).
 
 ## P2B — o quarto ponto, autorizado separadamente
 
