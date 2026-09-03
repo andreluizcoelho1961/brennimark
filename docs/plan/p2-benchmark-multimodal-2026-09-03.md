@@ -13,7 +13,11 @@ Ollama, mas boa parte do P2 não depende:
 
 - **P2A — implementação hermética, sem custo.** Os três primeiros pontos
   abaixo. Roda contra provedor falso, nenhuma chave, nenhuma conexão real.
-  **Concluído nesta rodada.**
+  **Concluído.**
+- **P2A.1 — correção contábil, antes da chave real.** Uma revisão sobre o
+  P2A: liberar a reserva depois que o despacho já aconteceu podia
+  subestimar custo — o provedor pode cobrar mesmo sem devolver um
+  relatório final de uso. **Concluído** — ver seção dedicada abaixo.
 - **P2B — benchmark real, autorizado.** O ponto 4 e a ativação em si.
   Aqui sim: conta e chave da Ollama Cloud, crédito pré-pago pequeno, chave
   cadastrada pelo Studio (cifrada, nunca pelo chat nem commitada), perfil
@@ -64,6 +68,61 @@ despacho bem-sucedido nunca inclui `kill_switch_ativo`.
 FALSO. Um provedor real tem falhas que um dublê não reproduz sozinho —
 antes da primeira chamada real (P2B), vale reconfirmar contra ela, não só
 assumir que o dublê generalizou.
+
+## P2A.1 — correção contábil pós-despacho
+
+A regra original do item 2 tratava "erro depois do despacho" e "erro antes
+do despacho" do mesmo jeito — as duas liberavam a reserva. Isso subestima
+custo: uma vez que o pedido saiu para o provedor, cancelamento, queda de
+streaming ou ausência de relatório de uso NÃO provam que nada foi cobrado
+— a Ollama pode processar entrada e produzir tokens de saída antes de o
+cliente cancelar, e cobrar por isso mesmo sem devolver um `usage` final.
+
+A regra corrigida, implementada em `executarComOrcamento`:
+
+- **Falha ANTES do despacho** (nenhuma tentativa chegou a ser chamada — na
+  prática, só quando o `AbortSignal` já chega abortado): libera
+  integralmente. É o ÚNICO caminho que ainda libera.
+- **Falha DEPOIS do despacho, com uso CONHECIDO** (a promise de uso
+  resolve com números, mesmo que o stream de texto tenha quebrado):
+  liquida o uso real.
+- **Cancelamento, timeout, queda de streaming ou uso DESCONHECIDO depois
+  do despacho**: liquida pelo TETO reservado (o mesmo valor que já era o
+  pior caso assumido) e marca `usage_unknown: true` no `usage_snapshot` do
+  ledger — nunca vira custo zero, nunca fica sem registro.
+- Uma promise de uso que nunca resolve (plausível depois de um
+  cancelamento) tem um teto de espera (`usageTimeoutMs`, 5s por padrão) —
+  sem isso, encerrar a execução ficaria pendurado para sempre.
+
+Provado por 10 testes em `execucao.test.ts`, incluindo o caso central: uma
+pessoa cancela depois de já ter recebido o primeiro token — o teste
+verifica explicitamente que `settledMicros` nunca é zero.
+
+**A segunda parte da exigência — a reserva de entrada cobre tudo que é
+faturável.** `BOILERPLATE_DO_PROMPT_DE_SISTEMA` (o texto fixo do prompt de
+sistema ao redor do conhecimento recuperado) deixou de ser um chute de
+1.500 caracteres e passou a ser MEDIDO chamando os construtores reais
+(`buildChatSystemPrompt`/`buildAnalysisSystemPrompt`) com trechos no teto
+e um papel de marca de ~150 caracteres — a análise mede quase o dobro do
+chat (regras de cor só existem lá). Uma margem de 20% (`MARGEM_DE_PROTOCOLO`)
+cobre o que a contagem de caracteres não modela: overhead de protocolo
+(papéis/estrutura de mensagem) e a variância do tokenizador real. Um teste
+roda a MESMA medição e quebra se o texto fixo crescer além do assumido. O
+teto visual (`maxImageTokens`) já entrava na conta desde o P1 — agora há
+um teste provando que a DIFERENÇA de reserva com/sem imagem é exatamente
+esse número, nem mais nem menos.
+
+**Lacuna descoberta, não fechada — para sua decisão**: `chatRole` e
+`analysisRole` (o "papel" que a marca declara para o assistente) são texto
+livre, sem limite de tamanho validado em nenhum lugar do código
+(`brand-row.ts` só confere se a string não está vazia). O número assumido
+na reserva inclui uma folga de ~350 caracteres além do que foi medido, mas
+não é uma garantia formal — um papel de marca muito mais longo que isso
+poderia, em teoria, fazer a reserva subestimar. Duas saídas: (a) validar
+um teto de tamanho no import/edição desses campos (uma mudança pequena,
+mas em fluxo de validação que hoje não tem esse limite — prefiro avisar
+antes de tocar nisso sem pedir), ou (b) aceitar a folga atual como
+suficiente e revisar depois do benchmark, com dado real. Qual prefere?
 
 ## P2B — o quarto ponto, autorizado separadamente
 
