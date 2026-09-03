@@ -1,12 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LanguageModelUsage } from "ai";
 import {
   CATALOGO_VERSION, capacidadesDe, custoDeReservaMicros, modeloAutorizado, podeAnalisarImagem,
-  type ModelCapabilities,
+  type ModelCapabilities, type ModelPricing,
 } from "./catalogo";
 import {
-  killSwitchAtivo, liberarReserva, mensagemDeOrcamento, reservarExecucao,
-  type MotivoDeRecusa, type SnapshotDePreco,
+  consolidarExecucao, killSwitchAtivo, liberarReserva, mensagemDeOrcamento, reservarExecucao,
+  type MotivoDeRecusa, type SnapshotDeUso, type SnapshotDePreco,
 } from "./orcamento";
+import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
 
 /**
@@ -53,7 +55,7 @@ export type MotivoDeBloqueio =
   | "erro_de_consulta";
 
 export type DecisaoDeExecucao =
-  | { pode: true; executionId: string; capabilities: AIModelCapabilities }
+  | { pode: true; executionId: string; capabilities: AIModelCapabilities; maxOutputTokens: number }
   | { pode: false; motivo: MotivoDeBloqueio };
 
 /**
@@ -133,9 +135,15 @@ export async function decidirExecucao(
   const priceSnapshot: SnapshotDePreco = {
     ...pricing, catalogVersion: CATALOGO_VERSION, provider: perfil.provider, model: perfil.model,
   };
+  // UM número, usado nos dois lugares: a reserva soma este teto, e é o
+  // MESMO valor que decidirExecucao devolve para virar `maxOutputTokens` na
+  // chamada real. Duas variáveis para "o teto de saída" seriam duas chances
+  // de divergirem — e a diferença entre elas é exatamente a folga que
+  // deixaria uma resposta real custar mais do que a reserva cobriu.
+  const maxOutputTokens = tetoDeTokensDeSaida(request.task);
   const reservedMicros = custoDeReservaMicros(pricing, {
     entrada: tetoDeTokensDeEntrada(request.task),
-    saida: tetoDeTokensDeSaida(request.task),
+    saida: maxOutputTokens,
     imagem: request.image ? pricing.maxImageTokens : undefined,
   });
 
@@ -174,7 +182,7 @@ export async function decidirExecucao(
     return { pode: false, motivo: killSwitch.workspace ? "kill_switch_workspace" : "kill_switch_marca" };
   }
 
-  return { pode: true, executionId: reserva.executionId, capabilities };
+  return { pode: true, executionId: reserva.executionId, capabilities, maxOutputTokens };
 }
 
 /**
@@ -204,4 +212,137 @@ export function mensagemDeBloqueio(motivo: MotivoDeBloqueio, ingles: boolean): s
     default:
       return mensagemDeOrcamento(motivo, ingles);
   }
+}
+
+/** O que uma chamada real ao provedor devolve — texto e o uso, que só se sabe depois. */
+export interface ResultadoDoDespacho {
+  textStream: AsyncIterable<string>;
+  usage: PromiseLike<LanguageModelUsage>;
+}
+
+export interface ExecucaoComOrcamento<TAttempt> {
+  firstChunk: string;
+  iterator: AsyncIterator<string>;
+  attempt: TAttempt;
+  fallbackUsed: boolean;
+  cleanup: () => void;
+  cancel: (reason?: unknown) => Promise<void>;
+}
+
+/**
+ * Despacha UMA execução já decidida (`decidirExecucao` retornou `pode:
+ * true`) e garante — por CONSTRUÇÃO, não por disciplina de quem chama —
+ * que ela termina liquidada ou liberada, nunca presa como 'reserved'.
+ *
+ * A garantia mora no `iterator` devolvido: `next()` liquida quando o
+ * stream termina (`done`) e libera se lançar; `return()` (chamado quando
+ * quem consome para de puxar, como no `cancel` de um `ReadableStream`)
+ * libera. Quem chama esta função não decide MAIS quando liquidar ou
+ * liberar — só drena o iterator do jeito que já drenava, e a contabilidade
+ * acontece sozinha. Um `encerrado` interno faz o que acontecer primeiro
+ * vencer; as funções do banco também são idempotentes, então mesmo uma
+ * corrida aqui seria inofensiva — duas camadas, não uma confiando na outra.
+ *
+ * Nenhum fallback automático: só `attempts[0]` é tentado, mesmo que
+ * `attempts` traga mais — a reserva foi calculada para UM preço, e deixar
+ * esta função trocar de perfil por conta própria liquidaria com um preço
+ * que ninguém reservou.
+ */
+export async function executarComOrcamento<TAttempt extends { config: { provider: string; model: string } }>(
+  params: {
+    supabase: SupabaseClient;
+    executionId: string;
+    pricing: ModelPricing;
+    attempts: readonly TAttempt[];
+    firstChunkTimeoutMs: number;
+    parentSignal?: AbortSignal;
+    validateInitialText?: (text: string, streamEnded: boolean) => "accept" | "continue" | "reject";
+    dispatch: (attempt: TAttempt, signal: AbortSignal) => ResultadoDoDespacho;
+    onAttemptStart?: (attempt: TAttempt, index: number) => void;
+    onAttemptFailure?: (attempt: TAttempt, index: number, error: unknown) => void;
+  },
+): Promise<ExecucaoComOrcamento<TAttempt>> {
+  const { supabase, executionId, pricing, dispatch } = params;
+  const attemptsRestritos = params.attempts.slice(0, 1) as TAttempt[];
+
+  let usageCapturado: PromiseLike<LanguageModelUsage> | null = null;
+  let prepared: PreparedFallbackStream<TAttempt>;
+  try {
+    prepared = await prepareStreamWithFallback<TAttempt>({
+      attempts: attemptsRestritos,
+      firstChunkTimeoutMs: params.firstChunkTimeoutMs,
+      parentSignal: params.parentSignal,
+      validateInitialText: params.validateInitialText,
+      onAttemptStart: params.onAttemptStart,
+      onAttemptFailure: params.onAttemptFailure,
+      start: (attempt, signal) => {
+        const resultado = dispatch(attempt, signal);
+        usageCapturado = resultado.usage;
+        return resultado.textStream;
+      },
+    });
+  } catch (error) {
+    // Nem um chunk saiu — nenhum uso cobrável aconteceu. Libera antes de
+    // repassar o erro, para quem chama não precisar lembrar de fazer isso.
+    await liberarReserva(supabase, executionId);
+    throw error;
+  }
+
+  let encerrado = false;
+  const liberar = async () => {
+    if (encerrado) return;
+    encerrado = true;
+    await liberarReserva(supabase, executionId);
+  };
+  const liquidar = async () => {
+    if (encerrado) return;
+    encerrado = true;
+    const usage = usageCapturado ? await Promise.resolve(usageCapturado).catch(() => null) : null;
+    if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
+      await liberarReserva(supabase, executionId);
+      return;
+    }
+    const settledMicros = custoDeReservaMicros(pricing, {
+      entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
+    });
+    const usageSnapshot: SnapshotDeUso = {
+      inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
+      cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens,
+    };
+    await consolidarExecucao(supabase, {
+      executionId, settledMicros,
+      provider: prepared.attempt.config.provider, model: prepared.attempt.config.model,
+      usageSnapshot,
+    });
+  };
+
+  const originalIterator = prepared.iterator;
+  const iterator: AsyncIterator<string> = {
+    async next() {
+      try {
+        const resultado = await originalIterator.next();
+        if (resultado.done) await liquidar();
+        return resultado;
+      } catch (error) {
+        await liberar();
+        throw error;
+      }
+    },
+    async return(value) {
+      await liberar();
+      return originalIterator.return ? originalIterator.return(value) : { done: true, value };
+    },
+  };
+
+  return {
+    firstChunk: prepared.firstChunk,
+    iterator,
+    attempt: prepared.attempt,
+    fallbackUsed: prepared.fallbackUsed,
+    cleanup: prepared.cleanup,
+    cancel: async (reason) => {
+      prepared.cancel(reason);
+      await liberar();
+    },
+  };
 }
