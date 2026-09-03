@@ -105,10 +105,44 @@ test("uma mensagem colada não estoura o orçamento das outras", () => {
   assert.ok((limitada.content as string).length <= LIMITES_DE_IA.maxCaracteresPorMensagem + 1);
 });
 
-test("mensagem sem conteúdo de texto atravessa intacta", () => {
-  // Imagem na análise: o conteúdo não é string e cortá-lo seria destruí-lo.
+test("parte de imagem é descartada — o histórico de chat não é multimodal", () => {
+  /*
+   * Achado da revisão de segurança pós-P2A: este teste antes esperava que
+   * uma parte de imagem "atravessasse intacta" — mas essa era exatamente a
+   * lacuna estrutural que deixava conteúdo estruturado escapar do limite.
+   * A análise de imagem tem sua PRÓPRIA rota e seu próprio limite de
+   * tamanho; `limitarMensagens` só alimenta o histórico do CHAT, que não
+   * deveria carregar imagem nenhuma. Uma parte que não é texto é
+   * descartada, não repassada sem limite.
+   */
   const comImagem = [{ role: "user", content: [{ type: "image" }] as unknown }];
-  assert.deepEqual(limitarMensagens(comImagem), comImagem);
+  assert.deepEqual(limitarMensagens(comImagem), [{ role: "user", content: [] }]);
+});
+
+test("conteúdo em partes de texto é cortado pelo TOTAL da mensagem, não por parte", () => {
+  // Muitas partes pequenas, cada uma dentro do limite isoladamente, mas a
+  // SOMA estoura — o corte precisa olhar o total, não cada parte sozinha.
+  const partes = Array(10).fill({ type: "text", text: "x".repeat(1000) }); // soma: 10.000
+  const mensagens = [{ role: "user", content: partes as unknown }];
+  const [limitada] = limitarMensagens(mensagens);
+  const conteudo = limitada.content as { type: string; text: string }[];
+  const totalCortado = conteudo.reduce((soma, parte) => soma + parte.text.length, 0);
+  assert.ok(totalCortado <= LIMITES_DE_IA.maxCaracteresPorMensagem,
+    `total cortado (${totalCortado}) deveria caber em maxCaracteresPorMensagem (${LIMITES_DE_IA.maxCaracteresPorMensagem})`);
+});
+
+test("partes de texto e imagem misturadas: o texto é cortado, a imagem é descartada", () => {
+  const mensagens = [{
+    role: "user",
+    content: [
+      { type: "text", text: "x".repeat(LIMITES_DE_IA.maxCaracteresPorMensagem * 2) },
+      { type: "image", image: "dados-que-nao-interessam-aqui" },
+    ] as unknown,
+  }];
+  const [limitada] = limitarMensagens(mensagens);
+  const conteudo = limitada.content as { type: string }[];
+  assert.equal(conteudo.length, 1, "só a parte de texto deveria sobrar");
+  assert.equal(conteudo[0].type, "text");
 });
 
 test("sem evidência há instrução explícita, não bloco vazio", () => {

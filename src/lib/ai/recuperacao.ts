@@ -63,6 +63,44 @@ export function limitarPergunta(pergunta: string): string {
 }
 
 /**
+ * O conteúdo de UMA mensagem, dentro do limite — string ou lista de partes.
+ *
+ * `ModelMessage.content` aceita as duas formas: uma string, ou uma lista de
+ * partes (`[{type:"text", text:"..."}, {type:"image", ...}, ...]`). Limitar
+ * só a forma string deixava a forma de partes passar INTACTA — uma única
+ * parte de texto gigante, ou muitas partes pequenas somando um total
+ * gigante, furava o orçamento sem que a rota percebesse: o limite hoje é
+ * sobre o TOTAL da mensagem, então soma através das partes, não por parte
+ * isolada.
+ *
+ * Partes que não são texto (imagem, arquivo, chamada de ferramenta) são
+ * descartadas — o chat não é multimodal (a análise de imagem é uma rota
+ * separada, com seu próprio limite de tamanho), e aceitá-las sem limite
+ * seria outro jeito de escapar do orçamento. Um formato totalmente
+ * desconhecido (nem string, nem lista) não é interpretado nem modificado —
+ * `streamText` decide o que fazer com ele, mas nada aqui finge que sabe.
+ */
+function limitarConteudoDaMensagem(content: unknown): unknown {
+  if (typeof content === "string") return limitarTexto(content, LIMITES_DE_IA.maxCaracteresPorMensagem);
+  if (!Array.isArray(content)) return content;
+
+  let restante = LIMITES_DE_IA.maxCaracteresPorMensagem;
+  const partes: unknown[] = [];
+  for (const parte of content) {
+    if (restante <= 0) break;
+    const ehTexto = typeof parte === "object" && parte !== null
+      && (parte as { type?: unknown }).type === "text"
+      && typeof (parte as { text?: unknown }).text === "string";
+    if (!ehTexto) continue;
+    const texto = (parte as { text: string }).text;
+    const cortado = limitarTexto(texto, restante);
+    partes.push({ ...(parte as object), text: cortado });
+    restante -= cortado.length;
+  }
+  return partes;
+}
+
+/**
  * O histórico, limitado pelas duas pontas.
  *
  * As ÚLTIMAS mensagens, não as primeiras: uma conversa longa perde o começo
@@ -71,11 +109,10 @@ export function limitarPergunta(pergunta: string): string {
  * deixam de caber.
  */
 export function limitarMensagens<T extends { content?: unknown }>(mensagens: readonly T[]): T[] {
-  return mensagens.slice(-LIMITES_DE_IA.maxMensagens).map((mensagem) =>
-    typeof mensagem.content === "string"
-      ? { ...mensagem, content: limitarTexto(mensagem.content, LIMITES_DE_IA.maxCaracteresPorMensagem) }
-      : mensagem,
-  );
+  return mensagens.slice(-LIMITES_DE_IA.maxMensagens).map((mensagem) => ({
+    ...mensagem,
+    content: limitarConteudoDaMensagem(mensagem.content),
+  }));
 }
 
 /** "páginas 12–18", "página 7", ou vazio quando não há procedência. */
