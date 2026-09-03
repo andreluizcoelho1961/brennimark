@@ -152,3 +152,26 @@ for (const [largura, nome] of [[390, "mobile"], [1440, "desktop"]] as const) {
     ).toBeVisible();
   });
 }
+
+test("o manual aparece acima das ferramentas na coluna", async ({ page }) => {
+  /*
+   * A ordem no DOM é a ordem que a pessoa lê. O teste mede posição vertical
+   * real, e não a ordem do array: um `order` de CSS ou um flex invertido
+   * mudaria a tela sem mudar a estrutura, e o teste continuaria verde.
+   */
+  await desktop(page);
+
+  const posicaoDe = (seletor: string) =>
+    page.evaluate(
+      (s) => document.querySelector(s)?.getBoundingClientRect().top ?? Infinity,
+      seletor,
+    );
+
+  const primeiraPagina = await posicaoDe("[data-doc-destino]");
+  const biblioteca = await posicaoDe("[data-nav-destination][href*='biblioteca']");
+
+  expect(
+    primeiraPagina,
+    "as páginas do manual estão abaixo do acervo",
+  ).toBeLessThan(biblioteca);
+});

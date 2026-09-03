@@ -124,10 +124,21 @@ export function NavigationDrawer({
             <span aria-hidden>✕</span>
           </button>
         </div>
-        <NavigationSections sections={sections} basePath={basePath} onNavigate={onClose} />
+        {/* Mesma ordem da barra: o manual antes das outras áreas. Duas ordens
+            para a mesma navegação seriam dois produtos. */}
+        <NavigationSections
+          sections={sections.filter((s) => s.id === "manual")}
+          basePath={basePath}
+          onNavigate={onClose}
+        />
         {basePath && (
           <NavegacaoDeDocumentos docs={docs} base={basePath} onNavigate={onClose} />
         )}
+        <NavigationSections
+          sections={sections.filter((s) => s.id !== "manual")}
+          basePath={basePath}
+          onNavigate={onClose}
+        />
       </div>
     </div>
   );

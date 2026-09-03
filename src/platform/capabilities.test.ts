@@ -61,18 +61,47 @@ test("a navegação some para quem só consulta, em vez de aparecer desabilitada
  */
 const OWNER = capabilitiesForRole("owner");
 
-function inteligencia(secoes: ReturnType<typeof shellSections>) {
-  return secoes.find((s) => s.id === "intelligence");
+/**
+ * As utilidades, onde quer que a navegação as ponha.
+ *
+ * Elas viviam numa seção só, "Inteligência". A reorganização as distribuiu por
+ * área de uso — chat e análise em "Consultar", histórico em "Acervo",
+ * provedores de IA em "Conta", porque `ai_settings` é do workspace e não da
+ * marca.
+ *
+ * O que estes testes garantem nunca foi "existe uma seção chamada X": é que a
+ * marca mostra o que declarou, não mostra o que não declarou, e que uma
+ * chamada não contamina a seguinte. Procurar por rota em vez de por seção
+ * preserva a garantia e sobrevive à próxima reorganização.
+ */
+const CATALOGO = [
+  "/docs/chat",
+  "/docs/analise",
+  "/docs/historico",
+  "/docs/configuracoes/ia",
+];
+
+function utilidadesVisiveis(secoes: ReturnType<typeof shellSections>) {
+  return secoes
+    .flatMap((s) => s.destinations)
+    .map((d) => d.href)
+    .filter((href) => CATALOGO.includes(href));
 }
 
-test("sem utilidades declaradas, não existe seção de Inteligência", () => {
+function destinoDe(secoes: ReturnType<typeof shellSections>, href: string) {
+  return secoes.flatMap((s) => s.destinations).find((d) => d.href === href);
+}
+
+test("sem utilidades declaradas, nenhuma aparece na navegação", () => {
   const secoes = shellSections({ capabilities: OWNER, locale: "pt-BR", utilityLinks: [] });
-  assert.equal(inteligencia(secoes), undefined, "seção vazia é área morta na navegação");
+  assert.deepEqual(utilidadesVisiveis(secoes), []);
+  // E nenhuma seção fica vazia: cabeçalho sem nada embaixo é área morta.
+  assert.ok(secoes.every((s) => s.destinations.length > 0));
 });
 
 test("a marca sem utilidades e a marca omissa dão no mesmo", () => {
   const omissa = shellSections({ capabilities: OWNER, locale: "pt-BR" });
-  assert.equal(inteligencia(omissa), undefined);
+  assert.deepEqual(utilidadesVisiveis(omissa), []);
 });
 
 test("a marca completa mostra as quatro funcionalidades", () => {
@@ -81,12 +110,13 @@ test("a marca completa mostra as quatro funcionalidades", () => {
     locale: "pt-BR",
     utilityLinks: ["chat", "analysis", "history", "ai-settings"],
   });
-  const destinos = inteligencia(secoes)!.destinations.map((d) => d.href);
-  assert.deepEqual(destinos, [
-    "/docs/chat",
+  // Todas as quatro aparecem. A ORDEM entre elas passou a ser da área de uso,
+  // não do catálogo, então o teste compara conjunto e não sequência.
+  assert.deepEqual(utilidadesVisiveis(secoes).sort(), [
     "/docs/analise",
-    "/docs/historico",
+    "/docs/chat",
     "/docs/configuracoes/ia",
+    "/docs/historico",
   ]);
 });
 
@@ -94,8 +124,8 @@ test("o rótulo da funcionalidade fala o idioma da INTERFACE", () => {
   const pt = shellSections({ capabilities: OWNER, locale: "pt-BR", utilityLinks: ["chat"] });
   const en = shellSections({ capabilities: OWNER, locale: "en", utilityLinks: ["chat"] });
   // A rota é do produto; o rótulo também. O idioma do manual não entra.
-  assert.equal(inteligencia(pt)!.destinations[0].label, "Chat da marca");
-  assert.equal(inteligencia(en)!.destinations[0].label, "Brand assistant");
+  assert.equal(destinoDe(pt, "/docs/chat")?.label, "Chat da marca");
+  assert.equal(destinoDe(en, "/docs/chat")?.label, "Brand assistant");
 });
 
 test("duas marcas no mesmo processo não trocam de funcionalidades", () => {
@@ -111,13 +141,10 @@ test("duas marcas no mesmo processo não trocam de funcionalidades", () => {
     utilityLinks: ["chat"],
   });
 
-  assert.deepEqual(inteligencia(soChat)!.destinations.map((d) => d.href), ["/docs/chat"]);
-  assert.deepEqual(inteligencia(semChat)!.destinations.map((d) => d.href), [
-    "/docs/analise",
-    "/docs/historico",
-  ]);
+  assert.deepEqual(utilidadesVisiveis(soChat), ["/docs/chat"]);
+  assert.deepEqual(utilidadesVisiveis(semChat).sort(), ["/docs/analise", "/docs/historico"]);
   // A chamada do meio não pode contaminar a terceira.
-  assert.deepEqual(inteligencia(deNovoSoChat), inteligencia(soChat));
+  assert.deepEqual(utilidadesVisiveis(deNovoSoChat), utilidadesVisiveis(soChat));
 });
 
 test("uma chave desconhecida não vira destino quebrado", () => {
@@ -128,5 +155,5 @@ test("uma chave desconhecida não vira destino quebrado", () => {
     // aposentou; ela some, em vez de virar link para lugar nenhum.
     utilityLinks: ["chat", "inexistente" as never],
   });
-  assert.deepEqual(inteligencia(secoes)!.destinations.map((d) => d.href), ["/docs/chat"]);
+  assert.deepEqual(utilidadesVisiveis(secoes), ["/docs/chat"]);
 });

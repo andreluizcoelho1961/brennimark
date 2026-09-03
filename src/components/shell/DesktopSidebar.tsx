@@ -95,15 +95,27 @@ export function DesktopSidebar({
   // área morta que sugere que algo falhou ao carregar.
   if (sections.length === 0 && docs.length === 0) return null;
 
+  const primeira = sections.filter((s) => s.id === "manual");
+  const demais = sections.filter((s) => s.id !== "manual");
+
   return (
     <nav
       aria-label="Navegação principal"
       className="hidden w-[var(--shell-sidebar)] flex-none flex-col gap-[var(--space-shell-5)] overflow-y-auto border-r border-platform-border bg-platform-bg px-[var(--space-shell-3)] py-[var(--space-shell-5)] lg:flex"
     >
-      <NavigationSections sections={sections} basePath={basePath} />
-      {/* As páginas do manual vêm DEPOIS dos destinos do produto: a moldura é
-          do produto, o conteúdo é da marca, e a ordem diz isso. */}
+      {/*
+        As páginas do manual vêm logo abaixo da área "Manual", e ANTES das
+        outras áreas.
+        
+        Antes elas vinham depois de tudo, e isso empurrava o conteúdo para o fim
+        de uma lista de oito destinos de produto. A moldura continua sendo do
+        produto e o conteúdo continua sendo da marca — o que mudou é qual dos
+        dois a pessoa encontra primeiro, e quem abre um manual veio ler o
+        manual.
+      */}
+      <NavigationSections sections={primeira} basePath={basePath} />
       {basePath && <NavegacaoDeDocumentos docs={docs} base={basePath} />}
+      <NavigationSections sections={demais} basePath={basePath} />
     </nav>
   );
 }

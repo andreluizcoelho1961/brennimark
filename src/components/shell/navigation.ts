@@ -44,8 +44,11 @@ const CATALOGO_DE_UTILIDADES: Record<
   history: { href: "/docs/historico", pt: "Histórico e calibração", en: "History & calibration" },
   "ai-settings": {
     href: "/docs/configuracoes/ia",
-    pt: "Configurações — Conecte sua IA",
-    en: "AI settings",
+    // Curto o bastante para caber na coluna. O rótulo anterior —
+    // "Configurações — Conecte sua IA" — era cortado no meio pela largura da
+    // barra, e um destino cujo nome não cabe é um destino que não se lê.
+    pt: "Provedores de IA",
+    en: "AI providers",
   },
 };
 
@@ -78,30 +81,54 @@ export function shellSections({
     .filter(Boolean)
     .map((item) => ({ href: item.href, label: locale === "en" ? item.en : item.pt }));
 
+  /*
+   * O manual primeiro.
+   *
+   * A ordem anterior punha oito destinos de produto acima do conteúdo: Visão
+   * geral, Biblioteca, quatro de Inteligência, Importar e Administração — e só
+   * então as páginas do manual. Num produto cujo trabalho é consultar o
+   * manual, o manual estava no fim da lista.
+   *
+   * As áreas agora respondem a "o que estou fazendo":
+   *
+   *   Manual      o conteúdo, e a visão geral que leva a ele
+   *   Consultar   as ferramentas que se usa LENDO — perguntar e avaliar peça
+   *   Acervo      o que se busca de vez em quando: assets e histórico
+   *   Conta       o que é do WORKSPACE e não da marca
+   *
+   * "Conta" não é cosmética: `ai_settings` é por workspace, e importar cria
+   * marca — nenhuma das duas pertence à marca aberta. Deixá-las na hierarquia
+   * dela sugeria que configurar IA fosse configurar aquela marca.
+   */
+  const porChave = (chave: BrandvilleUtilityKey) =>
+    utilities.filter((u) => u.href === CATALOGO_DE_UTILIDADES[chave].href);
+
   const sections: ShellSection[] = [
     {
-      id: "guide",
-      label: t("Guia", "Guide"),
+      id: "manual",
+      label: t("Manual", "Manual"),
       destinations: [{ href: "/docs", label: t("Visão geral", "Overview"), mobile: true }],
+    },
+    {
+      id: "consultar",
+      label: t("Consultar", "Consult"),
+      destinations: [...porChave("chat"), ...porChave("analysis")],
     },
     {
       id: "library",
       label: t("Acervo", "Library"),
       destinations: [
         { href: "/docs/biblioteca", label: t("Biblioteca de assets", "Asset library"), mobile: true },
+        ...porChave("history"),
       ],
     },
     {
-      id: "intelligence",
-      label: t("Inteligência", "Intelligence"),
-      destinations: utilities,
-    },
-    {
-      id: "governance",
-      label: t("Governança", "Governance"),
+      id: "account",
+      label: t("Conta", "Account"),
       destinations: [
         { href: "/docs/importar", label: t("Importar manual", "Import a manual"), requires: "administrar", foraDaMarca: true },
         { href: "/docs/admin", label: t("Administração", "Administration"), requires: "administrar" },
+        ...porChave("ai-settings").map((d) => ({ ...d, requires: "administrar" as const })),
       ],
     },
   ];

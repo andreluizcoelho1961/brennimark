@@ -542,7 +542,9 @@ test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ p
     "Chat da marca",
     "Análise de aplicações",
     "Histórico e calibração",
-    "Configurações — Conecte sua IA",
+    // Encurtado na reorganização: o rótulo anterior era cortado pela largura
+    // da coluna, e destino cujo nome não se lê não é destino.
+    "Provedores de IA",
   ]) {
     await expect(coluna.getByRole("link", { name: destino })).toBeVisible();
   }
