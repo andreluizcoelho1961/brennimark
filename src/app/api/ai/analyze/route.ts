@@ -184,6 +184,7 @@ export async function POST(request: Request) {
   const visionAttempts = [modelosComVisao[0]];
   let maxOutputTokens: number;
   let pricing: ModelPricing;
+  let reservedMicros: number;
   try {
     const decisao = await decidirExecucao(
       supabase,
@@ -200,6 +201,7 @@ export async function POST(request: Request) {
       );
     }
     maxOutputTokens = decisao.maxOutputTokens;
+    reservedMicros = decisao.reservedMicros;
     // decidirExecucao só devolve pode:true com preço de imagem verificado
     // (é a checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
     pricing = decisao.capabilities.pricing!;
@@ -231,7 +233,7 @@ export async function POST(request: Request) {
 
       try {
         const execucao = await executarComOrcamento({
-          supabase, executionId, pricing,
+          supabase, executionId, pricing, reservedMicros,
           attempts: visionAttempts,
           firstChunkTimeoutMs,
           parentSignal: request.signal,

@@ -138,6 +138,7 @@ export async function POST(request: Request) {
       // decidirExecucao só devolve pode:true com preço verificado — a
       // checagem que bloqueia antes de chegar aqui — não-nulo garantido.
       pricing: decisao.capabilities.pricing!,
+      reservedMicros: decisao.reservedMicros,
       attempts,
       firstChunkTimeoutMs,
       parentSignal: request.signal,
