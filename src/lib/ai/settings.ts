@@ -2,10 +2,6 @@ import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
 import { createClient } from "@/lib/supabase/server";
 import { decryptApiKey } from "@/lib/ai/crypto";
 import {
-  DEMO_FALLBACK_MODEL,
-  DEMO_MODEL,
-  DEMO_PROVIDER,
-  PROVIDERS,
   type AIProvider,
   type AIProviderConfig,
   type AIRoutingFeature,
@@ -146,43 +142,27 @@ export async function getActiveConfig(workspaceId: string, role: "chat" | "analy
   };
 }
 
-export function getDemoConfig(): AIProviderConfig {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    /*
-     * Erro NOMEADO, e mensagem sem receita de configuração.
-     *
-     * A anterior dizia qual variável de ambiente falta e em qual arquivo
-     * colocá-la — e chegou à tela de quem só queria fazer uma pergunta ao
-     * manual. O nome da classe é o que a camada de erro usa para escolher a
-     * mensagem de produto; a mensagem aqui existe para o log.
-     */
-    const erro = new Error("nenhum provedor de IA configurado para esta conta");
-    erro.name = "SemProvedorDeIA";
-    throw erro;
-  }
-  return { provider: DEMO_PROVIDER, model: DEMO_MODEL, apiKey };
-}
-
-function getExplicitChatFallbackConfig(): AIProviderConfig | null {
-  const provider = process.env.AI_CHAT_FALLBACK_PROVIDER;
-  const model = process.env.AI_CHAT_FALLBACK_MODEL;
-  const apiKey = process.env.AI_CHAT_FALLBACK_API_KEY;
-
-  if (!provider && !model && !apiKey) return null;
-  if (!provider || !model || !apiKey || !PROVIDERS.some((candidate) => candidate.value === provider)) {
-    throw new Error(
-      "Configure AI_CHAT_FALLBACK_PROVIDER, AI_CHAT_FALLBACK_MODEL e AI_CHAT_FALLBACK_API_KEY em conjunto."
-    );
-  }
-
-  return { provider: provider as AIProvider, model, apiKey };
-}
-
-function getSameProviderFallback(primary: AIProviderConfig): AIProviderConfig | null {
-  if (primary.provider !== "groq" || primary.model === DEMO_FALLBACK_MODEL) return null;
-  return { ...primary, model: DEMO_FALLBACK_MODEL };
-}
+/*
+ * Aqui viviam três fallbacks implícitos: `getDemoConfig` (chave de ambiente
+ * `GROQ_API_KEY`, sempre ausente em qualquer ambiente real deste projeto),
+ * `getExplicitChatFallbackConfig` (três variáveis paralelas só para chat) e
+ * `getSameProviderFallback` (trocava de modelo dentro do mesmo provedor sem
+ * ninguém pedir).
+ *
+ * O briefing do piloto Qwen é explícito: "o fallback global por
+ * GROQ_API_KEY deve ser removido ou explicitamente desabilitado" — e nenhum
+ * fallback implícito pode consumir crédito de outro perfil ou workspace sem
+ * ser uma escolha registrada.
+ *
+ * Removidos, não desabilitados: `GROQ_API_KEY` nunca esteve definida em
+ * nenhum ambiente deste produto (confirmado por inspeção — ver
+ * docs/plan/parecer-piloto-qwen-p0.md §1), então o caminho existia só para
+ * lançar uma exceção que a camada de erro convertia em mensagem de produto.
+ * Chegar à mensagem certa por acidente de uma variável ausente é o padrão
+ * exato que este produto rejeita em todo outro lugar — falha por design, não
+ * por acaso. Ver `resolveLegacyRouting` abaixo: sem config, `attempts` fica
+ * vazio, e é o CHAMADOR que decide a mensagem — de propósito.
+ */
 
 export type ResolvedChatAttempt = {
   config: AIProviderConfig;
@@ -224,19 +204,22 @@ async function getSettingConfig(
   };
 }
 
+/**
+ * Sem `ai_routing_policies`, ou sem workspace: o único config possível é o
+ * `ai_settings` ativo do workspace, se existir. `attempts` vazio é uma
+ * resposta válida — "não há perfil configurado" — e não uma exceção. Quem
+ * chama decide a mensagem: ver `conhecimentoIndisponivel`-e-equivalentes nas
+ * rotas, que tratam `attempts.length === 0` como o estado esperado de uma
+ * conta sem IA configurada, não como falha.
+ */
 async function resolveLegacyRouting(feature: AIRoutingFeature, workspaceId: string | null): Promise<ResolvedAIRouting> {
   const config = workspaceId ? await getActiveConfig(workspaceId, feature) : null;
-  const primary = config ? { config, isDemo: false } : { config: getDemoConfig(), isDemo: true };
-  const explicitFallback = feature === "chat" ? getExplicitChatFallbackConfig() : null;
-  const fallback = explicitFallback ?? getSameProviderFallback(primary.config);
-  const attempts = !fallback || (fallback.provider === primary.config.provider && fallback.model === primary.config.model)
-    ? [primary]
-    : [primary, { config: fallback, isDemo: primary.isDemo }];
+  const attempts = config ? [{ config, isDemo: false }] : [];
 
   return {
     attempts,
     timeoutMs: DEFAULT_ROUTING_TIMEOUT_MS[feature],
-    allowCrossProvider: Boolean(explicitFallback),
+    allowCrossProvider: false,
   };
 }
 
@@ -296,8 +279,7 @@ export async function resolveAnalysisRouting(): Promise<ResolvedAIRouting> {
   return resolveFeatureRouting("analysis");
 }
 
-/** Resolves the config to use for a feature: workspace's own setting, or the shared demo fallback. */
-export async function resolveConfig(role: "chat" | "analysis"): Promise<{ config: AIProviderConfig; isDemo: boolean }> {
-  const routing = await resolveFeatureRouting(role);
-  return routing.attempts[0];
-}
+// `resolveConfig` existiu aqui: nenhum chamador a usava, e o tipo prometia
+// `{ config, isDemo }` não-opcional mesmo quando `attempts` está vazio —
+// `attempts[0]` seria `undefined` sob o tipo de algo que sempre existe.
+// Removida como código morto, não como funcionalidade perdida.

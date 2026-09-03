@@ -6,7 +6,7 @@ import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
-import { classifyAIError } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
 import { brandPromptContext } from "@/lib/brandville/context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
@@ -95,6 +95,14 @@ export async function POST(request: Request) {
     if (!recuperacao.ok) return conhecimentoIndisponivel();
     trechos = recuperacao.trechos;
     const routing = await resolveChatRouting();
+    // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
+    // Interrompe AQUI: sem isto, `prepareStreamWithFallback` lançaria um erro
+    // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
+    // mensagem que diz a quem pedir.
+    if (routing.attempts.length === 0) {
+      const { code, message } = semProvedorConfigurado();
+      return NextResponse.json({ error: code, message }, { status: 503 });
+    }
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
   } catch (error) {

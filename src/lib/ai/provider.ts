@@ -180,6 +180,6 @@ export function requiresBillingConsent(provider: AIProvider, model: string): boo
   return getModelCommercialInfo(provider, model).billing !== "free";
 }
 
-export const DEMO_PROVIDER: AIProvider = "groq";
-export const DEMO_MODEL = "openai/gpt-oss-20b";
-export const DEMO_FALLBACK_MODEL = "openai/gpt-oss-120b";
+// DEMO_PROVIDER / DEMO_MODEL / DEMO_FALLBACK_MODEL viviam aqui — o modelo
+// fixo do fallback global por GROQ_API_KEY, que o piloto Qwen manda remover.
+// Ver o comentário em settings.ts, onde o fallback foi eliminado.

@@ -4,7 +4,7 @@ import { getModel, supportsVision } from "@/lib/ai/provider";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
 import { brandPromptContext } from "@/lib/brandville/context";
-import { classifyAIError } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { prepareStreamWithFallback } from "@/lib/ai/stream-fallback";
@@ -134,6 +134,14 @@ export async function POST(request: Request) {
   let firstChunkTimeoutMs: number;
   try {
     const routing = await resolveAnalysisRouting();
+    // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
+    // Interrompe AQUI: sem isto, `prepareStreamWithFallback` lançaria um erro
+    // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
+    // mensagem que diz a quem pedir.
+    if (routing.attempts.length === 0) {
+      const { code, message } = semProvedorConfigurado();
+      return NextResponse.json({ error: code, message }, { status: 503 });
+    }
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
   } catch (error) {

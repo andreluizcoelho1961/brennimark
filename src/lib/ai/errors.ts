@@ -25,6 +25,29 @@ export type AIErrorCode =
  * ensina a configuração do servidor a quem não administra, e contradiz a
  * política de fronteiras de erro que o Q1 estabeleceu.
  */
+/**
+ * A resposta para "esta conta não tem IA configurada" — direta, sem exceção.
+ *
+ * Antes, este estado só era alcançado LANÇANDO um erro nomeado `SemProvedorDeIA`
+ * de dentro de `getDemoConfig()`, que por sua vez só existia porque
+ * `GROQ_API_KEY` estava ausente — um acidente de variável de ambiente
+ * disfarçado de fluxo de controle. O piloto Qwen removeu esse fallback (ver
+ * settings.ts); agora "sem perfil configurado" é um RESULTADO que
+ * `resolveFeatureRouting` devolve (`attempts: []`), não uma exceção que
+ * alguém precisa lançar de propósito para simular.
+ *
+ * `classifyAIError` continua reconhecendo o erro nomeado `SemProvedorDeIA`,
+ * caso algum caminho futuro prefira lançar — mas o caminho direto é este.
+ */
+export function semProvedorConfigurado(): { code: "no_provider"; message: string } {
+  return {
+    code: "no_provider",
+    message: isEnglish
+      ? "This account's AI isn't set up yet. Ask whoever administers the account to connect a provider."
+      : "A IA desta conta ainda não está configurada. Peça a quem administra a conta para conectar um provedor.",
+  };
+}
+
 export function classifyAIError(
   error: unknown,
 ): { code: AIErrorCode; message: string; detalheTecnico?: string } {
@@ -50,13 +73,7 @@ export function classifyAIError(
     // Provedor ausente é um estado do PRODUTO, não uma falha técnica: quem
     // consulta precisa saber a quem pedir, e não qual variável falta.
     if (error.name === "SemProvedorDeIA") {
-      return {
-        code: "no_provider",
-        message: isEnglish
-          ? "This account's AI isn't set up yet. Ask whoever administers the account to connect a provider."
-          : "A IA desta conta ainda não está configurada. Peça a quem administra a conta para conectar um provedor.",
-        detalheTecnico: error.message,
-      };
+      return { ...semProvedorConfigurado(), detalheTecnico: error.message };
     }
     if (error.name === "TimeoutError" || /aborted due to timeout|timed?\s*out|não iniciou a resposta|didn.t start responding/i.test(error.message)) {
       return {
