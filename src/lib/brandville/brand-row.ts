@@ -25,6 +25,44 @@ function texto(valor: unknown): valor is string {
   return typeof valor === "string" && valor.length > 0;
 }
 
+/**
+ * O teto de `chatRole`/`analysisRole` (o "papel" que a marca declara para
+ * o assistente) — decisão registrada em
+ * docs/plan/p2-benchmark-multimodal-2026-09-03.md: espaço para um
+ * parágrafo de instruções; mais que isso deveria virar configuração
+ * estruturada, não continuar como um campo de texto solto.
+ *
+ * A MESMA constante que a migração `20260903180000_brand_ai_role_length_limit.sql`
+ * grava como `check (char_length(...) <= 1000)` no banco, e que
+ * `src/lib/ai/execucao.ts` usa para limitar quanto a reserva de orçamento
+ * confia no comprimento do papel. Três lugares, um número — divergir seria
+ * a reserva assumir um teto que o banco não garante, ou o contrário.
+ */
+export const MAX_CARACTERES_DO_PAPEL_DA_MARCA = 1_000;
+
+/**
+ * Conta CARACTERES — pontos de código Unicode — não unidades UTF-16. O
+ * `.length` nativo do JavaScript conta unidades UTF-16: um emoji fora do
+ * plano básico (como 😀) ocupa DUAS unidades, então `"😀".repeat(1000).length`
+ * dá 2000, não 1000. O `char_length` do Postgres conta pontos de código —
+ * `Array.from` (que itera por code point, não por unidade UTF-16) é o
+ * equivalente correto em JS. Sem isto, o teto do TypeScript seria mais
+ * restritivo que o do banco para qualquer texto com esses caracteres, e as
+ * duas camadas contariam coisas diferentes com o mesmo nome.
+ */
+export function contarCaracteres(valor: string): number {
+  return Array.from(valor).length;
+}
+
+/**
+ * Como `texto()`, mas também recusa um valor além do teto validado — um
+ * papel longo demais é tratado como malformado, do mesmo jeito que um
+ * papel ausente: cai para "", nunca é truncado em silêncio.
+ */
+function papelDaMarca(valor: unknown): valor is string {
+  return texto(valor) && contarCaracteres(valor) <= MAX_CARACTERES_DO_PAPEL_DA_MARCA;
+}
+
 function objeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null && !Array.isArray(valor);
 }
@@ -93,8 +131,8 @@ export function parseBrandRow(row: unknown): ActiveBrand | null {
     theme,
     ai: {
       knowledgeMode: ia.knowledgeMode === "full" ? "full" : "docs",
-      chatRole: texto(ia.chatRole) ? ia.chatRole : "",
-      analysisRole: texto(ia.analysisRole) ? ia.analysisRole : "",
+      chatRole: papelDaMarca(ia.chatRole) ? ia.chatRole : "",
+      analysisRole: papelDaMarca(ia.analysisRole) ? ia.analysisRole : "",
     },
     legal: { footerNotice: texto(legal.footerNotice) ? legal.footerNotice : "" },
     ...(rotulos ? { statusLabels: rotulos } : {}),

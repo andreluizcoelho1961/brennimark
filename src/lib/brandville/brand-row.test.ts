@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseBrandRow, parseDocumentRow } from "./brand-row";
+import { MAX_CARACTERES_DO_PAPEL_DA_MARCA, parseBrandRow, parseDocumentRow } from "./brand-row";
 
 const LINHA_MARCA = {
   id: "b1", key: "acme", name: "Acme", short_name: "Acme", descriptor: "Sistema de marca",
@@ -33,6 +33,48 @@ test("linha malformada devolve null, em vez de renderizar quebrado", () => {
   assert.equal(parseBrandRow({ ...LINHA_MARCA, key: "" }), null);
   assert.equal(parseBrandRow({ ...LINHA_MARCA, theme: { background: "#fff" } }), null,
     "tema incompleto não pode passar: pintaria a tela com valor indefinido");
+});
+
+test("chatRole/analysisRole no teto (1.000) são preservados", () => {
+  const noTeto = "x".repeat(MAX_CARACTERES_DO_PAPEL_DA_MARCA);
+  const marca = parseBrandRow({ ...LINHA_MARCA, ai: { knowledgeMode: "docs", chatRole: noTeto, analysisRole: noTeto } });
+  assert.equal(marca?.ai.chatRole, noTeto);
+  assert.equal(marca?.ai.analysisRole, noTeto);
+});
+
+test("chatRole/analysisRole além do teto (1.001) caem para vazio, não truncam em silêncio", () => {
+  /*
+   * Mesma disciplina do resto deste arquivo: dado malformado nunca vira
+   * conteúdo aprovado. Um papel longo demais é tratado como ausente — cai
+   * para "" — nunca é cortado no caractere 1.000 sem avisar, o que
+   * mudaria o SENTIDO do que a marca escreveu sem ninguém decidir isso.
+   */
+  const alemDoTeto = "x".repeat(MAX_CARACTERES_DO_PAPEL_DA_MARCA + 1);
+  const marca = parseBrandRow({ ...LINHA_MARCA, ai: { knowledgeMode: "docs", chatRole: alemDoTeto, analysisRole: alemDoTeto } });
+  assert.equal(marca?.ai.chatRole, "", "papel longo demais deveria virar vazio, não ficar truncado");
+  assert.equal(marca?.ai.analysisRole, "");
+});
+
+test("o teto conta CARACTERES Unicode (pontos de código), não unidades UTF-16 nem bytes", () => {
+  /*
+   * 😀 fica fora do plano básico do Unicode — em JavaScript, `.length`
+   * conta UNIDADES UTF-16, e esse emoji ocupa duas: `"😀".repeat(1000).length`
+   * dá 2000, não 1000. O `char_length` do Postgres conta pontos de
+   * código, então 1.000 emojis contam como 1.000 lá. Se este código
+   * usasse `.length` puro, o teto do TypeScript seria mais restritivo que
+   * o do banco para qualquer texto com esse tipo de caractere — as duas
+   * camadas contariam coisas diferentes com o mesmo nome.
+   */
+  const milEmojis = "😀".repeat(MAX_CARACTERES_DO_PAPEL_DA_MARCA);
+  assert.equal(milEmojis.length, MAX_CARACTERES_DO_PAPEL_DA_MARCA * 2, "cada 😀 ocupa 2 unidades UTF-16 — a premissa deste teste");
+  const marca = parseBrandRow({ ...LINHA_MARCA, ai: { knowledgeMode: "docs", chatRole: milEmojis, analysisRole: "" } });
+  assert.equal(marca?.ai.chatRole, milEmojis, "1.000 emojis (1.000 pontos de código) deveriam ser aceitos, não recusados por contar unidades UTF-16");
+});
+
+test("1.001 pontos de código (não unidades UTF-16) são recusados, mesmo em Unicode", () => {
+  const milEUmEmojis = "😀".repeat(MAX_CARACTERES_DO_PAPEL_DA_MARCA + 1);
+  const marca = parseBrandRow({ ...LINHA_MARCA, ai: { knowledgeMode: "docs", chatRole: milEUmEmojis, analysisRole: "" } });
+  assert.equal(marca?.ai.chatRole, "");
 });
 
 test("statusLabels só entra quando tem as três chaves", () => {
