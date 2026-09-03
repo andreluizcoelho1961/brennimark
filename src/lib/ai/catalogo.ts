@@ -29,6 +29,20 @@ export interface ModelCapabilities {
   /** Maior imagem aceita, em bytes. Ausente quando não há limite documentado. */
   maxImageBytes?: number;
   supportsStructuredOutput?: boolean;
+  /**
+   * O provedor documenta, publicamente, como uma imagem vira custo?
+   *
+   * Ausente ou `false` significa "não confirmei por fonte oficial" — não
+   * significa "grátis" nem "caro". A diferença importa porque a RESERVA de
+   * orçamento precisa de um número antes da chamada, e um número inventado
+   * aqui é uma falha do provedor traduzida como falha nossa: se a conversão
+   * real for maior que a suposta, a reserva subestima e a chamada sai mais
+   * cara do que o orçamento permitia.
+   *
+   * Ver `podeAnalisarImagem`: modelo sem isto não recebe imagem, até haver
+   * preço verificável — a política que o briefing do piloto Qwen pede.
+   */
+  imagePricingVerified?: boolean;
 }
 
 export interface ModeloDoCatalogo {
@@ -198,4 +212,22 @@ export function capacidadesDe(provider: string, model: string): ModelCapabilitie
 /** Os modelos de um provedor, para a interface oferecer — nunca texto livre. */
 export function modelosDe(provider: AIProvider): readonly ModeloDoCatalogo[] {
   return CATALOGO.filter((m) => m.provider === provider);
+}
+
+/**
+ * Um modelo só recebe imagem se sua precificação de imagem for VERIFICADA.
+ *
+ * A alternativa que o briefing também permite — reservar um teto conservador
+ * por solicitação — exigiria um número que hoje não tenho de nenhuma fonte
+ * oficial (ver docs/plan/parecer-piloto-qwen-p0.md §2). Bloquear é a escolha
+ * mais honesta enquanto esse número não existir: nenhuma reserva de
+ * orçamento pode ser melhor que uma reserva baseada em preço confirmado.
+ *
+ * `vision: true` sem `imagePricingVerified` continua útil para a INTERFACE —
+ * ela sabe que o modelo TECNICAMENTE aceita imagem, para não desenhar um
+ * anexo que o modelo recusaria — mas a EXECUÇÃO não chama com imagem até o
+ * preço ser confirmado.
+ */
+export function podeAnalisarImagem(capabilities: ModelCapabilities): boolean {
+  return capabilities.vision === true && capabilities.imagePricingVerified === true;
 }

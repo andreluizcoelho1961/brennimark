@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CATALOGO, capacidadesDe, modelosDe, modeloAutorizado } from "./catalogo";
+import { CATALOGO, capacidadesDe, modelosDe, modeloAutorizado, podeAnalisarImagem } from "./catalogo";
 import { PROVIDERS, PROVIDER_MODELS } from "./provider";
 
 test("modelo fora do catálogo é recusado", () => {
@@ -99,4 +99,49 @@ test("todo modelo do catálogo faz texto", () => {
   // Um modelo só-visão não serve ao produto: toda tarefa começa por uma
   // pergunta ou uma instrução em texto.
   assert.ok(CATALOGO.every((m) => m.capabilities.text));
+});
+
+// ─── O portão de visão ──────────────────────────────────────────────────────
+
+test("modelo sem precificação de imagem verificada não recebe imagem", () => {
+  /*
+   * A alternativa que o briefing também permite — reservar um teto
+   * conservador — exigiria um número que hoje não tenho de nenhuma fonte
+   * oficial. Bloquear é a escolha mais honesta enquanto esse número não
+   * existir: nenhuma reserva pode ser melhor que uma baseada em preço
+   * confirmado.
+   */
+  assert.equal(
+    podeAnalisarImagem({ text: true, vision: true, streaming: true }),
+    false,
+    "vision:true sem imagePricingVerified não deveria bastar",
+  );
+});
+
+test("modelo com precificação de imagem verificada recebe", () => {
+  assert.equal(
+    podeAnalisarImagem({ text: true, vision: true, streaming: true, imagePricingVerified: true }),
+    true,
+  );
+});
+
+test("modelo sem visão nenhuma não recebe imagem, mesmo com preço marcado", () => {
+  // Combinação que não deveria existir no catálogo, mas a função não confia
+  // em dado incoerente — ela exige as DUAS condições, não uma só.
+  assert.equal(
+    podeAnalisarImagem({ text: true, vision: false, streaming: true, imagePricingVerified: true }),
+    false,
+  );
+});
+
+test("nenhum modelo do catálogo hoje tem preço de imagem verificado", () => {
+  /*
+   * Este teste é sobre o ESTADO ATUAL, não sobre uma regra permanente — o dia
+   * em que alguém confirmar o preço de um modelo com fonte oficial, ele passa
+   * a `imagePricingVerified: true` e este teste precisa ser atualizado
+   * JUNTO, no mesmo commit que traz a fonte. É a mesma disciplina do teste de
+   * seções exatas do aceite: mudar o número exige declarar o motivo.
+   */
+  const comPrecoVerificado = CATALOGO.filter((m) => m.capabilities.imagePricingVerified);
+  assert.deepEqual(comPrecoVerificado, []);
 });
