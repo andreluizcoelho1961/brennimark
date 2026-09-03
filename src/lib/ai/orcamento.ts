@@ -36,6 +36,30 @@ export type SnapshotDeUso =
  * precisa somar o consumo do workspace inteiro, e `member` não tem SELECT
  * direto em `ai_ledger`. Por isso as funções do banco são `security definer`
  * com a checagem de participação DENTRO delas, no lugar da RLS que contornam.
+ *
+ * Achado da revisão de segurança pós-P2A (P0-2): as três mutações
+ * FINANCEIRAS — `reservarExecucao`, `consolidarExecucao`, `liberarReserva`
+ * — não recebem mais o `supabase` da SESSÃO DO USUÁRIO. Antes, `security
+ * definer` + `grant ... to authenticated` significava que qualquer membro
+ * do workspace podia chamar a RPC direto pela Data API, escolhendo
+ * `reserved_micros`/preço/moeda por conta própria — nada validava esses
+ * números contra o catálogo antes de aceitar.
+ *
+ * Agora o primeiro parâmetro das três é `serviceClient` — um cliente
+ * criado por `createServiceClient()` (`src/lib/supabase/service.ts`, chave
+ * secreta `sb_secret_...`, nunca a legacy `service_role`), que só as
+ * ROTAS constroem (o módulo é `import "server-only"`, e não pode ser
+ * importado por este arquivo sem quebrar o runner de teste — ver o
+ * comentário no topo de `service.ts`). `userId` é o segundo parâmetro,
+ * resolvido pelo CHAMADOR a partir de uma sessão já validada
+ * (`supabase.auth.getUser()`), nunca do corpo da requisição — as RPCs
+ * `_server` do banco confiam nesse valor porque só quem tem a chave de
+ * serviço consegue chamá-las.
+ *
+ * `killSwitchAtivo`/`expirarReservasAntigas` continuam com o `supabase` DA
+ * SESSÃO do usuário, sem mudança — nenhuma das duas aceita valor
+ * financeiro do chamador, e a checagem de participação nelas já vem da
+ * RLS normal.
  */
 
 export type MotivoDeRecusa =
@@ -73,7 +97,9 @@ export type ResultadoDaReserva =
  * não é, porque a chamada pode sair mais cara do que o orçamento permitia.
  */
 export async function reservarExecucao(
-  supabase: SupabaseClient,
+  /** O cliente de serviço (`createServiceClient()`) — nunca a sessão do usuário. */
+  serviceClient: SupabaseClient,
+  userId: string,
   params: {
     workspaceId: string;
     brandId: string | null;
@@ -84,7 +110,8 @@ export async function reservarExecucao(
     priceSnapshot: SnapshotDePreco;
   },
 ): Promise<ResultadoDaReserva> {
-  const { data, error } = await supabase.rpc("reservar_execucao_de_ia", {
+  const { data, error } = await serviceClient.rpc("reservar_execucao_de_ia_server", {
+    p_user_id: userId,
     p_workspace_id: params.workspaceId,
     p_brand_id: params.brandId,
     p_execution_id: params.executionId,
@@ -120,13 +147,15 @@ export async function reservarExecucao(
  * uma resposta que a pessoa já recebeu.
  */
 export async function consolidarExecucao(
-  supabase: SupabaseClient,
+  serviceClient: SupabaseClient,
+  userId: string,
   params: {
     executionId: string; settledMicros: number; provider: string; model: string;
     usageSnapshot?: SnapshotDeUso;
   },
 ): Promise<void> {
-  const { error } = await supabase.rpc("consolidar_execucao_de_ia", {
+  const { error } = await serviceClient.rpc("consolidar_execucao_de_ia_server", {
+    p_user_id: userId,
     p_execution_id: params.executionId,
     p_settled_micros: params.settledMicros,
     p_provider: params.provider,
@@ -147,10 +176,14 @@ export async function consolidarExecucao(
  * ninguém ter recebido resposta nenhuma.
  */
 export async function liberarReserva(
-  supabase: SupabaseClient,
+  serviceClient: SupabaseClient,
+  userId: string,
   executionId: string,
 ): Promise<void> {
-  const { error } = await supabase.rpc("liberar_reserva_de_ia", { p_execution_id: executionId });
+  const { error } = await serviceClient.rpc("liberar_reserva_de_ia_server", {
+    p_user_id: userId,
+    p_execution_id: executionId,
+  });
   if (error) {
     console.error(JSON.stringify({ level: "error", msg: "liberacao_de_reserva_falhou", code: error.code }));
   }

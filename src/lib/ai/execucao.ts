@@ -181,7 +181,19 @@ function tetoDeTokensDeSaida(task: AITaskType): number {
  * de cada chamador ter que adivinhar (ou inventar) um número.
  */
 export async function decidirExecucao(
+  /** A sessão do usuário — só para `killSwitchAtivo`, que não move dinheiro. */
   supabase: SupabaseClient,
+  /**
+   * O cliente de serviço (`createServiceClient()`, `src/lib/supabase/service.ts`)
+   * — só as rotas conseguem construir este, nunca este módulo (ver o
+   * comentário lá). Alimenta as três mutações financeiras
+   * (reserva/consolidação/liberação); ver o comentário no topo de
+   * `orcamento.ts` (achado P0-2).
+   */
+  serviceClient: SupabaseClient,
+  /** O id de quem pede — resolvido pelo CHAMADOR a partir de uma sessão já
+   *  validada (`supabase.auth.getUser()`), nunca do corpo da requisição. */
+  userId: string,
   request: AIExecutionRequest,
   perfil: { provider: string; model: string },
 ): Promise<DecisaoDeExecucao> {
@@ -225,7 +237,7 @@ export async function decidirExecucao(
     imagem: request.image ? pricing.maxImageTokens : undefined,
   });
 
-  const reserva = await reservarExecucao(supabase, {
+  const reserva = await reservarExecucao(serviceClient, userId, {
     workspaceId: request.workspaceId,
     brandId: request.brandId,
     executionId: request.executionId,
@@ -274,11 +286,11 @@ export async function decidirExecucao(
     brandId: request.brandId,
   });
   if ("erro" in killSwitch) {
-    await liberarReserva(supabase, reserva.executionId);
+    await liberarReserva(serviceClient, userId, reserva.executionId);
     return { pode: false, motivo: "erro_de_consulta" };
   }
   if (killSwitch.workspace || killSwitch.marca) {
-    await liberarReserva(supabase, reserva.executionId);
+    await liberarReserva(serviceClient, userId, reserva.executionId);
     return { pode: false, motivo: killSwitch.workspace ? "kill_switch_workspace" : "kill_switch_marca" };
   }
 
@@ -400,7 +412,10 @@ async function aguardarUsoComTimeout(
  */
 export async function executarComOrcamento<TAttempt extends { config: { provider: string; model: string } }>(
   params: {
-    supabase: SupabaseClient;
+    /** Ver o comentário em `decidirExecucao` — cliente de serviço, não a sessão do usuário. */
+    serviceClient: SupabaseClient;
+    /** Ver o comentário em `decidirExecucao` — resolvido de sessão validada, nunca do corpo da requisição. */
+    userId: string;
     executionId: string;
     pricing: ModelPricing;
     /** O mesmo valor que `decidirExecucao` reservou — o teto usado na
@@ -417,7 +432,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     onAttemptFailure?: (attempt: TAttempt, index: number, error: unknown) => void;
   },
 ): Promise<ExecucaoComOrcamento<TAttempt>> {
-  const { supabase, executionId, pricing, reservedMicros, dispatch } = params;
+  const { serviceClient, userId, executionId, pricing, reservedMicros, dispatch } = params;
   const usageTimeoutMs = params.usageTimeoutMs ?? TIMEOUT_DE_USO_PADRAO_MS;
   const attemptsRestritos = params.attempts.slice(0, 1) as TAttempt[];
 
@@ -432,7 +447,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
   /** A liquidação conservadora — nunca vira custo zero. */
   const consolidarConservador = async () => {
     const usageSnapshot: SnapshotDeUso = { unknown: true };
-    await consolidarExecucao(supabase, {
+    await consolidarExecucao(serviceClient, userId, {
       executionId, settledMicros: reservedMicros,
       provider: attemptDespachado?.config.provider ?? "desconhecido",
       model: attemptDespachado?.config.model ?? "desconhecido",
@@ -456,7 +471,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
       inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
       cachedInputTokens: usage.inputTokenDetails?.cacheReadTokens,
     };
-    await consolidarExecucao(supabase, {
+    await consolidarExecucao(serviceClient, userId, {
       executionId, settledMicros,
       provider: attemptDespachado!.config.provider, model: attemptDespachado!.config.model,
       usageSnapshot,
@@ -490,7 +505,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
       // `parentSignal` já abortado antes do primeiro attempt. Nada saiu
       // para o provedor: aqui, e só aqui, liberar integralmente é seguro.
       encerrado = true;
-      await liberarReserva(supabase, executionId);
+      await liberarReserva(serviceClient, userId, executionId);
     }
     throw error;
   }

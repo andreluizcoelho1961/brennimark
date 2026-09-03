@@ -15,6 +15,7 @@ import { alvoDaRota, portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
 import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { createServiceClient } from "@/lib/supabase/service";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
@@ -107,6 +108,8 @@ export async function POST(request: Request) {
   let brandId: string;
   let analysisRole: string;
   let supabase: SupabaseClient;
+  /** Ver o comentário em `decidirExecucao` — sessão validada, nunca o corpo da requisição. */
+  let userId: string;
   // O identificador comum entre requisição, reserva e ledger — quem
   // administra consegue rastrear uma execução específica sem outro id.
   let executionId: string;
@@ -121,6 +124,7 @@ export async function POST(request: Request) {
     brandId = portao.brand.id;
     analysisRole = portao.brand.ai.analysisRole;
     supabase = portao.auth.supabase;
+    userId = portao.auth.user.id;
     executionId = (body?.executionId as string | undefined) || crypto.randomUUID();
 
     /*
@@ -187,9 +191,19 @@ export async function POST(request: Request) {
   let maxOutputTokens: number;
   let pricing: ModelPricing;
   let reservedMicros: number;
+  let serviceClient: SupabaseClient;
   try {
+    // Cliente de serviço — chave sb_secret_..., só para as três mutações
+    // financeiras do ledger de IA. Nunca a sessão do usuário (achado P0-2).
+    // Dentro do mesmo try das outras checagens: sem a chave configurada,
+    // isto lança, e a rota responde 503 classificado como as demais
+    // falhas — não um 500 cru sem explicação.
+    serviceClient = createServiceClient();
+
     const decisao = await decidirExecucao(
       supabase,
+      serviceClient,
+      userId,
       {
         workspaceId, brandId, executionId, task: "analyse-image", role: analysisRole, question,
         sources: trechos, image: { mediaType: image.mediaType, sizeBytes: imageBytes },
@@ -235,7 +249,7 @@ export async function POST(request: Request) {
 
       try {
         const execucao = await executarComOrcamento({
-          supabase, executionId, pricing, reservedMicros,
+          serviceClient, userId, executionId, pricing, reservedMicros,
           attempts: visionAttempts,
           firstChunkTimeoutMs,
           parentSignal: request.signal,

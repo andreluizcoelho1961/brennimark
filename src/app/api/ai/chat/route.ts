@@ -8,6 +8,7 @@ import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { createServiceClient } from "@/lib/supabase/service";
 import { brandPromptContext } from "@/lib/brandville/context";
 import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
@@ -119,8 +120,14 @@ export async function POST(request: Request) {
     attempts = [routing.attempts[0]];
     firstChunkTimeoutMs = routing.timeoutMs;
 
+    // Cliente de serviço — chave sb_secret_..., só para as três mutações
+    // financeiras do ledger de IA. Nunca a sessão do usuário (achado P0-2).
+    const serviceClient = createServiceClient();
+
     const decisao = await decidirExecucao(
       portao.auth.supabase,
+      serviceClient,
+      portao.auth.user.id,
       {
         workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
         role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: trechos,
@@ -136,7 +143,8 @@ export async function POST(request: Request) {
     maxOutputTokens = decisao.maxOutputTokens;
 
     const execucao = await executarComOrcamento({
-      supabase: portao.auth.supabase,
+      serviceClient,
+      userId: portao.auth.user.id,
       executionId,
       // decidirExecucao só devolve pode:true com preço verificado — a
       // checagem que bloqueia antes de chegar aqui — não-nulo garantido.

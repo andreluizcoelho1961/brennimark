@@ -35,6 +35,12 @@ function supabaseFalso(resposta: RespostaRpc | Record<string, RespostaRpc>) {
 const RESERVA_OK = { data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }] };
 const KILL_SWITCH_INATIVO = { data: [{ workspace: false, marca: false }] };
 
+// O mesmo cliente falso serve para `supabase` (sessão do usuário) E
+// `serviceClient` nestes testes — o `.rpc` já roteia por nome de função, e
+// nada aqui distingue as duas chaves reais. `USER_ID` representa o valor já
+// resolvido de uma sessão validada (achado P0-2), nunca o corpo da requisição.
+const USER_ID = "user-1";
+
 const REQUEST_BASE = {
   workspaceId: "ws-1", brandId: "brand-1", executionId: "exec-1",
   task: "assist" as const, role: "", question: "qual é a cor primária?", sources: [],
@@ -53,7 +59,7 @@ const PERFIL_SEM_PRECO = { provider: "groq", model: "openai/gpt-oss-20b" };
 
 test("modelo fora do catálogo é recusado sem reservar orçamento", async () => {
   const { cliente, chamadas } = supabaseFalso({ data: [{ ok: true }] });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, { provider: "openai", model: "modelo-que-ninguem-catalogou" });
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, { provider: "openai", model: "modelo-que-ninguem-catalogou" });
   assert.deepEqual(r, { pode: false, motivo: "modelo_nao_catalogado" });
   assert.equal(chamadas.length, 0);
 });
@@ -67,7 +73,7 @@ test("modelo catalogado mas SEM preço verificado é recusado sem reservar orça
    * produto rejeita em todo outro lugar.
    */
   const { cliente, chamadas } = supabaseFalso({ data: [{ ok: true }] });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SEM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SEM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "preco_nao_verificado" });
   assert.equal(chamadas.length, 0);
 });
@@ -76,6 +82,8 @@ test("imagem num modelo sem preço de imagem verificado é recusada sem reservar
   const { cliente, chamadas } = supabaseFalso({ data: [{ ok: true }] });
   const r = await decidirExecucao(
     cliente,
+    cliente,
+    USER_ID,
     { ...REQUEST_BASE, task: "analyse-image", image: { mediaType: "image/png", sizeBytes: 1024 } },
     PERFIL_SO_TEXTO_COM_PRECO,
   );
@@ -87,6 +95,8 @@ test("imagem num modelo sem visão nenhuma também é recusada, sem reservar", a
   const { cliente, chamadas } = supabaseFalso({ data: [{ ok: true }] });
   const r = await decidirExecucao(
     cliente,
+    cliente,
+    USER_ID,
     { ...REQUEST_BASE, task: "analyse-image", image: { mediaType: "image/png", sizeBytes: 1024 } },
     PERFIL_SEM_PRECO,
   );
@@ -96,12 +106,12 @@ test("imagem num modelo sem visão nenhuma também é recusada, sem reservar", a
 
 test("sem imagem, um modelo com preço passa para a reserva e o recheck de kill switch", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK,
+    reservar_execucao_de_ia_server: RESERVA_OK,
     kill_switch_ativo: KILL_SWITCH_INATIVO,
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.equal(chamadas.length, 2);
-  assert.equal(chamadas[0].fn, "reservar_execucao_de_ia");
+  assert.equal(chamadas[0].fn, "reservar_execucao_de_ia_server");
   assert.equal(chamadas[1].fn, "kill_switch_ativo");
   assert.ok(r.pode);
   assert.equal(r.pode && r.executionId, "exec-1");
@@ -110,9 +120,9 @@ test("sem imagem, um modelo com preço passa para a reserva e o recheck de kill 
 
 test("o snapshot de preço enviado à reserva vem do catálogo, com a versão vigente", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO,
+    reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO,
   });
-  await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   const snapshot = chamadas[0].args.p_price_snapshot as Record<string, unknown>;
   assert.equal(snapshot.provider, "ollama-cloud");
   assert.equal(snapshot.model, "deepseek-v4-flash:cloud");
@@ -123,9 +133,9 @@ test("o snapshot de preço enviado à reserva vem do catálogo, com a versão vi
 
 test("a reserva é positiva e nunca fica presa em zero ou negativa", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO,
+    reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO,
   });
-  await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   const micros = chamadas[0].args.p_reserved_micros as number;
   assert.ok(Number.isInteger(micros));
   assert.ok(micros > 0, `reserva deveria ser positiva, veio ${micros}`);
@@ -137,11 +147,11 @@ test("um papel de marca mais longo reserva mais — o conteúdo real entra na co
    * só um teto genérico. Um papel de 500 caracteres precisa reservar mais
    * do que um papel vazio, na MESMA tarefa.
    */
-  const vazio = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
-  await decidirExecucao(vazio.cliente, { ...REQUEST_BASE, role: "" }, PERFIL_SO_TEXTO_COM_PRECO);
+  const vazio = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(vazio.cliente, vazio.cliente, USER_ID, { ...REQUEST_BASE, role: "" }, PERFIL_SO_TEXTO_COM_PRECO);
 
-  const comPapel = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
-  await decidirExecucao(comPapel.cliente, { ...REQUEST_BASE, role: "x".repeat(500) }, PERFIL_SO_TEXTO_COM_PRECO);
+  const comPapel = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(comPapel.cliente, comPapel.cliente, USER_ID, { ...REQUEST_BASE, role: "x".repeat(500) }, PERFIL_SO_TEXTO_COM_PRECO);
 
   const microsVazio = vazio.chamadas[0].args.p_reserved_micros as number;
   const microsComPapel = comPapel.chamadas[0].args.p_reserved_micros as number;
@@ -156,11 +166,11 @@ test("um papel além do teto validado (1.000) não infla a reserva além do teto
    * de antes da constraint) reserva o MESMO tanto que exatamente no teto,
    * nunca mais — é o que "o teto impede abuso" quer dizer na prática.
    */
-  const noTeto = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
-  await decidirExecucao(noTeto.cliente, { ...REQUEST_BASE, role: "x".repeat(1000) }, PERFIL_SO_TEXTO_COM_PRECO);
+  const noTeto = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(noTeto.cliente, noTeto.cliente, USER_ID, { ...REQUEST_BASE, role: "x".repeat(1000) }, PERFIL_SO_TEXTO_COM_PRECO);
 
-  const muitoAlem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
-  await decidirExecucao(muitoAlem.cliente, { ...REQUEST_BASE, role: "x".repeat(50_000) }, PERFIL_SO_TEXTO_COM_PRECO);
+  const muitoAlem = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(muitoAlem.cliente, muitoAlem.cliente, USER_ID, { ...REQUEST_BASE, role: "x".repeat(50_000) }, PERFIL_SO_TEXTO_COM_PRECO);
 
   assert.equal(noTeto.chamadas[0].args.p_reserved_micros, muitoAlem.chamadas[0].args.p_reserved_micros);
 });
@@ -176,9 +186,9 @@ test("maxOutputTokens devolvido é o MESMO número usado para calcular a reserva
    * um número para a reserva e outro para o retorno, este teste quebra.
    */
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO,
+    reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO,
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.ok(r.pode);
   if (!r.pode) return;
 
@@ -197,12 +207,14 @@ test("uma tarefa de imagem reserva mais do que a mesma tarefa sem imagem", async
   // de "assist"), e a comparação deixaria de ser sobre imagem.
   const base = { ...REQUEST_BASE, task: "analyse-image" as const };
 
-  const semImagem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
-  await decidirExecucao(semImagem.cliente, base, PERFIL_COM_PRECO_DE_IMAGEM);
+  const semImagem = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(semImagem.cliente, semImagem.cliente, USER_ID, base, PERFIL_COM_PRECO_DE_IMAGEM);
 
-  const comImagem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  const comImagem = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
   await decidirExecucao(
     comImagem.cliente,
+    comImagem.cliente,
+    USER_ID,
     { ...base, image: { mediaType: "image/png", sizeBytes: 1024 } },
     PERFIL_COM_PRECO_DE_IMAGEM,
   );
@@ -220,11 +232,12 @@ test("a diferença de reserva com imagem é EXATAMENTE o teto de tokens visuais 
    * único modelo com `maxImageTokens` verificado hoje — ver catalogo.ts.
    */
   const base = { ...REQUEST_BASE, task: "analyse-image" as const };
-  const semImagem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
-  const r1 = await decidirExecucao(semImagem.cliente, base, PERFIL_COM_PRECO_DE_IMAGEM);
-  const comImagem = supabaseFalso({ reservar_execucao_de_ia: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  const semImagem = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  const r1 = await decidirExecucao(semImagem.cliente, semImagem.cliente, USER_ID, base, PERFIL_COM_PRECO_DE_IMAGEM);
+  const comImagem = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
   await decidirExecucao(
-    comImagem.cliente, { ...base, image: { mediaType: "image/png", sizeBytes: 1024 } }, PERFIL_COM_PRECO_DE_IMAGEM,
+    comImagem.cliente, comImagem.cliente, USER_ID,
+    { ...base, image: { mediaType: "image/png", sizeBytes: 1024 } }, PERFIL_COM_PRECO_DE_IMAGEM,
   );
 
   assert.ok(r1.pode);
@@ -274,11 +287,11 @@ test("o boilerplate FIXO medido do prompt de sistema (sem o papel) cabe dentro d
 
 test("orçamento recusado no banco vira o motivo específico, não uma recusa genérica", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: {
+    reservar_execucao_de_ia_server: {
       data: [{ ok: false, motivo: "orcamento_da_marca_esgotado", execution_id: "exec-1", status: null }],
     },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "orcamento_da_marca_esgotado" });
   // Orçamento já recusou: nenhum recheck de kill switch é necessário.
   assert.equal(chamadas.length, 1);
@@ -286,7 +299,7 @@ test("orçamento recusado no banco vira o motivo específico, não uma recusa ge
 
 test("falha ao consultar orçamento bloqueia — falha fechada até aqui também", async () => {
   const { cliente } = supabaseFalso({ error: { code: "X", message: "fora do ar" } });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "erro_de_consulta" });
 });
 
@@ -300,11 +313,11 @@ test("falha ao consultar orçamento bloqueia — falha fechada até aqui também
 
 test("execution_id já 'reserved' (outra tentativa pode estar em voo): bloqueia como em andamento", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: {
+    reservar_execucao_de_ia_server: {
       data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "reserved" }],
     },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "execucao_em_andamento" });
   // Nenhum recheck de kill switch — a decisão já foi tomada sem chegar lá.
   assert.equal(chamadas.length, 1);
@@ -312,22 +325,22 @@ test("execution_id já 'reserved' (outra tentativa pode estar em voo): bloqueia 
 
 test("execution_id já 'settled': bloqueia como já finalizada, não despacha de novo", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: {
+    reservar_execucao_de_ia_server: {
       data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "settled" }],
     },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "execucao_ja_finalizada" });
   assert.equal(chamadas.length, 1);
 });
 
 test("execution_id já 'released': também bloqueia como já finalizada", async () => {
   const { cliente } = supabaseFalso({
-    reservar_execucao_de_ia: {
+    reservar_execucao_de_ia_server: {
       data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "released" }],
     },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "execucao_ja_finalizada" });
 });
 
@@ -335,12 +348,12 @@ test("uma reserva NOVA (não reutilizada) continua autorizando o despacho normal
   // Confirma que o novo bloqueio não pega o caminho feliz por engano —
   // `motivo: 'reservado'` (não 'ja_reservado') é uma reserva de verdade.
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: {
+    reservar_execucao_de_ia_server: {
       data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
     },
     kill_switch_ativo: KILL_SWITCH_INATIVO,
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.ok(r.pode);
   assert.equal(chamadas.length, 2);
 });
@@ -354,39 +367,39 @@ test("kill switch ligado ENTRE a reserva e o retorno bloqueia e libera a reserva
    * com o botão de pausa já acionado.
    */
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK,
+    reservar_execucao_de_ia_server: RESERVA_OK,
     kill_switch_ativo: { data: [{ workspace: true, marca: false }] },
-    liberar_reserva_de_ia: { data: null },
+    liberar_reserva_de_ia_server: { data: null },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "kill_switch_workspace" });
   // A reserva feita por engano é liberada — não fica presa como 'reserved'.
   assert.deepEqual(chamadas.map((c) => c.fn), [
-    "reservar_execucao_de_ia", "kill_switch_ativo", "liberar_reserva_de_ia",
+    "reservar_execucao_de_ia_server", "kill_switch_ativo", "liberar_reserva_de_ia_server",
   ]);
   assert.equal(chamadas[2].args.p_execution_id, "exec-1");
 });
 
 test("kill switch de MARCA ligado entre a reserva e o retorno tem o motivo certo", async () => {
   const { cliente } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK,
+    reservar_execucao_de_ia_server: RESERVA_OK,
     kill_switch_ativo: { data: [{ workspace: false, marca: true }] },
-    liberar_reserva_de_ia: { data: null },
+    liberar_reserva_de_ia_server: { data: null },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "kill_switch_marca" });
 });
 
 test("falha ao consultar o kill switch no recheck final também bloqueia e libera a reserva", async () => {
   const { cliente, chamadas } = supabaseFalso({
-    reservar_execucao_de_ia: RESERVA_OK,
+    reservar_execucao_de_ia_server: RESERVA_OK,
     kill_switch_ativo: { error: { code: "X", message: "fora do ar" } },
-    liberar_reserva_de_ia: { data: null },
+    liberar_reserva_de_ia_server: { data: null },
   });
-  const r = await decidirExecucao(cliente, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
   assert.deepEqual(r, { pode: false, motivo: "erro_de_consulta" });
   assert.deepEqual(chamadas.map((c) => c.fn), [
-    "reservar_execucao_de_ia", "kill_switch_ativo", "liberar_reserva_de_ia",
+    "reservar_execucao_de_ia_server", "kill_switch_ativo", "liberar_reserva_de_ia_server",
   ]);
 });
 
@@ -432,7 +445,7 @@ const RESERVED_MICROS = 5_000;
 test("despacho com sucesso: liquida com o uso REAL, não com o teto reservado", async () => {
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["a cor primária é", " vermelho."]),
@@ -441,7 +454,7 @@ test("despacho com sucesso: liquida com o uso REAL, não com o teto reservado", 
   });
   const texto = execucao.firstChunk + (await drenarTudo(execucao.iterator));
   assert.equal(texto, "a cor primária é vermelho.");
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14 + 40 * 0.40);
   assert.equal(chamadas[0].args.p_provider, "ollama-cloud");
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { inputTokens: 500, outputTokens: 40, cachedInputTokens: undefined });
@@ -461,7 +474,7 @@ test("sinal já abortado ANTES do primeiro attempt: libera integralmente — o �
   let despachou = false;
   await assert.rejects(() =>
     executarComOrcamento({
-      supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
       attempts: [ATTEMPT], firstChunkTimeoutMs: 1000, parentSignal: controller.signal,
       dispatch: () => {
         despachou = true;
@@ -470,7 +483,7 @@ test("sinal já abortado ANTES do primeiro attempt: libera integralmente — o �
     }),
   );
   assert.equal(despachou, false, "dispatch não deveria ter sido chamado");
-  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["liberar_reserva_de_ia_server"]);
 });
 
 async function* geradorQueLancaImediatamente(): AsyncGenerator<string> {
@@ -488,7 +501,7 @@ test("despacho que falha imediatamente: liquida conservador pelo teto, NUNCA lib
   const { cliente, chamadas } = supabaseFalso({ data: null });
   await assert.rejects(() =>
     executarComOrcamento({
-      supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
       attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
       dispatch: () => ({
         textStream: geradorQueLancaImediatamente(),
@@ -499,7 +512,7 @@ test("despacho que falha imediatamente: liquida conservador pelo teto, NUNCA lib
       }),
     }),
   );
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
@@ -510,7 +523,7 @@ test("timeout do primeiro chunk: liquida conservador pelo teto, NUNCA libera", a
   const { cliente, chamadas } = supabaseFalso({ data: null });
   await assert.rejects(() =>
     executarComOrcamento({
-      supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
       attempts: [ATTEMPT], firstChunkTimeoutMs: 20, // bem curto, de propósito
       usageTimeoutMs: 20,
       dispatch: () => ({
@@ -524,7 +537,7 @@ test("timeout do primeiro chunk: liquida conservador pelo teto, NUNCA libera", a
       }),
     }),
   );
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
@@ -539,7 +552,7 @@ test("cancelamento depois do primeiro token: NUNCA produz custo zero", async () 
    */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     usageTimeoutMs: 20, // bem curto — o teste não deveria depender de 5s reais
     dispatch: () => ({
@@ -555,7 +568,7 @@ test("cancelamento depois do primeiro token: NUNCA produz custo zero", async () 
   // a aba no meio da resposta.
   await execucao.iterator.next();
   await execucao.cancel(new Error("cliente desistiu"));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
   assert.ok((chamadas[0].args.p_settled_micros as number) > 0, "custo zero é exatamente o que este teste proíbe");
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
@@ -572,7 +585,7 @@ test("queda de streaming no meio, mas com uso CONHECIDO: liquida o uso real, nã
    */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["primeiro", "segundo"], 1), // quebra na 2ª
@@ -580,7 +593,7 @@ test("queda de streaming no meio, mas com uso CONHECIDO: liquida o uso real, nã
     }),
   });
   await assert.rejects(() => drenarTudo(execucao.iterator));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14 + 40 * 0.40);
   assert.notEqual(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
 });
@@ -590,7 +603,7 @@ test("queda de streaming no meio, com uso DESCONHECIDO: liquida conservador pelo
   // liquida pelo teto, nunca libera nem cobra zero.
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["primeiro", "segundo"], 1), // quebra na 2ª
@@ -598,7 +611,7 @@ test("queda de streaming no meio, com uso DESCONHECIDO: liquida conservador pelo
     }),
   });
   await assert.rejects(() => drenarTudo(execucao.iterator));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
@@ -614,7 +627,7 @@ test("nunca consulta o kill switch em voo — só decidirExecucao faz isso, ante
    */
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["resposta completa"]),
@@ -623,7 +636,7 @@ test("nunca consulta o kill switch em voo — só decidirExecucao faz isso, ante
   });
   await drenarTudo(execucao.iterator);
   assert.ok(!chamadas.some((c) => c.fn === "kill_switch_ativo"));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
 });
 
 test("um segundo attempt na lista é ignorado — nenhum fallback automático", async () => {
@@ -631,7 +644,7 @@ test("um segundo attempt na lista é ignorado — nenhum fallback automático", 
   const segundoAttempt = { config: { provider: "ollama-cloud", model: "deepseek-v4-flash:cloud" } };
   const tentativas: string[] = [];
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT, segundoAttempt], firstChunkTimeoutMs: 1000,
     onAttemptStart: (attempt) => tentativas.push(attempt.config.model),
     dispatch: () => ({
@@ -650,7 +663,7 @@ test("sem uso mensurável ao terminar: liquida conservador pelo teto, não liber
   // o despacho já aconteceu.
   const { cliente, chamadas } = supabaseFalso({ data: null });
   const execucao = await executarComOrcamento({
-    supabase: cliente, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
     attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
     dispatch: () => ({
       textStream: geradorDeTexto(["ok"]),
@@ -658,7 +671,7 @@ test("sem uso mensurável ao terminar: liquida conservador pelo teto, não liber
     }),
   });
   await drenarTudo(execucao.iterator);
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
   assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });

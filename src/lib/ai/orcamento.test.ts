@@ -39,19 +39,33 @@ const PARAMS = {
   priceSnapshot: SNAPSHOT_DE_PRECO,
 };
 
+// O user_id de quem pede — nas três mutações financeiras, resolvido pelo
+// CHAMADOR de uma sessão já validada, nunca do corpo da requisição (achado
+// P0-2). Aqui só representa esse valor já resolvido.
+const USER_ID = "user-1";
+
 test("reserva aceita: devolve ok e o execution_id", async () => {
   const { cliente } = supabaseFalso({
     data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
   });
-  const r = await reservarExecucao(cliente, PARAMS);
+  const r = await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.deepEqual(r, { ok: true, executionId: "exec-1", jaExistia: false, status: "reserved" });
+});
+
+test("a RPC chamada é a _server, com p_user_id — nunca a antiga exposta à Data API", async () => {
+  const { cliente, chamadas } = supabaseFalso({
+    data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
+  });
+  await reservarExecucao(cliente, USER_ID, PARAMS);
+  assert.equal(chamadas[0].fn, "reservar_execucao_de_ia_server");
+  assert.equal(chamadas[0].args.p_user_id, USER_ID);
 });
 
 test("o snapshot de preço atravessa como p_price_snapshot, sem alteração", async () => {
   const { cliente, chamadas } = supabaseFalso({
     data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
   });
-  await reservarExecucao(cliente, PARAMS);
+  await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.deepEqual(chamadas[0].args.p_price_snapshot, SNAPSHOT_DE_PRECO);
 });
 
@@ -59,7 +73,7 @@ test("reserva idempotente: motivo ja_reservado vira jaExistia true, com o status
   const { cliente } = supabaseFalso({
     data: [{ ok: true, motivo: "ja_reservado", execution_id: "exec-1", status: "settled" }],
   });
-  const r = await reservarExecucao(cliente, PARAMS);
+  const r = await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.equal(r.ok, true);
   assert.equal(r.ok && r.jaExistia, true);
   // O status não é decorativo: é o que decidirExecucao usa para decidir se
@@ -71,7 +85,7 @@ test("reserva nova: status vem 'reserved', jaExistia false", async () => {
   const { cliente } = supabaseFalso({
     data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
   });
-  const r = await reservarExecucao(cliente, PARAMS);
+  const r = await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.equal(r.ok, true);
   assert.equal(r.ok && r.jaExistia, false);
   assert.equal(r.ok && r.status, "reserved");
@@ -81,7 +95,7 @@ test("reserva recusada: o motivo específico atravessa, não um genérico", asyn
   const { cliente } = supabaseFalso({
     data: [{ ok: false, motivo: "orcamento_do_workspace_esgotado", execution_id: "exec-1", status: null }],
   });
-  const r = await reservarExecucao(cliente, PARAMS);
+  const r = await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.deepEqual(r, { ok: false, motivo: "orcamento_do_workspace_esgotado" });
 });
 
@@ -93,7 +107,7 @@ test("erro de rede/banco NUNCA vira sucesso — falha fechada", async () => {
    * A1 — falha de busca virando "não há evidência" em vez de "não sei".
    */
   const { cliente } = supabaseFalso({ error: { code: "PGRST000", message: "connection refused" } });
-  const r = await reservarExecucao(cliente, PARAMS);
+  const r = await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.equal(r.ok, false);
   assert.equal(r.ok === false && r.motivo, "erro_de_consulta");
 });
@@ -102,29 +116,31 @@ test("o erro do banco não vaza para o resultado", async () => {
   const { cliente } = supabaseFalso({
     error: { code: "X", message: "detalhe interno com possível segredo" },
   });
-  const r = await reservarExecucao(cliente, PARAMS);
+  const r = await reservarExecucao(cliente, USER_ID, PARAMS);
   assert.ok(!JSON.stringify(r).includes("detalhe interno"));
 });
 
-test("consolidar e liberar chamam a RPC certa, com os parâmetros certos", async () => {
+test("consolidar e liberar chamam a RPC _server certa, com p_user_id e os parâmetros certos", async () => {
   const consolidacao = supabaseFalso({ data: null });
-  await consolidarExecucao(consolidacao.cliente, {
+  await consolidarExecucao(consolidacao.cliente, USER_ID, {
     executionId: "exec-1", settledMicros: 3500, provider: "openrouter", model: "qwen/qwen3-vl-32b-instruct",
     usageSnapshot: { inputTokens: 3000, outputTokens: 480 },
   });
-  assert.equal(consolidacao.chamadas[0].fn, "consolidar_execucao_de_ia");
+  assert.equal(consolidacao.chamadas[0].fn, "consolidar_execucao_de_ia_server");
+  assert.equal(consolidacao.chamadas[0].args.p_user_id, USER_ID);
   assert.equal(consolidacao.chamadas[0].args.p_settled_micros, 3500);
   assert.deepEqual(consolidacao.chamadas[0].args.p_usage_snapshot, { inputTokens: 3000, outputTokens: 480 });
 
   const liberacao = supabaseFalso({ data: null });
-  await liberarReserva(liberacao.cliente, "exec-2");
-  assert.equal(liberacao.chamadas[0].fn, "liberar_reserva_de_ia");
+  await liberarReserva(liberacao.cliente, USER_ID, "exec-2");
+  assert.equal(liberacao.chamadas[0].fn, "liberar_reserva_de_ia_server");
+  assert.equal(liberacao.chamadas[0].args.p_user_id, USER_ID);
   assert.equal(liberacao.chamadas[0].args.p_execution_id, "exec-2");
 });
 
 test("consolidar sem usageSnapshot envia null, não undefined perdido", async () => {
   const { cliente, chamadas } = supabaseFalso({ data: null });
-  await consolidarExecucao(cliente, { executionId: "e", settledMicros: 1, provider: "p", model: "m" });
+  await consolidarExecucao(cliente, USER_ID, { executionId: "e", settledMicros: 1, provider: "p", model: "m" });
   assert.equal(chamadas[0].args.p_usage_snapshot, null);
 });
 
@@ -135,9 +151,9 @@ test("consolidar e liberar não lançam quando a RPC falha", async () => {
   // produto resolver depois, não dela ver agora.
   const { cliente } = supabaseFalso({ error: { code: "X", message: "falhou" } });
   await assert.doesNotReject(() =>
-    consolidarExecucao(cliente, { executionId: "e", settledMicros: 1, provider: "p", model: "m" }),
+    consolidarExecucao(cliente, USER_ID, { executionId: "e", settledMicros: 1, provider: "p", model: "m" }),
   );
-  await assert.doesNotReject(() => liberarReserva(cliente, "e"));
+  await assert.doesNotReject(() => liberarReserva(cliente, USER_ID, "e"));
 });
 
 test("a mensagem de orçamento é sempre de produto, nunca o código do motivo", () => {
