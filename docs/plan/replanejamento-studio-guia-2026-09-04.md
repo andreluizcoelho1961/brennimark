@@ -1629,36 +1629,29 @@ funciona, não quanto de memória o aparelho gasta.
 | **Navegador visível** | ✅ §18.2.9-b — quatro estados medidos, sem ponte de `rAF` |
 | **Layout em viewport mobile** | ✅ §18.2.9-c — 375×812 confirmado de dentro da página |
 
-**Por que os dois últimos não avançam mesmo com a autorização
-concedida.** A autorização de tela foi dada e o acesso ao Chrome foi
-concedido — **mas em modo somente-leitura**, que é o único tier possível
-para navegador: dá para ver o que está na tela, não para clicar. E a
-janela do Chrome está **minimizada** (`is_minimized: true`), o que faz
-toda aba dele reportar `visibilityState: "hidden"` e suspende a pintura.
-Restaurar uma janela minimizada exige clique, e clicar num app de tier
-"read" é justamente o que a política proíbe — não vou contornar isso.
-O painel embutido também está oculto (viewport `0x0`).
+### ✅ FATIA 0 APROVADA E CONCLUÍDA — 04/09, por André
 
-**O que destrava, e é um clique:** restaurar a janela do Chrome (Dock) ou
-abrir o painel do navegador no app. A aba já está carregada em
-`localhost:3100/images/harness/visivel.html`, o servidor está de pé, e a
-página mede sozinha assim que a aba ficar visível — **sem ponte de
-`rAF`**: ela aborta e escreve "OCULTA" em vez de inventar um número.
+Declarada concluída após exame das evidências. As duas ressalvas abaixo
+**acompanham formalmente o encerramento** e delimitam o que a Fatia 0
+provou:
 
-### 18.2.8 Medições no navegador — e elas invertem a recomendação
+> **1. Os 31 ms são deste ambiente e desta fixture.** Eles **não** viram
+> garantia universal de que "render concluído equivale a visível". O
+> número saiu de um navegador, numa máquina, com uma fixture sintética de
+> 9 páginas. Manual grande, aparelho lento ou canvas maior podem afastar
+> os dois estados — a distinção entre *render concluído* e *pixel na
+> tela* continua tendo de ser **medida, não presumida**, sempre que o
+> custo de errar for relevante.
 
-Harness em worktree isolado, servido pelo Next do próprio projeto
-(`localhost:3100`), com o PDF real da GE. **Nada disso existia na
-sondagem por curl, e o resultado principal contradiz a conclusão que ela
-sugeria.**
+> **2. A fixture comprova geometria, não qualidade final.** Ela prova que
+> retrato e paisagem cabem, que a proporção é preservada e que não há
+> estouro — **não** prova como o visualizador se comporta com um manual
+> de verdade. **Aparelho físico, PDF grande e rota publicada continuam
+> sendo portões da Fatia 1.**
 
-#### O achado que decide: o navegador não enxerga o suporte a Range
+**A Fatia 1 não está iniciada nem automaticamente autorizada.**
 
-Medido em **duas origens** — `http://localhost:3100` e a origem de
-produção **`https://brennimark.vercel.app`** — com resultado idêntico:
-
-| | |
-|---|---|
+---|---|
 | Status da resposta com `Range` | **206 Partial Content** (o servidor honra) |
 | Cabeçalhos que o JavaScript enxerga | `content-length`, `content-type`, `expires`, `last-modified` |
 | **`accept-ranges`** | **invisível** |
@@ -1942,6 +1935,115 @@ expõe em 9 páginas**. Sem ela, o CI não teria como reprovar a regressão.
 Também apareceu uma colisão de título: "Basic Standards" surge duas
 vezes (uma pelo outline, outra pela detecção de heading na página 9),
 que hoje vira sufixo numérico no slug — anotado para a curadoria.
+
+---
+
+## 18.3 Fatia 1 — plano executável
+
+**Escrito depois da aprovação da Fatia 0, a partir do que ela mediu.**
+Nada aqui está iniciado. A ordem não é preferência: ela sai da regra que
+a própria Fatia 0 estabeleceu — **decidir o transporte antes de construir
+a interface que depende dele.**
+
+### 18.3.0 Etapa A — transporte publicado com Range (ANTES da interface)
+
+Construir o visualizador antes de saber como os bytes chegam seria
+apostar a interface inteira numa hipótese não verificada (§19.2.3).
+
+**A.1 — Fechar a investigação inconclusiva (§19.2.1, item 1).**
+Perguntar ao suporte do Supabase se `Access-Control-Expose-Headers` é
+configurável no plano hospedado; procurar no painel e na API de
+gerenciamento; testar se um domínio próprio à frente do Storage muda a
+resposta. **Se a resposta for sim, a rota deixa de ser necessária** e
+todo o resto desta etapa encolhe. É a pergunta mais barata e a de maior
+alavanca — por isso vem primeiro.
+
+**A.2 — Avaliar a camada de borda (§19.2.1, item 2).** O Storage já está
+atrás do Cloudflare. Um worker de borda que só acrescente o cabeçalho e
+repasse o fluxo resolve o CORS **sem o PDF atravessar a aplicação** —
+sem teto de 4,5 MB, sem duração de função, sem custo de CPU da Vercel.
+Comparar contra a rota antes de escolher.
+
+**A.3 — Rota mínima publicada**, só se A.1 e A.2 não resolverem. Requisitos
+que **nascem com ela**, não depois:
+
+| Requisito | Por quê |
+|---|---|
+| **Exige `Range`** — sem intervalo, redireciona ou recusa | o teto de 4,5 MB proíbe servir o arquivo inteiro (§19.2.1, item 4) |
+| **Autoriza antes do primeiro byte** | resolve sessão, conta e marca antes de tocar no Storage |
+| **Resolve o caminho no servidor** | recebe o id do documento-fonte, nunca um caminho do cliente — a sonda aceita `?u=` e é o contra-exemplo |
+| **Confere conta e marca no caminho** | mesma disciplina de `pertenceAMarca` (`caminhos.ts`) |
+| **Cancela a origem no abandono** | senão continua baixando o que ninguém vai ler, pagando banda e duração |
+| **Repassa `206`, `Content-Range`, `Accept-Ranges`, `ETag`** | são o que o navegador precisa VER (§18.2.8) |
+
+**A.4 — Medir no ambiente publicado**, que é o único que vale:
+
+- a sequência inteira de Range atravessando a borda da Vercel — não uma
+  requisição, as onze;
+- `206` e `Content-Range` chegando **intactos** ao JavaScript;
+- o teto de 4,5 MB na prática, com resposta de 64 KiB **e** com uma
+  tentativa de arquivo inteiro, para ver o erro real;
+- **arquivo próximo de 100 MiB** — 11,3 MiB não estressa duração,
+  memória nem contagem de requisições;
+- cancelamento por abandono real;
+- duração, concorrência e custo.
+
+**A.5 — Decidir o transporte definitivo**, com os números de A.4 na mesa.
+**Só depois disso a Etapa B começa.**
+
+### 18.3.1 Etapa B — visualizador canônico
+
+Com o transporte decidido, e herdando o que a Fatia 0 já provou:
+
+- **Range obrigatório** (§19.2.2) — 5 s contra 64 s em rede móvel;
+- **virtualização** com janela pequena de canvases montados, e as seis
+  garantias estruturais de memória (§18.2.10) — cancelar ao sair da
+  janela, `width/height = 0` ao liberar, descartar referências do
+  PDF.js, nenhum cache ilimitado, teto por **pixels** e não por
+  multiplicador de zoom;
+- **cancelamento de render fora da viewport** — já provado funcionar
+  (`RenderingCancelledException`);
+- **renovação da URL sem perder posição** — a expiração devolve
+  **400**, não 401/403, então o cliente precisa reconhecer esse código;
+  a restauração de página, zoom e rolagem já foi medida funcionando;
+- **camada de texto do PDF.js**, para acessibilidade, seleção e busca
+  nativa — sem ela o canvas é opaco para leitor de tela (§19.3);
+- zoom, rotação, miniaturas, navegação por página, tela cheia;
+- **mobile mantém o layout original**, com zoom e deslocamento — nunca
+  remontagem (§3.1).
+
+### 18.3.2 Portões de conclusão da Fatia 1
+
+Além dos doze critérios da §21, três específicos:
+
+| Portão | Por quê |
+|---|---|
+| **Aparelho físico** (Android e iPhone) | `performance.memory` não vê buffer de canvas; emulação não tem CPU, GC nem descarte de aba de telefone |
+| **PDF grande** (~100 MiB) | a fixture prova geometria, não comportamento em escala |
+| **Rota publicada** | localhost não tem teto de 4,5 MB, borda, duração nem concorrência |
+
+### 18.3.3 Uma dependência que a exclusão do PDF criou
+
+A §18.2.5 escolheu quatro páginas da GE — **730** (abertura), **197**
+(fotografia), **372** (diagrama), **630** (texto) — para comparação lado
+a lado com o visualizador. Essa comparação era item da Fatia 1, e **o
+arquivo foi excluído** (§18.2.0).
+
+**Isto eu deveria ter levantado no momento da exclusão, e não levantei.**
+A autorização foi concedida e cumprida corretamente; a consequência para
+a Fatia 1 é que a comparação precisa de um manual real — o mesmo PDF da
+GE reenviado por você, ou outro manual equivalente. Os sinais medidos das
+quatro páginas continuam registrados na §18.2.5, então a escolha não se
+perdeu; o material de comparação, sim.
+
+**Sobras locais a decidir:** a medição deixou em `/tmp` uma cópia do PDF
+(`ge.pdf`, 11,3 MiB) e oito páginas renderizadas (`ge-cand/*.jpg`). São o
+mesmo material de terceiro, fora do repositório e fora do Storage, e
+somem num reinício da máquina. **Decisão sua:** apagar agora, mantendo a
+coerência com a exclusão; ou reter deliberadamente para a comparação da
+Fatia 1, e nesse caso preencher o registro de retenção (§18.2.0) com
+finalidade, prazo e responsável. **Não apago nem retenho por conta
+própria.**
 
 ---
 
