@@ -67,6 +67,25 @@ Nada nessa lista é commitado, descartado ou sobrescrito. Ela espera a
 Fatia 8 (§18), e o que dela for aproveitado será decidido lá, item a
 item — não agora (§18.1).
 
+### 0.3 Commits desta rodada, e o CI
+
+| Commit | Conteúdo | CI |
+|---|---|---|
+| `5ae917b` | primeira versão deste documento | — |
+| `249b35b` | este documento com a diretriz consolidada | — |
+| `25dbb56` | `comAlvo` extraída para módulo puro (3 arquivos) | **verde** |
+
+CI concluído com sucesso em `25dbb56`
+([run 33902004060](https://github.com/andreluizcoelho1961/brennimark/actions/runs/33902004060)).
+Antes do commit, a mudança foi verificada em **worktree isolado sobre
+`HEAD` limpo**, contendo só os três arquivos: lint, typecheck,
+**480/480** unitários, build e **250/250** e2e.
+
+Foi essa verificação isolada que expôs um defeito meu: **o teste que eu
+havia escrito para `comAlvo` nunca compilou** — a suíte roda sem
+`--jsx`, de propósito, e o teste importava de um `.tsx`. No checkout
+principal, misturado ao WIP, teria passado despercebido.
+
 ### 0.2 Regras enquanto o WIP estiver parado
 
 1. Nenhum `git checkout`, `restore`, `reset`, `clean` ou equivalente que
@@ -325,6 +344,85 @@ Três opções, com recomendação:
 Em qualquer das três, a distinção que precisa existir é a de **ciclo de
 vida**: importação que falhou é resíduo e se limpa; importação que
 publicou virou documento-fonte e só é removida com a marca.
+
+---
+
+## 5.4 Cinco estruturas, cinco granularidades
+
+A medição da Fatia 0 (§18.2) produziu 500 seções, 354 delas de uma
+página só. **Isso não se corrige ajustando a profundidade do outline nem
+o teto de seções** — os dois seriam remendos sobre a causa real.
+
+**A causa é que `brand_documents` é hoje cinco coisas ao mesmo tempo:** a
+unidade de navegação do Guia, o recipiente das páginas de origem, a
+unidade editável, a unidade de publicação e a base do que a IA recupera.
+Quando uma tabela só carrega cinco papéis, a granularidade de um deles
+impõe a granularidade de todos — e foi exatamente o que aconteceu: o
+índice do PDF é fino (quase um marcador por página), então a navegação
+virou fina, então a unidade editável virou fina, então tudo virou fino.
+
+**O erro da Fase 1e, dito com precisão:** ela não foi "profunda demais".
+Ela **achatou uma árvore numa lista**. `fronteirasDoOutline` pega uma
+hierarquia e devolve fronteiras planas; usar mais níveis só fez a lista
+plana ficar maior. A hierarquia — a informação que diria "estes 14
+marcadores são filhos de *Basic Standards*" — é descartada na conversão,
+e depois não há como recuperá-la sem reimportar.
+
+As cinco estruturas, separadas:
+
+| Estrutura | O que é | Granularidade típica na GE |
+|---|---|---|
+| **`source_pages`** | as páginas físicas do documento-fonte | **743** — uma por página, sempre |
+| **`outline_nodes`** | a árvore declarada pelo PDF, **preservada com hierarquia** | centenas a milhares de nós, em vários níveis |
+| **`navigation_nodes`** | a navegação editorial **curada** e publicada no Guia | dezenas — capítulos e seções que uma pessoa aprovou |
+| **`managed_documents`** | conteúdos editáveis, nativos ou reconstruídos | tantos quantos a agência criar; pode ser zero |
+| **`brand_chunks`** | fragmentos técnicos para recuperação pela IA | milhares, menores que qualquer seção |
+
+**Elas se relacionam sem precisar coincidir:**
+
+- `source_pages` pertence a um `brand_source_document` (§5.3) e é a
+  única estrutura obrigatoriamente completa: 1 a N, sem lacuna. É o
+  manifesto da §5 — o manifesto **é** `source_pages`.
+- `outline_nodes` aponta para `source_pages` (a página de destino) e
+  para o próprio pai. **Preservar a árvore é o ponto**: com ela gravada,
+  mudar a profundidade que a navegação usa vira uma decisão de curadoria,
+  não uma reimportação.
+- `navigation_nodes` é uma árvore **curada**. Pode nascer semeada do
+  outline, e a partir daí é editorial: renomear, fundir, reordenar,
+  esconder. Aponta para faixas de `source_pages` e/ou para
+  `managed_documents`.
+- `managed_documents` referencia as `source_pages` que substitui ou
+  reconstrói (§9, §10). Não precisa existir para uma marca funcionar —
+  um manual pode ser 100% original.
+- `brand_chunks` referencia `source_pages` pelo número, que é o que dá à
+  citação da IA um destino clicável no visualizador (§19.4).
+
+**O que isso resolve, concretamente:** o índice da GE pode continuar tão
+fino quanto ele é — a árvore inteira fica gravada em `outline_nodes`,
+sem perda — enquanto a navegação do Guia mostra as dezenas de entradas
+que fazem sentido editorialmente, e a IA recupera fragmentos ainda
+menores que qualquer uma delas. Nenhuma das três precisa concordar com
+as outras, e é por isso que nenhuma precisa ser um meio-termo ruim.
+
+**A regra que substitui o ajuste de parâmetro:** a árvore do PDF é
+**preservada inteira** em `outline_nodes`, sem poda, sem teto, sem
+escolha de profundidade na importação. **A navegação publicada é uma
+projeção curada dessa árvore** — uma vista, não uma cópia, e não a
+própria árvore renomeada. Projetar é uma operação de curadoria
+(escolher até que nível mostrar, fundir irmãos curtos, renomear,
+esconder, reordenar), reversível a qualquer momento porque o original
+nunca foi tocado.
+
+**Não escolho aqui novo limite nem nova profundidade** — e, com a
+projeção no lugar, deixa de existir um número certo a escolher no
+código. "Qual profundidade vira navegação" para de ser constante e vira
+decisão por marca, revisável, com o índice completo atrás dela. O teto de
+500 perde a função que tinha: ele existia para impedir que uma lista
+plana explodisse, e não haverá mais lista plana.
+
+**Isto é desenho, não implementação.** O esquema concreto das cinco
+estruturas entra junto com o de `brand_source_documents` (§5.3), para
+revisão, antes de qualquer migração.
 
 ---
 
@@ -749,15 +847,18 @@ O projeto já tem gerador de fixture de PDF (`npm run fixtures:pdf`,
 `scripts/gerar-fixtures-pdf.py`); a fixture da Fatia 0 estende esse
 caminho em vez de inventar outro.
 
-**Achado ao verificar o `comAlvo` em worktree limpo, e ele resolve a
-tensão de licença:** as fixtures de PDF **não são versionadas** — são
-geradas pelo script, e um checkout novo não as tem (quatro testes de
-escala falharam por `mil-paginas.pdf` ausente até rodar o gerador). Ou
-seja, **o padrão da casa já é "script versionado, binário gerado"**, que
-é exatamente o que a decisão 5 pede: a fixture sintética entra como
-código que a produz, não como PDF no repositório. Nenhum binário de
-terceiro precisa ser versionado para o CI funcionar — e o CI precisa
-gerar as fixtures antes de rodar e2e, como já faz.
+**Achado ao verificar o `comAlvo` em worktree limpo:** o padrão da casa
+é **script versionado + binário pequeno versionado**, e só as fixtures
+grandes ficam de fora. `e2e/fixtures/*.pdf` está no git (sete arquivos),
+enquanto `mil-paginas.pdf` e `mil-e-uma-paginas.pdf` estão no
+`.gitignore` — por isso quatro testes de escala falharam num checkout
+novo até eu rodar o gerador.
+
+Para a decisão 5 isso resolve bem: a fixture sintética (§18.2.7) é
+**inteiramente construída por código**, sem nenhum material de terceiro,
+então versioná-la junto das outras não conflita com a licença — e o CI
+não depende de gerar nada antes de rodar. As fixtures grandes continuam
+geradas, pelo tamanho.
 
 **Segundo achado, que decide COMO estender:** o gerador
 (`scripts/gerar-fixtures-pdf.py`, 179 linhas) escreve **bytes de PDF à
@@ -904,6 +1005,517 @@ porque em desenvolvimento ninguém tem duas contas.
 
 ---
 
+## 18.2 Fatia 0 — resultados medidos (04/09)
+
+Medições feitas em worktree separado, com o **PDF real da GE** e o
+**código de `6986fdb`**. O checkout principal não foi tocado.
+
+### 18.2.0 INCIDENTE P0 — o documento do cliente não foi apagado
+
+A medição começou com uma descoberta que **não é uma conveniência, é uma
+falha**: o PDF da GE **ainda está no Storage** — 11,3 MiB, 743 páginas —
+**dois dias depois de a marca ter sido excluída**.
+
+O que aconteceu, em ordem:
+
+1. A marca foi excluída, e a exclusão em cascata funcionou: `brands`,
+   `brand_documents`, `brand_imports`, versões, chunks, orçamento e
+   razão de IA — tudo removido do banco, verificado por consulta.
+2. O arquivo no Storage foi **enfileirado** em `brand_deletions`, como o
+   desenho manda (a cascata do banco não alcança o Storage).
+3. **A fila nunca drenou.** Ela drena em dois momentos, ambos
+   oportunistas: quando alguém exclui outra marca, ou quando alguém
+   **abre a administração**.
+4. Ninguém abriu a administração desde então. O objeto continua lá.
+
+**Por que isto é P0, e não um detalhe operacional:**
+
+- A promessa do produto — "excluir a marca leva TODOS os arquivos dela",
+  escrita na própria migração — **não se cumpriu**.
+- A limpeza depende de uma ação humana futura e não relacionada. Numa
+  conta que exclua sua única marca e não volte mais, **o documento do
+  cliente permanece indefinidamente**.
+- É falha de **ciclo de vida** e de **privacidade**: material de marca
+  de terceiro sobrevivendo à decisão explícita de removê-lo.
+- E é silenciosa: nada na interface, no log ou no banco avisa que existe
+  pendência não drenada. Só apareceu porque fui procurar um arquivo para
+  medir.
+
+**O que NÃO fiz, de propósito:** não apaguei o objeto. Apagá-lo durante
+a medição destruiria a evidência do incidente e o sujeito de teste, sem
+autorização. **Ele também não é uma fixture permanente** — está ali por
+falha, não por decisão, e continuará contando como pendência até você
+decidir.
+
+**Proposta de correção, para revisão — nada implementado, nenhum esquema
+aplicado, nenhuma automação ligada nesta rodada.**
+
+#### As quatro camadas
+
+| Camada | O que faz | Por que não basta sozinha |
+|---|---|---|
+| Drenagem oportunista (existe hoje) | limpa ao abrir a administração ou ao excluir outra marca | depende de alguém aparecer |
+| **Drenagem autônoma e repetível** | tarefa agendada, independente de sessão humana, que drena a fila periodicamente e registra cada tentativa | é o que fecha o buraco deste incidente |
+| **Contabilidade da pendência** | idade da entrada mais antiga na fila e contagem, visíveis na administração | torna o silêncio impossível |
+| **Reconciliação periódica** | varredura comparando `storage.objects` com o que o banco referencia, para achar órfão que nunca chegou à fila | a fila só protege o que foi enfileirado; isto protege o resto |
+
+A reconciliação é a única que teria pego este caso mesmo se a inserção na
+fila tivesse falhado — e a única que responde "existe arquivo de cliente
+aqui que ninguém deveria mais ter?".
+
+#### As dez garantias que a limpeza precisa ter
+
+Apagar arquivo de cliente automaticamente é a operação mais perigosa
+deste plano. Uma limpeza mal desenhada apaga o que não devia, e não há
+desfazer. Por isso ela nasce com estas garantias, e não ganha nenhuma
+delas depois:
+
+| Garantia | O que significa, e por quê |
+|---|---|
+| **1. Modo `dry-run` por padrão** | a primeira execução **lista** o que apagaria e não apaga nada. Só um sinal explícito liga a remoção. Uma limpeza que só sabe apagar não pode ser observada antes de confiar nela. |
+| **2. Período de carência** | nada é removido antes de um intervalo mínimo (ex.: 7 dias) desde o enfileiramento. Protege contra a corrida entre "importação falhou" e "importação está terminando", e dá janela humana para reverter uma exclusão feita por engano. |
+| **3. Dupla verificação** | no instante da remoção, reconfere no banco que o objeto continua sem dono — não confia na decisão tomada quando a entrada entrou na fila. Estado muda entre enfileirar e executar. |
+| **4. Proteção a fonte ativa** | um objeto referenciado por `brand_source_documents` com estado `ativa` **nunca** é candidato, mesmo se aparecer na fila. Sob a nova arquitetura, esse arquivo é o manual — apagá-lo é apagar o produto do cliente. |
+| **5. Proteção a importação em andamento** | objeto de uma importação sem desfecho (nem publicada, nem falhada) é intocável até ela concluir. É exatamente o caso em que o arquivo existe legitimamente sem linha de marca ainda. |
+| **6. Fila idempotente** | processar a mesma entrada duas vezes tem o mesmo efeito de processar uma. Sem isso, duas execuções concorrentes (a agendada e a oportunista) disputam o mesmo objeto e uma registra falha do que a outra já removeu. |
+| **7. Remoção pela API do Storage — nunca `DELETE` em `storage.objects`** | apagar a linha do catálogo **não apaga o arquivo**: deixa o objeto órfão no armazenamento, agora sem nenhum registro apontando para ele. Seria trocar um órfão visível por um invisível. |
+| **8. Confirmação de ausência** | depois de remover, confere que o objeto realmente não responde mais. Só então a entrada sai da fila. "Mandei apagar" não é "está apagado". |
+| **9. Auditoria** | cada tentativa registra o quê, quando, por qual execução, com qual resultado — inclusive as que não apagaram nada. Sem trilha, uma remoção indevida é indistinguível de um arquivo que nunca existiu. |
+| **10. Reconciliação periódica** | a varredura da tabela acima, com relatório, também em `dry-run` por padrão. |
+
+**Ordem de implantação sugerida, quando autorizada:** contabilidade da
+pendência primeiro (torna o problema visível sem tocar em nada), depois
+reconciliação em `dry-run` (mede o tamanho real do problema), depois
+drenagem autônoma, e a remoção automática por último — quando os
+relatórios já mostrarem, por vários ciclos, que o conjunto candidato é
+exatamente o esperado.
+
+**Recomendação de sequência:** não é trabalho de uma fatia distante. Um
+documento de cliente retido indevidamente é risco jurídico e de
+confiança, e a correção é pequena perto do risco. Sugiro item próprio,
+logo após a Fatia 1 — ou antes, se você preferir.
+
+**O arquivo continua onde está.** Não apago sem sua autorização expressa,
+e ele não vira fixture: está ali por falha, não por decisão.
+
+### 18.2.1 A medição pôde ser feita
+
+Como consequência (indesejada) do incidente acima, o arquivo estava
+disponível e a linha de base pôde ser medida agora, sem depender de você
+reenviar o PDF.
+
+### 18.2.2 Sondagem de entrega — resultado favorável, conclusão limitada
+
+| Medida | Resultado |
+|---|---|
+| `accept-ranges: bytes` | **sim** |
+| Intervalo inicial (0-1023) | **206 Partial Content**, `content-range` correto |
+| **Intervalo sufixo** (últimos 1024 B) | **206**, resolvido para `11843316-11844339/11844340` |
+| Bootstrap típico do PDF.js (sufixo 64 KiB + início 64 KiB) | **220 ms, 128 KiB** |
+| Download completo (o que acontece sem Range) | **1031 ms, 11,3 MiB** |
+| Razão | **90× menos bytes** para mostrar a primeira página |
+
+**O intervalo-sufixo é o que decide**, e ele funciona: o PDF.js lê o fim
+do arquivo primeiro (tabela de referências cruzadas). Sem suporte a
+sufixo, não há carregamento progressivo — teria de baixar tudo.
+
+**Custo de CPU é irrelevante perto da rede:** abrir o documento
+(xref + catálogo) leva **42 ms**; a página 1 fica pronta em **1 ms**.
+
+**O que esta sondagem NÃO autoriza concluir.** Ela mostra que o Storage
+aceita Range e intervalo-sufixo **para este objeto, via curl**. Isso
+**não** é o mesmo que "o visualizador está tecnicamente resolvido".
+Ficou de fora tudo que só o navegador responde — e é onde os problemas
+costumam morar:
+
+| A medir no navegador, antes da Fatia 1 |
+|---|
+| Brennimark na **origem real**, não curl |
+| **PDF.js** fazendo as requisições, com seu próprio padrão de intervalos |
+| **CORS** na origem real |
+| **Tempo até canvas visível** — distinto de `getPage()` resolver |
+| **Bytes transferidos até a primeira página visível** |
+| **Tempo de pintura** |
+| Navegação até **página distante** (ex.: 1 → 700) |
+| **Retorno a páginas anteriores** (o cache funciona?) |
+| **Zoom** e o custo de re-renderizar |
+| **Cancelamento de renders** que saíram da viewport |
+| **Memória durante** a navegação |
+| **Memória depois** de liberar páginas — há vazamento? |
+| Comportamento quando a **URL expira** com o leitor rolando |
+| **Obtenção de nova URL e retomada** sem perder a posição |
+
+**Distinção que precisa estar explícita na medição:** `getPage()`
+resolver **não é** página pintada e visível. Os 42 ms e 1 ms medidos
+aqui são de estrutura, não de pixel. O número que importa para o produto
+é o tempo até a pessoa **ver** a página.
+
+**Recomendação preliminar (superada — ver §18.2.8):** a URL assinada
+direta parecia a candidata por desempenho. **A medição no navegador
+inverteu isso**, e por um motivo que a sondagem por curl não podia
+alcançar: o navegador não deixa o PDF.js *ver* que o servidor aceita
+intervalos.
+
+**Parecer, com os números na mão: rota de mesma origem.**
+
+O argumento decisivo não é auditoria nem controle de download — é que
+**a URL direta simplesmente não entrega carregamento progressivo**.
+Cross-origin, `accept-ranges` e `content-range` ficam invisíveis ao
+JavaScript, o PDF.js desiste dos intervalos e baixa 11,3 MiB para
+mostrar a primeira página. Não é preferência de arquitetura: é a
+diferença entre ter e não ter a funcionalidade que a Fatia 1 existe para
+construir.
+
+O que a rota resolve de uma vez:
+
+| | URL direta | Rota de mesma origem |
+|---|---|---|
+| Carregamento progressivo | **não funciona** (metadados invisíveis) | funciona — 0,61 MiB até a 1ª página |
+| Autorização por usuário/conta/marca | fora do produto (só o token) | dentro do produto |
+| Auditoria de acesso | impossível | natural |
+| Separar ver de baixar | impossível | `Content-Disposition` sob controle |
+| Renovação de credencial | o cliente precisa detectar 400 e repedir | invisível ao cliente |
+| Custo | banda do Storage | banda do Storage **+ banda e tempo da aplicação** |
+
+**A ressalva honesta continua valendo:** nada disso impede quem vê o
+documento inteiro de obter os bytes (§19.2). A rota melhora governança e
+observabilidade — não cria uma garantia que não existe.
+
+**O que ainda pode mudar esta recomendação, e como testar:** se o
+Supabase permitir configurar `Access-Control-Expose-Headers` para
+incluir `Accept-Ranges` e `Content-Range` (via configuração de CORS do
+projeto ou CDN à frente), a URL direta volta à disputa com vantagem de
+custo. **Isso não foi investigado** — é a primeira coisa a checar na
+Fatia 1, porque muda o desenho.
+
+**Duas medições que faltam antes de fechar:** rede estrangulada (a
+vantagem de volume da rota cresce quando a banda encolhe) e aparelho
+móvel real (§18.2.8, limitações 4 e 5).
+
+**Expiração no meio da sessão — medida, e ela morde:** com uma URL de 5
+segundos, o pedido de intervalo depois de expirada devolve
+**`HTTP 400 InvalidJWT`** (`"exp" claim timestamp check failed`). Não é
+401 nem 403 — então **um cliente que trate só "não autorizado" não vai
+reconhecer a expiração**, e o PDF.js receberia um erro opaco no meio do
+documento, com o leitor já rolando.
+
+Isso vira requisito da Fatia 1: ou a URL é reemitida antes de vencer
+(renovação silenciosa, preservando a posição de leitura), ou o
+visualizador trata `400 InvalidJWT` como "reautenticar e continuar" —
+nunca como falha de leitura. Uma sessão de leitura de manual dura mais
+que qualquer validade curta e segura.
+
+**Três pontos a resolver na Fatia 1, todos observados na sondagem:**
+
+1. `cache-control: no-cache` na resposta assinada — o navegador
+   revalida a cada pedaço. Para um documento imutável, é desperdício;
+   vale investigar controle de cache mais longo.
+2. Não há `content-disposition` na resposta. Para a decisão 3 (§19.2),
+   `inline` precisa ser explícito, não herdado do padrão do navegador.
+3. A renovação da URL assinada, pelo comportamento de expiração acima.
+
+**Memória:** 165 MiB de RSS após abrir o documento em Node, 275 MiB após
+varrer o texto das 743 páginas — **sem renderizar nada**. É o número que
+mais preocupa para o mobile, e só a Fatia 1 mede de verdade, com
+renderização e virtualização reais.
+
+### 18.2.3 Linha de base do pipeline — e três correções ao que escrevi
+
+Rodando o pipeline real do produto (`detectarRepetidos` → `agrupar`, o
+código de `6986fdb`) sobre o manual da GE:
+
+| Métrica | Resultado |
+|---|---|
+| Páginas no PDF | 743 |
+| Páginas em alguma seção | **743** |
+| **Páginas perdidas** | **0 — cobertura 100%** |
+| Páginas em `ignoradas` | **0** |
+| Seções | **500** |
+| Títulos genéricos | **0 (0%)** |
+| Método de detecção | 493 outline · 7 heading |
+| Cabeçalhos/rodapés removidos | 1 |
+| Fronteiras dissolvidas pelo teto | 19 |
+
+**Correção 1 — eu estava errado sobre a perda de páginas.** Escrevi:
+*"Suspeita fundamentada, pelo defeito da §5: não é zero."* **É zero,
+neste manual.** O caminho de código que descarta página sem texto
+(`secoes.ts:271,289`) existe e continua sendo um defeito real de
+arquitetura — mas **não disparou para a GE**, porque toda página deste
+manual tem algum texto útil, inclusive as de arte (a tipografia script
+das aberturas é texto extraível, não curva). A consequência prática é
+importante: **a fixture sintética precisa cobrir esse caso, porque o
+manual real não o cobre.**
+
+**Correção 2 — são DUAS linhas de base distintas, e não uma comparação
+direta.** 122 e 500 não são o mesmo experimento com resultados
+diferentes: são instrumentos diferentes, em código diferente.
+
+| | Importação histórica publicada | Execução em `6986fdb` |
+|---|---|---|
+| Quando | antes da Fase 1e | agora, na medição |
+| Código | pré-`d7a26ab` | pós-1e, 1f, 1g |
+| Seções | **122** | **500** |
+| Títulos genéricos | **68 (56%)** | **0 (0%)** |
+| Seções de 1 página | não medido | **354** |
+| Fronteiras dissolvidas | não medido | **19** |
+| Imagens | 0 | (a 1g classificaria 17) |
+
+**A leitura correta das duas:** a Fase 1e **corrigiu a falta de títulos**
+— de 56% de genéricos para zero — **e, no mesmo movimento, produziu
+fragmentação editorial excessiva**. As duas coisas são consequência da
+mesma mudança, e nenhuma anula a outra. Tratar "122 → 500" como
+progresso seria tão errado quanto tratar como regressão: o que houve foi
+uma troca de um defeito visível (seções sem nome) por outro defeito
+visível (seções sem tamanho editorial).
+
+A causa estrutural dessa troca — achatar uma árvore numa lista — está
+na §5.4, e é lá que ela se resolve, não ajustando profundidade ou teto.
+
+**Correção 3 — a fragmentação, medida.** O teto de 500 seções foi
+**atingido** (19 fronteiras dissolvidas para caber), e a distribuição é:
+
+| Tamanho da seção | Quantidade |
+|---|---|
+| 1 página | **354** |
+| 2–3 páginas | 123 |
+| 4–8 páginas | 20 |
+| 9+ páginas | 3 |
+
+**Média de 1,5 páginas por seção.** Um manual de 743 páginas virou 500
+seções — na prática, uma seção por página. Isso não é estrutura
+editorial, é paginação com outro nome, e é o defeito oposto ao que a 1e
+corrigiu. **Novo item para a Fatia 3:** o índice profundo precisa de um
+critério de granularidade (usar até certo nível, ou fundir irmãos
+curtos), calibrado contra este número — e o teto de 500 deixou de ser
+teoria, está ativo.
+
+### 18.2.4 O classificador visual, medido
+
+| Medida | Resultado |
+|---|---|
+| Seções classificadas visuais (`ehVisualDominante`) | **17 de 500 (3%)** |
+| Páginas nessas seções | 17 |
+| Imagens que a 1g geraria | 17 |
+| Caracteres por seção | mín 96 · **mediana 1562** · máx 28189 |
+
+**3% num manual art-direcionado é baixo demais**, e o motivo aparece na
+mediana: o limiar de `< 300 caracteres` está muito abaixo da massa. Isso
+confirma, com número, o que a §6 já argumentava por raciocínio — contar
+caracteres não mede dominância visual.
+
+Observação de método: como as seções ficaram com ~1 página, o defeito
+"só a primeira página é renderizada" (§1.3 da versão anterior) **não
+perdeu nada aqui** — 0 páginas visuais ficaram de fora. Ele continua
+real; este manual, com esta granularidade, simplesmente não o expõe.
+
+### 18.2.5 As quatro páginas da GE — escolhidas e registradas ANTES do resultado
+
+Escolhidas olhando o PDF original, **antes de existir qualquer
+visualizador do Brennimark para comparar**. É essa ordem que dá valor à
+comparação: elas não podem ser escolhidas depois, pelo que ficou bom.
+
+| Papel | Página | O que é | Sinais medidos |
+|---|---|---|---|
+| **Abertura** | **730** | Divisor "FAQ — Frequently Asked Questions": tipografia script grande em diagonal, monograma GE, filete vermelho, mini-sumário | 94 chars · cobertura de texto 17,1% · 0 imagens · 5 preenchimentos |
+| **Fotografia** | **197** | "Promotional Brochures / Creative Matrix": 12 capas de brochura com fotografia de aeronave, fundos vermelho e preto | 1022 chars · cobertura 5,2% · **21 imagens** · 68 preenchimentos |
+| **Diagrama** | **372** | "Wall Lights": desenho isométrico de luminária em painel de exposição, com cotas de 18" e 42" | 463 chars · cobertura 3,1% · **33 imagens** · 520 preenchimentos |
+| **Texto** | **630** | "Acquired Affiliates / Naming Process Overview": texto corrido em três colunas, subtítulos em vermelho, miniaturas de página embutidas | **15.617 chars** · cobertura 13,1% · 0 imagens |
+
+As renderizações de referência dessas quatro páginas foram geradas a
+partir do PDF original e ficam guardadas fora do repositório (material
+de terceiro, decisão 5) para a comparação lado a lado da Fatia 1.
+
+**Duas observações que já saem da escolha:**
+
+1. **A página 372 (diagrama) tem 463 caracteres** — acima do limiar de
+   300 do classificador atual. Uma página que é inequivocamente desenho
+   técnico **não seria classificada como visual hoje**. É o contraexemplo
+   concreto que faltava à §6.
+2. **Mesmo a página de "texto corrido" é art-direcionada** — três
+   colunas, hierarquia de cor, miniaturas embutidas. Reconstruí-la como
+   parágrafos sequenciais perde a diagramação, ainda que preserve as
+   palavras. Reforça a §3: o PDF é a verdade visual, e a extração é outra
+   coisa.
+
+### 18.2.6 O que ainda falta na Fatia 0
+
+| Item | Estado |
+|---|---|
+| Contrato do manifesto | ✅ §5.1, §5.2 — e consolidado como `source_pages` em §5.4 |
+| Separação das cinco estruturas | ✅ §5.4 |
+| Sondagem de Range/sufixo/expiração por curl | ✅ §18.2.2 |
+| Linha de base do pipeline em `6986fdb` | ✅ §18.2.3 |
+| Duas linhas de base registradas separadamente | ✅ §18.2.3 |
+| Registro do PDF órfão (P0) e proposta de limpeza | ✅ §18.2.0 |
+| Quatro páginas escolhidas e registradas | ✅ §18.2.5 |
+| Estado final do CI | ✅ verde em `25dbb56` (§0.3) |
+| **Fixture sintética com os nove casos** | ✅ §18.2.7 |
+| **Medições no navegador real** (a lista da §18.2.2) | ✅ §18.2.8 — com limitações declaradas |
+| **Canvas efetivamente pintado**, distinto de `getPage()` | ✅ 482.863 pixels provados por `getImageData` |
+| **Expiração e renovação vistas pelo PDF.js** | ✅ `ResponseException` 400; renovação restaura página, zoom e rolagem |
+| **Pixel visível na tela** | ❌ não medido — painel oculto suspende o `rAF` (§18.2.8, limitação 1) |
+| **Memória de canvas** | ❌ não medido — `performance.memory` não enxerga buffer de canvas (limitação 3) |
+| **Mobile** | ❌ não medido — a emulação de viewport não pegou (limitação 4) |
+| **Rede estrangulada** | ❌ não medido (limitação 5) |
+
+A **comparação visual lado a lado** das quatro páginas será executada
+quando existir o visualizador da Fatia 1. As páginas já estão escolhidas
+e registradas (§18.2.5), que é o que precisava acontecer agora.
+
+### 18.2.8 Medições no navegador — e elas invertem a recomendação
+
+Harness em worktree isolado, servido pelo Next do próprio projeto
+(`localhost:3100`), com o PDF real da GE. **Nada disso existia na
+sondagem por curl, e o resultado principal contradiz a conclusão que ela
+sugeria.**
+
+#### O achado que decide: o navegador não enxerga o suporte a Range
+
+Medido em **duas origens** — `http://localhost:3100` e a origem de
+produção **`https://brennimark.vercel.app`** — com resultado idêntico:
+
+| | |
+|---|---|
+| Status da resposta com `Range` | **206 Partial Content** (o servidor honra) |
+| Cabeçalhos que o JavaScript enxerga | `content-length`, `content-type`, `expires`, `last-modified` |
+| **`accept-ranges`** | **invisível** |
+| **`content-range`** | **invisível** |
+
+Cross-origin, o navegador só entrega ao JavaScript os cabeçalhos que o
+servidor autorizar por `Access-Control-Expose-Headers`. O Storage do
+Supabase **não expõe `accept-ranges` nem `content-range`**. O PDF.js lê
+exatamente esses dois para decidir se pode pedir intervalos — não os
+vendo, conclui que o servidor não suporta, e **baixa o arquivo inteiro**.
+
+Medido: **4 requisições, nenhuma com cabeçalho `Range`, 11.844.340 bytes
+antes da primeira página.** O arquivo inteiro, para mostrar uma página.
+
+**A mesma requisição em mesma origem expõe tudo** —
+`accept-ranges: bytes`, `content-range: bytes 0-1023/374775`, mais
+`etag`, `cache-control`, `vary`. Sem CORS no meio, não há filtro.
+
+#### Os dois transportes, medidos lado a lado
+
+Com `disableStream: true` e `disableAutoFetch: true` — a configuração que
+um visualizador de verdade usaria:
+
+| | URL assinada direta | Rota de mesma origem |
+|---|---|---|
+| Requisições até a 1ª página | **1** | **11** (10 pedaços pequenos) |
+| **Bytes até a 1ª página** | **11,3 MiB** (arquivo inteiro) | **0,61 MiB** |
+| Estrutura carregada | 743 ms | 848 ms |
+| 1ª página com tinta | 955 ms | 1953 ms |
+| Tinta no canvas | 99,6% | 99,6% |
+
+**A rota transfere ~5% dos bytes. E, nesta ligação, chega depois.** As
+duas coisas são verdade ao mesmo tempo: numa conexão rápida, baixar 11
+MiB de uma vez vence 11 idas e voltas sequenciais no relógio. O que a
+rota ganha é **volume**, e volume é o que decide em conexão móvel,
+plano medido, e memória.
+
+#### O resto do comportamento (modo direto, sequência completa)
+
+| Etapa | Resultado |
+|---|---|
+| Estrutura carregada | 203 ms · 743 páginas |
+| Render concluído (pág. 1) | 412 ms · **482.863 pixels com tinta (99,6%)** |
+| Página distante (700) | tinta 29,1% · **0 bytes extras** (já tinha tudo) |
+| Retorno à página 1 | **0 bytes extras** |
+| Zoom 2,5× | canvas 1530×1980 · tinta 99,5% · 0 bytes extras |
+| Rotação 90° | canvas 792×612 (dimensões trocadas, correto) |
+| Cancelamento fora da viewport | **`RenderingCancelledException`** — cancela de verdade |
+| URL expirada no meio da leitura | **`ResponseException`, status 400** — igual ao curl |
+| Renovação e restauração | página, zoom (2,5×) e rolagem **restaurados**, 3322 ms |
+
+#### Limitações desta medição — declaradas, não escondidas
+
+1. **"Pixel visível na tela" NÃO foi medido.** O painel do navegador
+   está **oculto** (`visibilityState: "hidden"`), e aba oculta suspende
+   o `requestAnimationFrame`. O que foi medido é **render concluído**
+   (a promessa do PDF.js resolve) e **canvas com tinta** (pixels
+   realmente escritos, provados por `getImageData` — 482.863 deles). O
+   terceiro estado, *visível a um ser humano*, exige viewport visível e
+   fica em aberto.
+2. **E a suspensão do rAF é, ela mesma, um achado de produto:** o laço
+   de render do PDF.js **depende** de `requestAnimationFrame`. Em aba
+   oculta ele **não avança** — a primeira execução do harness travou
+   indefinidamente por isso. Consequência real: página enfileirada para
+   render com a aba em segundo plano não pinta até a pessoa voltar.
+   Qualquer estratégia de pré-carregamento na Fatia 1 precisa contar com
+   isso. Para medir, instalei uma ponte de `rAF` para `setTimeout`
+   (usada 22 vezes), o que **invalida os tempos rotulados
+   `pixel_visivel_ms`** — eles são tempo de ponte, não de pintura.
+3. **A memória de canvas é invisível ao instrumento.**
+   `performance.memory` reporta só o *heap* de JavaScript (6,5 → 22,7 MB
+   no pico). O buffer de um canvas mora **fora** dele: o canvas de zoom
+   2,5× (1530×1980 RGBA) sozinho são ~12 MB que **não aparecem** nessa
+   conta. Por isso a liberação de canvases medida (22,7 → 22,8 MB) não
+   significa "não liberou" — significa "este instrumento não vê". Medir
+   memória de canvas de verdade exige outra ferramenta.
+4. **Mobile NÃO foi medido.** Tentei: pedi emulação de viewport 375×812
+   e, ao conferir dentro da página, `innerWidth` reportou **1480** — a
+   emulação não sobreviveu à navegação, e a execução que eu chamaria de
+   "mobile" rodou em viewport de desktop. Não vou apresentar como
+   medição de mobile algo que mediu desktop.
+   E vale o registro que já valeria se tivesse dado certo: **emulação de
+   viewport é proxy, não aparelho**. Não tem a CPU, a memória, a pressão
+   de coletor de lixo nem o descarte agressivo de aba de um telefone —
+   serve para layout, nunca para concluir sobre memória ou desempenho
+   em mobile. O número real depende de aparelho real.
+5. **Ligação rápida, sem estrangulamento.** Nenhuma medição foi feita em
+   rede lenta ou medida. É exatamente o cenário que favorece o download
+   inteiro — a vantagem da rota cresce quando a banda encolhe.
+6. **A rota de proxy medida é instrumento**, servida pelo servidor de
+   desenvolvimento, sem autorização, auditoria ou cache. Não é desenho
+   de produto; é o mínimo para comparar transportes.
+
+### 18.2.7 Fixture sintética — e ela prova o defeito que a GE esconde
+
+`scripts/gerar-fixture-visual.py` (novo, não commitado) gera
+`e2e/fixtures/manual-visual.pdf`: **9 páginas, 11 KB**, no mesmo padrão
+zero-dependência do gerador existente — nenhuma biblioteca, nenhum
+binário versionado, nenhum material de terceiro.
+
+Cobre os nove casos pedidos: retrato · paisagem · fotografia (XObject de
+imagem) · imagem achatada de página inteira · vetor · diagrama com cotas
+· **página sem texto extraível** · **tipografia convertida em curvas** ·
+abertura em cor sólida. Mais um **índice declarado em três níveis**.
+
+**O teste decisivo — rodei o pipeline de `6986fdb` contra ela:**
+
+```
+Páginas no PDF ............. 9
+Páginas em alguma seção .... 6
+PÁGINAS PERDIDAS ........... 3   (páginas 4, 7 e 8)
+Ignoradas .................. 3   todas com motivo "sem-texto"
+```
+
+**As três páginas perdidas são exatamente as três de identidade visual
+pura:** a imagem achatada de página inteira (4), a arte em vermelho
+sólido sem texto (7) e o "G" desenhado em curvas (8).
+
+Isto é o que a §17.1 antecipou e agora está provado: **o manual real da
+GE não expõe este defeito** (743 de 743 páginas têm texto), e **a fixture
+expõe em 9 páginas**. Sem ela, o CI não teria como reprovar a regressão.
+
+**Dois achados adicionais, que a fixture revelou de graça:**
+
+1. **A hierarquia do índice é destruída.** `lerOutline` lê a árvore
+   corretamente — Basic Standards › Photography › Flattened artwork, três
+   níveis — e `agrupar` devolve **6 seções planas**, sem pai, sem
+   profundidade. É a §5.4 demonstrada: não é "profundidade demais", é
+   achatamento.
+2. **O índice aponta para uma página que foi descartada.** O nó
+   "Flattened artwork" tem destino na página 4 — que sumiu. A navegação
+   declarada referencia conteúdo que o produto jogou fora, e ninguém
+   avisa.
+
+Também apareceu uma colisão de título: "Basic Standards" surge duas
+vezes (uma pelo outline, outra pela detecção de heading na página 9),
+que hoje vira sufixo numérico no slug — anotado para a curadoria.
+
+---
+
 ## 19. Riscos técnicos e conflitos — meu parecer
 
 A §19 da diretriz me obriga a dar parecer, não só executar. Segue.
@@ -958,6 +1570,28 @@ O que a plataforma **pode** fazer, e fará:
 **A linguagem do produto é "download não autorizado" ou "download não
 oferecido" — nunca "impossível baixar".** Isso vale para a interface,
 para a documentação e para a conversa comercial.
+
+**Medido na sondagem (§18.2.2), e muda o entendimento:** a URL assinada
+**não traz `content-disposition` nenhum** — o comportamento fica a
+critério do cliente. Acrescentar `&download=` faz o Storage responder
+`content-disposition: attachment`. Ou seja, **o parâmetro é a alavanca
+do download autorizado**, e a ausência dele não é "inline garantido", é
+"o navegador decide".
+
+E há uma consequência que simplifica: **com PDF.js, a URL nunca é
+navegada** — os bytes são buscados por intervalo e pintados em canvas.
+Para o caminho de leitura, `content-disposition` é irrelevante. Ele
+importa em um lugar só: o botão de download autorizado, onde `&download=`
+é justamente o que se quer.
+
+**A distinção comercial permanece não resolvida pela tecnologia.** A URL
+assinada direta continua sendo a candidata por desempenho, e ela **não**
+separa "ver" de "baixar" por si: quem vê o documento inteiro recebeu os
+bytes inteiros. O que dá para fazer — e é o que o produto fará — é
+controlar o botão, autorizar por usuário/conta/marca, encurtar a
+validade, auditar acesso e marcar d'água. A escolha final entre URL
+direta e rota intermediária fica condicionada às **medições de
+navegador**, à **auditoria por acesso** e à **renovação de sessão**.
 
 ### 19.3 Acessibilidade não sai de graça do canvas
 
