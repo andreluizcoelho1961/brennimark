@@ -1095,8 +1095,49 @@ documento de cliente retido indevidamente é risco jurídico e de
 confiança, e a correção é pequena perto do risco. Sugiro item próprio,
 logo após a Fatia 1 — ou antes, se você preferir.
 
-**O arquivo continua onde está.** Não apago sem sua autorização expressa,
-e ele não vira fixture: está ali por falha, não por decisão.
+#### O que está proibido enquanto não houver autorização expressa
+
+O arquivo **não é fixture** e **não pode ficar indefinidamente**. Até o
+proprietário autorizar, sobre ele **não se faz**: apagar · mover ·
+copiar · publicar · transformar em fixture · **qualquer uso novo além
+das medições já autorizadas**.
+
+**Cumprimento até aqui:** ele foi lido para a linha de base do pipeline
+(§18.2.3) e servido por URL assinada para as medições de transporte
+(§18.2.8, §18.2.9). Nenhuma cópia foi versionada, publicada ou
+transformada em fixture — a fixture do repositório é 100% sintética
+(§18.2.7). O arquivo continua exatamente onde estava, com o mesmo hash.
+
+#### Registro de retenção temporária — a preencher quando você autorizar
+
+Se houver autorização de retenção, ela precisa destes campos
+**preenchidos**, não implícitos:
+
+| Campo | Valor |
+|---|---|
+| Finalidade exclusiva | *(a declarar)* — as medições da Fatia 0 já usaram o arquivo; qualquer uso além disso precisa de finalidade nova |
+| Data de início | *(a declarar)* |
+| Prazo máximo | *(a declarar)* |
+| Condição objetiva de encerramento | *(a declarar)* — sugestão: "encerradas as medições da Fatia 0" |
+| Caminho exato | `brand-imports/b0a2b4dc-b594-48a1-8406-47ddb3f6380d/6ad11b2a-3457-47bc-bdb7-4aa5b92e8d39/1a42778a9f9033e73f4a6b17bf82fe7ff57a3255360a2ec9536055955902c740.pdf` |
+| Hash do objeto | `sha256` no nome do arquivo; `ETag` medido: `5a689505f4eb7803c25a2db1eb582c0a` |
+| Tamanho | 11.844.340 bytes (11,3 MiB), 743 páginas |
+| Responsável pela exclusão | *(a declarar)* |
+| Prova posterior de ausência | *(a produzir)* — no Storage **e** na fila `brand_deletions` |
+
+**Procedimento de exclusão, quando autorizada:** remoção **pela API
+normal do Storage**, nunca por `DELETE` direto em `storage.objects` (o
+motivo está na garantia 7 acima: apagar a linha do catálogo deixa o
+arquivo órfão e invisível). Depois: confirmar que o objeto não responde
+mais, confirmar que a entrada saiu da fila, e registrar as duas provas
+aqui.
+
+**Decisão que falta ser sua:** apagar agora, ou reter com prazo. As
+medições que dependiam dele estão feitas — só permanecem em aberto
+"pixel visível" e "aparelho físico", e **nenhuma das duas precisa deste
+arquivo em particular**: a primeira roda com a fixture sintética; a
+segunda é portão da Fatia 1 e pode usar outro manual. **Na minha
+leitura, não há mais razão técnica para retê-lo.**
 
 ### 18.2.1 A medição pôde ser feita
 
@@ -1156,10 +1197,20 @@ inverteu isso**, e por um motivo que a sondagem por curl não podia
 alcançar: o navegador não deixa o PDF.js *ver* que o servidor aceita
 intervalos.
 
-**Parecer, com os números na mão: rota de mesma origem.**
+**Hipótese atualmente favorecida: rota de mesma origem.** Não é parecer
+fechado, e a distinção importa. O que a evidência **permite** concluir:
 
-O argumento decisivo não é auditoria nem controle de download — é que
-**a URL direta simplesmente não entrega carregamento progressivo**.
+> A URL assinada direta, **na configuração atual do Supabase Storage**,
+> não oferece carregamento progressivo ao PDF.js no navegador, porque os
+> cabeçalhos necessários não ficam expostos por CORS.
+
+O que ela **não** permite concluir: que a rota intermediária de mesma
+origem seja a arquitetura definitiva. Isso depende de oito investigações
+(§19.2.1), das quais quatro já têm resposta e **uma delas encontrou um
+limite que muda o desenho**.
+
+O argumento a favor da hipótese não é auditoria nem controle de
+download — é que **a URL direta não entrega carregamento progressivo**.
 Cross-origin, `accept-ranges` e `content-range` ficam invisíveis ao
 JavaScript, o PDF.js desiste dos intervalos e baixa 11,3 MiB para
 mostrar a primeira página. Não é preferência de arquitetura: é a
@@ -1181,16 +1232,108 @@ O que a rota resolve de uma vez:
 documento inteiro de obter os bytes (§19.2). A rota melhora governança e
 observabilidade — não cria uma garantia que não existe.
 
-**O que ainda pode mudar esta recomendação, e como testar:** se o
-Supabase permitir configurar `Access-Control-Expose-Headers` para
-incluir `Accept-Ranges` e `Content-Range` (via configuração de CORS do
-projeto ou CDN à frente), a URL direta volta à disputa com vantagem de
-custo. **Isso não foi investigado** — é a primeira coisa a checar na
-Fatia 1, porque muda o desenho.
+### 19.2.1 As oito investigações antes de decidir
 
-**Duas medições que faltam antes de fechar:** rede estrangulada (a
-vantagem de volume da rota cresce quando a banda encolhe) e aparelho
-móvel real (§18.2.8, limitações 4 e 5).
+**1. O Supabase permite configurar `Access-Control-Expose-Headers`?**
+**Investigado — não encontrei configuração no plano hospedado.** A busca
+na documentação só devolve configuração de CORS para (a) o gateway
+Envoy do **self-hosted** e (b) Edge Functions, onde os cabeçalhos são do
+seu próprio código. Nada para o Storage hospedado.
+
+E a medição fecha o diagnóstico. Preflight (`OPTIONS`) do objeto real:
+
+```
+access-control-allow-origin:  *
+access-control-allow-headers: range
+access-control-allow-methods: GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS,...
+(nenhum access-control-expose-headers)
+```
+
+Ou seja: **mandar `Range` é permitido; ler a resposta dele, não.** O
+`GET` com `Origin` devolve `content-range` e `etag` **no fio** — e sem
+`Access-Control-Expose-Headers` o navegador os esconde do JavaScript. O
+servidor faz tudo certo; a declaração que falta é de uma linha.
+
+**2. Uma CDN ou camada de entrega resolve sem o PDF atravessar a
+aplicação?** **Parcialmente, e o achado é útil:** o Storage **já está
+atrás do Cloudflare** (`server: cloudflare`, `cf-ray`, e no teste
+`cf-cache-status: HIT`, `age: 19`). Um cabeçalho de CORS não pode ser
+acrescentado "de fora" sem que a resposta passe por quem o acrescenta —
+mas **passar por uma camada de borda não é o mesmo que passar pela
+aplicação**. Um worker de borda transforma cabeçalho e repassa o fluxo
+perto da origem, sem consumir função da aplicação. Fica registrado como
+alternativa real à rota, e não foi medido.
+
+**3. A rota transmite 100 MiB por streaming, sem montar em memória?** A
+sonda repassa `upstream.body` (um `ReadableStream`) direto para a
+resposta, sem `arrayBuffer()` — estruturalmente é streaming. **Mas não
+foi medido com 100 MiB**, e o item 4 abaixo mostra que a pergunta certa
+é outra.
+
+**4. Limites e custos reais na Vercel — ACHADO QUE MUDA O DESENHO.** A
+documentação é explícita: **o corpo de resposta de uma Vercel Function
+tem teto de 4,5 MB**, e acima disso vem `413 FUNCTION_PAYLOAD_TOO_LARGE`.
+
+Consequências diretas:
+
+- Uma rota que sirva **o arquivo inteiro** (200, 11,3 MiB — e mais ainda
+  num manual de 100 MiB) **estoura o teto em produção**.
+- Uma rota que sirva **intervalos de 64 KiB** passa com folga.
+- **A rota intermediária, portanto, não pode ser opcional quanto a
+  Range: ela precisa exigir intervalo**, ou responder com redirecionamento
+  quando não houver. Isso deixa de ser detalhe de implementação e vira
+  requisito.
+- **E a minha medição não teria revelado isso:** a sonda rodou em
+  `localhost`, onde o teto não existe. O proxy transmitiu 11,8 MiB sem
+  reclamar. Em produção, a mesma requisição teria falhado.
+
+Outros números: duração máxima 300 s no plano Hobby (streaming conta
+para a duração), memória 2 GB, custo por CPU ativa e memória
+provisionada. Falta confirmar se o teto de 4,5 MB vale igualmente para o
+runtime Edge com streaming — a página não distingue, e **não vou supor**.
+
+**5. Cancelamento quando o navegador abandona a requisição.** A sonda
+agora cancela o fluxo de origem no `cancel()` do `ReadableStream` — sem
+isso ela continuaria baixando o que ninguém vai ler, pagando banda e
+duração. **Implementado na sonda, ainda não medido sob abandono real.**
+
+**6. Semântica HTTP — medida contra o Storage, e ela é completa:**
+
+| Caso | Resposta do Storage |
+|---|---|
+| `HEAD` | 200, com `content-length` e `accept-ranges` |
+| `Range` além do fim | **416**, com `content-range: bytes */11844340` |
+| `If-Range` com `ETag` correto | **206** |
+| `If-Range` com `ETag` errado | **200** (arquivo inteiro) |
+| `If-None-Match` | **304** |
+| Multi-range | **206** `multipart/byteranges` |
+
+**Isto é a especificação que a rota precisa honrar** — e o fato de a
+origem já fazer tudo certo significa que a rota pode repassar em vez de
+reimplementar. O multi-range é o caso que dá mais trabalho e que talvez
+nem precise ser suportado (o PDF.js não o usa).
+
+**7. Autorização antes de qualquer byte.** Requisito de desenho, não
+medido: a rota resolve sessão, conta e marca **antes** de tocar no
+Storage, e só então abre o fluxo. A sonda **não faz isso** — ela é
+instrumento e está explicitamente sem autorização.
+
+**8. Impossibilidade de alcançar arquivo de outra conta ou marca.**
+Requisito de desenho: a rota **não pode aceitar um caminho vindo do
+cliente**, como a sonda aceita (`?u=`). Ela recebe o identificador do
+documento-fonte, resolve o caminho no servidor a partir da marca
+autorizada, e confere os segmentos de conta e marca — a mesma disciplina
+de `pertenceAMarca` que já existe em `caminhos.ts`. A sonda é o
+contra-exemplo do que a rota definitiva precisa ser.
+
+**Resumo das oito:** quatro respondidas (1, 2, 4, 6), uma implementada e
+não medida (5), duas são requisitos de desenho (7, 8), uma parcialmente
+respondida (3). **A número 4 é a que muda o desenho** e precisa entrar em
+qualquer versão da rota.
+
+**Duas medições que faltam antes de fechar:** rede estrangulada (§18.2.9)
+e aparelho móvel real — este último passa a ser **portão da Fatia 1**,
+não bloqueio da Fatia 0.
 
 **Expiração no meio da sessão — medida, e ela morde:** com uma URL de 5
 segundos, o pedido de intervalo depois de expirada devolve
@@ -1362,6 +1505,29 @@ A **comparação visual lado a lado** das quatro páginas será executada
 quando existir o visualizador da Fatia 1. As páginas já estão escolhidas
 e registradas (§18.2.5), que é o que precisava acontecer agora.
 
+### 18.2.11 Critério de fechamento da Fatia 0
+
+**Quem declara a Fatia 0 concluída é André, depois de examinar as
+evidências.** Não é uma declaração minha. O que segue é o estado de cada
+item exigido:
+
+| Entregável | Estado |
+|---|---|
+| Contrato das estruturas | ✅ §5.1, §5.2, §5.4 (as cinco entidades) |
+| Fixture sintética e testes | ✅ §18.2.7 · commit `20d50eb` · 15 testes |
+| Linha de base antiga e atual, separadas | ✅ §18.2.3 (122/68 histórica × 500/0 em `6986fdb`) |
+| Navegador visível | ❌ **não obtido** — painel e Chrome real ambos ocultos (§18.2.8, limitação 1) |
+| Rede estrangulada | ✅ §18.2.9 — dois perfis, 1600 e 400 kbps |
+| Viewport mobile funcional como aproximação | ❌ **não obtido** — a emulação não sobreviveu à navegação (limitação 4) |
+| Comparação dos transportes sem virar decisão | ✅ §19.2 — registrada como **hipótese favorecida**, com as oito investigações em §19.2.1 |
+| Plano de medição física para a Fatia 1 | ✅ §18.2.10 |
+| Destino explicitamente decidido para o PDF órfão | ❌ **aguarda sua decisão** (§18.2.0) |
+
+**Três itens em aberto, e nenhum deles depende de mais trabalho meu
+sozinho:** dois precisam de um navegador em primeiro plano (o que
+depende de você presente ou de autorizar acesso de tela), e o terceiro é
+uma decisão sua sobre o arquivo.
+
 ### 18.2.8 Medições no navegador — e elas invertem a recomendação
 
 Harness em worktree isolado, servido pelo Next do próprio projeto
@@ -1429,13 +1595,20 @@ plano medido, e memória.
 
 #### Limitações desta medição — declaradas, não escondidas
 
-1. **"Pixel visível na tela" NÃO foi medido.** O painel do navegador
-   está **oculto** (`visibilityState: "hidden"`), e aba oculta suspende
-   o `requestAnimationFrame`. O que foi medido é **render concluído**
-   (a promessa do PDF.js resolve) e **canvas com tinta** (pixels
-   realmente escritos, provados por `getImageData` — 482.863 deles). O
-   terceiro estado, *visível a um ser humano*, exige viewport visível e
-   fica em aberto.
+1. **"Pixel visível na tela" continua NÃO medido — e eu tentei duas
+   vezes.** O painel embutido reporta `visibilityState: "hidden"`; o
+   Chrome real, acionado pela extensão, reporta **o mesmo** — porque a
+   janela dele também não está em primeiro plano. Aba oculta suspende o
+   `requestAnimationFrame`, e sem ele não há pintura.
+   Trazer uma janela para frente exige consentimento de **controle de
+   tela**, e não achei certo disparar esse diálogo na tela do usuário
+   por causa de uma medição. **Fica pendente, e depende de você estar
+   presente** (ou de autorizar o acesso de tela explicitamente).
+   O que **foi** medido são os outros dois estados, e eles são
+   distintos: **documento aberto** (a estrutura resolve), **render
+   concluído** (a promessa do PDF.js resolve) e **canvas com tinta**
+   (pixels realmente escritos, provados por `getImageData` — 482.863
+   deles). O quarto estado, *visível a um ser humano*, é o que falta.
 2. **E a suspensão do rAF é, ela mesma, um achado de produto:** o laço
    de render do PDF.js **depende** de `requestAnimationFrame`. Em aba
    oculta ele **não avança** — a primeira execução do harness travou
@@ -1445,7 +1618,8 @@ plano medido, e memória.
    isso. Para medir, instalei uma ponte de `rAF` para `setTimeout`
    (usada 22 vezes), o que **invalida os tempos rotulados
    `pixel_visivel_ms`** — eles são tempo de ponte, não de pintura.
-3. **A memória de canvas é invisível ao instrumento.**
+3. **`performance.memory` NÃO é prova de liberação de canvas — e não
+   será usada como tal.**
    `performance.memory` reporta só o *heap* de JavaScript (6,5 → 22,7 MB
    no pico). O buffer de um canvas mora **fora** dele: o canvas de zoom
    2,5× (1530×1980 RGBA) sozinho são ~12 MB que **não aparecem** nessa
@@ -1467,7 +1641,78 @@ plano medido, e memória.
    inteiro — a vantagem da rota cresce quando a banda encolhe.
 6. **A rota de proxy medida é instrumento**, servida pelo servidor de
    desenvolvimento, sem autorização, auditoria ou cache. Não é desenho
-   de produto; é o mínimo para comparar transportes.
+   de produto; é o mínimo para comparar transportes. **E rodou em
+   localhost, onde o teto de 4,5 MB da Vercel não existe** (§19.2.1,
+   item 4) — em produção a mesma requisição teria falhado.
+
+### 18.2.9 Rede estrangulada — onde a diferença deixa de ser acadêmica
+
+Na medição anterior, em banda plena, a rota com intervalos transferia 5%
+dos bytes **e chegava depois**. Isso levantava a dúvida certa: a economia
+de volume importa na prática?
+
+Para responder sem misturar variáveis, os dois transportes passaram a ser
+servidos **pela mesma sonda, sob a mesma taxa** — a única diferença é se
+`accept-ranges`/`content-range` ficam visíveis. É a reprodução, em mesma
+origem, do que o CORS do Storage impõe na URL direta.
+
+| Perfil | Requisições | Bytes | Documento aberto | **1ª página** |
+|---|---|---|---|---|
+| Plena · com Range | 11 | **0,61 MiB** | 1999 ms | 3162 ms |
+| Plena · sem Range | 1 | 11,3 MiB | 2803 ms | **3005 ms** |
+| Móvel 1600 kbps · com Range | 11 | **0,61 MiB** | 3450 ms | **4999 ms** |
+| Móvel 1600 kbps · sem Range | 1 | 11,3 MiB | 63.147 ms | **63.997 ms** |
+| Móvel 400 kbps · com Range | 11 | **0,61 MiB** | 11.564 ms | **14.996 ms** |
+
+**Em banda plena os dois empatam. Numa conexão móvel razoável, a
+diferença é 5 segundos contra 64 — treze vezes.** E a 400 kbps, com
+intervalos, ainda são 15 segundos; sem intervalos seriam mais de quatro
+minutos (não medido, para não prender a sonda — a projeção sai dos
+mesmos 11,3 MiB).
+
+É este quadro que transforma o achado de CORS de curiosidade técnica em
+problema de produto: **na conexão em que uma pessoa de fato abre um
+manual pelo celular, a URL direta leva um minuto para mostrar a primeira
+página.**
+
+**Navegar até página distante (700):** com intervalos, +2 requisições e
++262 KiB; sem intervalos, 0 e 0 — o arquivo inteiro já estava lá. Os
+tempos desse passo (≈4 s em quase todos os perfis) ficaram dominados pela
+ponte de `rAF`, não pela rede, e **não devem ser lidos como medida de
+rede**.
+
+**O que este experimento NÃO é:** estrangulamento na camada de rede. A
+sonda limita a taxa do fluxo, sem simular latência de ida e volta, perda
+de pacote ou crescimento de janela — coisas que penalizariam *mais* o
+caminho com 11 requisições. A conclusão que ele sustenta é sobre
+**volume × taxa**, e é robusta justamente porque a assimetria é grande.
+
+### 18.2.10 Memória: o que substitui a medição
+
+A conclusão da limitação 3 é que **nenhum número de `performance.memory`
+serve de prova** para memória de canvas. Em vez de perseguir um
+instrumento melhor agora, a Fatia 1 passa a garantir por **construção**:
+
+| Garantia | Por quê |
+|---|---|
+| **Quantidade limitada de canvases montados** | uma janela virtual pequena (a página visível e as vizinhas), nunca 743 |
+| **Cancelar o render ao sair da janela** | já provado possível: `RenderingCancelledException` funciona (§18.2.9) |
+| **`canvas.width = 0` e `canvas.height = 0` ao liberar** | é o que devolve o buffer; remover o elemento do DOM não basta |
+| **Descartar as referências do PDF.js** (`page.cleanup()`, soltar a página) | o objeto de página guarda estruturas próprias, fora do canvas |
+| **Nenhum cache ilimitado de bitmap** | cache de página renderizada precisa de teto por contagem E por pixels |
+| **Teto de escala por PIXELS, não por zoom** | zoom 4× numa página A3 é ordem de grandeza diferente de 4× numa A5; o limite tem de ser área × densidade, não o multiplicador |
+
+**A medição em aparelho físico vira portão de conclusão da Fatia 1** —
+não impede o encerramento investigativo da Fatia 0.
+
+**Plano de medição física (Fatia 1):** aparelho Android e iPhone reais,
+manual completo, três exercícios — rolagem contínua da página 1 à 100,
+salto para a 700 e volta, e zoom máximo seguido de liberação. Instrumento:
+o painel de memória do próprio navegador (que **enxerga** buffer de
+canvas, ao contrário de `performance.memory`), com leitura antes, no
+pico e após a coleta. Critério objetivo: a memória depois da liberação
+volta à faixa inicial, e o aplicativo não é descartado pelo sistema
+durante os três exercícios.
 
 ### 18.2.7 Fixture sintética — e ela prova o defeito que a GE esconde
 
