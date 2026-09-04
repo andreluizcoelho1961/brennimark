@@ -64,6 +64,45 @@ test("o indice do PDF define as fronteiras antes de tudo", () => {
   assert.ok(secoes.every((s) => s.confianca === 1));
 });
 
+test("subitens do indice (nivel 1+) tambem viram fronteira, nao so o nivel 0", () => {
+  /*
+   * Achado da auditoria de produto (04/09): 56% dos titulos do manual real
+   * da GE caiam no generico "Pagina(s) N-M" porque o codigo antigo usava
+   * SO o nivel 0 do indice, descartando subitens inteiros. Um manual de
+   * identidade tipico tem bookmark raso no nivel 0 ("Cor") com a
+   * granularidade real no nivel 1 ("Paleta primaria", "Paleta secundaria").
+   */
+  const paginas = [
+    soCorpo(1, "a"), soCorpo(2, "b"), soCorpo(3, "c"), soCorpo(4, "d"),
+  ];
+  const outline: ItemDeOutline[] = [
+    {
+      titulo: "Cor", pagina: 1, nivel: 0,
+      filhos: [
+        { titulo: "Paleta primaria", pagina: 2, nivel: 1, filhos: [] },
+        { titulo: "Paleta secundaria", pagina: 4, nivel: 1, filhos: [] },
+      ],
+    },
+  ];
+  const { secoes } = agrupar({ paginas, outline });
+
+  assert.deepEqual(secoes.map((s) => s.titulo), ["Cor", "Paleta primaria", "Paleta secundaria"]);
+  assert.ok(secoes.every((s) => s.metodo === "outline"), "subitem do indice e tao 'outline' quanto o pai");
+  assert.ok(secoes.every((s) => s.confianca === 1));
+});
+
+test("um item de nivel 0 SEM pagina propria ainda visita os filhos (comportamento preservado)", () => {
+  const paginas = [soCorpo(1, "a"), soCorpo(2, "b")];
+  const outline: ItemDeOutline[] = [
+    { titulo: "Capitulo sem destino", pagina: null, nivel: 0,
+      filhos: [{ titulo: "Subitem com destino", pagina: 2, nivel: 1, filhos: [] }] },
+  ];
+  const { secoes } = agrupar({ paginas, outline });
+
+  const titulos = secoes.map((s) => s.titulo);
+  assert.ok(titulos.includes("Subitem com destino"));
+});
+
 test("o titulo visual so resolve o que o indice deixou em aberto", () => {
   const paginas = [
     comTitulo(1, "Fundamentos", "a"),

@@ -181,7 +181,25 @@ function tituloVisual(linhas: readonly Linha[]): { texto: string; confianca: num
   return { texto: candidata.texto, confianca: Math.min(0.85, 0.45 + (proporcao - 1.25) * 0.4) };
 }
 
-/** As páginas onde o índice do PDF declara que uma seção começa. */
+/**
+ * As páginas onde o índice do PDF declara que uma seção começa.
+ *
+ * Achado da auditoria de produto (04/09): antes, só o nível 0 do índice
+ * virava fronteira — comentário original: "subitens dividiriam demais um
+ * manual de 700 páginas". Na prática, um manual de identidade real tem
+ * bookmark RASO no nível 0 ("Cor", "Tipografia") e a granularidade que
+ * corresponde a uma seção de verdade no nível 1+ — jogada fora inteira.
+ * Contra o manual real da GE, isso sozinho respondia pela maior parte dos
+ * 56% de títulos genéricos (`Página(s) N–M`) medidos.
+ *
+ * Agora todo nível do índice vira fronteira candidata — a árvore inteira
+ * que `lerOutline` já lia e descartava. O risco de over-fragmentação num
+ * índice patologicamente profundo (um bookmark por parágrafo) não fica
+ * sem rede: `MAXIMO_DE_SECOES` + `limitarSecoes` já fundem o excesso pela
+ * MENOR confiança quando uma importação passa do teto — a mesma proteção
+ * que já existia para qualquer outra fonte de fronteira em excesso, não
+ * uma garantia nova criada para este caso.
+ */
 function fronteirasDoOutline(
   outline: readonly ItemDeOutline[],
   totalDePaginas: number,
@@ -189,13 +207,13 @@ function fronteirasDoOutline(
   const achatado: { pagina: number; titulo: string }[] = [];
   const visitar = (itens: readonly ItemDeOutline[]) => {
     for (const item of itens) {
-      // Nível 0 apenas: subitens dividiriam demais um manual de 700 páginas.
       if (item.pagina && item.pagina >= 1 && item.pagina <= totalDePaginas) {
         achatado.push({ pagina: item.pagina, titulo: item.titulo });
       }
-      // Um item sem destino resolvido não vira fronteira, mas seus filhos
-      // podem ter destino próprio.
-      if (!item.pagina && item.filhos.length > 0) visitar(item.filhos);
+      // Todo nível é visitado agora, tenha o item resolvido página própria
+      // ou não — um capítulo de nível 0 e suas subseções de nível 1+ podem
+      // coexistir como fronteiras distintas.
+      if (item.filhos.length > 0) visitar(item.filhos);
     }
   };
   visitar(outline);
