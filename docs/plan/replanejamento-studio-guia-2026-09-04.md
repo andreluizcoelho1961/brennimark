@@ -1626,8 +1626,8 @@ funciona, não quanto de memória o aparelho gasta.
 | Comparação dos transportes **sem virar decisão** | ✅ §19.2 — hipótese, com as oito investigações (§19.2.1) e as cinco validações que faltam (§19.2.3) |
 | Plano de medição física para a Fatia 1 | ✅ §18.2.10 |
 | **Destino do PDF órfão** | ✅ **excluído em 04/09** com autorização expressa, provas em §18.2.0 |
-| **Navegador visível** | ⏳ bloqueado por um clique seu (abaixo) |
-| **Layout em viewport mobile** | ⏳ mesma dependência |
+| **Navegador visível** | ✅ §18.2.9-b — quatro estados medidos, sem ponte de `rAF` |
+| **Layout em viewport mobile** | ✅ §18.2.9-c — 375×812 confirmado de dentro da página |
 
 **Por que os dois últimos não avançam mesmo com a autorização
 concedida.** A autorização de tela foi dada e o acesso ao Chrome foi
@@ -1803,6 +1803,73 @@ sonda limita a taxa do fluxo, sem simular latência de ida e volta, perda
 de pacote ou crescimento de janela — coisas que penalizariam *mais* o
 caminho com 11 requisições. A conclusão que ele sustenta é sobre
 **volume × taxa**, e é robusta justamente porque a assimetria é grande.
+
+### 18.2.9-b Navegador visível — os quatro estados, medidos sem ponte
+
+Executado com a **fixture sintética** (página 9, a abertura em cor
+sólida), em aba **realmente visível**: `visibilityState: "visible"`,
+`rAF_dispara: true`. **Sem substituir `requestAnimationFrame`** — a
+página foi reescrita para *esperar* a visibilidade em vez de abortar ou
+falsear o relógio com `setTimeout`.
+
+| Estado | Tempo | O que significa |
+|---|---|---|
+| **Documento aberto** | **72 ms** | a estrutura do PDF resolveu |
+| **Render concluído** | **94 ms** | a promessa do PDF.js resolveu |
+| **Pixel na tela** | **125 ms** | dois quadros reais depois |
+| **Atraso render → pintura** | **31 ms** | a distância que a ponte escondia |
+
+Tinta 99,6% do canvas (612×792), elemento dentro da viewport.
+
+**Os 31 ms são o número que faltava.** Eles não são grandes, e é
+exatamente por isso que valia medir: a suspeita razoável era que
+`getPage()`/render fossem um proxy aceitável para "a pessoa vê". Neste
+caso são, com um atraso pequeno e constante. **Mas o valor só é
+conhecido porque foi medido em janela visível** — nas execuções
+anteriores, com a aba oculta, esse tempo não existia (a pintura nunca
+acontecia) e a ponte de `rAF` produzia números que não correspondiam a
+nada.
+
+### 18.2.9-c Layout em viewport mobile — 375×812 confirmado de dentro
+
+| | |
+|---|---|
+| Viewport pedida | 375×812 |
+| **Viewport confirmada de dentro da página** | **`innerWidth: 375`, `clientWidth: 375`** |
+| Instrumento | navegador automatizado com viewport controlada |
+
+Três páginas da fixture, escolhidas para estressar o layout:
+
+| Pág. | Orientação | Natural | Canvas | Cabe na largura | Proporção preservada |
+|---|---|---|---|---|---|
+| 1 | retrato | 612×792 | 375×485 | ✅ | ✅ |
+| 2 | **paisagem** | 792×612 | 375×289 | ✅ | ✅ |
+| 9 | retrato (arte sólida) | 612×792 | 360×465 | ✅ | ✅ |
+
+**Sem estouro horizontal:** `scrollWidth` 360 = `clientWidth`. A página
+**em paisagem no meio de um manual em retrato não quebra o layout** —
+que era a pergunta real.
+
+**Um falso defeito, encontrado e descartado.** A primeira execução
+acusou `overflow_horizontal: true`, `scrollWidth: 454`. Antes de
+registrar isso como defeito do visualizador, fui atrás do elemento
+responsável: era o **`<pre>` de diagnóstico do meu próprio instrumento**,
+cujo JSON tem tokens sem espaço e não quebrava linha. **Nenhum canvas
+estourava.** Corrigi o instrumento, separei a medição do estouro *do
+documento* da do *instrumento*, e repeti — daí os números acima. Fica
+registrado porque quase virou um achado falso no relatório.
+
+**Medição complementar, não de telefone:** uma execução em janela real de
+Chrome ficou em **500×812**, porque o macOS impõe largura mínima de
+janela em torno de 500 — 375 não é alcançável redimensionando janela. Ela
+serve como **viewport estreita complementar**, e **não** como telefone:
+500px pode atravessar breakpoints diferentes dos de 375. O número que
+fecha o item é o de 375, obtido por emulação de viewport, que não sofre
+esse limite.
+
+**O que isto NÃO é:** aparelho físico. Continua valendo a fronteira
+acordada — layout aproximado fecha na Fatia 0; **desempenho e memória em
+aparelho real são portão da Fatia 1** (§18.2.10).
 
 ### 18.2.10 Memória: o que substitui a medição
 
