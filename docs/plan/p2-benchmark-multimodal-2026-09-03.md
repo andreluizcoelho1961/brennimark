@@ -27,12 +27,15 @@ Ollama, mas boa parte do P2 não depende:
   externa.** Quatro pontos: reuso de `execution_id` como autorização de
   despacho, RPCs financeiras expostas à Data API para qualquer membro,
   constraint de orçamento global que não impedia duplicata, e conteúdo
-  estruturado de mensagem escapando o limite de tamanho. **Três dos
-  quatro concluídos.** O quarto — RPCs financeiras exclusivas do servidor
-  — está em rollout de duas etapas: a primeira (funções `_server` novas,
-  código publicado) está aplicada; a segunda (revogar as antigas) espera
-  a chave `SUPABASE_SECRET_KEY` existir e a verificação pela Data API
-  passar. Ver seção dedicada abaixo.
+  estruturado de mensagem escapando o limite de tamanho. **Concluído —
+  os quatro fechados.** `SUPABASE_SECRET_KEY` criada (chave moderna
+  `sb_secret_...`, nomeada `brennimark_billing`) e configurada na Vercel
+  (Production) e em `.env.local`; reserva, liquidação, cancelamento e a
+  recusa da chave pública testados de verdade pela Data API; as três
+  funções antigas revogadas e removidas do banco real; confirmado pelos
+  advisors que nenhuma mutação financeira segue exposta a `authenticated`.
+  Com isto, **o P2A está encerrado por completo**. Ver seção dedicada
+  abaixo.
 - **P2B — benchmark real, autorizado.** O ponto 4 e a ativação em si.
   Aqui sim: conta e chave da Ollama Cloud, crédito pré-pago pequeno, chave
   cadastrada pelo Studio (cifrada, nunca pelo chat nem commitada), perfil
@@ -217,7 +220,7 @@ Provado por 4 testes novos em `execucao.test.ts`: os três status
 reutilizados bloqueiam com o motivo certo, sem chegar ao recheck de kill
 switch; uma reserva genuinamente nova continua autorizando o despacho.
 
-### 2. RPCs financeiras aceitas por qualquer membro autenticado, direto pela Data API — 🟡 Rollout em duas etapas, etapa 1 concluída
+### 2. RPCs financeiras aceitas por qualquer membro autenticado, direto pela Data API — ✅ Fechado
 
 `reservar_execucao_de_ia`, `consolidar_execucao_de_ia` e
 `liberar_reserva_de_ia` são `security definer` com
@@ -262,22 +265,29 @@ Rollout em duas migrações:
   (a rota) decide qual cliente é qual. `userId` é resolvido pela rota a
   partir de `supabase.auth.getUser()` (sessão já validada), nunca do
   corpo da requisição.
-- **Etapa 2 — desenhada, NÃO aplicada**:
+- **Etapa 2 — aplicada ao projeto real**:
   [20260903220000_ai_ledger_drop_legacy_authenticated_functions.sql](../../supabase/migrations/20260903220000_ai_ledger_drop_legacy_authenticated_functions.sql)
-  revoga e remove as três funções antigas. Só deve ser aplicada depois de:
-  (a) `SUPABASE_SECRET_KEY` — chave moderna `sb_secret_...`, nomeada
-  `brennimark-billing` — configurada na Vercel e localmente; (b) reserva,
-  liquidação, cancelamento e recusa testados de verdade pela Data API com
-  essa chave; (c) então confirmar via advisors (`get_advisors`, tipo
-  `security`) que nenhuma das três mutações financeiras antigas aparece
-  mais para `authenticated` — hoje o advisor ainda as lista, exatamente
-  como esperado nesta janela de transição.
+  revogou e removeu as três funções antigas. Aplicada só depois de
+  confirmar as três precondições: (a) `SUPABASE_SECRET_KEY` — chave
+  moderna `sb_secret_...`, nomeada `brennimark_billing` — criada no
+  Supabase e configurada em `.env.local` e na Vercel (Production); (b) as
+  quatro operações testadas de verdade pela Data API com essa chave, num
+  script descartável contra o projeto real: reserva, liquidação,
+  cancelamento (liberação) e — o caso que fechava a lacuna original — a
+  chave PÚBLICA (anon) tentando chamar `reservar_execucao_de_ia_server`
+  e sendo recusada com `permission denied` (`42501`); linhas de teste
+  limpas do `ai_ledger` depois. Esse teste também respondeu a única
+  dúvida que a prova por SQL isolado não cobria: se a chave `sb_secret_...`
+  realmente mapeia para o papel `service_role` na camada da Data API —
+  respondeu que sim.
+  (c) confirmado via advisors (`get_advisors`, tipo `security`) que
+  nenhuma das três mutações financeiras antigas aparece mais para
+  `authenticated` — elas somem da lista inteiramente, porque foram
+  removidas, não só com o grant revogado.
 
-**O que falta, e de quem é o próximo passo**: criar a chave em Supabase →
-Settings → API Keys → Publishable and secret API keys, adicionar
-`SUPABASE_SECRET_KEY` ao `.env.local` e às variáveis de ambiente da
-Vercel (o valor nunca passa pelo chat), testar as quatro operações pela
-Data API, e só então aplicar a etapa 2.
+Nenhum valor da chave passou pelo chat em nenhum momento — criada e
+copiada pelo usuário diretamente na tela do Supabase, colada por ele em
+`.env.local` e no formulário da Vercel.
 
 ### 3. Orçamento global não impedia duplicata — ✅ Fechado
 
