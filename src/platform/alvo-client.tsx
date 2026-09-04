@@ -31,17 +31,15 @@ export function useAlvo(): { workspaceSlug?: string; brandKey?: string } {
 }
 
 /**
- * Acrescenta o alvo a uma URL de API, preservando o que já houver de query.
+ * `comAlvo` vive em `alvo.ts`, um módulo puro, e é reexportado aqui.
  *
- * Fora do contexto — preview local, rota de comparação — devolve a URL
- * intocada, e o servidor resolve pela conta única. Inventar um alvo aqui seria
- * a mesma escolha silenciosa, só que do lado do cliente.
+ * O motivo é a suíte de testes: ela compila sem `--jsx`, de propósito — é
+ * uma suíte de lógica, não de componente. Um `.test.ts` importando deste
+ * arquivo `.tsx` não compila, mesmo que a função testada não tenha nada de
+ * React. Separar a regra pura do componente de cliente é o mesmo padrão de
+ * `selecao.ts`, `secoes.ts` e `permissao.ts`.
+ *
+ * A reexportação mantém `@/platform/alvo-client` como o endereço de sempre:
+ * nenhum dos 23 chamadores muda.
  */
-export function comAlvo(
-  url: string,
-  alvo: { workspaceSlug?: string; brandKey?: string },
-): string {
-  if (!alvo.workspaceSlug || !alvo.brandKey) return url;
-  const separador = url.includes("?") ? "&" : "?";
-  return `${url}${separador}w=${encodeURIComponent(alvo.workspaceSlug)}&b=${encodeURIComponent(alvo.brandKey)}`;
-}
+export { comAlvo } from "./alvo";
