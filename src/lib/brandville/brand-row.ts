@@ -67,16 +67,30 @@ function objeto(valor: unknown): valor is Record<string, unknown> {
   return typeof valor === "object" && valor !== null && !Array.isArray(valor);
 }
 
-function parseTheme(valor: unknown): BrandvilleTheme | null {
+/**
+ * Exportado: também é o validador de ENTRADA da tela de edição de tema
+ * (achado da auditoria de produto — importar nunca extrai cor/fonte do PDF,
+ * e não existia tela nenhuma para uma pessoa corrigir isso depois). A regra
+ * de "tudo ou nada" vale nos dois sentidos: tanto para o que vem do banco
+ * quanto para o que uma pessoa está prestes a salvar.
+ */
+export function parseTheme(valor: unknown): BrandvilleTheme | null {
   if (!objeto(valor)) return null;
   // Tema incompleto reprova: um campo faltando pintaria a interface com valor
   // indefinido, e o defeito apareceria só na tela do cliente.
   for (const campo of TEMA_OBRIGATORIO) {
     if (!texto(valor[campo])) return null;
   }
+  const {
+    background, backgroundSecondary, surface, surfaceLight,
+    foreground, muted, accent, accentSecondary, border, focus,
+  } = valor as Record<(typeof TEMA_OBRIGATORIO)[number], string>;
   return {
-    ...(valor as unknown as BrandvilleTheme),
+    background, backgroundSecondary, surface, surfaceLight,
+    foreground, muted, accent, accentSecondary, border, focus,
     fontStack: texto(valor.fontStack) ? valor.fontStack : "var(--font-ui)",
+    // Ausente é um estado válido — herda `fontStack` pelo CSS, não por aqui.
+    ...(texto(valor.fontStackDisplay) ? { fontStackDisplay: valor.fontStackDisplay } : {}),
   };
 }
 

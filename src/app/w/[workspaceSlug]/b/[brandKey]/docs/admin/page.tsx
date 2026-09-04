@@ -33,6 +33,7 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
       initialDocs={[...docs]}
       deletedPages={excluidas}
       groups={brand.navigation.groups}
+      theme={brand.theme}
     />
   );
 }

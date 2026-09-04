@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MAX_CARACTERES_DO_PAPEL_DA_MARCA, parseBrandRow, parseDocumentRow } from "./brand-row";
+import { MAX_CARACTERES_DO_PAPEL_DA_MARCA, parseBrandRow, parseDocumentRow, parseTheme } from "./brand-row";
 
 const LINHA_MARCA = {
   id: "b1", key: "acme", name: "Acme", short_name: "Acme", descriptor: "Sistema de marca",
@@ -84,6 +84,35 @@ test("statusLabels só entra quando tem as três chaves", () => {
   assert.equal(comRotulos?.statusLabels?.ready, "Documented");
   const incompleto = parseBrandRow({ ...LINHA_MARCA, status_labels: { ready: "Só um" } });
   assert.equal(incompleto?.statusLabels, undefined, "rótulo parcial não pode ser aplicado pela metade");
+});
+
+// ─── fontStackDisplay: achado da auditoria de produto (04/09) ─────────────
+//
+// A tela de edição de tema (ThemeEditor) usa parseTheme para validar o que
+// uma pessoa está prestes a salvar, não só o que vem do banco — a mesma
+// função, as duas direções.
+
+test("fontStackDisplay ausente é um estado válido — não derruba o tema", () => {
+  const tema = parseTheme(LINHA_MARCA.theme);
+  assert.ok(tema);
+  assert.equal(tema.fontStackDisplay, undefined);
+});
+
+test("fontStackDisplay presente e válido é preservado", () => {
+  const tema = parseTheme({ ...LINHA_MARCA.theme, fontStackDisplay: "Univers Condensed, sans-serif" });
+  assert.equal(tema?.fontStackDisplay, "Univers Condensed, sans-serif");
+});
+
+test("fontStackDisplay vazio ou não-string é tratado como ausente, não como valor vazio gravado", () => {
+  assert.equal(parseTheme({ ...LINHA_MARCA.theme, fontStackDisplay: "" })?.fontStackDisplay, undefined);
+  assert.equal(parseTheme({ ...LINHA_MARCA.theme, fontStackDisplay: 42 })?.fontStackDisplay, undefined);
+});
+
+test("as 10 cores obrigatórias continuam reprovando o tema inteiro se uma faltar", () => {
+  const semBackground = Object.fromEntries(
+    Object.entries(LINHA_MARCA.theme).filter(([chave]) => chave !== "background"),
+  );
+  assert.equal(parseTheme(semBackground), null);
 });
 
 const LINHA_DOC = {

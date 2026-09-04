@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
+import type { BrandvilleTheme } from "@/brandville/types";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { VersionHistory } from "@/components/admin/VersionHistory";
+import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
@@ -19,12 +21,14 @@ export function AdminPanel({
   initialDocs,
   deletedPages = [],
   groups,
+  theme,
 }: {
   initialDocs: DocPageEntry[];
   /** Páginas sem linha viva que ainda têm histórico. Elas continuam
    *  selecionáveis porque é de lá que a recuperação parte. */
   deletedPages?: DeletedPage[];
   groups: readonly string[];
+  theme: BrandvilleTheme;
 }) {
   // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
   // saberia qual, e responderia 409 numa conta com mais de uma.
@@ -166,7 +170,8 @@ export function AdminPanel({
         <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Administration" : "Administração"}</p>
         <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-platform-text md:text-6xl">{isEnglish ? "No pages yet" : "Nenhuma página ainda"}</h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-platform-text-muted">{isEnglish ? "This brand has no published pages. Pages arrive when a brand manual is imported." : "Esta marca ainda não tem páginas publicadas. As páginas chegam quando um manual é importado."}</p>
-        <div className="mt-12 border-t border-platform-border pt-12">
+        <ThemeEditor theme={theme} />
+        <div className="mt-16 border-t border-platform-border pt-12">
           <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Library" : "Biblioteca"}</p>
           <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Official assets" : "Assets oficiais"}</h2>
           <div className="mt-8"><AssetLibrary canManage /></div>
@@ -223,6 +228,8 @@ export function AdminPanel({
           <VersionHistory key={`${slug}-${historyRevision}`} slug={slug} onRecovered={handleRecovered} />
         </div>
       </section>
+
+      <ThemeEditor theme={theme} />
 
       <section className="mt-16 border-t border-platform-border pt-12">
         <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Library" : "Biblioteca"}</p>

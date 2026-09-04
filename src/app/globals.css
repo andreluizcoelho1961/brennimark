@@ -116,6 +116,12 @@
    * legenda ou corpo de leitura — isso é interface, não material da marca.
    */
   --font-brand: var(--font-ui);
+  /*
+   * Segunda pilha, para a marca que declara fonte de título/logo distinta
+   * da de corpo (o comum num manual real). Ausente na marca = herda
+   * `--font-brand`, então nenhuma marca hoje precisa declarar as duas.
+   */
+  --font-brand-display: var(--font-brand);
 
   --spacing-page-inline: 1.5rem;
   --spacing-section-sm: 3rem;

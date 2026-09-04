@@ -15,6 +15,7 @@ export interface BrandThemeInput {
   border: string;
   focus: string;
   fontStack?: string;
+  fontStackDisplay?: string;
 }
 
 /**
@@ -64,6 +65,9 @@ export function brandCssVars(theme: BrandThemeInput): CSSProperties {
     // Só para elementos editoriais internos. Controles globais usam o foco da plataforma.
     ...pair("brand", "focus", theme.focus),
     ...(theme.fontStack ? { "--font-brand": theme.fontStack } : {}),
+    // Sem valor próprio, a variável nem é declarada aqui — o CSS global já
+    // faz `--font-brand-display: var(--font-brand)`, então herda sozinha.
+    ...(theme.fontStackDisplay ? { "--font-brand-display": theme.fontStackDisplay } : {}),
   } as CSSProperties;
 }
 

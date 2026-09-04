@@ -14,6 +14,8 @@ export interface BrandvilleTheme {
   border: string;
   focus: string;
   fontStack: string;
+  /** Fonte de título/logo, quando a marca declara uma distinta da de corpo. Ausente = herda `fontStack`. */
+  fontStackDisplay?: string;
 }
 
 export interface BrandvilleInstance {

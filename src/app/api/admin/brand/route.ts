@@ -2,16 +2,18 @@ import { NextResponse } from "next/server";
 import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
+import { parseTheme } from "@/lib/brandville/brand-row";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 async function contextoDeAdministracao(request: Request) {
   const resolvido = await conteudoDaRota(request);
   if (!resolvido.ok) return { ok: false as const, resposta: resolvido.resposta };
-  if (!resolvido.contexto.capabilities.includes("administrar")) {
+  const { contexto, auth } = resolvido;
+  if (!contexto.capabilities.includes("administrar") || !contexto.brand) {
     return { ok: false as const, resposta: null };
   }
-  return { ok: true as const, auth: resolvido.auth };
+  return { ok: true as const, auth, brand: contexto.brand };
 }
 
 const SEM_PERMISSAO = {
@@ -90,4 +92,52 @@ export async function POST(request: Request) {
 
   const fila = await drenarFilaDeExclusao(auth);
   return NextResponse.json({ ok: true, ...fila });
+}
+
+const SEM_PERMISSAO_TEMA = {
+  message: isEnglish
+    ? "Only owners can edit the brand's visual identity."
+    : "Apenas quem administra pode editar a identidade visual da marca.",
+};
+const TEMA_INVALIDO = {
+  message: isEnglish
+    ? "Review the theme values — every color is required."
+    : "Revise os valores do tema — toda cor é obrigatória.",
+};
+
+/**
+ * Grava o tema de uma marca já existente.
+ *
+ * Achado da auditoria de produto: `publish_brand_import` grava um tema
+ * neutro placeholder e é o ÚNICO lugar que escreve `brands.theme` — nenhuma
+ * tela existia para uma agência substituir isso pela identidade real do
+ * manual que acabou de importar. Esta rota é essa tela.
+ *
+ * Escrita direta via RLS (`Owners can update brands in their workspace`,
+ * migração 20260828120000), sem RPC nova: o gate de `administrar` aqui já é
+ * equivalente a `owner` hoje (`capabilitiesForRole`), então a policy não
+ * precisa mudar.
+ */
+export async function PATCH(request: Request) {
+  const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
+  const contexto = resolvido.ok ? resolvido : null;
+  if (!contexto) return NextResponse.json(SEM_PERMISSAO_TEMA, { status: 403 });
+
+  const input = await request.json().catch(() => null);
+  const tema = parseTheme(input?.theme);
+  if (!tema) return NextResponse.json(TEMA_INVALIDO, { status: 400 });
+
+  const { error } = await contexto.auth.supabase
+    .from("brands")
+    .update({ theme: tema })
+    .eq("id", contexto.brand.id);
+
+  if (error) {
+    return NextResponse.json(
+      { message: isEnglish ? "Couldn't save the theme." : "Não foi possível salvar o tema." },
+      { status: 500 },
+    );
+  }
+  return NextResponse.json({ ok: true, theme: tema });
 }

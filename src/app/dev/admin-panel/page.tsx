@@ -3,8 +3,16 @@ import { AdminPanel } from "@/components/admin/AdminPanel";
 import { LocaleProvider } from "@/platform/locale-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
 import type { DocPageEntry } from "@/content/docs";
+import type { BrandvilleTheme } from "@/brandville/types";
 
 export const metadata = { robots: { index: false, follow: false } };
+
+const TEMA_FIXO: BrandvilleTheme = {
+  background: "#14161a", backgroundSecondary: "#14161a", surface: "#1b1e24",
+  surfaceLight: "#242830", foreground: "#f4f5f7", muted: "#9099a8",
+  accent: "#f4f5f7", accentSecondary: "#9099a8", border: "#2b3038",
+  focus: "#ffffff", fontStack: "var(--font-ui)",
+};
 
 /**
  * A tela de administração com dados fixos, para o teste de navegador.
@@ -45,7 +53,7 @@ export default async function AdminPanelLab({
 
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
-      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} />
+      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} />
     </LocaleProvider>
   );
 }
