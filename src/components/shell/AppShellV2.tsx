@@ -250,7 +250,21 @@ export function AppShellV2({
             tabIndex={-1}
             className="min-w-0 flex-1 overflow-y-auto p-0 pb-[env(safe-area-inset-bottom)] outline-none lg:p-[var(--space-shell-4)]"
           >
-            <div className="mx-auto h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
+            {/*
+             * `min-h-full`, não `h-full` — achado ao vivo (04/09): `h-full`
+             * TRAVA a altura desta div na do `<main>` (a altura da tela). Com
+             * `overflow-hidden` ao lado (aqui só para cortar o canto quadrado
+             * do filho pela borda arredondada), qualquer página cujo
+             * conteúdo passasse da tela ficava CORTADA em silêncio — sem
+             * barra de rolagem, sem erro, o resto do manual simplesmente não
+             * existia para quem lia. `min-h-full` preserva o cartão de altura
+             * cheia em página curta (o motivo original do h-full) e ainda
+             * assim deixa a div CRESCER com o conteúdo em página longa — e
+             * aí `overflow-hidden` não corta mais nada, porque não sobra
+             * nada fora da caixa para cortar. Quem rola de verdade é o
+             * `<main>` ao redor, que já tinha `overflow-y-auto`.
+             */}
+            <div className="mx-auto min-h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
               {children}
             </div>
           </main>
