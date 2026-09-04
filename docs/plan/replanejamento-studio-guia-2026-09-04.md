@@ -1133,11 +1133,15 @@ mais, confirmar que a entrada saiu da fila, e registrar as duas provas
 aqui.
 
 **Decisão que falta ser sua:** apagar agora, ou reter com prazo. As
-medições que dependiam dele estão feitas — só permanecem em aberto
-"pixel visível" e "aparelho físico", e **nenhuma das duas precisa deste
-arquivo em particular**: a primeira roda com a fixture sintética; a
-segunda é portão da Fatia 1 e pode usar outro manual. **Na minha
-leitura, não há mais razão técnica para retê-lo.**
+medições que dependiam dele estão feitas, e as pendentes **rodam com a
+fixture sintética** — nenhuma precisa deste arquivo. **Na minha leitura,
+não há mais razão técnica para retê-lo**, e essa leitura foi confirmada
+na revisão de 04/09.
+
+**O que falta é a autorização expressa**, e ela não pode ser inferida de
+concordância técnica: apagar é irreversível, o arquivo é material de
+marca de terceiro, e o protocolo desta própria seção exige um
+responsável nomeado. Enquanto ela não vier por escrito, o arquivo fica.
 
 ### 18.2.1 A medição pôde ser feita
 
@@ -1235,10 +1239,18 @@ observabilidade — não cria uma garantia que não existe.
 ### 19.2.1 As oito investigações antes de decidir
 
 **1. O Supabase permite configurar `Access-Control-Expose-Headers`?**
-**Investigado — não encontrei configuração no plano hospedado.** A busca
-na documentação só devolve configuração de CORS para (a) o gateway
-Envoy do **self-hosted** e (b) Edge Functions, onde os cabeçalhos são do
-seu próprio código. Nada para o Storage hospedado.
+**INVESTIGAÇÃO INCONCLUSIVA.** Procurei e não encontrei — e *não
+encontrar não prova que não exista*. A busca na documentação só devolve
+CORS para (a) o gateway Envoy do **self-hosted** e (b) Edge Functions,
+onde os cabeçalhos são do seu próprio código; nada para o Storage
+hospedado. Mas "a documentação pública não menciona" e "não é
+configurável" são afirmações diferentes, e só a primeira está provada.
+
+**O que fecharia esta pergunta, e não foi feito:** perguntar ao suporte
+do Supabase; procurar configuração fora da documentação (painel do
+projeto, API de gerenciamento, configuração de bucket); e verificar se
+um domínio próprio na frente do Storage muda a resposta. Enquanto isso
+não acontecer, o item fica **em aberto**, não resolvido pela negativa.
 
 E a medição fecha o diagnóstico. Preflight (`OPTIONS`) do objeto real:
 
@@ -1274,23 +1286,35 @@ foi medido com 100 MiB**, e o item 4 abaixo mostra que a pergunta certa
 documentação é explícita: **o corpo de resposta de uma Vercel Function
 tem teto de 4,5 MB**, e acima disso vem `413 FUNCTION_PAYLOAD_TOO_LARGE`.
 
-Consequências diretas:
+Consequências prováveis — e **nenhuma delas está verificada no ambiente
+publicado**:
 
-- Uma rota que sirva **o arquivo inteiro** (200, 11,3 MiB — e mais ainda
-  num manual de 100 MiB) **estoura o teto em produção**.
-- Uma rota que sirva **intervalos de 64 KiB** passa com folga.
-- **A rota intermediária, portanto, não pode ser opcional quanto a
-  Range: ela precisa exigir intervalo**, ou responder com redirecionamento
-  quando não houver. Isso deixa de ser detalhe de implementação e vira
-  requisito.
-- **E a minha medição não teria revelado isso:** a sonda rodou em
+- Uma rota que sirva **o arquivo inteiro** (200, 11,3 MiB — mais ainda
+  num manual de 100 MiB) deve **estourar o teto em produção**.
+- Uma rota que sirva **intervalos de 64 KiB** deve passar. **Mas isso é
+  inferência a partir do número documentado, não medição.** Cada
+  resposta caber no teto não prova que a **sequência inteira** funcione
+  na Vercel: falta ver as onze requisições reais atravessando o ambiente
+  publicado, com o `Range` chegando à função, o `206` e o
+  `Content-Range` voltando intactos pela borda, e o comportamento sob
+  concorrência e duração.
+- **A minha medição não podia revelar nada disso:** a sonda rodou em
   `localhost`, onde o teto não existe. O proxy transmitiu 11,8 MiB sem
-  reclamar. Em produção, a mesma requisição teria falhado.
+  reclamar. **Concluir daí que "64 KiB passa" seria repetir o erro que
+  este documento existe para corrigir** — afirmar comportamento de
+  produção a partir de um ambiente que não é o de produção.
 
-Outros números: duração máxima 300 s no plano Hobby (streaming conta
-para a duração), memória 2 GB, custo por CPU ativa e memória
-provisionada. Falta confirmar se o teto de 4,5 MB vale igualmente para o
-runtime Edge com streaming — a página não distingue, e **não vou supor**.
+Outros números documentados: duração máxima 300 s no plano Hobby
+(streaming conta para a duração), memória 2 GB, custo por CPU ativa e
+memória provisionada. Falta confirmar se o teto de 4,5 MB vale
+igualmente para o runtime Edge com streaming — a página não distingue, e
+**não vou supor**.
+
+**Conclusão honesta do item 4:** existe um limite documentado que
+*provavelmente* proíbe servir o arquivo inteiro por função da Vercel.
+Isso é forte o bastante para desenhar contra ele, e **fraco demais para
+considerar o transporte resolvido**. O teste no ambiente publicado é
+condição para decidir.
 
 **5. Cancelamento quando o navegador abandona a requisição.** A sonda
 agora cancela o fluxo de origem no `cancel()` do `ReadableStream` — sem
@@ -1326,10 +1350,41 @@ autorizada, e confere os segmentos de conta e marca — a mesma disciplina
 de `pertenceAMarca` que já existe em `caminhos.ts`. A sonda é o
 contra-exemplo do que a rota definitiva precisa ser.
 
-**Resumo das oito:** quatro respondidas (1, 2, 4, 6), uma implementada e
-não medida (5), duas são requisitos de desenho (7, 8), uma parcialmente
-respondida (3). **A número 4 é a que muda o desenho** e precisa entrar em
-qualquer versão da rota.
+**Resumo das oito:** uma **inconclusiva** (1 — não achar não é provar que
+não existe), duas respondidas (2, 6), uma **parcialmente respondida com
+inferência não verificada** (4), uma implementada e não medida (5), uma
+parcial (3), duas são requisitos de desenho (7, 8).
+
+### 19.2.2 O que a medição de rede JÁ decide: Range é requisito
+
+Isto não é hipótese, e não depende de qual transporte vencer:
+
+> **O visualizador precisa operar com Range.** Sem intervalos, a primeira
+> página de um manual de 743 páginas leva **≈64 segundos** numa conexão
+> móvel razoável, contra **≈5 segundos** com intervalos (§18.2.9).
+
+Consequência prática: **qualquer transporte que não entregue Range
+utilizável ao navegador está fora**, independentemente de custo,
+simplicidade ou preferência. A URL assinada direta, na configuração
+atual, é justamente isso — e é por isso que ela sai da disputa **hoje**,
+sem que a rota entre eleita por consequência.
+
+### 19.2.3 As cinco validações que faltam para a hipótese virar decisão
+
+A "rota de mesma origem" **continua hipótese** até que estas cinco
+tenham resposta medida:
+
+| # | Validação | Por que não dá para pular |
+|---|---|---|
+| 1 | **Teste na Vercel real**, não no servidor local | o teto de 4,5 MB, a borda, a duração e a concorrência só existem lá (§19.2.1, item 4) |
+| 2 | **Transmissão de arquivo próximo de 100 MiB** | 11,3 MiB não estressa nem memória, nem duração, nem contagem de requisições; um manual grande estressa os três |
+| 3 | **Cancelamento por abandono real** | a sonda cancela o fluxo de origem no `cancel()`, mas ninguém verificou o que acontece quando o navegador some no meio |
+| 4 | **Autorização e isolamento entre marcas** | a rota precisa resolver o caminho no servidor a partir da marca autorizada, e recusar qualquer tentativa de alcançar arquivo de outra conta ou marca |
+| 5 | **Comparação com solução de CDN/borda** que exponha os cabeçalhos | se uma camada de borda resolver o CORS sem passar pela aplicação, ela ganha em custo e em simplicidade — e essa comparação nunca foi feita |
+
+**Enquanto as cinco não fecharem, o documento não chama isso de
+decisão.** A decisão do transporte definitivo pertence à Fatia 1, depois
+do teste publicado.
 
 **Duas medições que faltam antes de fechar:** rede estrangulada (§18.2.9)
 e aparelho móvel real — este último passa a ser **portão da Fatia 1**,
@@ -1511,22 +1566,34 @@ e registradas (§18.2.5), que é o que precisava acontecer agora.
 evidências.** Não é uma declaração minha. O que segue é o estado de cada
 item exigido:
 
+**A fronteira, decidida em 04/09:**
+
+| Escopo | O quê |
+|---|---|
+| **Fatia 0** | navegador visível e **layout** em viewport mobile |
+| **Portão da Fatia 1** | **desempenho e memória** em aparelho físico |
+| **Durante a Fatia 1** | **transporte definitivo**, decidido após teste no ambiente publicado |
+
+Aparelho físico deixa de bloquear o encerramento investigativo da Fatia
+0 — o que a Fatia 0 precisa provar sobre mobile é que o **layout**
+funciona, não quanto de memória o aparelho gasta.
+
 | Entregável | Estado |
 |---|---|
 | Contrato das estruturas | ✅ §5.1, §5.2, §5.4 (as cinco entidades) |
 | Fixture sintética e testes | ✅ §18.2.7 · commit `20d50eb` · 15 testes |
 | Linha de base antiga e atual, separadas | ✅ §18.2.3 (122/68 histórica × 500/0 em `6986fdb`) |
-| Navegador visível | ❌ **não obtido** — painel e Chrome real ambos ocultos (§18.2.8, limitação 1) |
 | Rede estrangulada | ✅ §18.2.9 — dois perfis, 1600 e 400 kbps |
-| Viewport mobile funcional como aproximação | ❌ **não obtido** — a emulação não sobreviveu à navegação (limitação 4) |
-| Comparação dos transportes sem virar decisão | ✅ §19.2 — registrada como **hipótese favorecida**, com as oito investigações em §19.2.1 |
+| Range como requisito do visualizador | ✅ §19.2.2 — decidido pela medição |
+| Comparação dos transportes **sem virar decisão** | ✅ §19.2 — hipótese, com as oito investigações (§19.2.1) e as cinco validações que faltam (§19.2.3) |
 | Plano de medição física para a Fatia 1 | ✅ §18.2.10 |
-| Destino explicitamente decidido para o PDF órfão | ❌ **aguarda sua decisão** (§18.2.0) |
+| **Navegador visível** | ⏳ depende de autorização de tela |
+| **Layout em viewport mobile** | ⏳ mesma dependência |
+| **Destino do PDF órfão** | ⏳ depende de autorização expressa |
 
-**Três itens em aberto, e nenhum deles depende de mais trabalho meu
-sozinho:** dois precisam de um navegador em primeiro plano (o que
-depende de você presente ou de autorizar acesso de tela), e o terceiro é
-uma decisão sua sobre o arquivo.
+**Os três pendentes dependem de duas autorizações suas, não de mais
+trabalho meu.** Com elas, a verificação visual roda **com a fixture
+sintética** — não precisa do manual real.
 
 ### 18.2.8 Medições no navegador — e elas invertem a recomendação
 
