@@ -65,9 +65,21 @@ export function brandCssVars(theme: BrandThemeInput): CSSProperties {
     // Só para elementos editoriais internos. Controles globais usam o foco da plataforma.
     ...pair("brand", "focus", theme.focus),
     ...(theme.fontStack ? { "--font-brand": theme.fontStack } : {}),
-    // Sem valor próprio, a variável nem é declarada aqui — o CSS global já
-    // faz `--font-brand-display: var(--font-brand)`, então herda sozinha.
-    ...(theme.fontStackDisplay ? { "--font-brand-display": theme.fontStackDisplay } : {}),
+    /*
+     * SEMPRE declarado aqui, com valor LITERAL — nunca por indireção
+     * `var(--font-brand)`. Achado ao testar: o `@theme` global já tentava
+     * essa indireção (`--font-brand-display: var(--font-brand)`), e ela
+     * "congelava" no valor de `--font-brand` NO MOMENTO em que
+     * `--font-brand-display` foi declarado — no :root, antes de qualquer
+     * marca existir — porque uma custom property só é recalculada onde é
+     * REDECLARADA, não onde é usada. Resultado: toda marca herdava a
+     * fonte de UI, não a de corpo dela mesma, mesmo com `fontStack`
+     * corretamente aplicado ao lado. O mesmo motivo que `pair()` já evita
+     * indireção para cor, agora vale para fonte também.
+     */
+    ...(theme.fontStackDisplay || theme.fontStack
+      ? { "--font-brand-display": theme.fontStackDisplay || theme.fontStack }
+      : {}),
   } as CSSProperties;
 }
 

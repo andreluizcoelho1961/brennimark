@@ -118,8 +118,15 @@
   --font-brand: var(--font-ui);
   /*
    * Segunda pilha, para a marca que declara fonte de título/logo distinta
-   * da de corpo (o comum num manual real). Ausente na marca = herda
-   * `--font-brand`, então nenhuma marca hoje precisa declarar as duas.
+   * da de corpo (o comum num manual real). Ausente na marca = o próprio
+   * `brandCssVars` (src/platform/tokens.ts) repete o valor de `fontStack`
+   * aqui, como valor LITERAL — nunca por indireção `var(--font-brand)`
+   * dentro do canvas. Essa indireção foi tentada e falhou: uma custom
+   * property só recalcula onde é REDECLARADA, e como só este `:root` a
+   * declarava, ela congelava aqui, antes de qualquer marca existir —
+   * herdando sempre a fonte de UI, mesmo com `--font-brand` já correto no
+   * canvas ao lado. Esta declaração aqui só existe para o Tailwind gerar
+   * a classe `font-brand-display`; fora do `BrandCanvas` ela nunca é usada.
    */
   --font-brand-display: var(--font-brand);
 

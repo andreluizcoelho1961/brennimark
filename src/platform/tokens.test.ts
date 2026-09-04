@@ -44,6 +44,30 @@ test("todo campo do tema da marca vira token da marca", () => {
   }
 });
 
+// ─── --font-brand-display: nunca por indireção var() ──────────────────────
+//
+// Achado ao testar o editor de tema ao vivo: uma primeira versão declarava
+// `--font-brand-display: var(--font-brand)` só no :root, esperando que
+// marcas sem fonte de título/destaque própria herdassem a de corpo. Não
+// herdava — uma custom property só recalcula onde é REDECLARADA, e como só
+// o :root a declarava, ela "congelava" ali, ANTES de qualquer marca existir,
+// e toda marca acabava com a fonte de UI no título, mesmo com a fonte de
+// corpo certa ao lado. A correção: `brandCssVars` sempre emite um valor
+// LITERAL, nunca uma referência a outra variável.
+
+test("--font-brand-display é sempre um valor literal, nunca uma referência var()", () => {
+  const emitted = brandCssVars(BRAND_THEME) as Record<string, string>;
+  assert.equal(emitted["--font-brand-display"], BRAND_THEME.fontStack,
+    "sem fontStackDisplay próprio, o valor deveria ser o LITERAL de fontStack — nunca `var(--font-brand)`");
+  assert.ok(!String(emitted["--font-brand-display"]).includes("var("),
+    "indireção var() aqui é o defeito que este teste existe para impedir");
+});
+
+test("--font-brand-display usa o valor de fontStackDisplay quando a marca declara um", () => {
+  const emitted = brandCssVars({ ...BRAND_THEME, fontStackDisplay: "'Univers Condensed', sans-serif" }) as Record<string, string>;
+  assert.equal(emitted["--font-brand-display"], "'Univers Condensed', sans-serif");
+});
+
 test("não existem mais aliases de compatibilidade", () => {
   // Eles apontavam o vocabulário legado para a plataforma ou para a marca,
   // conforme o escopo, e serviram para migrar sem quebrar tudo de uma vez.
