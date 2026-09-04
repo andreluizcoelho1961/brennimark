@@ -6,15 +6,15 @@ import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { slugify } from "@/lib/import/draft";
 import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
-import { lerPdf, FalhaDeLeitura, type ItemDeOutline } from "@/lib/import/pdf";
+import { lerPdf, FalhaDeLeitura, renderizarPaginasComoImagem, type ItemDeOutline } from "@/lib/import/pdf";
 import { diagnosticar } from "@/lib/import/pdf-erros";
 import { detectarRepetidos, linhasUteis } from "@/lib/import/texto";
 import {
-  agrupar, faixaLegivel, fimDe, inicioDe, type Agrupamento, type Secao,
+  agrupar, ehVisualDominante, faixaLegivel, fimDe, inicioDe, type Agrupamento, type Secao,
 } from "@/lib/import/secoes";
 import { ListaDeSecoes } from "./ListaDeSecoes";
 import type { BrandvilleUtilityKey } from "@/brandville/types";
-import { caminhoDeImportacao } from "@/lib/storage/caminhos";
+import { caminhoDeAsset, caminhoDeImportacao } from "@/lib/storage/caminhos";
 
 
 
@@ -154,6 +154,55 @@ export function BrandImporter({
   async function publicar() {
     if (!arquivo || !agrupamento) return;
     setPublicando(true); setMensagem("");
+
+    /**
+     * O id da marca nasce AQUI, no navegador — não no banco.
+     *
+     * Toda imagem de página precisa de um caminho `workspaceId/brandId/...`
+     * antes de a marca existir (o Storage exige o arquivo antes da RPC que
+     * cria a linha). Gerar o id agora, e passar o MESMO id para a RPC em vez
+     * de deixar `brands.id` ganhar um `gen_random_uuid()` próprio, evita dois
+     * padrões de pasta — decisão registrada na migração
+     * `20260904160000_publish_brand_import_client_brand_id.sql`.
+     */
+    const brandId = crypto.randomUUID();
+    const supabase = createClient();
+
+    /**
+     * Fase 1g: página visual-dominante vira imagem fiel da própria página.
+     *
+     * Uma seção não some do texto por ganhar imagem — as duas convivem no
+     * mesmo documento. O que muda é só quem manda visualmente: uma abertura
+     * de seção com quase nada de texto extraível ganha a imagem que o texto
+     * sozinho nunca reconstruiria.
+     */
+    const paginasVisuais = secoes
+      .filter(ehVisualDominante)
+      .map((secao) => inicioDe(secao))
+      .filter((pagina): pagina is number => pagina !== null);
+    const imagensRenderizadas = await renderizarPaginasComoImagem(arquivo, paginasVisuais);
+
+    const caminhosDeImagemEnviados: string[] = [];
+    const imagensPorSecao = new Map<string, { src: string; alt: string }[]>();
+    for (const secao of secoes) {
+      if (!ehVisualDominante(secao)) continue;
+      const pagina = inicioDe(secao);
+      const blob = pagina !== null ? imagensRenderizadas.get(pagina) : undefined;
+      if (!blob) continue;
+
+      const caminhoDaImagem = caminhoDeAsset(
+        workspaceId, brandId, `pagina-${pagina}.png`, crypto.randomUUID(),
+      );
+      const envioDeImagem = await supabase.storage
+        .from("brand-assets")
+        .upload(caminhoDaImagem, blob, { contentType: "image/png", upsert: false });
+      // Uma imagem que falha ao enviar não derruba a importação inteira —
+      // a seção publica só com o texto, do jeito que publicaria sem 1g.
+      if (envioDeImagem.error) continue;
+      caminhosDeImagemEnviados.push(caminhoDaImagem);
+      imagensPorSecao.set(secao.id, [{ src: caminhoDaImagem, alt: secao.titulo }]);
+    }
+
     const usados = new Set<string>();
     const documentos = secoes.map((secao, indice) => {
       let slug = slugify(secao.titulo) || secao.id;
@@ -165,6 +214,7 @@ export function BrandImporter({
         title: secao.titulo,
         status: "draft" as const,
         body: secao.linhas,
+        images: imagensPorSecao.get(secao.id) ?? [],
         // A procedência vai no DOCUMENTO, não só no relatório. O relatório é
         // registro da importação; o documento é o que a recuperação consulta
         // depois, e sem a faixa aqui a citação diria apenas "está no manual".
@@ -179,7 +229,6 @@ export function BrandImporter({
       };
     });
 
-    const supabase = createClient();
     const caminho = caminhoDeImportacao(workspaceId, importId, hash);
 
     /**
@@ -213,6 +262,7 @@ export function BrandImporter({
     const { data, error } = await supabase.rpc("publish_brand_import", {
       p_workspace_id: workspaceId,
       p_import_id: importId,
+      p_brand_id: brandId,
       p_key: chave,
       p_name: nome.trim(),
       p_short_name: nome.trim().slice(0, 60),
@@ -280,6 +330,14 @@ export function BrandImporter({
             p_pdf_sha256: hash,
           });
         }
+      }
+      // Melhor esforço: sem RPC de limpeza para o bucket de assets ainda,
+      // então uma falha aqui deixa a imagem órfã (sem marca, mas também sem
+      // custo — nada referencia o caminho). Risco aceito, do mesmo tamanho
+      // do PDF antes de existir a fila: a marca nunca chegou a existir, e a
+      // pessoa que tenta de novo gera um brandId novo, não reusa este.
+      if (caminhosDeImagemEnviados.length > 0) {
+        await supabase.storage.from("brand-assets").remove(caminhosDeImagemEnviados);
       }
       // Chave repetida é conflito, não erro genérico: já existe uma marca com
       // este nome, e sobrescrever apagaria curadoria.

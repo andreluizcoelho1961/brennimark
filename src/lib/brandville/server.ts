@@ -211,7 +211,55 @@ export async function getBrandDocs(
 
   // Linha que não passa na tradução some do manual em vez de aparecer com
   // valor indefinido. Ver o comentário em brand-row.ts.
-  return (data ?? []).map(parseDocumentRow).filter((entry): entry is DocPageEntry => entry !== null);
+  const entradas = (data ?? []).map(parseDocumentRow).filter((entry): entry is DocPageEntry => entry !== null);
+  return resolverImagensDeStorage(auth.supabase, entradas);
+}
+
+/**
+ * Troca caminho de Storage por URL assinada, uma vez por requisição.
+ *
+ * Fase 1g: `DocPageImage.src` foi desenhado para caminho estático de
+ * `/public` (sempre começa com `/`); a imagem de página inteira que o
+ * importador agora envia usa o mesmo padrão de pasta de todo outro asset
+ * da marca (`workspaceId/brandId/...`, sem barra inicial) — esse é o sinal
+ * que distingue os dois. `DocPage`/`BrandCanvas` são Server Components,
+ * então a URL nasce fresca a cada render; não há cache de URL para expirar.
+ *
+ * Uma imagem cuja URL falha ao assinar é DESCARTADA, não mostrada quebrada
+ * — mesma regra de "dado malformado nunca vira conteúdo aprovado" que
+ * `parseDocumentRow` já aplica à linha inteira (ver brand-row.ts). Isto
+ * nunca lança: uma falha ao assinar não pode derrubar o manual inteiro por
+ * causa de uma imagem.
+ */
+async function resolverImagensDeStorage(
+  supabase: SupabaseClient,
+  entradas: DocPageEntry[],
+): Promise<DocPageEntry[]> {
+  const caminhos = new Set<string>();
+  for (const entrada of entradas) {
+    for (const imagem of entrada.images ?? []) {
+      if (!imagem.src.startsWith("/")) caminhos.add(imagem.src);
+    }
+  }
+  if (caminhos.size === 0) return entradas;
+
+  const { data } = await supabase.storage
+    .from("brand-assets")
+    .createSignedUrls([...caminhos], 3_600);
+
+  const urlPorCaminho = new Map<string, string>();
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) urlPorCaminho.set(item.path, item.signedUrl);
+  }
+
+  return entradas.map((entrada) => {
+    if (!entrada.images?.length) return entrada;
+    const images = entrada.images
+      .map((imagem) => (imagem.src.startsWith("/") ? imagem : { ...imagem, src: urlPorCaminho.get(imagem.src) ?? "" }))
+      .filter((imagem) => imagem.src.length > 0);
+    if (images.length === entrada.images.length) return { ...entrada, images };
+    return { ...entrada, images: images.length ? images : undefined };
+  });
 }
 
 /**

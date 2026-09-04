@@ -150,6 +150,61 @@ export async function lerPdf(
   return { paginas, outline, totalDePaginas: documento.numPages, sha256: digest };
 }
 
+/**
+ * Renderiza páginas específicas do PDF como imagem, no navegador.
+ *
+ * Fase 1g (identidade visual fiel): até aqui, `lerPdf` só chama
+ * `getTextContent()` — nunca `page.render()`, embora a biblioteca sempre
+ * tenha suportado. Achado da auditoria de produto: nenhuma marca
+ * importada tinha imagem nenhuma, em lugar nenhum, desde sempre. Para
+ * páginas classificadas como visual-dominante (`ehVisualDominante` em
+ * `secoes.ts`) — abertura de seção, diagrama, exemplo de aplicação —
+ * reconstrução em texto perde o que a página É. Renderizar a página
+ * inteira como imagem, fiel ao PDF original, é o que a Fase 1g usa em vez
+ * disso.
+ *
+ * Reabre o documento UMA vez para o conjunto de páginas pedido, não uma
+ * vez por página — o custo de reanalisar a estrutura do PDF não se repete
+ * por imagem.
+ */
+export async function renderizarPaginasComoImagem(
+  arquivo: File,
+  numeros: readonly number[],
+  { escala = 2 }: { escala?: number } = {},
+): Promise<Map<number, Blob>> {
+  const saida = new Map<number, Blob>();
+  if (numeros.length === 0) return saida;
+
+  const buffer = await arquivo.arrayBuffer();
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+
+  const documento = await pdfjs.getDocument({ data: buffer }).promise;
+
+  for (const numero of numeros) {
+    if (numero < 1 || numero > documento.numPages) continue;
+
+    const pagina = await documento.getPage(numero);
+    const viewport = pagina.getViewport({ scale: escala });
+    const canvas = window.document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const contexto = canvas.getContext("2d");
+    if (!contexto) continue;
+
+    await pagina.render({ canvas, canvasContext: contexto, viewport }).promise;
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/png"),
+    );
+    if (blob) saida.set(numero, blob);
+  }
+
+  return saida;
+}
+
 /** Nome e mensagem do erro, sem nada do conteúdo do arquivo. */
 function descricaoTecnica(erro: unknown): string {
   const e = erro as { name?: string; message?: string } | null;

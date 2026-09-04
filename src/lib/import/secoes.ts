@@ -101,6 +101,30 @@ export function fimDe(secao: Secao): number | null {
   return ultimo?.ate ?? null;
 }
 
+/**
+ * Uma seção é predominantemente visual — arte, não texto corrido.
+ *
+ * Fase 1g (identidade visual fiel): heurística de APOIO, não juíza final —
+ * a prévia de importação mostra o resultado antes de publicar, do mesmo
+ * jeito que título e agrupamento já são revisáveis hoje. O sinal: pouco
+ * texto extraível numa seção curta. Uma abertura de seção real (fundo
+ * sólido, tipografia de destaque, pouco ou nenhum texto corrido) bate
+ * nisso; uma página de FAQ ou política, mesmo curta, não — tem parágrafo.
+ *
+ * Os números são um ponto de partida, não uma medição calibrada contra o
+ * manual real: ajustar depois de ver o resultado contra a GE é esperado,
+ * não uma falha de design.
+ */
+const TETO_DE_CARACTERES_VISUAL = 300;
+const TETO_DE_PAGINAS_VISUAL = 2;
+
+export function ehVisualDominante(secao: Secao): boolean {
+  const totalDePaginas = paginasDe(secao).length;
+  if (totalDePaginas === 0 || totalDePaginas > TETO_DE_PAGINAS_VISUAL) return false;
+  const totalDeCaracteres = secao.linhas.join("").length;
+  return totalDeCaracteres < TETO_DE_CARACTERES_VISUAL;
+}
+
 /** "Páginas 40–47" ou "Páginas 1–5, 9". Contíguo ou não, sem mentir. */
 export function faixaLegivel(secao: Secao): string {
   return secao.sourcePageRanges

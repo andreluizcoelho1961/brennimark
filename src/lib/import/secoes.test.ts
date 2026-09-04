@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  agrupar, dividir, faixaLegivel, fimDe, inicioDe, moverPagina, normalizar,
+  agrupar, dividir, ehVisualDominante, faixaLegivel, fimDe, inicioDe, moverPagina, normalizar,
   paginasDe, renomear, unir, validarInvariantes, MAXIMO_DE_SECOES, type Secao,
 } from "./secoes";
 import { detectarRepetidos, type ItemDeTexto, type PaginaExtraida } from "./texto";
@@ -42,6 +42,32 @@ test("a faixa legivel diz a verdade sobre secao descontinua", () => {
   assert.equal(faixaLegivel(secao), "1–5, 9");
   assert.equal(inicioDe(secao), 1);
   assert.equal(fimDe(secao), 9);
+});
+
+// ─── Classificacao visual (Fase 1g) ─────────────────────────────────────────
+
+const secaoDe = (paginas: number[], caracteresTotais: number): Secao => ({
+  id: "s", titulo: "T", metodo: "outline", confianca: 1,
+  sourcePageRanges: normalizar(paginas.map((n) => ({ de: n, ate: n }))),
+  linhas: caracteresTotais > 0 ? ["x".repeat(caracteresTotais)] : [],
+});
+
+test("secao de 1 pagina com pouco texto e visual dominante", () => {
+  assert.ok(ehVisualDominante(secaoDe([1], 50)));
+});
+
+test("secao de 1 pagina com texto corrido normal NAO e visual dominante", () => {
+  // Uma pagina de FAQ curta ainda tem paragrafo — nao pode virar imagem so
+  // por ser breve.
+  assert.ok(!ehVisualDominante(secaoDe([1], 1200)));
+});
+
+test("secao longa (muitas paginas) NAO e visual dominante, mesmo com pouco texto por pagina", () => {
+  assert.ok(!ehVisualDominante(secaoDe([1, 2, 3, 4, 5], 100)));
+});
+
+test("secao sem pagina nenhuma nao e visual dominante", () => {
+  assert.ok(!ehVisualDominante(secaoDe([], 0)));
 });
 
 // ─── Ordem de confianca ─────────────────────────────────────────────────────

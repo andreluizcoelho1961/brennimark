@@ -23,7 +23,24 @@ if (process.env.BRANDVILLE_DEV_SKIP_AUTH === "true" && process.env.NODE_ENV === 
  * Quando uma marca precisar de fonte auto-hospedada, ela virá como asset dela,
  * servido pelo bucket da marca, não compilado no bundle do produto.
  */
+const supabaseHost = (() => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return url ? new URL(url).hostname : undefined;
+})();
+
 const nextConfig: NextConfig = {
+  images: {
+    /*
+     * Achado da auditoria de produto (04/09): sem isto, `next/image` não
+     * carrega URL nenhuma do Supabase Storage — nem asset da biblioteca,
+     * nem a imagem de página inteira da Fase 1g. `next.config.ts` nunca
+     * teve `remotePatterns`, porque nada até agora tentava exibir uma
+     * imagem vinda de fora de `/public`.
+     */
+    remotePatterns: supabaseHost
+      ? [{ protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/sign/**" }]
+      : [],
+  },
 };
 
 export default nextConfig;
