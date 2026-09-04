@@ -1108,7 +1108,44 @@ das medições já autorizadas**.
 transformada em fixture — a fixture do repositório é 100% sintética
 (§18.2.7). O arquivo continua exatamente onde estava, com o mesmo hash.
 
-#### Registro de retenção temporária — a preencher quando você autorizar
+#### ✅ RESOLVIDO — arquivo excluído em 04/09, com autorização expressa
+
+| Campo | Valor |
+|---|---|
+| Autorização | **expressa**, de André, em 04/09, após pergunta direta que descrevia a irreversibilidade |
+| Responsável | André (autorizou) · execução por mim |
+| Caminho | `brand-imports/b0a2b4dc-b594-48a1-8406-47ddb3f6380d/6ad11b2a-3457-47bc-bdb7-4aa5b92e8d39/1a42778a9f9033e73f4a6b17bf82fe7ff57a3255360a2ec9536055955902c740.pdf` |
+| Tamanho | 11.844.340 bytes · 743 páginas |
+| `ETag` antes | `5a689505f4eb7803c25a2db1eb582c0a` |
+| Método | **`DELETE` na API do Storage** (`/storage/v1/object/...`) — **nunca** `DELETE` em `storage.objects` |
+| Resposta | `200` · `{"message":"Successfully deleted"}` |
+
+**Provas de ausência, colhidas depois:**
+
+| Prova | Resultado |
+|---|---|
+| Assinar o objeto de novo | **404 `NoSuchKey`** — "Object not found" |
+| URL assinada anterior | **400** — não entrega mais bytes |
+| `GET` autenticado direto | **400** |
+| Objetos no bucket `brand-imports` | **0** |
+| Qualquer vestígio do hash em `storage.objects` | **0** |
+| Entradas em `brand_deletions` | **0** |
+| `brand_imports` · `brands` · `brand_documents` · `brand_document_versions` · `brand_chunks` · `brand_assets` | **0 em todas** |
+
+**Nota sobre a fila:** como a exclusão foi feita pela API direta, ela não
+passou por `drenarFilaDeExclusao`, e a entrada ficou órfã apontando para
+um arquivo que já não existia. Fechei-a **por observação da ausência** —
+que é exatamente o critério que a drenagem do produto usa — com a
+remoção condicionada, na própria consulta, a `not exists` do objeto no
+Storage. Isso é a fila do produto, não `storage.objects`.
+
+**O incidente P0 continua aberto como defeito.** Este arquivo foi
+resolvido; a **causa** — limpeza que depende de alguém abrir a
+administração — não. As quatro camadas e as dez garantias acima seguem
+como trabalho a fazer, e agora sem um sujeito de teste vivo para
+lembrar dele.
+
+<details><summary>Registro de retenção que seria preenchido caso a decisão fosse reter</summary>
 
 Se houver autorização de retenção, ela precisa destes campos
 **preenchidos**, não implícitos:
@@ -1132,16 +1169,17 @@ arquivo órfão e invisível). Depois: confirmar que o objeto não responde
 mais, confirmar que a entrada saiu da fila, e registrar as duas provas
 aqui.
 
-**Decisão que falta ser sua:** apagar agora, ou reter com prazo. As
-medições que dependiam dele estão feitas, e as pendentes **rodam com a
-fixture sintética** — nenhuma precisa deste arquivo. **Na minha leitura,
-não há mais razão técnica para retê-lo**, e essa leitura foi confirmada
-na revisão de 04/09.
+*(Este bloco ficou sem uso: a decisão foi apagar.)*
 
-**O que falta é a autorização expressa**, e ela não pode ser inferida de
-concordância técnica: apagar é irreversível, o arquivo é material de
-marca de terceiro, e o protocolo desta própria seção exige um
-responsável nomeado. Enquanto ela não vier por escrito, o arquivo fica.
+</details>
+
+**Sobre a exigência de autorização expressa:** ela não foi inferida de
+concordância técnica. Na revisão de 04/09 o usuário escreveu "não vejo
+mais motivo técnico para manter o PDF órfão" e listou a exclusão entre
+as "ações que dependem de você" — o que é diferente de conceder. Perguntei
+de forma direta, descrevendo a irreversibilidade e o fato de ser o único
+exemplar na plataforma, e só executei com o "sim" explícito. **Apagar
+material de marca de terceiro não se faz por interpretação.**
 
 ### 18.2.1 A medição pôde ser feita
 
@@ -1587,13 +1625,25 @@ funciona, não quanto de memória o aparelho gasta.
 | Range como requisito do visualizador | ✅ §19.2.2 — decidido pela medição |
 | Comparação dos transportes **sem virar decisão** | ✅ §19.2 — hipótese, com as oito investigações (§19.2.1) e as cinco validações que faltam (§19.2.3) |
 | Plano de medição física para a Fatia 1 | ✅ §18.2.10 |
-| **Navegador visível** | ⏳ depende de autorização de tela |
+| **Destino do PDF órfão** | ✅ **excluído em 04/09** com autorização expressa, provas em §18.2.0 |
+| **Navegador visível** | ⏳ bloqueado por um clique seu (abaixo) |
 | **Layout em viewport mobile** | ⏳ mesma dependência |
-| **Destino do PDF órfão** | ⏳ depende de autorização expressa |
 
-**Os três pendentes dependem de duas autorizações suas, não de mais
-trabalho meu.** Com elas, a verificação visual roda **com a fixture
-sintética** — não precisa do manual real.
+**Por que os dois últimos não avançam mesmo com a autorização
+concedida.** A autorização de tela foi dada e o acesso ao Chrome foi
+concedido — **mas em modo somente-leitura**, que é o único tier possível
+para navegador: dá para ver o que está na tela, não para clicar. E a
+janela do Chrome está **minimizada** (`is_minimized: true`), o que faz
+toda aba dele reportar `visibilityState: "hidden"` e suspende a pintura.
+Restaurar uma janela minimizada exige clique, e clicar num app de tier
+"read" é justamente o que a política proíbe — não vou contornar isso.
+O painel embutido também está oculto (viewport `0x0`).
+
+**O que destrava, e é um clique:** restaurar a janela do Chrome (Dock) ou
+abrir o painel do navegador no app. A aba já está carregada em
+`localhost:3100/images/harness/visivel.html`, o servidor está de pé, e a
+página mede sozinha assim que a aba ficar visível — **sem ponte de
+`rAF`**: ela aborta e escreve "OCULTA" em vez de inventar um número.
 
 ### 18.2.8 Medições no navegador — e elas invertem a recomendação
 
