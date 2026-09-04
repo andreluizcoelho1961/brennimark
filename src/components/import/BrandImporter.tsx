@@ -169,6 +169,13 @@ export function BrandImporter({
         // registro da importação; o documento é o que a recuperação consulta
         // depois, e sem a faixa aqui a citação diria apenas "está no manual".
         sourcePageRanges: secao.sourcePageRanges,
+        // Achado da auditoria de produto: antes disso, método/confiança do
+        // título só existiam na prévia efêmera da importação — depois de
+        // publicado, não havia como distinguir um título real de um
+        // fallback "Página 7" sem ler a própria string. Agora viaja com o
+        // documento, para a curadoria (Fase 2) filtrar por confiança real.
+        metodo: secao.metodo,
+        confianca: secao.confianca,
       };
     });
 
