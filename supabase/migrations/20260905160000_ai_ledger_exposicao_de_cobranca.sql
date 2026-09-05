@@ -161,6 +161,26 @@ begin
     return;
   end if;
 
+  /*
+   * A invariante recíproca: **não existe execução liquidada sem registro de
+   * exposição ao provedor**.
+   *
+   * Liquidar sem `charge_exposed_at` significaria cobrar por um pedido que o
+   * razão não sabe ter saído — o espelho exato do defeito que a coluna existe
+   * para fechar. E é sintoma, não causa: se chegou aqui sem marcação, ou a
+   * marcação foi pulada no executor, ou a linha foi manipulada fora do
+   * caminho normal. Nos dois casos, o certo é interromper alto, não gravar.
+   *
+   * Erro e não `return`: um `return` silencioso perderia a liquidação e
+   * deixaria a reserva aberta, trocando um defeito visível por um invisível.
+   */
+  if linha.charge_exposed_at is null then
+    raise exception
+      'cannot settle an execution with no recorded charge exposure (execution %)',
+      p_execution_id
+      using errcode = '23514';
+  end if;
+
   update public.ai_ledger
      set status = 'settled', settled_micros = p_settled_micros,
          provider = p_provider, model = p_model, settled_at = now(),
