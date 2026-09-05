@@ -231,6 +231,34 @@ export async function killSwitchAtivo(
  * pretende proteger. Este valor existe para falhar cedo e com mensagem
  * legível, e para que afrouxar o limiar exija mexer nos dois lugares.
  */
+/**
+ * Marca que o pedido vai ser despachado e portanto pode gerar cobrança.
+ *
+ * Chamada ANTES do despacho, e o resultado decide se ele acontece. Falhar aqui
+ * aborta a execução de propósito: produzir custo que o razão não conhece é
+ * pior do que derrubar uma resposta. É a mesma escolha conservadora que o
+ * executor já faz em toda decisão de dinheiro.
+ *
+ * `false` significa que a reserva já não está reservada — alguém liquidou ou
+ * liberou — e nesse caso despachar geraria custo sem reserva.
+ */
+export async function marcarExposicaoDeCobranca(
+  serviceClient: SupabaseClient,
+  params: { userId: string; executionId: string },
+): Promise<{ exposta: boolean } | { erro: true }> {
+  const { data, error } = await serviceClient.rpc("marcar_exposicao_de_cobranca_server", {
+    p_user_id: params.userId,
+    p_execution_id: params.executionId,
+  });
+  if (error) {
+    console.error(JSON.stringify({
+      level: "error", msg: "marcar_exposicao_de_cobranca_falhou", code: error.code,
+    }));
+    return { erro: true };
+  }
+  return { exposta: data === true };
+}
+
 export const MINIMO_DE_EXPIRACAO_EM_MINUTOS = 15;
 
 /**
@@ -246,7 +274,7 @@ export const MINIMO_DE_EXPIRACAO_EM_MINUTOS = 15;
 export async function expirarReservasAntigas(
   supabase: SupabaseClient,
   params: { workspaceId: string; maisVelhaQueMinutos?: number },
-): Promise<{ liberadas: number } | { erro: true }> {
+): Promise<{ liberadas: number; liquidadasConservador: number } | { erro: true }> {
   const minutos = params.maisVelhaQueMinutos ?? MINIMO_DE_EXPIRACAO_EM_MINUTOS;
   if (!Number.isFinite(minutos) || minutos < MINIMO_DE_EXPIRACAO_EM_MINUTOS) {
     console.error(JSON.stringify({
@@ -263,7 +291,17 @@ export async function expirarReservasAntigas(
     console.error(JSON.stringify({ level: "error", msg: "expirar_reservas_falhou", code: error.code }));
     return { erro: true };
   }
-  return { liberadas: (data as number) ?? 0 };
+  /*
+   * O banco devolve as DUAS contagens porque uma expiração que libera algumas
+   * linhas e liquida outras precisa dizer isso. Somá-las aqui — ou ler só a
+   * primeira — reconstruiria exatamente a cegueira que a coluna
+   * `charge_exposed_at` existe para acabar.
+   */
+  const resultado = (data ?? {}) as { liberadas?: number; liquidadas_conservador?: number };
+  return {
+    liberadas: resultado.liberadas ?? 0,
+    liquidadasConservador: resultado.liquidadas_conservador ?? 0,
+  };
 }
 
 export function mensagemDeOrcamento(

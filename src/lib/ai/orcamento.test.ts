@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   consolidarExecucao, expirarReservasAntigas, killSwitchAtivo, liberarReserva,
-  mensagemDeOrcamento, reservarExecucao, type SnapshotDePreco,
+  mensagemDeOrcamento, reservarExecucao, type SnapshotDePreco, marcarExposicaoDeCobranca,
 } from "./orcamento";
 
 /**
@@ -195,9 +195,9 @@ test("killSwitchAtivo falha fechada: erro de consulta não vira 'sem kill switch
 });
 
 test("expirarReservasAntigas converte o limiar em minutos e devolve a contagem", async () => {
-  const { cliente, chamadas } = supabaseFalso({ data: 3 });
+  const { cliente, chamadas } = supabaseFalso({ data: { liberadas: 3, liquidadas_conservador: 0 } });
   const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: 30 });
-  assert.deepEqual(r, { liberadas: 3 });
+  assert.deepEqual(r, { liberadas: 3, liquidadasConservador: 0 });
   assert.equal(chamadas[0].fn, "expirar_reservas_de_ia");
   assert.equal(chamadas[0].args.p_mais_velha_que, "30 minutes");
 });
@@ -244,8 +244,54 @@ test("limiar negativo é recusado — liberaria reserva em voo", async () => {
 });
 
 test("exatamente o mínimo é aceito — o piso é inclusivo", async () => {
-  const { cliente, chamadas } = supabaseFalso({ data: 2 });
+  const { cliente, chamadas } = supabaseFalso({ data: { liberadas: 2, liquidadas_conservador: 0 } });
   const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: 15 });
-  assert.deepEqual(r, { liberadas: 2 });
+  assert.deepEqual(r, { liberadas: 2, liquidadasConservador: 0 });
   assert.equal(chamadas[0].args.p_mais_velha_que, "15 minutes");
+});
+
+// ─── As duas contagens da expiração ────────────────────────────────────────
+
+test("a expiração devolve liberadas E liquidadas — somar as duas esconderia a distinção", async () => {
+  /*
+   * A coluna `charge_exposed_at` existe para separar reserva nunca despachada
+   * de chamada exposta sem liquidação. Se o wrapper devolvesse um número só,
+   * quem lê não saberia se a expiração devolveu orçamento ou COBROU — que são
+   * efeitos opostos sobre o teto do dia.
+   */
+  const { cliente } = supabaseFalso({ data: { liberadas: 4, liquidadas_conservador: 2 } });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: 20 });
+  assert.deepEqual(r, { liberadas: 4, liquidadasConservador: 2 });
+});
+
+test("resposta sem as chaves esperadas vira zero, não NaN", async () => {
+  const { cliente } = supabaseFalso({ data: null });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1" });
+  assert.deepEqual(r, { liberadas: 0, liquidadasConservador: 0 });
+});
+
+// ─── Marcar a exposição de cobrança ────────────────────────────────────────
+
+test("marcar exposição devolve exposta quando o banco confirma", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: true });
+  const r = await marcarExposicaoDeCobranca(cliente, { userId: "u1", executionId: "e1" });
+  assert.deepEqual(r, { exposta: true });
+  assert.equal(chamadas[0].fn, "marcar_exposicao_de_cobranca_server");
+});
+
+test("banco devolvendo false NÃO é exposta — a reserva já mudou de estado", async () => {
+  // `false` significa que alguém liquidou ou liberou a reserva. Despachar
+  // agora geraria custo sem reserva nenhuma.
+  const { cliente } = supabaseFalso({ data: false });
+  const r = await marcarExposicaoDeCobranca(cliente, { userId: "u1", executionId: "e1" });
+  assert.deepEqual(r, { exposta: false });
+});
+
+test("erro da RPC é erro, não ausência de exposição", async () => {
+  // A distinção importa: `{ exposta: false }` é uma resposta do banco;
+  // `{ erro: true }` é não saber. As duas abortam o despacho, mas por razões
+  // diferentes, e quem loga precisa poder dizer qual foi.
+  const { cliente } = supabaseFalso({ error: { code: "57014", message: "timeout" } });
+  const r = await marcarExposicaoDeCobranca(cliente, { userId: "u1", executionId: "e1" });
+  assert.deepEqual(r, { erro: true });
 });

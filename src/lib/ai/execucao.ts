@@ -6,7 +6,7 @@ import {
 } from "./catalogo";
 import {
   consolidarExecucao, killSwitchAtivo, liberarReserva, mensagemDeOrcamento, reservarExecucao,
-  type MotivoDeRecusa, type SnapshotDeUso, type SnapshotDePreco,
+  type MotivoDeRecusa, type SnapshotDeUso, type SnapshotDePreco, marcarExposicaoDeCobranca,
 } from "./orcamento";
 import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
@@ -410,6 +410,20 @@ async function aguardarUsoComTimeout(
  * esta função trocar de perfil por conta própria liquidaria com um preço
  * que ninguém reservou.
  */
+/**
+ * O razão não conseguiu registrar que a cobrança ia acontecer.
+ *
+ * Erro próprio, e não um genérico, porque a resposta ao usuário é diferente:
+ * nada foi enviado ao provedor, então não há custo — e tentar de novo é
+ * seguro, ao contrário de quase toda outra falha deste módulo.
+ */
+export class FalhaDeExposicaoDeCobranca extends Error {
+  constructor() {
+    super("não foi possível registrar a exposição de cobrança antes do despacho");
+    this.name = "FalhaDeExposicaoDeCobranca";
+  }
+}
+
 export async function executarComOrcamento<TAttempt extends { config: { provider: string; model: string } }>(
   params: {
     /** Ver o comentário em `decidirExecucao` — cliente de serviço, não a sessão do usuário. */
@@ -502,6 +516,30 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
       usageSnapshot,
     });
   };
+
+  /*
+   * A exposição é marcada AQUI: depois de saber que vamos despachar, antes de
+   * despachar.
+   *
+   * Mais cedo (logo após a reserva) marcaria como exposto um pedido que chega
+   * com o sinal já abortado e nunca toca a rede — o único caso real de
+   * pré-despacho, e o único que pode ser liberado integralmente. Mais tarde
+   * seria depois do despacho, que é justamente a janela em que o custo passa a
+   * existir sem o razão saber.
+   *
+   * Sobra uma janela estreita: abortar entre esta marcação e o despacho. Ela
+   * liquida conservador em vez de liberar — paga-se por algo que talvez não
+   * tenha saído. É o erro barato; o caro é o contrário.
+   */
+  if (!params.parentSignal?.aborted) {
+    const exposicao = await marcarExposicaoDeCobranca(serviceClient, { userId, executionId });
+    if ("erro" in exposicao || !exposicao.exposta) {
+      // Não despachar é deliberado. Uma execução cujo custo o razão não
+      // conseguiria registrar não deve acontecer — derrubar a resposta é o
+      // preço, e é menor que custo invisível.
+      throw new FalhaDeExposicaoDeCobranca();
+    }
+  }
 
   let prepared: PreparedFallbackStream<TAttempt>;
   try {
