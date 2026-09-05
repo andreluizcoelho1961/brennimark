@@ -187,3 +187,31 @@ test("todo carimbo do histórico remoto tem arquivo local", () => {
     .filter((v) => !DE_OUTRA_BRANCH.carimbosSemArquivo.includes(v));
   assert.deepEqual(semArquivo, [], "carimbo no banco sem arquivo no repositório");
 });
+
+// ─── O stack local precisa reproduzir as migrações, não o plano contratado ──
+
+test("o teto de arquivo local não fica abaixo do que a migração declara", () => {
+  /*
+   * A CLI gera `file_size_limit = "50MiB"` por padrão. A migração
+   * `raise_import_bucket_to_100_mib` põe o bucket de importação em 104857600
+   * bytes, que é o requisito do produto — um teto GLOBAL menor recusaria o
+   * upload antes de a regra do bucket ser consultada, e a recusa se pareceria
+   * com defeito do produto em vez de configuração do ambiente.
+   */
+  const config = fs.readFileSync(path.join(raiz, "supabase", "config.toml"), "utf8");
+  const casado = config.match(/^file_size_limit = "(\d+)MiB"/m);
+  assert.ok(casado, "config.toml não declara file_size_limit ativo");
+  assert.ok(
+    Number(casado[1]) >= 100,
+    `file_size_limit local é ${casado[1]}MiB, abaixo dos 100 MiB que a migração declara`,
+  );
+});
+
+test("o seed fica desligado — replay tem que ser só de migração", () => {
+  // Dado semeado entra na comparação de schema sem ter vindo de migração, e
+  // transforma "o schema bate" em "bate, menos o que o seed mexeu".
+  const config = fs.readFileSync(path.join(raiz, "supabase", "config.toml"), "utf8");
+  const bloco = config.slice(config.indexOf("[db.seed]"));
+  const ate = bloco.slice(0, bloco.indexOf("\n[", 1));
+  assert.match(ate, /^enabled = false$/m, "o seed precisa ficar desligado para o replay");
+});
