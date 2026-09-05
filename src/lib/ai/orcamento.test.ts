@@ -220,3 +220,32 @@ test("mensagem em inglês existe e é diferente da portuguesa", () => {
   assert.notEqual(pt, en);
   assert.match(en, /administer/i);
 });
+
+// ─── Contenção do item 7: o limiar tem piso ────────────────────────────────
+//
+// A garantia real está no banco (a função é `security definer` e alcançável
+// pela Data API, então uma guarda só no cliente estaria do lado errado da
+// fronteira). Estes testes cobrem o espelho em TypeScript, que existe para
+// falhar cedo e com mensagem legível — e para que uma mudança que afrouxe o
+// limiar aqui não passe silenciosa.
+
+test("limiar abaixo do mínimo é recusado antes de chegar ao banco", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: 3 });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: 0 });
+  assert.deepEqual(r, { erro: true });
+  assert.equal(chamadas.length, 0, "não pode ter chamado a RPC");
+});
+
+test("limiar negativo é recusado — liberaria reserva em voo", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: 3 });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: -60 });
+  assert.deepEqual(r, { erro: true });
+  assert.equal(chamadas.length, 0);
+});
+
+test("exatamente o mínimo é aceito — o piso é inclusivo", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: 2 });
+  const r = await expirarReservasAntigas(cliente, { workspaceId: "ws-1", maisVelhaQueMinutos: 15 });
+  assert.deepEqual(r, { liberadas: 2 });
+  assert.equal(chamadas[0].args.p_mais_velha_que, "15 minutes");
+});
