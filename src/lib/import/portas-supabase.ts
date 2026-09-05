@@ -66,14 +66,31 @@ export function portasDeEnvioSupabase(
       if (erroDeSessao || !userId) {
         return { erro: erroDeSessao?.message ?? "sem sessão para registrar a pendência" };
       }
-      const { error } = await supabase.from("brand_deletions").insert(
-        itens.map((item) => ({
-          workspace_id: workspaceId,
-          bucket_id: item.bucket,
-          storage_path: item.caminho,
-          requested_by: userId,
-        })),
-      );
+      /**
+       * `upsert` com `ignoreDuplicates`, não `insert`.
+       *
+       * A fila tem `unique (workspace_id, bucket_id, storage_path)`, e o
+       * enfileiramento é em LOTE. Com `insert`, um único caminho já presente
+       * — uma segunda tentativa da mesma importação, por exemplo — viola a
+       * restrição e **aborta o lote inteiro**: a pendência nova, que ainda não
+       * existia em lugar nenhum, voltaria como erro e cairia em `perdidos`.
+       *
+       * O duplicado já está durável; é exatamente o estado que se queria. Ele
+       * não pode ser o motivo de o novo se perder. `ignoreDuplicates` traduz
+       * `on conflict do nothing`, que é a mesma escolha que as RPCs de
+       * exclusão do produto já fazem.
+       */
+      const { error } = await supabase
+        .from("brand_deletions")
+        .upsert(
+          itens.map((item) => ({
+            workspace_id: workspaceId,
+            bucket_id: item.bucket,
+            storage_path: item.caminho,
+            requested_by: userId,
+          })),
+          { onConflict: "workspace_id,bucket_id,storage_path", ignoreDuplicates: true },
+        );
       return error ? { erro: error.message } : {};
     },
   };

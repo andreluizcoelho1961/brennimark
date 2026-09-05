@@ -222,3 +222,60 @@ test("lista vazia não chama Storage nem fila", async () => {
   assert.deepEqual(registro.removidos, []);
   assert.deepEqual(registro.enfileirados, []);
 });
+
+// ─── Duplicada + nova: o lote não pode ser tudo-ou-nada por causa do que já
+//     está salvo ──────────────────────────────────────────────────────────
+
+test("uma pendência já existente não pode fazer a nova se perder", async () => {
+  /*
+   * A fila tem `unique (workspace_id, bucket_id, storage_path)`. Com um
+   * `insert` em lote, um caminho já presente viola a restrição e derruba o
+   * lote inteiro — inclusive o caminho NOVO, que ainda não estava durável em
+   * lugar nenhum. O duplicado já está guardado; ele não pode ser o motivo de o
+   * outro sumir.
+   *
+   * Este teste exerce o contrato do módulo com uma porta idempotente, como a
+   * real passou a ser. O teste seguinte mostra o que acontece sem isso.
+   */
+  const jaNaFila = new Set(["ws/brand/pagina-1.png"]);
+  const registro: ObjetoProvisorio[][] = [];
+  const portas: PortasDeEnvio = {
+    ...storageFalso({ pdfFalhaCom: "500", naoSaem: ["ws/brand/pagina-1.png", "ws/brand/pagina-7.png"] }).portas,
+    async enfileirar(itens) {
+      // Idempotente: o que já está, fica; o que é novo, entra.
+      for (const item of itens) jaNaFila.add(item.caminho);
+      registro.push(itens);
+      return {};
+    },
+  };
+
+  const r = await enviarArquivosDaImportacao(portas, PLANO);
+  assert.equal(r.ok, false);
+  if (r.ok) return;
+  assert.deepEqual(r.limpeza.perdidos, [], "nenhum caminho pode ficar sem destino");
+  assert.equal(r.limpeza.enfileirados.length, 2);
+  assert.ok(jaNaFila.has("ws/brand/pagina-7.png"), "a pendência NOVA precisa ter ficado durável");
+});
+
+test("porta NÃO idempotente derruba o lote inteiro — é por isso que o adaptador usa upsert", async () => {
+  /*
+   * O contraexemplo, escrito de propósito. Ele documenta a razão de o
+   * adaptador real usar `upsert ... ignoreDuplicates` em vez de `insert`: com
+   * a porta rejeitando o lote por causa de um duplicado, os DOIS caminhos
+   * caem em `perdidos` — o que já estava salvo e o que nunca chegou a estar.
+   */
+  const portas: PortasDeEnvio = {
+    ...storageFalso({ pdfFalhaCom: "500", naoSaem: ["ws/brand/pagina-1.png", "ws/brand/pagina-7.png"] }).portas,
+    async enfileirar(itens) {
+      if (itens.some((i) => i.caminho === "ws/brand/pagina-1.png")) {
+        return { erro: "duplicate key value violates unique constraint" };
+      }
+      return {};
+    },
+  };
+
+  const r = await enviarArquivosDaImportacao(portas, PLANO);
+  assert.equal(r.ok, false);
+  if (r.ok) return;
+  assert.equal(r.limpeza.perdidos.length, 2, "o lote inteiro se perde, inclusive o caminho novo");
+});
