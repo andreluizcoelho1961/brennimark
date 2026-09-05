@@ -675,3 +675,94 @@ test("sem uso mensurável ao terminar: liquida conservador pelo teto, não liber
   assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
   assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
 });
+
+// ─── Uso PARCIAL: o campo que falta não é zero ─────────────────────────────
+//
+// A guarda do conservador exigia que ENTRADA e SAÍDA estivessem ausentes, com
+// `&&`. Com um campo só presente, o outro virava zero por `?? 0` — e consumo
+// desconhecido passava a ser cobrado como consumo nulo, sempre para o lado que
+// perde dinheiro. Um zero MEDIDO é um fato; um campo AUSENTE é ignorância, e o
+// contrato de orçamento não pode confundir os dois.
+
+test("uso parcial — só entrada relatada — liquida conservador, não trata a saída como zero", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(500, undefined)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+});
+
+test("uso parcial — só saída relatada — liquida conservador, não trata a entrada como zero", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(undefined, 20)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+});
+
+test("uso com número não finito é desconhecido, não é aritmética", async () => {
+  // `NaN` propaga por toda a conta e chega ao banco como `NaN` — que não é
+  // "custo zero", é ausência de número num campo que precisa de número.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(Number.NaN, 40)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+});
+
+test("uso com número negativo é desconhecido — nenhum provedor consome tokens negativos", async () => {
+  // Um negativo aqui ABATE o custo de outro campo. É a única forma de uma
+  // execução real liquidar por menos do que consumiu de fato.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(-1_000_000, 40)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+});
+
+test("zero MEDIDO continua sendo zero — a correção não pode punir o caso legítimo", async () => {
+  // A guarda nova não pode transformar "o provedor relatou 0 tokens de saída"
+  // em desconhecido: isso cobraria o teto de uma execução que de fato não
+  // gerou saída, e seria o erro simétrico ao que se está consertando.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(500, 0)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14);
+  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { inputTokens: 500, outputTokens: 0, cachedInputTokens: undefined });
+});

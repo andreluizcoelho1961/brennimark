@@ -444,6 +444,15 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
 
   let encerrado = false;
 
+  /**
+   * Um número de tokens de fato relatado pelo provedor.
+   *
+   * Separado em função nomeada porque a pergunta que ele responde não é
+   * "existe?", é "é utilizável numa conta de dinheiro?".
+   */
+  const tokensRelatados = (n: number | undefined): n is number =>
+    typeof n === "number" && Number.isFinite(n) && n >= 0;
+
   /** A liquidação conservadora — nunca vira custo zero. */
   const consolidarConservador = async () => {
     const usageSnapshot: SnapshotDeUso = { unknown: true };
@@ -460,12 +469,28 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     if (encerrado) return;
     encerrado = true;
     const usage = usageCapturado ? await aguardarUsoComTimeout(usageCapturado, usageTimeoutMs) : null;
-    if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
+    /*
+     * Liquidar pelo uso real exige o uso INTEIRO, e exige que ele seja um
+     * número.
+     *
+     * A guarda anterior exigia que os DOIS campos estivessem ausentes (`&&`)
+     * para cair no conservador. Com um campo só presente, o outro virava zero
+     * pelo `?? 0` logo abaixo — e consumo desconhecido passava a ser cobrado
+     * como consumo nulo, sempre para o lado que perde dinheiro. A diferença
+     * que o contrato precisa preservar: um zero MEDIDO é um fato do provedor;
+     * um campo AUSENTE é ignorância nossa, e ignorância liquida pelo teto.
+     *
+     * `Number.isFinite` barra `NaN` e infinitos, que propagariam pela conta
+     * até o banco; `>= 0` barra negativo, que seria a única forma de uma
+     * execução real liquidar por MENOS do que consumiu — um negativo em
+     * entrada abate o custo da saída.
+     */
+    if (!usage || !tokensRelatados(usage.inputTokens) || !tokensRelatados(usage.outputTokens)) {
       await consolidarConservador();
       return;
     }
     const settledMicros = custoDeReservaMicros(pricing, {
-      entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
+      entrada: usage.inputTokens, saida: usage.outputTokens,
     });
     const usageSnapshot: SnapshotDeUso = {
       inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
