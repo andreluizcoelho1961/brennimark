@@ -2,6 +2,23 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
+# ─────────────────────────────────────────────────────────────────────────────
+# O QUE ESTE STACK É, E O QUE ELE NÃO É
+#
+# É um ambiente para duas coisas: **replay de migrações** a partir de banco
+# vazio, e **teste de concorrência** com conexões independentes — as quatro
+# corridas entre marcação, expiração, liquidação e liberação, que não se pode
+# testar com uma conexão só.
+#
+# NÃO é réplica das configurações de produção. Não reproduz plano contratado,
+# franquias, provedores de autenticação, domínio, CDN nem limites de borda.
+# Onde os valores divergem da produção, a divergência é deliberada e está
+# comentada no ponto em que aparece — como no teto de arquivo abaixo.
+#
+# Tratar o resultado daqui como "igual à produção" seria estender uma prova
+# além do que ela cobre.
+# ─────────────────────────────────────────────────────────────────────────────
+
 # O identificador do stack LOCAL — nomeia os contêineres. Não é o ref do
 # projeto hospedado (esse vai em `supabase link --project-ref`). A CLI o
 # derivou do nome do diretório, que aqui é o de um worktree de correção.
@@ -126,18 +143,26 @@ port = 54324
 [storage]
 enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
-# 100 MiB, e não os 50MiB que a CLI traz por padrão.
+# 128 MiB — ACIMA do bucket, de propósito, e não igual a ele.
 #
 # `20260901215333_raise_import_bucket_to_100_mib.sql` põe o bucket de
-# importação em 104857600 bytes, que é o requisito do produto. Um teto
-# GLOBAL de 50MiB no stack local ficaria ABAIXO dele e recusaria o upload
-# antes de a regra do bucket ser consultada — e a recusa se pareceria com um
-# defeito do produto, não com uma configuração do ambiente.
+# importação em 104857600 bytes (100 MiB). Este teto é GLOBAL e precisa ficar
+# ESTRITAMENTE acima dele, por uma razão de método:
 #
-# Isto deixa o local MAIS permissivo que a produção de hoje, onde o plano
-# Free impõe 50 MB fixos (§20.3 do plano). É deliberado: o stack local existe
-# para reproduzir o que as MIGRAÇÕES declaram, não a franquia do plano.
-file_size_limit = "100MiB"
+# Com global e bucket no mesmo número, a fixture que passa dos 100 MiB seria
+# recusada pelo teto global — e a recusa não provaria nada sobre a migração. O
+# teste diria "recusou" e o motivo seria o ambiente, não a regra que ele existe
+# para verificar. Com 128 MiB, quem recusa é o bucket, que é o sujeito do teste.
+#
+# Os 50MiB do padrão da CLI seriam ainda piores: ficariam ABAIXO do bucket e
+# recusariam até a fixture VÁLIDA, fazendo uma configuração de ambiente se
+# parecer com defeito do produto — e justamente no número que a Fatia 1 existe
+# para contornar.
+#
+# Isto deixa o local mais permissivo que a produção de hoje, onde o plano Free
+# impõe 50 MB fixos (§20.3 do plano). Deliberado: ver o cabeçalho deste arquivo
+# sobre o que este stack se propõe a reproduzir.
+file_size_limit = "128MiB"
 
 # Uncomment to configure local storage buckets
 # [storage.buckets.images]

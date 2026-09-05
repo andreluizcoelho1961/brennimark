@@ -192,18 +192,23 @@ test("todo carimbo do histórico remoto tem arquivo local", () => {
 
 test("o teto de arquivo local não fica abaixo do que a migração declara", () => {
   /*
-   * A CLI gera `file_size_limit = "50MiB"` por padrão. A migração
-   * `raise_import_bucket_to_100_mib` põe o bucket de importação em 104857600
-   * bytes, que é o requisito do produto — um teto GLOBAL menor recusaria o
-   * upload antes de a regra do bucket ser consultada, e a recusa se pareceria
-   * com defeito do produto em vez de configuração do ambiente.
+   * Estritamente ACIMA, e não igual.
+   *
+   * A migração `raise_import_bucket_to_100_mib` põe o bucket em 100 MiB. Se o
+   * teto global valesse o mesmo, a fixture que passa dos 100 MiB seria recusada
+   * pelo GLOBAL, e a recusa não diria nada sobre o bucket — que é justamente o
+   * que o teste quer verificar. O padrão da CLI (50MiB) é pior ainda: recusaria
+   * até a fixture válida, fazendo configuração de ambiente parecer defeito do
+   * produto.
    */
   const config = fs.readFileSync(path.join(raiz, "supabase", "config.toml"), "utf8");
   const casado = config.match(/^file_size_limit = "(\d+)MiB"/m);
   assert.ok(casado, "config.toml não declara file_size_limit ativo");
   assert.ok(
-    Number(casado[1]) >= 100,
-    `file_size_limit local é ${casado[1]}MiB, abaixo dos 100 MiB que a migração declara`,
+    Number(casado[1]) > 100,
+    `file_size_limit local é ${casado[1]}MiB; precisa ficar ESTRITAMENTE acima ` +
+      "dos 100 MiB do bucket, senão a fixture acima do limite é recusada pelo " +
+      "teto global e a recusa não prova nada sobre a migração",
   );
 });
 
