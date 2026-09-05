@@ -697,9 +697,37 @@ test("nenhuma linha de storage.objects é tocada por SQL", () => {
 });
 
 test("o upload por hash é imutável", () => {
+  // `upsert: false` mudou de arquivo quando a sequência de envio saiu do
+  // componente para `orfaos.ts` (com teste) e o adaptador do Supabase para
+  // `portas-supabase.ts`. A guarda segue o código: o invariante é do UPLOAD,
+  // não do componente, e afrouxá-la para o arquivo antigo deixaria de proteger
+  // qualquer coisa.
+  const portas = lerCodigo("src/lib/import/portas-supabase.ts");
+  assert.match(portas, /upsert: false/, "upsert exigiria política de UPDATE que não existe");
+
   const importador = lerCodigo("src/components/import/BrandImporter.tsx");
-  assert.match(importador, /upsert: false/, "upsert exigiria política de UPDATE que não existe");
   assert.match(importador, /objetoNovo/, "só remove o arquivo se esta tentativa o criou");
+});
+
+test("nenhum objeto provisório fica sem destino quando a importação falha", () => {
+  /*
+   * A guarda do item 2: as imagens de página sobem ANTES de a marca existir,
+   * então um retorno antecipado sem limpeza deixa arquivo de terceiro no
+   * bucket sem nada no banco apontando para ele — fora do alcance até da fila
+   * de exclusão.
+   *
+   * O importador não pode voltar a chamar `remove` direto: a decisão precisa
+   * passar por `garantirAusencia`, que confirma a saída por observação e
+   * enfileira o que não saiu.
+   */
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.match(importador, /enviarArquivosDaImportacao/, "o envio precisa passar pela sequência com limpeza");
+  assert.match(importador, /garantirAusencia/, "a limpeza pós-RPC precisa ser durável, não melhor esforço");
+  assert.doesNotMatch(
+    importador,
+    /storage\s*\.from\("brand-assets"\)\s*\.remove/,
+    "remoção de asset sem observação nem fila é o defeito que o item 2 corrigiu",
+  );
 });
 
 test("o idioma do manual não vem do idioma da interface", () => {
