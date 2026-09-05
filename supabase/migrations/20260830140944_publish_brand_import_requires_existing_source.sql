@@ -1,0 +1,28 @@
+-- PLACEHOLDER — nenhuma operação. Não remova.
+--
+-- Esta migração EXISTE no histórico do banco (`supabase_migrations`) com este
+-- carimbo, mas o efeito dela vive, no repositório, dentro de outro arquivo:
+--
+--     20260830140909_import_source_must_exist_and_deletion_queue.sql
+--
+-- Ela redefinia `public.publish_brand_import` para exigir que o objeto do
+-- Storage exista antes de publicar. Esse `create or replace` está no arquivo
+-- acima, que o repositório empacotou junto — verificado comparando os objetos
+-- criados de cada lado, não por semelhança de tamanho.
+--
+-- POR QUE O ARQUIVO EXISTE, JÁ QUE NÃO FAZ NADA
+--
+-- Sem ele, `supabase db push` veria um carimbo aplicado no banco sem arquivo
+-- correspondente, e `migration list` mostraria um buraco permanente. Com ele,
+-- o histórico local e o remoto passam a ter exatamente as mesmas versões.
+--
+-- POR QUE ELE NÃO REPETE O SQL REMOTO
+--
+-- Repetir aqui o `create or replace` faria um banco novo executá-lo DUAS
+-- vezes: uma no arquivo absorvedor, outra aqui. No caso desta função a
+-- segunda execução seria de uma versão ANTIGA, sobrescrevendo a atual —
+-- trocaria uma inconsistência de histórico por uma de comportamento.
+--
+-- Ver supabase/RECONCILIACAO.md.
+
+select 1 where false;
