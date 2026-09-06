@@ -1214,6 +1214,24 @@ test("as rotas de chave e roteamento exigem quem administra", () => {
   }
 });
 
+test("o teste de conexão não é uma chamada paga lateral", () => {
+  const codigo = lerCodigo("src/app/api/ai/test-connection/route.ts");
+  const portao = codigo.indexOf("marcaDaRota(request)");
+  const papel = codigo.indexOf('contexto.papel !== "owner"');
+  const validacao = codigo.indexOf("validarConfiguracaoDoTeste(body)");
+  const orcamento = codigo.indexOf("testarConexaoComOrcamento({");
+  const provedor = codigo.indexOf("streamText({");
+
+  assert.ok(portao > 0, "o teste não resolve conta e marca no servidor");
+  assert.ok(papel > portao, "um member consegue testar uma chave paga");
+  assert.ok(validacao > papel, "a chave chega à validação antes do papel");
+  assert.ok(orcamento > validacao, "o teste não atravessa o contrato de orçamento");
+  assert.ok(provedor > orcamento, "o provedor é chamado antes de reservar orçamento");
+  assert.doesNotMatch(codigo, /generateText\(/, "voltou o caminho lateral sem liquidação");
+  assert.match(codigo, /maxOutputTokens/, "o teste não limita a resposta real");
+  assert.match(codigo, /maxRetries:\s*0/, "retry automático pode cobrar sem reserva própria");
+});
+
 test("a matriz de permissão não conhece Supabase nem rede", () => {
   // Ela autoriza gasto de IA e leitura de credencial. Uma regra dessas precisa
   // ser contável sem subir aplicação nenhuma.
