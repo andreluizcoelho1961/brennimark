@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  interpretarEdicao, LIMITE_DA_REQUISICAO_EM_BYTES, LIMITE_DO_TITULO,
+  criarPedidoDeEdicao, interpretarEdicao, LIMITE_DA_REQUISICAO_EM_BYTES, LIMITE_DO_TITULO,
 } from "./edicao-de-conteudo";
+import type { DocPageEntry } from "../../content/docs";
 
 /**
  * O item 3: uma seção que a importação aceita precisa ser editável.
@@ -108,11 +109,12 @@ test("alterar só o título preserva o corpo integralmente", () => {
   assert.equal(r.campos.body, undefined);
 });
 
-test("linha vazia é descartada, mas isso não é truncar", () => {
-  const r = interpretar({ slug: "cores", body: ["primeira", "   ", "", "segunda"] });
+test("corpo é preservado exatamente — inclusive espaços e entradas vazias", () => {
+  const body = [" primeira ", "   ", "", "segunda"];
+  const r = interpretar({ slug: "cores", body });
   assert.equal(r.ok, true);
   if (!r.ok) return;
-  assert.deepEqual(r.campos.body, ["primeira", "segunda"]);
+  assert.deepEqual(r.campos.body, body);
 });
 
 // ─── O teto passa a ser de requisição ──────────────────────────────────────
@@ -140,17 +142,62 @@ test("exatamente no teto ainda passa — o limite é inclusivo", () => {
   assert.equal(r.ok, true);
 });
 
-test("o teto fica acima do maior manual realista e abaixo do da plataforma", () => {
+test("a referência observada cabe com margem, sem ser tratada como teto do produto", () => {
   /*
-   * O número precisa de fundamento, não de bom senso. Medido: a fixture de
-   * escala tem 388.006 caracteres de texto em 850 páginas — um manual de 1.000
-   * páginas numa seção só daria ~400 KB. E a Vercel recusa corpo acima de
-   * 4,5 MB com erro de infraestrutura, sem mensagem nossa.
+   * A fixture de escala mediu 388.006 caracteres de texto. É uma referência
+   * concreta para regressão, não a afirmação de que nenhum PDF válido produzirá
+   * mais conteúdo. O teto continua abaixo dos 4,5 MB da plataforma para que a
+   * recusa tenha mensagem do produto.
    */
-  const MAIOR_MANUAL_REALISTA = 400 * 1024;
+  const REFERENCIA_OBSERVADA = 388_006;
   const TETO_DA_PLATAFORMA = 4.5 * 1024 * 1024;
-  assert.ok(LIMITE_DA_REQUISICAO_EM_BYTES > MAIOR_MANUAL_REALISTA * 2, "folga insuficiente");
+  assert.ok(LIMITE_DA_REQUISICAO_EM_BYTES > REFERENCIA_OBSERVADA * 2, "a fixture perdeu a margem observada");
   assert.ok(LIMITE_DA_REQUISICAO_EM_BYTES < TETO_DA_PLATAFORMA, "acima do teto da plataforma");
+});
+
+test("campo desconhecido é recusado em vez de produzir falso sucesso", () => {
+  assert.equal(interpretar({ slug: "cores", title: "Cores", blocks: [] }).ok, false);
+  assert.equal(interpretar({ slug: "cores", body: ["texto"], images: [] }).ok, false);
+});
+
+// ─── Contrato estreito do AdminPanel ───────────────────────────────────────
+
+const PERSISTIDA: DocPageEntry = {
+  slug: "cores",
+  group: "Manual",
+  title: "Cores",
+  status: "draft",
+  body: ["Texto original."],
+  images: [{ src: "/imagem.jpg", alt: "Referência" }],
+  blocks: [{ kind: "callout", text: "Regra estruturada." }],
+};
+
+test("painel envia só o título alterado — nunca imagens, blocos ou corpo", () => {
+  const pedido = criarPedidoDeEdicao({ ...PERSISTIDA, title: "Cores institucionais" }, PERSISTIDA);
+  assert.deepEqual(pedido, { slug: "cores", title: "Cores institucionais" });
+  assert.equal("body" in pedido!, false);
+  assert.equal("images" in pedido!, false);
+  assert.equal("blocks" in pedido!, false);
+});
+
+test("painel envia conjuntamente somente os campos editáveis que mudaram", () => {
+  const pedido = criarPedidoDeEdicao(
+    { ...PERSISTIDA, group: "Aplicações", status: "ready", body: ["Texto novo."] },
+    PERSISTIDA,
+  );
+  assert.deepEqual(pedido, {
+    slug: "cores",
+    group: "Aplicações",
+    status: "ready",
+    body: ["Texto novo."],
+  });
+});
+
+test("painel não cria requisição quando nada editável mudou", () => {
+  assert.equal(criarPedidoDeEdicao({ ...PERSISTIDA }, PERSISTIDA), null);
+  // Campos visuais pertencem a outro editor; diferença neles não pode fazer
+  // esta tela prometer uma persistência que sua API não oferece.
+  assert.equal(criarPedidoDeEdicao({ ...PERSISTIDA, blocks: [] }, PERSISTIDA), null);
 });
 
 // ─── O que continua sendo validado ─────────────────────────────────────────

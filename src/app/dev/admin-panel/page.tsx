@@ -30,7 +30,15 @@ const TEMA_FIXO: BrandvilleTheme = {
  * Fora de produção por construção.
  */
 const VIVAS: DocPageEntry[] = [
-  { slug: "cores", group: "Sistema", title: "Cores", status: "ready", body: ["A paleta parte do vermelho."] },
+  {
+    slug: "cores",
+    group: "Sistema",
+    title: "Cores",
+    status: "ready",
+    body: Array.from({ length: 41 }, (_, indice) => `Regra cromática ${indice + 1}.`),
+    images: [{ src: "/brand/festival/home-hero.jpg", alt: "Aplicação cromática" }],
+    blocks: [{ kind: "callout", text: "O vermelho é proprietário da marca." }],
+  },
   { slug: "tipografia", group: "Sistema", title: "Tipografia", status: "ready", body: ["Uma família, quatro pesos."] },
 ];
 

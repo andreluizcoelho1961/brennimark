@@ -9,6 +9,7 @@ import { VersionHistory } from "@/components/admin/VersionHistory";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
+import { criarPedidoDeEdicao } from "@/lib/brandville/edicao-de-conteudo";
 
 const STATUS_LABEL_POR_IDIOMA = {
   en: { ready: "Approved", draft: "Draft", pending: "In progress" },
@@ -59,10 +60,11 @@ export function AdminPanel({
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
-  const hasUnsavedChanges = useMemo(
-    () => JSON.stringify(selected) !== JSON.stringify(persisted),
+  const pedidoDeEdicao = useMemo(
+    () => selected && persisted ? criarPedidoDeEdicao(selected, persisted) : null,
     [selected, persisted],
   );
+  const hasUnsavedChanges = pedidoDeEdicao !== null;
 
   function selectPage(nextSlug: string) {
     if (hasUnsavedChanges && !window.confirm(isEnglish ? "Discard unsaved changes?" : "Descartar as mudanças que ainda não foram salvas?")) return;
@@ -77,9 +79,9 @@ export function AdminPanel({
   }
 
   async function save() {
-    if (!selected) return;
+    if (!selected || !pedidoDeEdicao) return;
     setSaving(true); setMessage("");
-    const response = await fetch(comAlvo("/api/admin/content", alvo), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selected) });
+    const response = await fetch(comAlvo("/api/admin/content", alvo), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pedidoDeEdicao) });
     const result = await response.json().catch(() => ({}));
     setSaving(false);
     if (response.ok) {

@@ -1,6 +1,6 @@
 // Caminho relativo, não `@/`: o tsconfig dos testes não resolve o alias, e um
 // módulo com regra de negócio precisa ser testável sem depender do bundler.
-import type { DocStatus } from "../../content/docs";
+import type { DocPageEntry, DocStatus } from "../../content/docs";
 
 /**
  * O contrato de edição de uma página do manual.
@@ -29,10 +29,11 @@ import type { DocStatus } from "../../content/docs";
  *
  * O que este módulo NÃO resolve
  * -----------------------------
- * Ele torna editável o conteúdo que a importação aceita, mas **reenviando a
- * seção inteira**. Para documentos que passem do teto de requisição, editar
- * uma frase continuaria exigindo mandar tudo. A saída seria operação em bloco,
- * e a coluna `blocks` já existe no schema, sem uso. Ver o relatório do item 3.
+ * Alterar o corpo ainda o envia inteiro. Para documentos que passem do teto de
+ * requisição, editar uma frase exigirá operações menores. A coluna `blocks` já
+ * é lida, renderizada, indexada e versionada; o que ainda não existe é seu
+ * contrato de edição. Ele será decidido junto do editor visual, não por esta
+ * correção textual.
  */
 
 /**
@@ -40,17 +41,17 @@ import type { DocStatus } from "../../content/docs";
  *
  * De onde sai o número, já que "grande" não é fundamento:
  *
- * - O **maior corpo realista** medido: a fixture de escala tem 850 páginas com
- *   texto e 388.006 caracteres. Um manual inteiro de 1.000 páginas numa única
- *   seção daria ~400 KB. Este teto precisa ficar confortavelmente acima disso.
+ * - Uma **referência observada**: a fixture de escala tem 850 páginas com texto
+ *   e 388.006 caracteres. Isto demonstra que o caso de teste cabe com folga;
+ *   não estabelece um máximo para PDFs aceitos pelo produto.
  * - O **teto da plataforma**: uma Vercel Function recusa corpo acima de 4,5 MB
  *   com `FUNCTION_PAYLOAD_TOO_LARGE`, que é erro de infraestrutura e chega ao
  *   usuário sem explicação. Este teto precisa ficar abaixo, para a recusa ser
  *   NOSSA e ter mensagem.
  *
- * 2 MiB fica cinco vezes acima do maior documento realista e menos da metade
- * do teto da plataforma. Um payload que passe disto não é um manual grande: é
- * abuso, ou defeito de quem chama.
+ * 2 MiB deixa margem sobre a referência observada e fica abaixo do teto da
+ * plataforma. É uma proteção operacional da rota, não um limite editorial nem
+ * prova de que todo PDF válido produzirá um corpo menor.
  */
 export const LIMITE_DA_REQUISICAO_EM_BYTES = 2 * 1024 * 1024;
 
@@ -62,6 +63,36 @@ export interface CamposDeEdicao {
   group?: string;
   status?: DocStatus;
   body?: string[];
+}
+
+export type PedidoDeEdicao = { slug: string } & CamposDeEdicao;
+
+const CHAVES_ACEITAS = new Set(["slug", "title", "group", "status", "body"]);
+
+function corposIguais(a: readonly string[] | undefined, b: readonly string[] | undefined) {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  return a.every((linha, indice) => linha === b[indice]);
+}
+
+/**
+ * Produz o contrato estreito enviado pelo editor.
+ *
+ * `DocPageEntry` também carrega imagens e blocos, mas o editor textual não os
+ * edita. Mandá-los mesmo assim permitiria que uma API os ignorasse e ainda
+ * respondesse "salvo". Só os quatro campos visíveis nesta tela atravessam a
+ * rede, e somente quando mudaram.
+ */
+export function criarPedidoDeEdicao(
+  atual: DocPageEntry,
+  persistido: DocPageEntry,
+): PedidoDeEdicao | null {
+  const pedido: PedidoDeEdicao = { slug: atual.slug };
+  if (atual.title !== persistido.title) pedido.title = atual.title;
+  if (atual.group !== persistido.group) pedido.group = atual.group;
+  if (atual.status !== persistido.status) pedido.status = atual.status;
+  if (!corposIguais(atual.body, persistido.body)) pedido.body = [...(atual.body ?? [])];
+  return Object.keys(pedido).length > 1 ? pedido : null;
 }
 
 export type Interpretacao =
@@ -96,6 +127,10 @@ export function interpretarEdicao(
   }
   const e = entrada as Record<string, unknown>;
 
+  if (Object.keys(e).some((chave) => !CHAVES_ACEITAS.has(chave))) {
+    return { ok: false, status: 400, mensagem: "A alteração contém campos que esta tela não edita." };
+  }
+
   const slug = typeof e.slug === "string" ? e.slug.trim() : "";
   if (!slug) return { ok: false, status: 400, mensagem: "A alteração precisa dizer qual página." };
 
@@ -129,18 +164,9 @@ export function interpretarEdicao(
     if (!Array.isArray(e.body) || e.body.some((item) => typeof item !== "string")) {
       return { ok: false, status: 400, mensagem: "Revise os parágrafos." };
     }
-    /*
-     * Nenhum limite de contagem, nenhum limite por parágrafo.
-     *
-     * O que existia recusava conteúdo que a própria importação aceitou, e o
-     * teto de requisição já cobre o caso que os limites diziam proteger. Um
-     * parágrafo de 5.000 caracteres é um parágrafo grande num manual de
-     * cliente, não um ataque.
-     *
-     * `filter(Boolean)` some com linha vazia, que é ruído de extração e não
-     * conteúdo — mas NÃO trunca nada.
-     */
-    campos.body = (e.body as string[]).map((item) => item.trim()).filter(Boolean);
+    // O corpo é conteúdo do cliente. Validação não é autorização para
+    // normalizar: espaços e entradas vazias permanecem exatamente como vieram.
+    campos.body = [...(e.body as string[])];
   }
 
   if (Object.keys(campos).length === 0) {
