@@ -22,10 +22,19 @@ async function interceptarAdministracao(page: Page, pedidos: Record<string, unkn
   });
 }
 
+async function esperarEditorHidratado(page: Page) {
+  // Visível não basta: o HTML do servidor já está na tela antes de o React
+  // instalar os handlers. Digitar nessa janela curta é perdido pela
+  // hidratação e fez o CI concatenar o valor novo ao corpo inicial.
+  await expect(page.locator("[data-admin-editor-ready]"))
+    .toHaveAttribute("data-admin-editor-ready", "true");
+}
+
 test("alterar o título envia somente slug e título", async ({ page }) => {
   const pedidos: Record<string, unknown>[] = [];
   await interceptarAdministracao(page, pedidos);
   await page.goto("/dev/admin-panel");
+  await esperarEditorHidratado(page);
 
   const salvar = page.getByRole("button", { name: "Salvar página" });
   await expect(salvar).toBeDisabled();
@@ -43,6 +52,7 @@ test("alterar texto envia o corpo integral e nenhum campo visual", async ({ page
   const pedidos: Record<string, unknown>[] = [];
   await interceptarAdministracao(page, pedidos);
   await page.goto("/dev/admin-panel");
+  await esperarEditorHidratado(page);
 
   await page.getByRole("textbox", { name: "Texto — separe os parágrafos com uma linha em branco" })
     .fill("Primeiro parágrafo.\n\nSegundo parágrafo.");
