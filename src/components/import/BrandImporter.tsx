@@ -15,6 +15,8 @@ import {
 import { ListaDeSecoes } from "./ListaDeSecoes";
 import type { BrandvilleUtilityKey } from "@/brandville/types";
 import { caminhoDeAsset, caminhoDeImportacao } from "@/lib/storage/caminhos";
+import { enviarArquivosDaImportacao, garantirAusencia } from "@/lib/import/orfaos";
+import { portasDeEnvioSupabase } from "@/lib/import/portas-supabase";
 
 
 
@@ -182,26 +184,63 @@ export function BrandImporter({
       .filter((pagina): pagina is number => pagina !== null);
     const imagensRenderizadas = await renderizarPaginasComoImagem(arquivo, paginasVisuais);
 
-    const caminhosDeImagemEnviados: string[] = [];
-    const imagensPorSecao = new Map<string, { src: string; alt: string }[]>();
-    for (const secao of secoes) {
-      if (!ehVisualDominante(secao)) continue;
+    /**
+     * As imagens e o PDF sobem juntos, por `enviarArquivosDaImportacao`.
+     *
+     * A sequência saiu daqui de propósito. O defeito que ela corrige era uma
+     * SAÍDA: quando o envio do PDF falhava com algo que não fosse 409, este
+     * componente retornava sem tocar nas imagens já enviadas — e como a marca
+     * ainda não existia, nada no banco passava a apontar para elas. Ficavam
+     * fora do alcance até da fila de exclusão. Um componente não é testável
+     * sem navegador, e uma regra de retenção que só é exercida à mão não é uma
+     * regra: por isso a decisão vive em `orfaos.ts`, com teste.
+     */
+    const portas = portasDeEnvioSupabase(supabase, workspaceId);
+    const planoDeImagens = secoes.flatMap((secao) => {
+      if (!ehVisualDominante(secao)) return [];
       const pagina = inicioDe(secao);
       const blob = pagina !== null ? imagensRenderizadas.get(pagina) : undefined;
-      if (!blob) continue;
+      if (!blob) return [];
+      return [{
+        secaoId: secao.id,
+        titulo: secao.titulo,
+        caminho: caminhoDeAsset(workspaceId, brandId, `pagina-${pagina}.png`, crypto.randomUUID()),
+        dados: blob as unknown,
+      }];
+    });
 
-      const caminhoDaImagem = caminhoDeAsset(
-        workspaceId, brandId, `pagina-${pagina}.png`, crypto.randomUUID(),
-      );
-      const envioDeImagem = await supabase.storage
-        .from("brand-assets")
-        .upload(caminhoDaImagem, blob, { contentType: "image/png", upsert: false });
-      // Uma imagem que falha ao enviar não derruba a importação inteira —
-      // a seção publica só com o texto, do jeito que publicaria sem 1g.
-      if (envioDeImagem.error) continue;
-      caminhosDeImagemEnviados.push(caminhoDaImagem);
-      imagensPorSecao.set(secao.id, [{ src: caminhoDaImagem, alt: secao.titulo }]);
+    const caminho = caminhoDeImportacao(workspaceId, importId, hash);
+
+    const envio = await enviarArquivosDaImportacao(portas, {
+      imagens: planoDeImagens.map(({ caminho: c, dados }) => ({ caminho: c, dados })),
+      pdf: { caminho, dados: arquivo as unknown },
+      bucketDeImagens: "brand-assets",
+      bucketDoPdf: "brand-imports",
+    });
+
+    if (!envio.ok) {
+      // `perdidos` é o único desfecho em que um objeto ficou sem destino.
+      // Registrar é o mínimo: sem isso, um arquivo de terceiro sem dono é
+      // indistinguível de um arquivo que nunca existiu.
+      if (envio.limpeza.perdidos.length > 0) {
+        console.error(JSON.stringify({
+          level: "error", msg: "importacao_deixou_objeto_sem_destino",
+          caminhos: envio.limpeza.perdidos.map((item) => item.caminho),
+        }));
+      }
+      setPublicando(false);
+      setMensagem(t("Não foi possível enviar o arquivo.", "Couldn't upload the file."));
+      return;
     }
+
+    const objetoNovo = envio.objetoNovo;
+    const enviadas = new Set(envio.imagensEnviadas);
+    const imagensPorSecao = new Map<string, { src: string; alt: string }[]>();
+    for (const item of planoDeImagens) {
+      if (!enviadas.has(item.caminho)) continue;
+      imagensPorSecao.set(item.secaoId, [{ src: item.caminho, alt: item.titulo }]);
+    }
+    const caminhosDeImagemEnviados = envio.imagensEnviadas;
 
     const usados = new Set<string>();
     const documentos = secoes.map((secao, indice) => {
@@ -228,36 +267,6 @@ export function BrandImporter({
         confianca: secao.confianca,
       };
     });
-
-    const caminho = caminhoDeImportacao(workspaceId, importId, hash);
-
-    /**
-     * O objeto é IMUTÁVEL, e o caminho é a impressão digital do arquivo.
-     *
-     * `upsert` exigiria política de UPDATE no bucket, que não existe — e não
-     * deveria existir: mesmo hash significa mesmo arquivo, byte a byte, então
-     * não há o que atualizar. Um conflito aqui é reencontro, não erro.
-     *
-     * Isso é o que torna a tentativa repetível: se a RPC falhar por chave
-     * duplicada, a pessoa corrige o nome e tenta de novo; o upload reencontra
-     * o objeto e segue.
-     */
-    let objetoNovo = false;
-    const envio = await supabase.storage
-      .from("brand-imports")
-      .upload(caminho, arquivo, { contentType: "application/pdf", upsert: false });
-
-    if (envio.error) {
-      const jaExiste =
-        "statusCode" in envio.error && String(envio.error.statusCode) === "409";
-      if (!jaExiste) {
-        setPublicando(false);
-        setMensagem(t("Não foi possível enviar o arquivo.", "Couldn't upload the file."));
-        return;
-      }
-    } else {
-      objetoNovo = true;
-    }
 
     const { data, error } = await supabase.rpc("publish_brand_import", {
       p_workspace_id: workspaceId,
@@ -331,13 +340,27 @@ export function BrandImporter({
           });
         }
       }
-      // Melhor esforço: sem RPC de limpeza para o bucket de assets ainda,
-      // então uma falha aqui deixa a imagem órfã (sem marca, mas também sem
-      // custo — nada referencia o caminho). Risco aceito, do mesmo tamanho
-      // do PDF antes de existir a fila: a marca nunca chegou a existir, e a
-      // pessoa que tenta de novo gera um brandId novo, não reusa este.
-      if (caminhosDeImagemEnviados.length > 0) {
-        await supabase.storage.from("brand-assets").remove(caminhosDeImagemEnviados);
+      /**
+       * As imagens seguem a MESMA garantia do PDF: saem do Storage ou viram
+       * pendência durável.
+       *
+       * O comentário anterior aqui chamava a imagem órfã de "sem custo, nada
+       * referencia o caminho". Estava errado nos três sentidos que importam:
+       * ausência de referência não elimina armazenamento, não elimina
+       * exposição, e não elimina o fato de o arquivo ser material de um
+       * terceiro. "Ninguém aponta para ele" descreve exatamente o problema,
+       * não a sua ausência — foi assim que o PDF da GE sobreviveu dois dias à
+       * decisão de removê-lo.
+       */
+      const limpezaDasImagens = await garantirAusencia(
+        portas,
+        caminhosDeImagemEnviados.map((c) => ({ bucket: "brand-assets", caminho: c })),
+      );
+      if (limpezaDasImagens.perdidos.length > 0) {
+        console.error(JSON.stringify({
+          level: "error", msg: "importacao_deixou_objeto_sem_destino",
+          caminhos: limpezaDasImagens.perdidos.map((item) => item.caminho),
+        }));
       }
       // Chave repetida é conflito, não erro genérico: já existe uma marca com
       // este nome, e sobrescrever apagaria curadoria.
