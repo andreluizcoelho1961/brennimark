@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import type { DocStatus } from "@/content/docs";
 import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
-
-const VALID_STATUS = new Set<DocStatus>(["ready", "draft", "pending"]);
+import { interpretarEdicao } from "@/lib/brandville/edicao-de-conteudo";
 
 /**
  * Escrita de conteúdo, agora pela marca.
@@ -42,45 +40,58 @@ export async function PUT(request: Request) {
   if (!contexto) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
 
   const { auth } = contexto;
-  const input = await request.json().catch(() => null);
-  const slug = typeof input?.slug === "string" ? input.slug : "";
-  const title = typeof input?.title === "string" ? input.title.trim() : "";
-  const group = typeof input?.group === "string" ? input.group.trim() : "";
-  const status = input?.status as DocStatus;
-  const body: string[] | null = Array.isArray(input?.body)
-    ? input.body.map((item: unknown) => String(item).trim()).filter(Boolean)
-    : null;
 
-  // Seções válidas são as da marca, não as de uma instância de código.
-  const secoes = contexto.brand.navigation.groups;
-  if (
-    !title || title.length > 120 || !secoes.includes(group) || !VALID_STATUS.has(status) ||
-    !body || body.length > 40 || body.some((item) => item.length > 4000)
-  ) {
-    return NextResponse.json(
-      { message: "Revise o título, a seção, o status e os parágrafos." },
-      { status: 400 },
-    );
+  /*
+   * O corpo é lido como TEXTO antes de virar JSON, para o tamanho ser medido
+   * antes de qualquer parsing. Medir depois já teria pago o custo de analisar
+   * um payload que a gente vai recusar de qualquer jeito.
+   */
+  const bruto = await request.text().catch(() => "");
+  let entrada: unknown = null;
+  try {
+    entrada = JSON.parse(bruto);
+  } catch {
+    entrada = null;
   }
+
+  const lida = interpretarEdicao(entrada, {
+    gruposValidos: contexto.brand.navigation.groups,
+    bytesDaRequisicao: Buffer.byteLength(bruto),
+  });
+  if (!lida.ok) {
+    return NextResponse.json({ message: lida.mensagem }, { status: lida.status });
+  }
+
+  const { slug, campos } = lida;
 
   // A página tem que pertencer a esta marca. Sem esta verificação, um slug
   // vindo do cliente alcançaria a linha de outra marca do mesmo workspace.
   const existe = contexto.docs.some((doc) => doc.slug === slug);
   if (!existe) return NextResponse.json(SEM_PAGINA, { status: 404 });
 
+  /*
+   * Só os campos PRESENTES vão para o update.
+   *
+   * É o que faz a atualização parcial ser parcial de verdade: o que a
+   * requisição não mandou, o banco não vê — nem como `null`, nem como valor
+   * relido e regravado, que é onde uma leitura desatualizada apagaria a edição
+   * de outra pessoa.
+   */
+  const alteracao: Record<string, unknown> = {
+    ...(campos.group !== undefined ? { group_name: campos.group } : {}),
+    ...(campos.title !== undefined ? { title: campos.title } : {}),
+    ...(campos.status !== undefined ? { status: campos.status } : {}),
+    ...(campos.body !== undefined ? { body: campos.body } : {}),
+    // Uma edição comum não vem de versão nenhuma. Zerar aqui é o que faz o
+    // gatilho registrar "publicada" depois de uma recuperação.
+    restored_from_version_id: null,
+    updated_by: auth.user.id,
+    updated_at: new Date().toISOString(),
+  };
+
   const { data, error } = await auth.supabase
     .from("brand_documents")
-    .update({
-      group_name: group,
-      title,
-      status,
-      body,
-      // Uma edição comum não vem de versão nenhuma. Zerar aqui é o que faz o
-      // gatilho registrar "publicada" depois de uma recuperação.
-      restored_from_version_id: null,
-      updated_by: auth.user.id,
-      updated_at: new Date().toISOString(),
-    })
+    .update(alteracao)
     .eq("brand_id", contexto.brand.id)
     .eq("slug", slug)
     .select("updated_at")
