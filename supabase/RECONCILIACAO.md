@@ -97,15 +97,62 @@ mesma redefinição duas vezes, a segunda com a versão mais antiga.
 | `20260905140000_ai_expiry_contencao_server_only_e_idade_minima.sql` | **aplicada** no banco como `20260905153236` — precisa do mesmo `git mv` quando aquela branch for rebaseada sobre esta |
 | `20260905160000_ai_ledger_exposicao_de_cobranca.sql` | **não aplicada** — é, e deve continuar sendo, a única migração local pendente |
 
-## O que esta branch NÃO prova
+## Condições de integração — estado em 08/09/2026
 
-O replay desde zero. Provar exige um stack local vazio, e portanto Docker ou
-runtime equivalente, que não existe na máquina onde isto foi feito. **Não
-integrar antes de:**
+Com o runtime de contêiner instalado, o stack local subiu e o replay foi
+executado. Estado por condição:
 
-1. replay completo a partir de banco vazio;
-2. schema final equivalente ao remoto;
-3. advisors e testes verdes;
-4. `supabase migration list` mostrando **apenas** `charge_exposed_at` como
-   pendente.
+| # | Condição | Estado |
+|---|---|---|
+| 1 | Replay completo a partir de banco vazio | ✅ duas execuções, `exit 0`, 47 migrações em ordem |
+| 2 | Schema final equivalente ao remoto | ✅ medido, ver tabela abaixo |
+| 3 | Advisors e testes verdes | ⏳ testes verdes; advisors ainda não conferidos nos dois lados |
+| 4 | Só `charge_exposed_at` pendente | ⏳ vale para esta branch; a contenção chega com `fix/contabilidade-ia` |
+
+**A equivalência, medida com a mesma consulta nos dois bancos:**
+
+| | Local | Produção |
+|---|---|---|
+| Colunas | 177 | 177 |
+| Constraints | 263 | 263 |
+| Índices | 66 | 66 |
+| Políticas | 39 | 39 |
+| Triggers | 7 | 7 |
+| Funções | 18 | 18 |
+
+Local com 47 migrações (última `20260904144934`), produção com 48 (última
+`20260905153236`). O delta é exatamente a contenção da expiração, que pertence
+a `fix/contabilidade-ia` — o mesmo que `DE_OUTRA_BRANCH` já declarava na
+guarda.
+
+### Uma divergência de AMBIENTE, que não é lacuna de migração
+
+O `service_role` tem privilégios diferentes nos dois lados:
+
+| | Local | Produção |
+|---|---|---|
+| Grants de tabela | 45 | 105 |
+| Funções executáveis | 6 | 18 |
+
+A produção concede privilégio pleno ao `service_role` pelo bootstrap da
+plataforma hospedada; o local concede **só o que as migrações declaram**.
+
+**Não criar migração para replicar isso.** Codificar um padrão do fornecedor
+dentro do schema destruiria o valor do stack local, que hoje é mais
+restritivo — e essa é a direção segura: o que passa localmente passa em
+produção, e um caminho que dependa de privilégio não declarado falha aqui em
+vez de funcionar por acidente lá.
+
+Conferido que não morde o produto: as RPCs chamadas com o cliente de serviço
+são as quatro `_server` mais `expirar_reservas_de_ia`, todas concedidas por
+migração. `kill_switch_ativo` parecia faltar, mas é concedida a `authenticated`
+e chamada com o cliente de sessão.
+
+### O que ainda falta antes de integrar
+
+- Conferir **advisors** nos dois bancos.
+- Recriar, como artefato versionado, a **prova de concorrência**: as quatro
+  corridas foram executadas contra o stack local, com espera observada em
+  `pg_stat_activity`, mas o ensaio foi desfeito no reset e não ficou registrado.
+  Ela é o portão do PR #3, e pertence àquela branch.
 
