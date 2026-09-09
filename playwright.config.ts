@@ -43,7 +43,12 @@ export default defineConfig({
    * Um manual que abre no Chrome e falha no Safari é um manual que não abre
    * para metade dos designers.
    *
-   * Só a suíte do importador roda nos três. O resto da interface é HTML e CSS
+   * O visualizador entra na mesma lista, e pelo mesmo motivo elevado à
+   * potência: ele é PDF.js renderizando em canvas, com worker, camada de texto
+   * e cancelamento de render. Sete defeitos escaparam de 626 testes de unidade
+   * e só apareceram num navegador com um manual real.
+   *
+   * Só essas suítes rodam nos três. O resto da interface é HTML e CSS
    * comuns; rodar tudo em triplicado triplicaria o tempo do CI sem responder a
    * nenhuma pergunta nova.
    */
@@ -52,12 +57,12 @@ export default defineConfig({
     {
       name: "webkit-importador",
       use: { ...devices["Desktop Safari"] },
-      testMatch: /(importador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|importador-payload).*\.spec\.ts/,
+      testMatch: /(importador|visualizador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|importador-payload).*\.spec\.ts/,
     },
     {
       name: "firefox-importador",
       use: { ...devices["Desktop Firefox"] },
-      testMatch: /(importador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|importador-payload).*\.spec\.ts/,
+      testMatch: /(importador|visualizador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|importador-payload).*\.spec\.ts/,
     },
   ],
 

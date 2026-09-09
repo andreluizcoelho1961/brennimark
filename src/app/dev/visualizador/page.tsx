@@ -19,8 +19,29 @@ export const metadata = { robots: { index: false, follow: false } };
  * verdade e a autorização de verdade. O que ela não tem é lugar definitivo na
  * navegação — e é justamente por isso que fica fora de produção.
  */
-export default async function BancadaDoVisualizador() {
+export default async function BancadaDoVisualizador({
+  searchParams,
+}: {
+  searchParams: Promise<{ fixture?: string }>;
+}) {
   if (process.env.NODE_ENV === "production") notFound();
+
+  /**
+   * Modo fixture: o visualizador sobre um PDF da pasta de testes, sem banco e
+   * sem sessão. É o que a suíte de navegador dirige nos três motores.
+   */
+  const { fixture } = await searchParams;
+  if (fixture) {
+    return (
+      <main className="flex h-dvh flex-col">
+        <VisualizadorDePdf
+          documentoId="fixture"
+          origem={`/dev/fixture/${encodeURIComponent(fixture)}`}
+          className="min-h-0 flex-1"
+        />
+      </main>
+    );
+  }
 
   const contexto = await resolveWorkspaceContext();
   if (contexto.access !== "ready" || !contexto.brand) {

@@ -32,12 +32,24 @@ export function VisualizadorDePdf({
   documentoId,
   contaSlug,
   marcaChave,
+  origem,
   className,
 }: {
   /** O identificador do DOCUMENTO. Nunca um caminho de Storage. */
   documentoId: string;
   contaSlug?: string;
   marcaChave?: string;
+  /**
+   * Endereço alternativo dos bytes, para a bancada e para a suíte de navegador.
+   *
+   * Existe porque a rota real exige sessão, conta e marca — corretamente — e a
+   * suíte roda com autenticação desligada. Sem isto, o visualizador só seria
+   * testável à mão, que é exatamente como os sete defeitos de hoje chegaram
+   * até aqui.
+   *
+   * Quem passa este valor são as telas `/dev/*`, fechadas em produção.
+   */
+  origem?: string;
   className?: string;
 }) {
   const [documento, setDocumento] = useState<PDFDocumentProxy | null>(null);
@@ -68,12 +80,13 @@ export function VisualizadorDePdf({
   const tentativas = useRef(0);
 
   const url = useMemo(() => {
+    if (origem) return origem;
     const params = new URLSearchParams();
     if (contaSlug) params.set("w", contaSlug);
     if (marcaChave) params.set("b", marcaChave);
     const consulta = params.toString();
     return `/api/documento-fonte/${documentoId}${consulta ? `?${consulta}` : ""}`;
-  }, [documentoId, contaSlug, marcaChave]);
+  }, [documentoId, contaSlug, marcaChave, origem]);
 
   /** Carrega (ou recarrega) o documento, preservando a posição de leitura. */
   const carregar = useCallback(async () => {
