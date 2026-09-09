@@ -1,5 +1,6 @@
 import { classificarErroDoParser, temAssinaturaDePdf, type FalhaDePdf } from "./pdf-erros";
 import { prepararAmbienteDePdf } from "./stream-iteravel";
+import { TETO_DO_PRODUTO_BYTES } from "./limites";
 import type { PaginaExtraida } from "./texto";
 import type { ItemDeOutline } from "./tipos";
 
@@ -99,7 +100,20 @@ export async function lerPdf(
   arquivo: File,
   { maxBytes, maxPaginas }: { maxBytes: number; maxPaginas: number },
 ): Promise<DocumentoLido> {
-  if (arquivo.size > maxBytes) throw new FalhaDeLeitura("grande-demais");
+  if (arquivo.size > maxBytes) {
+    /**
+     * Duas recusas diferentes, e a distinção é de produto, não de técnica.
+     *
+     * Acima do teto do PRODUTO: o Brennimark não aceita, e não vai aceitar.
+     * Acima do teto do PLANO: o produto aceita, esta instalação ainda não.
+     * Dizer "grande demais" nos dois casos faria uma agência concluir que o
+     * produto não serve para manuais grandes — sobre um limite de hospedagem
+     * que é provisório e já tem data para sair.
+     */
+    throw new FalhaDeLeitura(
+      arquivo.size > TETO_DO_PRODUTO_BYTES ? "grande-demais" : "acima-do-plano",
+    );
+  }
 
   const buffer = await arquivo.arrayBuffer();
   if (!temAssinaturaDePdf(buffer)) throw new FalhaDeLeitura("assinatura-invalida");

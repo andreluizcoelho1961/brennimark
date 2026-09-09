@@ -6,7 +6,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { LIMITES_DE_IMPORTACAO } from "./limites";
+import { LIMITES_DE_IMPORTACAO, TETO_DO_PRODUTO_BYTES } from "./limites";
 
 /**
  * O gerador da fixture de escala, testado SEM gerar 100 MiB.
@@ -236,7 +236,16 @@ test("os limites espelhados no gerador são os limites de limites.ts", () => {
   const fonte = fs.readFileSync(GERADOR, "utf8");
   const bytes = fonte.match(/^LIMITE_BYTES = (\d+) \* MIB/m);
   assert.ok(bytes, "o gerador não declara LIMITE_BYTES onde o teste procura");
-  assert.equal(Number(bytes[1]) * 1024 * 1024, LIMITES_DE_IMPORTACAO.maxBytes);
+  /**
+   * Contra o teto do PRODUTO, e não contra `maxBytes`.
+   *
+   * Desde 09/09/2026 os dois divergem de propósito: `maxBytes` é o que a
+   * instalação de hoje aguenta (50 MB no Supabase Free), e a fixture de escala
+   * existe para medir o requisito — 100 MiB. Amarrá-la ao teto do plano faria
+   * a fixture encolher junto com a hospedagem, e a Fatia 1 passaria a medir o
+   * limite da conta em vez do limite do produto.
+   */
+  assert.equal(Number(bytes[1]) * 1024 * 1024, TETO_DO_PRODUTO_BYTES);
 
   const pags = fonte.match(/^LIMITE_PAGINAS = (\d+)/m);
   assert.ok(pags, "o gerador não declara LIMITE_PAGINAS onde o teste procura");

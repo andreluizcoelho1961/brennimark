@@ -1,0 +1,53 @@
+-- O bucket passa a declarar o que a PLATAFORMA de fato aceita: 50 MB.
+--
+-- ─── Por que isto não é reduzir o produto ────────────────────────────────
+--
+-- O requisito continua sendo 100 MiB, e ele está escrito em
+-- `TETO_DO_PRODUTO_BYTES` (src/lib/import/limites.ts). O que muda aqui é o
+-- teto da INSTALAÇÃO, e a doutrina que governa a diferença é a §20.3 do
+-- replanejamento: um teto de infraestrutura é fato do ambiente, não requisito
+-- do produto.
+--
+-- ─── O fato medido, em 09/09/2026 ────────────────────────────────────────
+--
+-- A documentação do Supabase é explícita: no plano Free o limite global de
+-- tamanho de arquivo **não pode passar de 50 MB**, e o limite por bucket não
+-- pode ultrapassar o global. A organização deste projeto está em `free`.
+--
+--   | Plano | Tamanho máximo por arquivo |
+--   |-------|----------------------------|
+--   | Free  | 50 MB                      |
+--   | Pro   | 500 GB                     |
+--
+-- ─── O defeito que esta migration corrige ────────────────────────────────
+--
+-- `20260901215333_raise_import_bucket_to_100_mib.sql` subiu o bucket para
+-- 104857600 e registrou, corretamente, a regra que importa:
+--
+--   "os dois precisam concordar: um cliente mais permissivo faz o upload
+--    falhar depois de a pessoa esperar; um bucket mais permissivo aceita
+--    arquivo que o leitor vai recusar."
+--
+-- O que ninguém previu é que um TERCEIRO limite — o da plataforma — ficaria
+-- abaixo dos dois. Hoje o bucket promete 100 MiB que o Free não entrega: um
+-- manual de 80 MB é aceito pelo cliente, sobe pela rede inteira, e é recusado
+-- no fim pelo Storage. A pessoa paga a espera para receber um erro que era
+-- conhecido antes do primeiro byte.
+--
+-- 52428800 = 50 * 1024 * 1024, o mesmo número que `PADRAO_DO_PLANO_MB` usa no
+-- cliente. A recusa passa a acontecer na hora de escolher o arquivo, com a
+-- mensagem que diz que o limite é da instalação e não do produto.
+--
+-- ─── Ao migrar para o Pro ────────────────────────────────────────────────
+--
+-- São DOIS passos, e nenhum é automático de propósito:
+--
+--   1. `NEXT_PUBLIC_TETO_DE_IMPORTACAO_MB=100` nas variáveis da Vercel;
+--   2. uma migration nova subindo este valor para 104857600.
+--
+-- Deixar o banco seguir uma variável de ambiente seria pior: o teto do Storage
+-- é estado do banco, e estado do banco muda por migration versionada — é o que
+-- torna a mudança auditável e reproduzível no ledger de produção.
+update storage.buckets
+set file_size_limit = 52428800
+where id = 'brand-imports';
