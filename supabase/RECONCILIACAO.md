@@ -88,44 +88,93 @@ mesma redefinição duas vezes, a segunda com a versão mais antiga.
 | `20260904150500` | `20260904142954` | `publish_brand_import_title_provenance` | idêntico ou só comentários | — |
 | `20260904160000` | `20260904144934` | `publish_brand_import_client_brand_id` | idêntico ou só comentários | — |
 
-## O que fica pendente
+## O que ficava pendente — e não fica mais
 
-`fix/contabilidade-ia` **foi mesclada à `main` em 08/09/2026** (`cce53b8`, PR #3).
-As duas migrações que esta base não conhecia agora vivem na `main`, e a direção
-do rebase inverteu: é esta branch que passa a se apoiar nelas.
+`fix/contabilidade-ia` foi mesclada à `main` em 08/09/2026 (`cce53b8`, PR #3), e
+o P0 aplicou a migração restante ao banco hospedado em 09/09. As duas migrações
+foram absorvidas aqui e **renomeadas para os carimbos que o banco realmente
+registrou** — conteúdo byte a byte idêntico, conferido por `sha256` antes e
+depois:
 
-| Arquivo | Situação |
-|---|---|
-| `20260905140000_ai_expiry_contencao_server_only_e_idade_minima.sql` | **aplicada** no banco como `20260905153236` — o `git mv` para o carimbo de produção continua devendo, e agora é trabalho **desta** branch, no rebase sobre a `main` |
-| `20260905160000_ai_ledger_exposicao_de_cobranca.sql` | **não aplicada** em produção — é, e deve continuar sendo, a única migração local pendente. Foi aplicada ao stack **local** em 08/09 para a prova de concorrência, sem carimbo em `schema_migrations`, e `db reset` desfaz |
+| Antes | Depois — carimbo remoto | Situação |
+|---|---|---|
+| `20260905140000_ai_expiry_contencao_server_only_e_idade_minima.sql` | **`20260905153236`** | aplicada |
+| `20260905160000_ai_ledger_exposicao_de_cobranca.sql` | **`20260909014823`** | aplicada pelo P0 em 09/09 |
 
-## Condições de integração — estado em 08/09/2026
+Não há mais migração local sem par no banco. O acoplamento que a guarda
+declarava em `DE_OUTRA_BRANCH` fechou, e a lista foi **esvaziada, não
+afrouxada** — o teste que falhava de propósito nesse dia cumpriu o papel.
 
-Com o runtime de contêiner instalado, o stack local subiu e o replay foi
-executado. Estado por condição:
+## Condições de integração — estado em 09/09/2026
+
+O P0 aplicou `ai_ledger_exposicao_de_cobranca` ao banco hospedado como
+`20260909014823`. Com os dois carimbos definitivos existindo, esta branch
+absorveu a `main` (`cce53b8`), renomeou os dois arquivos e repetiu o replay.
 
 | # | Condição | Estado |
 |---|---|---|
-| 1 | Replay completo a partir de banco vazio | ✅ duas execuções, `exit 0`, 47 migrações em ordem |
-| 2 | Schema final equivalente ao remoto | ✅ medido, ver tabela abaixo |
-| 3 | Advisors e testes verdes | ⏳ testes verdes; advisors ainda não conferidos nos dois lados |
-| 4 | Só `charge_exposed_at` pendente | ✅ com o PR #3 na `main`, a contenção deixou de ser "de outra branch"; `charge_exposed_at` segue a única não aplicada em produção |
+| 1 | Replay completo a partir de banco vazio | ✅ `db reset` em PostgreSQL 17, **49 migrações** em ordem, terminando nas duas renomeadas |
+| 2 | Schema final equivalente ao remoto | ✅ igualdade **exata**, ver abaixo |
+| 3 | Advisors nos dois lados | ✅ conferidos e classificados, ver abaixo |
+| 4 | Nenhuma migração pendente | ✅ `PENDENTES_ESPERADAS` vazia por fato: não há migração local sem par no banco |
+| 5 | CI do tip atual verde | ❌ **vermelho por colisão declarada** — ver o fim deste documento |
 
-**A equivalência, medida com a mesma consulta nos dois bancos:**
+**O ledger, provado por hash e não conferido a olho.** `historico-remoto.txt`
+normalizado e o `string_agg` de `supabase_migrations.schema_migrations` dão o
+mesmo `md5`, com 49 linhas dos dois lados:
+
+```
+80ac7a2c7e6001d9e099e0492d2e5820
+```
+
+**A equivalência de schema, com a MESMA consulta nos dois bancos:**
 
 | | Local | Produção |
 |---|---|---|
-| Colunas | 177 | 177 |
-| Constraints | 263 | 263 |
-| Índices | 66 | 66 |
+| Migrações | 49 | 49 |
+| Colunas | 178 | 178 |
+| Constraints | 120 | 120 |
+| Índices | 67 | 67 |
 | Políticas | 39 | 39 |
-| Triggers | 7 | 7 |
-| Funções | 18 | 18 |
+| Triggers (não internos) | 4 | 4 |
+| Funções | 19 | 19 |
+| Buckets | 3 | 3 |
 
-Local com 47 migrações (última `20260904144934`), produção com 48 (última
-`20260905153236`). O delta é exatamente a contenção da expiração, que pertence
-a `fix/contabilidade-ia` — o mesmo que `DE_OUTRA_BRANCH` já declarava na
-guarda.
+Contagem igual não é schema igual — dois bancos podem ter 178 colunas
+diferentes. Por isso três hashes estruturais, todos idênticos dos dois lados:
+
+| Hash | O que entra nele |
+|---|---|
+| `34ddf9e60a90aedf95a39dd6fb790867` | toda coluna de tabela: nome, tipo formatado, `not null` |
+| `c379c88d7805218a41475f308f30fb63` | toda função: nome, assinatura, tipo de retorno, `security definer` |
+| `ea650cf6ed206197875aff8a12ca32c5` | toda política RLS: tabela, nome, comando, papéis |
+
+O hash de funções inclui `prosecdef` de propósito: uma função que trocasse
+`security definer` por `invoker` mudaria o hash sem mudar contagem nenhuma.
+
+**Nota sobre os números anteriores.** A tabela de 08/09 dizia 177 colunas, 263
+constraints, 66 índices, 7 triggers e 18 funções. As diferenças não são
+mudança de banco: a consulta mudou. A de agora conta constraints só de tabelas
+de `public`, exclui triggers internos e inclui a coluna e a função que a
+migração nova trouxe. O que vale de uma comparação é ela ser a mesma dos dois
+lados — e é.
+
+### Advisors — conferidos nos dois lados, e classificados
+
+| Achado | Produção | Local | Classificação |
+|---|---|---|---|
+| `SECURITY DEFINER` executável por `authenticated` | `kill_switch_ativo` | `kill_switch_ativo` | **igual** — dívida conhecida, exceção intencional ainda por registrar |
+| Foreign keys sem índice de cobertura | 6 | 6, o mesmo conjunto | **igual** — dívida conhecida |
+| Índices sem uso | 15 | não comparável | **regra de runtime**, não de schema: depende de `pg_stat`, e um banco recém-resetado e sem tráfego acusaria tudo |
+| Proteção contra senha vazada desligada | sim | não comparável | **configuração do Auth hospedado**, sem equivalente local |
+
+O lado local não tem a API de advisors do Supabase. As duas regras **derivadas
+do schema** foram reproduzidas por consulta equivalente e devolveram o mesmo
+resultado — mesma função, mesmas seis chaves. As outras duas não são
+comparáveis por natureza, e dizer que "batem" seria inventar medida.
+
+**Nenhum achado novo veio da migração.** O índice parcial que ela cria,
+`ai_ledger_reservadas_idx`, não aparece entre os sem uso.
 
 ### Uma divergência de AMBIENTE, que não é lacuna de migração
 
@@ -152,9 +201,27 @@ e chamada com o cliente de sessão.
 
 ### O que ainda falta antes de integrar
 
-- Conferir **advisors** nos dois bancos. **É o único item restante.**
-- Fazer o `git mv` de `20260905140000` para o carimbo `20260905153236` no rebase
-  sobre a `main`, conforme a tabela de pendências acima.
+Um item só, e ele **não é desta frente**.
+
+O CI desta branch está vermelho por **uma** asserção:
+`src/platform/leak-guard.test.ts` lê a migração da exposição de cobrança pelo
+caminho literal, com o carimbo antigo `20260905160000`. A renomeação para
+`20260909014823` — exigida por esta reconciliação — derruba essa leitura.
+
+**Esse arquivo pertence ao PR #9**, junto com `scripts/prova-de-concorrencia-ai-ledger.sh`
+e o documento de evidências. O protocolo manda parar na fronteira do arquivo e
+registrar a colisão em vez de editar uma linha na frente do outro agente, e é o
+que foi feito: nada em `leak-guard.test.ts` foi tocado aqui.
+
+As duas referências ao carimbo antigo, para quem for aplicá-las:
+
+| Arquivo | Linha | O que muda |
+|---|---|---|
+| `src/platform/leak-guard.test.ts` | 1535 | caminho literal da migração → `20260909014823_ai_ledger_exposicao_de_cobranca.sql` |
+| `scripts/prova-de-concorrencia-ai-ledger.sh` | 6 | comentário citando o nome antigo — cosmético, não quebra execução |
+
+Enquanto isso não acontecer, **esta branch não pode ser declarada verde**, e
+não está sendo. Testes locais: 559/560, e a única falha é essa.
 
 ### ✅ Portão fechado: a prova de concorrência (08/09/2026)
 
