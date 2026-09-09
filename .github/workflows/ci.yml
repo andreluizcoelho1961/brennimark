@@ -4,6 +4,16 @@
 # do desenvolvedor, para que uma falha aqui seja reproduzivel localmente sem
 # adivinhacao.
 #
+# Esta afirmacao ja foi falsa. Ate 05/09/2026 o CI tinha um passo a mais —
+# `npm run fixtures:pdf` — que o `verify` nao tinha, e sem ele a suite de
+# navegador reprova 12 testes por ausencia de arquivo. No checkout principal
+# as fixtures sobravam de execucoes anteriores e ninguem percebia; um worktree
+# limpo nao herda arquivo ignorado, e o defeito aparece na primeira fatia feita
+# em branch propria. A geracao virou `pretest:e2e` no package.json, que o npm
+# dispara antes de `test:e2e` venha ele do `verify` ou de uma chamada direta.
+# Se um passo voltar a existir so aqui, o comentario acima volta a mentir —
+# acrescente ao `verify`, nao ao workflow.
+#
 # Deliberadamente FORA desta etapa: Supabase, migrations e qualquer teste que
 # dependa de infraestrutura externa. O teste de stack limpa e o PR-10 do WP0 e
 # entra quando houver `supabase start` no pipeline. A suite de navegador entra
@@ -68,11 +78,6 @@ jobs:
       # resto e HTML e CSS comuns.
       - name: Navegadores do Playwright
         run: npx playwright install --with-deps chromium webkit firefox
-
-      # As fixtures grandes ficam fora do git: mil paginas de texto nao se
-      # versionam, e o gerador as reconstroi identicas.
-      - name: Fixtures de PDF
-        run: npm run fixtures:pdf
 
       # Sobe `next dev` com BRENNIMARK_DEV_SKIP_AUTH e nada mais: sem Supabase,
       # sem segredo, sem rede. Ver playwright.config.ts.
