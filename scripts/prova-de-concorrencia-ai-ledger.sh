@@ -160,7 +160,17 @@ SQL
     falha "nenhum backend em Lock — sem disputa, a corrida não prova nada"
   fi
 
-  wait "$pidA" "$pidB" 2>/dev/null || true
+  if wait "$pidA" 2>/dev/null; then
+    ok "sessão A terminou sem erro"
+  else
+    falha "sessão A terminou com erro"
+  fi
+
+  if wait "$pidB" 2>/dev/null; then
+    ok "sessão B terminou sem erro"
+  else
+    falha "sessão B terminou com erro"
+  fi
 }
 
 # ─── As quatro corridas ─────────────────────────────────────────────────────

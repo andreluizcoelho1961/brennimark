@@ -813,7 +813,7 @@ test("falha ao marcar a exposição impede o despacho — nada é enviado ao pro
    * produziria custo que o razão não conhece — exatamente o defeito.
    */
   let despachou = false;
-  const { cliente } = supabaseFalso({
+  const { cliente, chamadas } = supabaseFalso({
     marcar_exposicao_de_cobranca_server: { error: { code: "57014", message: "timeout" } },
   });
   await assert.rejects(
@@ -828,13 +828,18 @@ test("falha ao marcar a exposição impede o despacho — nada é enviado ao pro
     /exposição de cobrança/,
   );
   assert.equal(despachou, false, "despachou mesmo sem conseguir marcar a exposição");
+  assert.deepEqual(
+    chamadas.map((c) => c.fn),
+    ["marcar_exposicao_de_cobranca_server", "liberar_reserva_de_ia_server"],
+    "falha incerta da marcação precisa encerrar a reserva antes de devolver o erro",
+  );
 });
 
 test("banco recusando a marcação (false) também impede o despacho", async () => {
   // `false` significa que a reserva já não está reservada. Despachar geraria
   // custo sem reserva — pior que não responder.
   let despachou = false;
-  const { cliente } = supabaseFalso({
+  const { cliente, chamadas } = supabaseFalso({
     marcar_exposicao_de_cobranca_server: { data: false },
   });
   await assert.rejects(
@@ -849,6 +854,11 @@ test("banco recusando a marcação (false) também impede o despacho", async () 
     /exposição de cobrança/,
   );
   assert.equal(despachou, false);
+  assert.deepEqual(
+    chamadas.map((c) => c.fn),
+    ["marcar_exposicao_de_cobranca_server"],
+    "false já afirma que a linha não está reservada; não há reserva para encerrar",
+  );
 });
 
 test("a marcação vem ANTES do despacho, não depois", async () => {
