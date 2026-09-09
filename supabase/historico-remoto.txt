@@ -46,3 +46,4 @@
 20260904142954 publish_brand_import_title_provenance
 20260904144934 publish_brand_import_client_brand_id
 20260905153236 ai_expiry_contencao_server_only_e_idade_minima
+20260909014823 ai_ledger_exposicao_de_cobranca

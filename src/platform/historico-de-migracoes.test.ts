@@ -51,25 +51,36 @@ function historicoRemoto(): Map<string, string> {
  * aparece por engano — arquivo renomeado errado, carimbo digitado torto — tem
  * exatamente a mesma forma de uma pendência legítima. Declarar quais são as
  * legítimas é o que permite reprovar as outras.
+ *
+ * Vazia em 09/09/2026 porque não há pendência: `ai_ledger_exposicao_de_cobranca`
+ * era a única, e foi aplicada ao banco hospedado como `20260909014823`. Medido
+ * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [];
 
 /**
  * O que a reconciliação NÃO alcança nesta base, porque pertence a outra branch.
  *
- * `fix/migration-history` sai de `49ce1fe`, anterior às duas migrações escritas
- * em `fix/contabilidade-ia`. Elas precisam do mesmo tratamento — uma de
- * renomeação, outra de declaração como pendente — e isso acontece quando
- * aquela branch for rebaseada sobre esta.
+ * **Vazio desde 09/09/2026, e vazio por fato, não por omissão.** O acoplamento
+ * que estas listas declaravam era com `fix/contabilidade-ia`: esta branch saía
+ * de `49ce1fe`, anterior às duas migrações escritas lá. Aquela branch foi
+ * mesclada à `main` (`cce53b8`, PR #3), a `main` foi absorvida aqui, e as duas
+ * migrações passaram a existir nesta base — com os carimbos remotos
+ * definitivos, `20260905153236` e `20260909014823`.
  *
- * Declarado aqui, e não silenciado, porque um acoplamento entre branches que
- * ninguém escreve é um acoplamento que alguém vai descobrir no merge.
+ * O teste abaixo é que forçou isto: ele falhava de propósito no dia em que os
+ * itens chegassem. Falhou, e a lista foi esvaziada em vez de afrouxada.
+ *
+ * A estrutura fica porque o mecanismo pode ser preciso de novo — outra branch
+ * pode voltar a escrever migração que esta base ainda não vê. Um acoplamento
+ * entre branches que ninguém declara é um acoplamento que alguém descobre no
+ * merge.
  */
-const DE_OUTRA_BRANCH = {
-  /** Aplicada no banco; o arquivo local vive em `fix/contabilidade-ia`. */
-  carimbosSemArquivo: ["20260905153236"],
-  /** Não aplicada; será a única pendente depois do rebase. */
-  pendentes: ["ai_ledger_exposicao_de_cobranca"],
+const DE_OUTRA_BRANCH: { carimbosSemArquivo: string[]; pendentes: string[] } = {
+  /** Carimbo aplicado no banco cujo arquivo vive noutra branch. */
+  carimbosSemArquivo: [],
+  /** Migração escrita noutra branch e ainda não aplicada ao banco. */
+  pendentes: [],
 };
 
 /** Placeholders: existem no banco, e o efeito vive noutro arquivo local. */
