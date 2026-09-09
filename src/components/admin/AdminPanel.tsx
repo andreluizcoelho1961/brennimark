@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
 import type { BrandvilleTheme } from "@/brandville/types";
@@ -9,6 +9,7 @@ import { VersionHistory } from "@/components/admin/VersionHistory";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
+import { criarPedidoDeEdicao } from "@/lib/brandville/edicao-de-conteudo";
 
 const STATUS_LABEL_POR_IDIOMA = {
   en: { ready: "Approved", draft: "Draft", pending: "In progress" },
@@ -59,10 +60,28 @@ export function AdminPanel({
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
-  const hasUnsavedChanges = useMemo(
-    () => JSON.stringify(selected) !== JSON.stringify(persisted),
+  const editorDeTexto = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * O HTML do editor aparece antes de o componente estar hidratado. Nesse
+   * intervalo o navegador aceita digitação, mas o React ainda não instalou o
+   * `onChange`; a hidratação seguinte repõe o valor inicial e perde a edição.
+   *
+   * O atributo é um sinal da fronteira — como `data-shell-ready` na moldura —
+   * e nasce no mesmo efeito que prova que os handlers já existem. Não usa
+   * estado porque a aplicação não consome o sinal e um render extra não
+   * tornaria o editor mais pronto.
+   */
+  useEffect(() => {
+    const no = editorDeTexto.current;
+    no?.setAttribute("data-admin-editor-ready", "true");
+    return () => no?.removeAttribute("data-admin-editor-ready");
+  }, []);
+  const pedidoDeEdicao = useMemo(
+    () => selected && persisted ? criarPedidoDeEdicao(selected, persisted) : null,
     [selected, persisted],
   );
+  const hasUnsavedChanges = pedidoDeEdicao !== null;
 
   function selectPage(nextSlug: string) {
     if (hasUnsavedChanges && !window.confirm(isEnglish ? "Discard unsaved changes?" : "Descartar as mudanças que ainda não foram salvas?")) return;
@@ -77,9 +96,9 @@ export function AdminPanel({
   }
 
   async function save() {
-    if (!selected) return;
+    if (!selected || !pedidoDeEdicao) return;
     setSaving(true); setMessage("");
-    const response = await fetch(comAlvo("/api/admin/content", alvo), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(selected) });
+    const response = await fetch(comAlvo("/api/admin/content", alvo), { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(pedidoDeEdicao) });
     const result = await response.json().catch(() => ({}));
     setSaving(false);
     if (response.ok) {
@@ -218,7 +237,7 @@ export function AdminPanel({
             <label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Title" : "Título"}</span><input value={selected.title} maxLength={120} onChange={(event) => update({ title: event.target.value })} className="w-full border border-platform-border bg-platform-bg px-4 py-3 text-platform-text focus:border-platform-signal focus:outline-none" /></label>
             <label className="block"><span className="mb-2 block text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Section" : "Seção"}</span><select value={selected.group} onChange={(event) => update({ group: event.target.value })} className="w-full border border-platform-border bg-platform-bg px-4 py-3 text-platform-text focus:border-platform-signal focus:outline-none">{groups.map((group) => <option key={group}>{group}</option>)}</select></label>
             <label className="block md:col-span-2"><span className="mb-2 block text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Editorial status" : "Status editorial"}</span><select value={selected.status} onChange={(event) => update({ status: event.target.value as DocStatus })} className="w-full border border-platform-border bg-platform-bg px-4 py-3 text-platform-text focus:border-platform-signal focus:outline-none">{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-            <label className="block md:col-span-2"><span className="mb-2 block text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Text" : "Texto"} <span className="normal-case font-normal">{isEnglish ? "— separate paragraphs with a blank line" : "— separe os parágrafos com uma linha em branco"}</span></span><textarea value={(selected.body ?? []).join("\n\n")} onChange={(event) => update({ body: event.target.value.split(/\n\s*\n/) })} rows={14} className="w-full resize-y border border-platform-border bg-platform-bg px-4 py-3 text-sm leading-relaxed text-platform-text focus:border-platform-signal focus:outline-none" /></label>
+            <label className="block md:col-span-2"><span className="mb-2 block text-xs font-bold uppercase tracking-wide text-platform-text-muted">{isEnglish ? "Text" : "Texto"} <span className="normal-case font-normal">{isEnglish ? "— separate paragraphs with a blank line" : "— separe os parágrafos com uma linha em branco"}</span></span><textarea ref={editorDeTexto} value={(selected.body ?? []).join("\n\n")} onChange={(event) => update({ body: event.target.value.split(/\n\s*\n/) })} rows={14} className="w-full resize-y border border-platform-border bg-platform-bg px-4 py-3 text-sm leading-relaxed text-platform-text focus:border-platform-signal focus:outline-none" /></label>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button type="button" disabled={saving || !hasUnsavedChanges} onClick={save} className="bg-platform-signal px-5 py-3 font-display text-xs font-black uppercase text-platform-bg disabled:opacity-50">{saving ? (isEnglish ? "Saving…" : "Salvando…") : (isEnglish ? "Save page" : "Salvar página")}</button>

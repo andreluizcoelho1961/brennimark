@@ -697,9 +697,37 @@ test("nenhuma linha de storage.objects é tocada por SQL", () => {
 });
 
 test("o upload por hash é imutável", () => {
+  // `upsert: false` mudou de arquivo quando a sequência de envio saiu do
+  // componente para `orfaos.ts` (com teste) e o adaptador do Supabase para
+  // `portas-supabase.ts`. A guarda segue o código: o invariante é do UPLOAD,
+  // não do componente, e afrouxá-la para o arquivo antigo deixaria de proteger
+  // qualquer coisa.
+  const portas = lerCodigo("src/lib/import/portas-supabase.ts");
+  assert.match(portas, /upsert: false/, "upsert exigiria política de UPDATE que não existe");
+
   const importador = lerCodigo("src/components/import/BrandImporter.tsx");
-  assert.match(importador, /upsert: false/, "upsert exigiria política de UPDATE que não existe");
   assert.match(importador, /objetoNovo/, "só remove o arquivo se esta tentativa o criou");
+});
+
+test("nenhum objeto provisório fica sem destino quando a importação falha", () => {
+  /*
+   * A guarda do item 2: as imagens de página sobem ANTES de a marca existir,
+   * então um retorno antecipado sem limpeza deixa arquivo de terceiro no
+   * bucket sem nada no banco apontando para ele — fora do alcance até da fila
+   * de exclusão.
+   *
+   * O importador não pode voltar a chamar `remove` direto: a decisão precisa
+   * passar por `garantirAusencia`, que confirma a saída por observação e
+   * enfileira o que não saiu.
+   */
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.match(importador, /enviarArquivosDaImportacao/, "o envio precisa passar pela sequência com limpeza");
+  assert.match(importador, /garantirAusencia/, "a limpeza pós-RPC precisa ser durável, não melhor esforço");
+  assert.doesNotMatch(
+    importador,
+    /storage\s*\.from\("brand-assets"\)\s*\.remove/,
+    "remoção de asset sem observação nem fila é o defeito que o item 2 corrigiu",
+  );
 });
 
 test("o idioma do manual não vem do idioma da interface", () => {
@@ -1214,6 +1242,24 @@ test("as rotas de chave e roteamento exigem quem administra", () => {
   }
 });
 
+test("o teste de conexão não é uma chamada paga lateral", () => {
+  const codigo = lerCodigo("src/app/api/ai/test-connection/route.ts");
+  const portao = codigo.indexOf("marcaDaRota(request)");
+  const papel = codigo.indexOf('contexto.papel !== "owner"');
+  const validacao = codigo.indexOf("validarConfiguracaoDoTeste(body)");
+  const orcamento = codigo.indexOf("testarConexaoComOrcamento({");
+  const provedor = codigo.indexOf("streamText({");
+
+  assert.ok(portao > 0, "o teste não resolve conta e marca no servidor");
+  assert.ok(papel > portao, "um member consegue testar uma chave paga");
+  assert.ok(validacao > papel, "a chave chega à validação antes do papel");
+  assert.ok(orcamento > validacao, "o teste não atravessa o contrato de orçamento");
+  assert.ok(provedor > orcamento, "o provedor é chamado antes de reservar orçamento");
+  assert.doesNotMatch(codigo, /generateText\(/, "voltou o caminho lateral sem liquidação");
+  assert.match(codigo, /maxOutputTokens/, "o teste não limita a resposta real");
+  assert.match(codigo, /maxRetries:\s*0/, "retry automático pode cobrar sem reserva própria");
+});
+
 test("a matriz de permissão não conhece Supabase nem rede", () => {
   // Ela autoriza gasto de IA e leitura de credencial. Uma regra dessas precisa
   // ser contável sem subir aplicação nenhuma.
@@ -1470,5 +1516,32 @@ test("o detector de títulos exige uma palavra, não só destaque", () => {
     trecho.slice(0, 2_000),
     /length >= 2/,
     "destaque tipográfico voltou a bastar para virar título",
+  );
+});
+
+test("liquidar exige registro de exposição — a invariante recíproca", () => {
+  /*
+   * `charge_exposed_at` fecha duas portas, não uma. Uma: não se libera reserva
+   * exposta. A outra, esta: não existe execução LIQUIDADA sem registro de
+   * exposição ao provedor — liquidar sem ele seria cobrar por um pedido que o
+   * razão não sabe ter saído.
+   *
+   * A guarda é textual porque a invariante vive em SQL e o CI deste projeto
+   * não sobe Supabase (ver ci.yml). Ela não prova o comportamento no banco;
+   * prova que a regra não sumiu do arquivo — que é o que se pode provar daqui,
+   * e é melhor que nada guardar.
+   */
+  const migracao = lerCodigo(
+    "supabase/migrations/20260905160000_ai_ledger_exposicao_de_cobranca.sql",
+  );
+  assert.match(
+    migracao,
+    /if linha\.charge_exposed_at is null then\s*\n\s*raise exception/,
+    "consolidar precisa recusar liquidação sem exposição registrada",
+  );
+  assert.match(
+    migracao,
+    /for update/,
+    "as funções que leem e depois atualizam a mesma linha precisam travá-la",
   );
 });
