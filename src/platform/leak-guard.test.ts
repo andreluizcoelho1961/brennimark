@@ -121,10 +121,25 @@ test("a V2 não veste a marca nem ramifica por instância", () => {
   }
 });
 
-test("a rota de laboratório é fechada em produção", () => {
-  const rota = ler("src/app/dev/shell-v2/[[...slug]]/page.tsx");
-  assert.match(rota, /NODE_ENV === "production"/);
-  assert.match(rota, /notFound\(\)/);
+/**
+ * Toda bancada de desenvolvimento fecha em produção.
+ *
+ * A lista cresce junto com as bancadas — uma rota de laboratório que vaza para
+ * produção não quebra nada, e é justamente por isso que ninguém percebe: ela
+ * fica lá, alcançável por quem souber a URL, mostrando dado de cliente numa
+ * tela que nunca passou por revisão de produto.
+ */
+const BANCADAS = [
+  "src/app/dev/shell-v2/[[...slug]]/page.tsx",
+  "src/app/dev/visualizador/page.tsx",
+];
+
+test("as rotas de laboratório são fechadas em produção", () => {
+  for (const arquivo of BANCADAS) {
+    const rota = ler(arquivo);
+    assert.match(rota, /NODE_ENV === "production"/, `${arquivo} não fecha em produção`);
+    assert.match(rota, /notFound\(\)/, `${arquivo} não chama notFound`);
+  }
 });
 
 test("a V2 não tem texto de interface fixo em um idioma", () => {
