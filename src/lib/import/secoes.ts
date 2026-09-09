@@ -111,11 +111,42 @@ export function fimDe(secao: Secao): number | null {
  * sólido, tipografia de destaque, pouco ou nenhum texto corrido) bate
  * nisso; uma página de FAQ ou política, mesmo curta, não — tem parágrafo.
  *
- * Os números são um ponto de partida, não uma medição calibrada contra o
- * manual real: ajustar depois de ver o resultado contra a GE é esperado,
- * não uma falha de design.
+ * ─── Calibrado em 09/09/2026, contra manual real ────────────────────────
+ *
+ * O teto nasceu em 300 caracteres, declarado aqui mesmo como "ponto de
+ * partida, não uma medição calibrada". A primeira importação real — um manual
+ * de identidade de 47 páginas — deu a medição que faltava, e ela condenou o
+ * número: das 43 seções, apenas 3 viravam imagem.
+ *
+ * O que decidiu não foi a contagem, foi ONDE a linha caía. As seções, em
+ * caracteres:
+ *
+ *     297, 299, 299, 300, 306, 307, 312
+ *
+ * Sete páginas do mesmo tipo, quase idênticas, e o corte em 300 mandou três
+ * para imagem e quatro para texto. Um teto que separa páginas indistinguíveis
+ * não está medindo a página: está medindo o acaso.
+ *
+ * Fora do cluster, ficavam de fora páginas que só existem como imagem —
+ * símbolo com efeito 2D (462), versão 3D (475), estilo fotográfico (578),
+ * grafismo (601), grid (623). Reconstruir isso em texto perde o que a página É.
+ *
+ * 900 apanha o cluster inteiro e essas páginas, e ainda recusa texto corrido:
+ * uma página de FAQ ou política passa dos 900 com folga. Medido no mesmo
+ * manual: 3 seções a 300, 10 a 600, 25 a 900, 32 a 1200.
+ *
+ * ─── O que o teto custa dos dois lados ───────────────────────────────────
+ *
+ * Errar para MENOS perde para sempre a aparência real da página, e fidelidade
+ * visual é uma das promessas do produto. Errar para MAIS custa armazenamento e
+ * TEMPO DE PUBLICAÇÃO — cada página vira uma renderização em escala 2, e a
+ * publicação já leva minutos. Por isso 900 e não 1200: o ganho de 25 para 32
+ * seções não paga o terço a mais de espera.
+ *
+ * A heurística continua de APOIO: a prévia mostra o resultado antes de
+ * publicar, e quem importa decide.
  */
-const TETO_DE_CARACTERES_VISUAL = 300;
+const TETO_DE_CARACTERES_VISUAL = 900;
 const TETO_DE_PAGINAS_VISUAL = 2;
 
 export function ehVisualDominante(secao: Secao): boolean {
