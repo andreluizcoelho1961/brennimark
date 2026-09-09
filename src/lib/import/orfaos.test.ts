@@ -279,3 +279,31 @@ test("porta NÃO idempotente derruba o lote inteiro — é por isso que o adapta
   if (r.ok) return;
   assert.equal(r.limpeza.perdidos.length, 2, "o lote inteiro se perde, inclusive o caminho novo");
 });
+
+test("o progresso conta TENTATIVAS, não sucessos", async () => {
+  /*
+   * Uma imagem que falha não derruba a importação — a seção publica só com o
+   * texto. Se o relato contasse apenas sucessos, a contagem pararia na falha e
+   * anunciaria menos trabalho do que de fato falta, que é a forma de mentira
+   * que uma barra de progresso pode cometer.
+   */
+  const { portas } = storageFalso({ imagensQueFalham: ["b.png"] });
+  const relatos: string[] = [];
+
+  await enviarArquivosDaImportacao(
+    portas,
+    {
+      imagens: [
+        { caminho: "a.png", dados: "1" },
+        { caminho: "b.png", dados: "2" },
+        { caminho: "c.png", dados: "3" },
+      ],
+      pdf: { caminho: "manual.pdf", dados: "pdf" },
+      bucketDeImagens: BUCKET_IMG,
+      bucketDoPdf: BUCKET_PDF,
+    },
+    (feito, total) => relatos.push(`${feito}/${total}`),
+  );
+
+  assert.deepEqual(relatos, ["1/3", "2/3", "3/3"]);
+});

@@ -7,6 +7,7 @@ import { useIsEnglish } from "@/platform/locale-client";
 import { slugify } from "@/lib/import/draft";
 import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
 import { lerPdf, FalhaDeLeitura, renderizarPaginasComoImagem, type ItemDeOutline } from "@/lib/import/pdf";
+import { rotuloDoProgresso, type ProgressoDaPublicacao } from "@/lib/import/progresso-da-publicacao";
 import { diagnosticar } from "@/lib/import/pdf-erros";
 import { detectarRepetidos, linhasUteis } from "@/lib/import/texto";
 import {
@@ -73,6 +74,16 @@ export function BrandImporter({
   const [importId, setImportId] = useState("");
   const [lendo, setLendo] = useState(false);
   const [publicando, setPublicando] = useState(false);
+  /**
+   * O que a publicação está fazendo agora.
+   *
+   * Publicar um manual de identidade leva MINUTOS: cada página visual é
+   * renderizada em escala 2 antes de qualquer gravação. Sem relato, o botão
+   * ficava em "Publicando…" o tempo todo, e uma espera longa e muda é
+   * indistinguível de um travamento — inclusive para quem conhece o código.
+   * Numa demonstração, quem espera desiste antes de o produto terminar.
+   */
+  const [progresso, setProgresso] = useState<ProgressoDaPublicacao | null>(null);
   const [mensagem, setMensagem] = useState("");
   const [nome, setNome] = useState("");
   const [utilidades, setUtilidades] = useState<BrandvilleUtilityKey[]>([]);
@@ -155,7 +166,7 @@ export function BrandImporter({
 
   async function publicar() {
     if (!arquivo || !agrupamento) return;
-    setPublicando(true); setMensagem("");
+    setPublicando(true); setMensagem(""); setProgresso(null);
 
     /**
      * O id da marca nasce AQUI, no navegador — não no banco.
@@ -182,7 +193,12 @@ export function BrandImporter({
       .filter(ehVisualDominante)
       .map((secao) => inicioDe(secao))
       .filter((pagina): pagina is number => pagina !== null);
-    const imagensRenderizadas = await renderizarPaginasComoImagem(arquivo, paginasVisuais);
+    if (paginasVisuais.length > 0) {
+      setProgresso({ etapa: "renderizando", feito: 0, total: paginasVisuais.length });
+    }
+    const imagensRenderizadas = await renderizarPaginasComoImagem(arquivo, paginasVisuais, {
+      aoProgredir: (feito, total) => setProgresso({ etapa: "renderizando", feito, total }),
+    });
 
     /**
      * As imagens e o PDF sobem juntos, por `enviarArquivosDaImportacao`.
@@ -211,12 +227,18 @@ export function BrandImporter({
 
     const caminho = caminhoDeImportacao(workspaceId, importId, hash);
 
-    const envio = await enviarArquivosDaImportacao(portas, {
-      imagens: planoDeImagens.map(({ caminho: c, dados }) => ({ caminho: c, dados })),
-      pdf: { caminho, dados: arquivo as unknown },
-      bucketDeImagens: "brand-assets",
-      bucketDoPdf: "brand-imports",
-    });
+    setProgresso({ etapa: "enviando", feito: 0, total: planoDeImagens.length });
+    const envio = await enviarArquivosDaImportacao(
+      portas,
+      {
+        imagens: planoDeImagens.map(({ caminho: c, dados }) => ({ caminho: c, dados })),
+        pdf: { caminho, dados: arquivo as unknown },
+        bucketDeImagens: "brand-assets",
+        bucketDoPdf: "brand-imports",
+      },
+      (feito, total) => setProgresso({ etapa: "enviando", feito, total }),
+    );
+    setProgresso({ etapa: "gravando", feito: 0, total: 0 });
 
     if (!envio.ok) {
       // `perdidos` é o único desfecho em que um objeto ficou sem destino.
@@ -228,7 +250,7 @@ export function BrandImporter({
           caminhos: envio.limpeza.perdidos.map((item) => item.caminho),
         }));
       }
-      setPublicando(false);
+      setPublicando(false); setProgresso(null);
       setMensagem(t("Não foi possível enviar o arquivo.", "Couldn't upload the file."));
       return;
     }
@@ -631,7 +653,7 @@ export function BrandImporter({
                 className="mt-[var(--space-shell-5)] flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40"
               >
                 {publicando
-                  ? t("Publicando…", "Publishing…")
+                  ? rotuloDoProgresso(progresso, t)
                   : t("Criar a marca com estes rascunhos", "Create the brand with these drafts")}
               </button>
             </div>
