@@ -51,3 +51,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Material da bancada local: fixtures servidas ao navegador para o ciclo
+# manual de importação. Nunca versionado — nem as sintéticas, para a pasta
+# não virar um lugar onde material de cliente acaba entrando sem querer.
+/public/.bancada/

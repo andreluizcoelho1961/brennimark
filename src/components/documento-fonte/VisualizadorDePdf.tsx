@@ -6,13 +6,16 @@ import { useIsEnglish } from "@/platform/locale-client";
 import { prepararAmbienteDePdf } from "@/lib/import/stream-iteravel";
 import {
   VIZINHAS,
-  dentroDaJanela,
   escalaParaLargura,
+  janelaMontada,
 } from "@/lib/documento-fonte/virtualizacao";
 import { PaginaDoPdf } from "./PaginaDoPdf";
 
 /** Passos de zoom. "Ajustar à largura" é estado, não um número desta lista. */
 const PASSOS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
+
+/** Respiro entre páginas, em pixels. Entra na tabela de deslocamentos. */
+const ESPACO_ENTRE_PAGINAS = 24;
 
 type Ajuste = { tipo: "largura" } | { tipo: "fixo"; escala: number };
 
@@ -183,6 +186,58 @@ export function VisualizadorDePdf({
    * mistura retrato e paisagem, e uma escala única deixaria as pranchas
    * estourando a coluna ou as páginas de texto minúsculas.
    */
+  /**
+   * A proporção a usar em página ainda não medida.
+   *
+   * Começa como A4 e passa a ser a da PRIMEIRA página medida. Um manual tem
+   * páginas do mesmo tamanho quase sempre, então uma medida real acerta as
+   * outras 999 — e o palpite fixo errava por ~129px em cada uma, que numa
+   * navegação para a página 700 vira dezenas de milhares de pixels de deriva.
+   * O sintoma não é sutil: a pessoa pede a página 700 e vê área vazia, porque
+   * as páginas montadas ficaram muito abaixo da viewport.
+   */
+  const proporcaoPadrao = useMemo(() => {
+    const primeira = dimensoes.values().next().value;
+    return primeira && primeira.largura > 0 ? primeira.altura / primeira.largura : 1.414;
+  }, [dimensoes]);
+
+  /**
+   * A tabela de deslocamentos: onde cada página COMEÇA, em pixels.
+   *
+   * Esta é a peça que faz a virtualização ser estável, e ela substituiu um
+   * layout em fluxo que parecia funcionar e não funcionava. Em fluxo, montar
+   * uma página troca uma moldura estimada por uma página real, a altura total
+   * do documento muda, e TUDO abaixo se desloca — inclusive a posição para onde
+   * a rolagem acabou de ir. O sintoma era pedir a página 700 e receber a 705,
+   * sem erro nenhum: só a página errada na tela.
+   *
+   * Com as posições calculadas aqui e aplicadas de forma absoluta, montar e
+   * desmontar não move mais nada. A rolagem passa a ser aritmética, e a página
+   * atual sai de uma busca binária sobre este vetor — sem ler o DOM, sem
+   * misturar `offsetTop` com `scrollTop`, que foi o segundo defeito da mesma
+   * área.
+   */
+  const deslocamentos = useMemo(() => {
+    const tabela = new Float64Array(total + 1);
+    if (larguraDaColuna <= 0) return tabela;
+
+    for (let n = 1; n <= total; n += 1) {
+      const dimensao = dimensoes.get(n);
+      const proporcao =
+        dimensao && dimensao.largura > 0 ? dimensao.altura / dimensao.largura : proporcaoPadrao;
+      tabela[n] = tabela[n - 1] + larguraDaColuna * proporcao + ESPACO_ENTRE_PAGINAS;
+    }
+    return tabela;
+  }, [total, larguraDaColuna, dimensoes, proporcaoPadrao]);
+
+  const alturaTotal = total > 0 ? deslocamentos[total] : 0;
+
+  /** As páginas que existem no DOM agora. Fora dela, nada é montado. */
+  const janela = useMemo(
+    () => janelaMontada(paginaAtual, total, VIZINHAS),
+    [paginaAtual, total],
+  );
+
   const escalaDe = useCallback(
     (numero: number) => {
       if (ajuste.tipo === "fixo") return ajuste.escala;
@@ -193,37 +248,60 @@ export function VisualizadorDePdf({
     [ajuste, dimensoes, larguraDaColuna],
   );
 
-  /** Qual página está sendo lida: a que ocupa o meio da janela de rolagem. */
+  /**
+   * Qual página está sendo lida — aritmética pura sobre a tabela.
+   *
+   * Sem leitura de DOM: `getBoundingClientRect` num laço força o navegador a
+   * recalcular layout, e a versão anterior fazia isso a cada quadro de rolagem.
+   */
   useEffect(() => {
     const rolo = roloRef.current;
-    if (!rolo || total === 0) return;
+    if (!rolo || total === 0 || alturaTotal <= 0) return;
 
-    const observador = new IntersectionObserver(
-      (entradas) => {
-        const visivel = entradas
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!visivel) return;
-        const numero = Number((visivel.target as HTMLElement).dataset.pagina);
-        if (Number.isFinite(numero) && numero > 0) setPaginaAtual(numero);
-      },
-      { root: rolo, threshold: [0.1, 0.5, 0.9] },
-    );
+    let agendado = 0;
+    const medir = () => {
+      agendado = 0;
+      const alvo = rolo.scrollTop + rolo.clientHeight * 0.3;
 
-    for (const moldura of rolo.querySelectorAll("[data-pagina]")) {
-      observador.observe(moldura);
-    }
-    return () => observador.disconnect();
-  }, [total, larguraDaColuna]);
+      let baixo = 1;
+      let cima = total;
+      let achado = 1;
+      while (baixo <= cima) {
+        const meio = (baixo + cima) >> 1;
+        if (deslocamentos[meio - 1] <= alvo) {
+          achado = meio;
+          baixo = meio + 1;
+        } else {
+          cima = meio - 1;
+        }
+      }
+      setPaginaAtual(achado);
+    };
+
+    const aoRolar = () => {
+      // Uma medição por quadro: a rolagem dispara dezenas de eventos por
+      // segundo, e medir em cada um é trabalho jogado fora.
+      if (agendado === 0) agendado = requestAnimationFrame(medir);
+    };
+
+    rolo.addEventListener("scroll", aoRolar, { passive: true });
+    medir();
+    return () => {
+      rolo.removeEventListener("scroll", aoRolar);
+      if (agendado !== 0) cancelAnimationFrame(agendado);
+    };
+  }, [total, alturaTotal, deslocamentos]);
 
   const irPara = useCallback(
     (numero: number) => {
       const destino = Math.min(Math.max(Math.trunc(numero), 1), Math.max(total, 1));
-      const alvo = roloRef.current?.querySelector(`[data-pagina="${destino}"]`);
-      alvo?.scrollIntoView({ block: "start" });
+      const rolo = roloRef.current;
+      // A posição sai da tabela, não do DOM. Não há o que esperar montar, e
+      // portanto não há correção posterior nem salto visível.
+      if (rolo) rolo.scrollTop = deslocamentos[destino - 1];
       setPaginaAtual(destino);
     },
-    [total],
+    [total, deslocamentos],
   );
 
   /**
@@ -269,13 +347,28 @@ export function VisualizadorDePdf({
   const zoom = useCallback(
     (direcao: 1 | -1) => {
       setAjuste((antes) => {
-        const atual = antes.tipo === "fixo" ? antes.escala : 1;
-        const indice = PASSOS.findIndex((p) => p >= atual - 0.001);
-        const proximo = PASSOS[Math.min(Math.max(indice + direcao, 0), PASSOS.length - 1)];
+        /**
+         * O ponto de partida é a escala EFETIVA, não o número 1.
+         *
+         * Defeito medido: vindo de "ajustar à largura", a escala real era ~1,8
+         * e o "+" saltava para 1,25 — o botão de aumentar DIMINUÍA a página.
+         * Partir do que está na tela é o que faz o passo seguinte ser para
+         * cima.
+         */
+        const atual = antes.tipo === "fixo" ? antes.escala : escalaDe(paginaAtual);
+
+        // Para cima, o primeiro passo ESTRITAMENTE maior; para baixo, o último
+        // estritamente menor. Sem o "estritamente", o passo de descida devolvia
+        // o próprio valor atual e o botão não fazia nada — medido.
+        const proximo =
+          direcao === 1
+            ? (PASSOS.find((p) => p > atual + 0.001) ?? PASSOS[PASSOS.length - 1])
+            : ([...PASSOS].reverse().find((p) => p < atual - 0.001) ?? PASSOS[0]);
+
         return { tipo: "fixo", escala: proximo };
       });
     },
-    [],
+    [escalaDe, paginaAtual],
   );
 
   // Guarda a posição a cada mudança, para a retomada depois de recarregar.
@@ -350,45 +443,43 @@ export function VisualizadorDePdf({
         <div ref={roloRef} className="min-h-0 flex-1 overflow-auto overscroll-contain">
           <div
             ref={colunaRef}
-            className="mx-auto flex max-w-[1100px] flex-col gap-[var(--space-shell-4)] px-[var(--space-shell-3)] py-[var(--space-shell-4)]"
+            className="relative mx-auto max-w-[1100px] px-[var(--space-shell-3)] py-[var(--space-shell-4)]"
+            style={{ height: alturaTotal > 0 ? `${alturaTotal}px` : undefined }}
           >
             {documento &&
-              Array.from({ length: total }, (_, i) => i + 1).map((numero) => {
-                const montada = dentroDaJanela(numero, paginaAtual, total, VIZINHAS);
+              janela.map((numero) => {
                 const dimensao = dimensoes.get(numero);
-                const escala = escalaDe(numero);
-                return montada ? (
-                  <PaginaDoPdf
-                    key={numero}
-                    documento={documento}
-                    numero={numero}
-                    escalaPedida={escala}
-                    montada
-                    aoMedir={aoMedir}
-                    termoBuscado={termo}
-                    rotulo={t(`Página ${numero}`, `Page ${numero}`)}
-                  />
-                ) : (
+                const proporcao =
+                  dimensao && dimensao.largura > 0
+                    ? dimensao.altura / dimensao.largura
+                    : proporcaoPadrao;
+                return (
                   /**
-                   * Fora da janela, a página vira só o espaço que ocupa.
+                   * Posição ABSOLUTA, vinda da tabela.
                    *
-                   * Ela PRECISA ocupar o espaço certo: sem isso a barra de
-                   * rolagem encolhe e cresce a cada montagem, e a página salta
-                   * sob o dedo de quem lê. A altura vem da medida real quando
-                   * já foi vista; antes disso, da proporção A4, que é o palpite
-                   * menos errado para um manual.
+                   * Só as páginas da janela existem no DOM — não há mil molduras
+                   * vazias. O contêiner tem a altura total calculada, então a
+                   * barra de rolagem representa o documento inteiro sem que
+                   * nada precise ocupar espaço para isso.
                    */
                   <div
                     key={numero}
-                    data-pagina={numero}
-                    aria-hidden
-                    className="mx-auto w-full bg-platform-panel-muted"
+                    className="absolute left-0 right-0 px-[var(--space-shell-3)]"
                     style={{
-                      height: dimensao
-                        ? `${dimensao.altura * escala}px`
-                        : `${larguraDaColuna * 1.414}px`,
+                      top: `${deslocamentos[numero - 1]}px`,
+                      height: `${larguraDaColuna * proporcao}px`,
                     }}
-                  />
+                  >
+                    <PaginaDoPdf
+                      documento={documento}
+                      numero={numero}
+                      escalaPedida={escalaDe(numero)}
+                      montada
+                      aoMedir={aoMedir}
+                      termoBuscado={termo}
+                      rotulo={t(`Página ${numero}`, `Page ${numero}`)}
+                    />
+                  </div>
                 );
               })}
           </div>
@@ -426,12 +517,20 @@ function Barra({
   aoAlternarMiniaturas: () => void;
 }) {
   /**
-   * O campo é remontado pela `key` quando a página muda, em vez de
-   * sincronizado por efeito. Sincronizar por efeito reescreveria o que a pessoa
-   * está digitando toda vez que a rolagem passa por uma página nova — o campo
-   * brigaria com o dedo dela.
+   * O campo de página acompanha a rolagem, mas nunca atropela quem digita.
+   *
+   * Ele é não-controlado e atualizado por referência: enquanto o campo tem o
+   * foco, a rolagem não o toca. Duas alternativas foram tentadas e são piores.
+   * Sincronizar por efeito reescreve o que a pessoa está digitando a cada
+   * página que passa. Remontar por `key` recria o elemento a cada mudança de
+   * página — o foco cai no meio da digitação, e num documento de mil páginas
+   * isso acontece a cada rolagem.
    */
-  const [campo, setCampo] = useState(String(paginaAtual));
+  const campoRef = useRef<HTMLInputElement | null>(null);
+  useEffect(() => {
+    const campo = campoRef.current;
+    if (campo && document.activeElement !== campo) campo.value = String(paginaAtual);
+  }, [paginaAtual]);
 
   return (
     /**
@@ -454,8 +553,9 @@ function Barra({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          const n = Number(campo);
+          const n = Number(campoRef.current?.value);
           if (Number.isFinite(n)) aoIrPara(n);
+          campoRef.current?.blur();
         }}
         className="flex items-center gap-1 text-[13px]"
       >
@@ -464,9 +564,8 @@ function Barra({
         </label>
         <input
           id="pagina-atual"
-          key={paginaAtual}
+          ref={campoRef}
           defaultValue={String(paginaAtual)}
-          onChange={(e) => setCampo(e.target.value)}
           inputMode="numeric"
           className="w-14 rounded border border-platform-border bg-platform-bg px-2 py-1 text-center"
         />

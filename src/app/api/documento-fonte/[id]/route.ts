@@ -25,7 +25,42 @@ import {
  */
 
 /** A URL assinada só precisa durar a viagem até o Storage, do lado do servidor. */
-const VALIDADE_DA_ASSINATURA = 60;
+const VALIDADE_DA_ASSINATURA = 300;
+
+/** Margem de segurança: a assinatura é descartada antes de vencer de verdade. */
+const FOLGA_DA_ASSINATURA = 30_000;
+
+/**
+ * Assinaturas já emitidas, por caminho canônico.
+ *
+ * Abrir um manual dispara ~11 pedidos de intervalo, e assinar uma URL nova a
+ * cada um custava ~400 ms de ida ao Storage POR PEDIDO — a maior parte do tempo
+ * até a primeira página, e nenhuma dela útil.
+ *
+ * **Por que isto não é um furo de autorização:** a chave do cache é o caminho
+ * canônico, que só é montado DEPOIS de a sessão, a conta e a marca terem sido
+ * resolvidas e a linha ter sido lida com a RLS valendo. Quem não passa por essa
+ * porta nunca chega a consultar o cache — ele não guarda permissão, guarda
+ * apenas o endereço assinado de um objeto que o chamador já provou poder ler.
+ */
+const assinaturas = new Map<string, { url: string; expiraEm: number }>();
+
+async function urlAssinada(
+  supabase: { storage: { from(b: string): { createSignedUrl(p: string, s: number): Promise<{ data: { signedUrl: string } | null; error: unknown }> } } },
+  caminho: string,
+): Promise<string | null> {
+  const guardada = assinaturas.get(caminho);
+  if (guardada && guardada.expiraEm > Date.now() + FOLGA_DA_ASSINATURA) return guardada.url;
+
+  const nova = await supabase.storage.from(BUCKETS.importacoes).createSignedUrl(caminho, VALIDADE_DA_ASSINATURA);
+  if (nova.error || !nova.data?.signedUrl) return null;
+
+  assinaturas.set(caminho, {
+    url: nova.data.signedUrl,
+    expiraEm: Date.now() + VALIDADE_DA_ASSINATURA * 1000,
+  });
+  return nova.data.signedUrl;
+}
 
 /**
  * Cabeçalhos que o cliente pede e que atravessam até a origem sem reescrita.
@@ -115,11 +150,8 @@ async function servir(
     return NextResponse.json({ error: "caminho_nao_canonico" }, { status: 409 });
   }
 
-  const assinada = await auth.supabase.storage
-    .from(BUCKETS.importacoes)
-    .createSignedUrl(canonico, VALIDADE_DA_ASSINATURA);
-
-  if (assinada.error || !assinada.data?.signedUrl) {
+  const assinada = await urlAssinada(auth.supabase, canonico);
+  if (!assinada) {
     return NextResponse.json({ error: "documento_indisponivel" }, { status: 502 });
   }
 
@@ -131,7 +163,7 @@ async function servir(
 
   let origem: Response;
   try {
-    origem = await fetch(assinada.data.signedUrl, {
+    origem = await fetch(assinada, {
       method: metodo,
       headers: pedido,
       /**
@@ -159,6 +191,28 @@ async function servir(
         ...CABECALHOS_FIXOS,
       },
     });
+  }
+
+  /**
+   * `304 Not Modified` é SUCESSO, e precisa atravessar intacto.
+   *
+   * Este foi um defeito real, e ele só aparecia no SEGUNDO carregamento: como a
+   * rota repassa `if-none-match`, o navegador manda o validador na volta, o
+   * Storage responde 304 — e a verificação abaixo, que trata "não é ok e não é
+   * 206" como falha, transformava isso em 502. A primeira visita funcionava e a
+   * seguinte quebrava, que é a forma mais confusa possível de um cache falhar.
+   *
+   * Um 304 não tem corpo por definição, e o navegador serve do cache dele. É a
+   * volta mais barata que esta rota consegue dar.
+   */
+  if (origem.status === 304) {
+    const validadores = new Headers(CABECALHOS_FIXOS);
+    validadores.set("accept-ranges", "bytes");
+    for (const nome of ["etag", "last-modified", "cache-control"]) {
+      const valor = origem.headers.get(nome);
+      if (valor) validadores.set(nome, valor);
+    }
+    return new Response(null, { status: 304, headers: validadores });
   }
 
   if (!origem.ok && origem.status !== 206) {
@@ -245,10 +299,14 @@ const CABECALHOS_FIXOS = {
    */
   "content-disposition": "inline",
   /**
-   * Documento de cliente não fica em cache compartilhado. `private` permite o
-   * cache do navegador, que é o que faz voltar a uma página já lida custar
-   * zero byte; `no-store` mataria a navegação para trás.
+   * Documento de cliente não fica em cache compartilhado — `private`, nunca
+   * `public`. Mas dentro do navegador de quem já tem permissão, ele pode ser
+   * guardado com folga: **o caminho do objeto é o `sha256` do próprio arquivo**,
+   * então aqueles bytes não podem mudar sem mudar de endereço. `immutable`
+   * evita a revalidação a cada intervalo — medido: com `must-revalidate`, uma
+   * navegação por quatro páginas distantes transferiu três vezes o tamanho do
+   * PDF, repedindo pedaços que o navegador já tinha.
    */
-  "cache-control": "private, max-age=0, must-revalidate",
+  "cache-control": "private, max-age=300, immutable",
   "x-content-type-options": "nosniff",
 } as const;
