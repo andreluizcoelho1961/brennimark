@@ -266,20 +266,26 @@ async function servir(
       }
     }
     /**
-     * O teto de 4,5 MB por resposta da plataforma.
+     * O teto vale para INTERVALO PEDIDO, nunca para a requisição sem `Range`.
      *
-     * Um corpo acima dele é truncado sem aviso: o cliente receberia menos bytes
-     * do que o `content-length` promete e montaria um documento com buraco.
-     * Recusar é a única resposta honesta — e é por isso que o visualizador pede
-     * intervalos, e não o arquivo inteiro.
+     * Este foi o defeito mais caro desta rota, e ele só apareceu com um manual
+     * de verdade. A PRIMEIRA requisição do PDF.js vai deliberadamente **sem**
+     * `Range`: ela existe para ler `Accept-Ranges` e `Content-Length` e decidir
+     * que pode pedir intervalos — e o cliente aborta o corpo assim que os
+     * cabeçalhos chegam. A versão anterior media o `content-length` dessa
+     * resposta contra o teto e devolvia 413.
+     *
+     * O efeito: **todo manual acima de 4 MiB era impossível de abrir**, porque
+     * a requisição que torna os intervalos possíveis era recusada antes de
+     * qualquer intervalo existir. A fixture sintética de 340 KB passava por
+     * baixo do teto e escondia o defeito por completo.
+     *
+     * O teto da plataforma continua real, e continua tratado: quem pede um
+     * intervalo grande demais recebe 413 (acima, por `resolverRange`), e quem
+     * não pede intervalo nenhum recebe os cabeçalhos e desiste sozinho — o
+     * `signal` cancela a origem no mesmo instante, então quase nenhum byte
+     * chega a atravessar.
      */
-    const corpo = Number(cabecalhos.get("content-length") ?? Number.NaN);
-    if (Number.isFinite(corpo) && corpo > TETO_DA_FATIA) {
-      return NextResponse.json(
-        { error: "resposta_grande_demais", teto: TETO_DA_FATIA, pedidos: corpo },
-        { status: 413 },
-      );
-    }
   }
 
   return new Response(metodo === "HEAD" ? null : origem.body, {
