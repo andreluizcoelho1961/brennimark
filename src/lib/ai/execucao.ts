@@ -533,7 +533,17 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
    */
   if (!params.parentSignal?.aborted) {
     const exposicao = await marcarExposicaoDeCobranca(serviceClient, { userId, executionId });
-    if ("erro" in exposicao || !exposicao.exposta) {
+    if ("erro" in exposicao) {
+      /*
+       * O erro da RPC é ambíguo: ela pode ter falhado antes do commit ou ter
+       * commitado e perdido a resposta. Encerrar a reserva resolve os dois
+       * casos com a semântica conservadora do banco — libera se ainda não foi
+       * exposta; liquida pelo teto se a exposição já foi gravada.
+       */
+      await liberarReserva(serviceClient, userId, executionId);
+      throw new FalhaDeExposicaoDeCobranca();
+    }
+    if (!exposicao.exposta) {
       // Não despachar é deliberado. Uma execução cujo custo o razão não
       // conseguiria registrar não deve acontecer — derrubar a resposta é o
       // preço, e é menor que custo invisível.

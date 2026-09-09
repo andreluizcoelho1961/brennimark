@@ -1545,3 +1545,19 @@ test("liquidar exige registro de exposição — a invariante recíproca", () =>
     "as funções que leem e depois atualizam a mesma linha precisam travá-la",
   );
 });
+
+test("a prova de concorrência não mascara falha de nenhuma sessão", () => {
+  /*
+   * O estado final pode parecer correto mesmo quando um dos dois processos
+   * SQL morreu antes de disputar a trava. Cada PID precisa ser aguardado
+   * separadamente, e um exit code não-zero precisa reprovar o rig.
+   */
+  const rig = lerCodigo("scripts/prova-de-concorrencia-ai-ledger.sh");
+  assert.doesNotMatch(
+    rig,
+    /wait\s+"\$pidA"\s+"\$pidB"[^\n]*\|\|\s*true/,
+    "o rig voltou a esconder o exit code das duas sessões",
+  );
+  assert.match(rig, /if wait "\$pidA"/, "a sessão A precisa ter o exit code conferido");
+  assert.match(rig, /if wait "\$pidB"/, "a sessão B precisa ter o exit code conferido");
+});
