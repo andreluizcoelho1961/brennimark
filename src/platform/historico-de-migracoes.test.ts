@@ -56,7 +56,12 @@ function historicoRemoto(): Map<string, string> {
  * era a única, e foi aplicada ao banco hospedado como `20260909014823`. Medido
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
-const PENDENTES_ESPERADAS: string[] = [];
+const PENDENTES_ESPERADAS: string[] = [
+  // Registra a exceção de advisor de `kill_switch_ativo` num `comment on`.
+  // Não muda comportamento — nenhum grant, nenhum corpo de função. Escrita,
+  // ainda não aplicada: aplicar em banco é decisão do proprietário.
+  "kill_switch_excecao_registrada",
+];
 
 /**
  * O que a reconciliação NÃO alcança nesta base, porque pertence a outra branch.
