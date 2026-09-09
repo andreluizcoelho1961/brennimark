@@ -21,6 +21,10 @@ Duas coisas, e a segunda é a que costuma faltar:
    corrida consulta `pg_stat_activity` procurando um backend em
    `wait_event_type = 'Lock'`, e trata a ausência de espera como falha, não
    como sucesso rápido.
+3. **As duas sessões terminaram sem erro.** O rig aguarda os PIDs
+   separadamente e reprova se qualquer subprocesso SQL devolver código
+   diferente de zero. Estado final correto não compensa uma sessão que morreu
+   antes de exercer a concorrência.
 
 ## A corrida 1 roda dos dois lados
 
@@ -59,8 +63,16 @@ Corrida 4 — marcar exposição × liberar
 As quatro corridas passaram.
 ```
 
-Três execuções consecutivas, todas verdes. Onze asserções, quatro esperas
-observadas.
+As três execuções originais foram verdes, mas não conferiam o código de saída
+dos subprocessos. Depois do endurecimento, uma nova execução passou com vinte
+e uma asserções e cinco esperas observadas: onze sobre disputa/estado e dez
+sobre o término sem erro das duas sessões em cada uma das cinco corridas
+executadas (1a, 1b, 2, 3 e 4).
+
+Uma cópia temporária do rig foi então quebrada para fazer a sessão B executar
+SQL inválido. O processo terminou com código 1 e acusou explicitamente
+`sessão B terminou com erro`; a cópia foi apagada depois da prova. A guarda de
+código impede que `wait ... || true` volte sem deixar o CI vermelho.
 
 ## O que cada corrida sustenta
 
