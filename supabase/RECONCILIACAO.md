@@ -117,7 +117,7 @@ absorveu a `main` (`cce53b8`), renomeou os dois arquivos e repetiu o replay.
 | 2 | Schema final equivalente ao remoto | ✅ igualdade **exata**, ver abaixo |
 | 3 | Advisors nos dois lados | ✅ conferidos e classificados, ver abaixo |
 | 4 | Nenhuma migração pendente | ✅ `PENDENTES_ESPERADAS` vazia por fato: não há migração local sem par no banco |
-| 5 | CI do tip atual verde | ❌ **vermelho por colisão declarada** — ver o fim deste documento |
+| 5 | CI do tip atual verde | ✅ `f5d308c`, run [34353095717](https://github.com/andreluizcoelho1961/brennimark/actions/runs/34353095717) — **success**, com o SHA conferido |
 
 **O ledger, provado por hash e não conferido a olho.** `historico-remoto.txt`
 normalizado e o `string_agg` de `supabase_migrations.schema_migrations` dão o
@@ -199,29 +199,49 @@ são as quatro `_server` mais `expirar_reservas_de_ia`, todas concedidas por
 migração. `kill_switch_ativo` parecia faltar, mas é concedida a `authenticated`
 e chamada com o cliente de sessão.
 
-### O que ainda falta antes de integrar
+### Nada falta antes de integrar — e como o último item fechou
 
-Um item só, e ele **não é desta frente**.
+Sobrava um item, e ele não era desta frente. Fechou em 09/09/2026.
 
-O CI desta branch está vermelho por **uma** asserção:
-`src/platform/leak-guard.test.ts` lê a migração da exposição de cobrança pelo
-caminho literal, com o carimbo antigo `20260905160000`. A renomeação para
-`20260909014823` — exigida por esta reconciliação — derruba essa leitura.
+A renomeação para `20260909014823` derrubava uma asserção:
+`src/platform/leak-guard.test.ts` lia a migração pelo caminho literal, com o
+carimbo antigo, e o teste morria em `ENOENT`. Esse arquivo pertencia ao PR #9,
+junto com `scripts/prova-de-concorrencia-ai-ledger.sh`. O protocolo manda parar
+na fronteira do arquivo do outro agente e registrar a colisão em vez de editar
+uma linha — foi o que se fez, e a branch ficou vermelha de propósito, com
+559/560 e a falha declarada.
 
-**Esse arquivo pertence ao PR #9**, junto com `scripts/prova-de-concorrencia-ai-ledger.sh`
-e o documento de evidências. O protocolo manda parar na fronteira do arquivo e
-registrar a colisão em vez de editar uma linha na frente do outro agente, e é o
-que foi feito: nada em `leak-guard.test.ts` foi tocado aqui.
+**O PR #9 foi mesclado (`6f18853`).** Os dois arquivos saíram de PR aberto e
+passaram à `main`, sem escritor concorrente — e as duas linhas eram consequência
+direta da renomeação feita aqui, não da frente do Codex. Foram atualizadas:
 
-As duas referências ao carimbo antigo, para quem for aplicá-las:
-
-| Arquivo | Linha | O que muda |
+| Arquivo | Linha | O que mudou |
 |---|---|---|
-| `src/platform/leak-guard.test.ts` | 1535 | caminho literal da migração → `20260909014823_ai_ledger_exposicao_de_cobranca.sql` |
-| `scripts/prova-de-concorrencia-ai-ledger.sh` | 6 | comentário citando o nome antigo — cosmético, não quebra execução |
+| `src/platform/leak-guard.test.ts` | 1535 | caminho literal → `20260909014823_ai_ledger_exposicao_de_cobranca.sql` |
+| `scripts/prova-de-concorrencia-ai-ledger.sh` | 6 | comentário de cabeçalho, cosmético |
 
-Enquanto isso não acontecer, **esta branch não pode ser declarada verde**, e
-não está sendo. Testes locais: 559/560, e a única falha é essa.
+Só o nome do arquivo mudou nos dois. As asserções do leak-guard — a invariante
+recíproca e o `for update` — seguem idênticas: o verde veio da referência
+corrigida, não de guarda afrouxada.
+
+**Resultado:** 561/561 local, lint e typecheck limpos; CI `f5d308c` **success**
+(run [34353095717](https://github.com/andreluizcoelho1961/brennimark/actions/runs/34353095717)).
+
+O rig foi reexecutado nesta branch **com o P1.2 do PR #9 já dentro**, contra o
+stack local com as 49 migrações: as quatro corridas passam, agora com o exit
+code de cada sessão afirmado — 19 asserções onde antes eram 11. A revisão
+cruzada do PR #9 confere.
+
+### Os smoke tests do P0 — executados, e não repetidos aqui
+
+O P0 provou o ciclo financeiro pela Data API contra o banco hospedado: reserva,
+marcação, liquidação, liberação e limpeza final do razão. Está registrado
+naquela frente, e **não é lacuna desta**.
+
+Repetir o ciclo depois deste replay não provaria nada de novo: o que esta branch
+faz com as migrações é renomear arquivo com conteúdo byte a byte idêntico
+(conferido por `sha256`), e o schema resultante foi comparado com produção por
+três hashes estruturais. Nenhuma dessas operações muda comportamento de runtime.
 
 ### ✅ Portão fechado: a prova de concorrência (08/09/2026)
 
@@ -244,4 +264,3 @@ corrida 1 roda também contra uma réplica pré-correção, que reproduz o defei
 correção.
 
 Onze asserções, quatro esperas observadas, três execuções consecutivas verdes.
-
