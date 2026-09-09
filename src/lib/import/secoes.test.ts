@@ -70,6 +70,49 @@ test("secao sem pagina nenhuma nao e visual dominante", () => {
   assert.ok(!ehVisualDominante(secaoDe([], 0)));
 });
 
+test("o cluster que condenou o teto de 300 fica inteiro do mesmo lado", () => {
+  /*
+   * A medição que calibrou o teto, em 09/09/2026. Sete seções do mesmo tipo,
+   * num manual real, com estes tamanhos:
+   *
+   *     297, 299, 299, 300, 306, 307, 312
+   *
+   * Com o teto em 300, três viravam imagem e quatro viravam texto — páginas
+   * indistinguíveis, desfechos opostos. Um teto que separa o inseparável não
+   * mede a página, mede o acaso.
+   *
+   * Este teste não guarda o número 900: guarda a PROPRIEDADE de que o cluster
+   * não se parte. Qualquer teto futuro que volte a rachá-lo reprova aqui.
+   */
+  const cluster = [297, 299, 299, 300, 306, 307, 312];
+  const veredictos = new Set(cluster.map((n) => ehVisualDominante(secaoDe([1], n))));
+
+  assert.equal(veredictos.size, 1, `o cluster se partiu: ${[...veredictos].join(", ")}`);
+  assert.equal([...veredictos][0], true, "páginas quase sem texto num manual visual são imagem");
+});
+
+test("as páginas que só existem como imagem entram", () => {
+  // Símbolo com efeito 2D, versão 3D, estilo fotográfico, grafismo e grid, com
+  // os tamanhos medidos no manual real. Reconstruir qualquer uma em texto
+  // perde o que a página É.
+  for (const caracteres of [462, 475, 578, 601, 623]) {
+    assert.ok(
+      ehVisualDominante(secaoDe([1], caracteres)),
+      `seção de ${caracteres} caracteres precisa virar imagem`,
+    );
+  }
+});
+
+test("texto corrido continua fora, e é o que impede o teto de engolir o manual", () => {
+  // O limite superior tem dono: uma página de FAQ ou política passa dos 900
+  // com folga. Sem esta guarda, calibrar para cima viraria transformar o
+  // manual inteiro em imagem — e a camada semântica, que sustenta busca e
+  // acessibilidade, morreria junto.
+  assert.ok(!ehVisualDominante(secaoDe([1], 901)));
+  assert.ok(!ehVisualDominante(secaoDe([1], 1200)));
+  assert.ok(!ehVisualDominante(secaoDe([1], 4000)));
+});
+
 // ─── Ordem de confianca ─────────────────────────────────────────────────────
 
 test("o indice do PDF define as fronteiras antes de tudo", () => {
