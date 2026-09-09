@@ -38,3 +38,32 @@ test("toda falha tem mensagem nos dois idiomas, e nenhuma e generica demais", ()
     assert.notEqual(d.pt, diagnosticar("desconhecida").pt);
   }
 });
+
+test("o TypeError de lacuna do navegador não vira 'PDF ilegível'", () => {
+  /*
+   * A mensagem exata que o Safari 26.6.2 devolvia ao importar QUALQUER PDF,
+   * porque `getTextContent` do pdf.js itera `ReadableStream` com `for await` e
+   * o Safari não implementa `Symbol.asyncIterator` nesse protótipo.
+   *
+   * Antes desta regra o caso caía em `desconhecida` — "Não foi possível ler
+   * este PDF" —, que aponta para o arquivo. O arquivo estava íntegro; faltava
+   * recurso no navegador. Dizer a coisa errada aqui custou a investigação
+   * inteira.
+   */
+  const erroDoSafari = new TypeError(
+    "undefined is not a function (near '...value of readableStream...')",
+  );
+  assert.equal(classificarErroDoParser(erroDoSafari), "navegador-sem-suporte");
+
+  const diagnostico = diagnosticar("navegador-sem-suporte");
+  assert.match(diagnostico.pt, /navegador/i);
+  assert.match(diagnostico.en, /browser/i);
+});
+
+test("PDF corrompido continua sendo do arquivo, não do navegador", () => {
+  // O controle simétrico: a regra nova não pode capturar o que já tinha dono.
+  const invalido = Object.assign(new Error("Invalid PDF structure"), {
+    name: "InvalidPDFException",
+  });
+  assert.equal(classificarErroDoParser(invalido), "corrompido");
+});

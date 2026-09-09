@@ -16,6 +16,7 @@ export type FalhaDePdf =
   | "grande-demais"
   | "paginas-demais"
   | "sem-texto"
+  | "navegador-sem-suporte"
   | "desconhecida";
 
 export interface DiagnosticoDePdf {
@@ -48,6 +49,10 @@ const DIAGNOSTICOS: Record<FalhaDePdf, { pt: string; en: string }> = {
   "sem-texto": {
     pt: "Nenhuma página tem texto extraível. O PDF provavelmente é digitalizado, e precisaria de OCR antes de virar manual.",
     en: "No page has extractable text. The PDF is likely scanned and would need OCR before becoming a manual.",
+  },
+  "navegador-sem-suporte": {
+    pt: "Seu navegador não tem um recurso que o leitor de PDF precisa. Atualize-o, ou tente em outro navegador.",
+    en: "Your browser lacks a feature the PDF reader needs. Update it, or try another browser.",
   },
   desconhecida: {
     pt: "Não foi possível ler este PDF.",
@@ -87,5 +92,25 @@ export function classificarErroDoParser(erro: unknown): FalhaDePdf {
   if (nome === "InvalidPDFException" || /invalid pdf/i.test(mensagem)) return "corrompido";
   if (nome === "UnexpectedResponseException" || nome === "MissingPDFException") return "corrompido";
   if (/structure|xref|corrupt/i.test(mensagem)) return "corrompido";
+
+  /*
+   * Lacuna da plataforma, não defeito do arquivo.
+   *
+   * Em 09/09/2026 o Safari derrubava TODA importação com
+   * `TypeError: undefined is not a function (near '...value of readableStream...')`:
+   * o `getTextContent` do pdf.js itera `ReadableStream` com `for await`, e o
+   * Safari não implementa `Symbol.asyncIterator` nesse protótipo. O remendo em
+   * `stream-iteravel.ts` fecha esse caso específico — isto aqui é a rede para o
+   * PRÓXIMO, porque dizer "não foi possível ler este PDF" mandou meses de
+   * investigação para o arquivo, que estava íntegro o tempo todo.
+   *
+   * O teste é pelo NOME da classe mais a forma da mensagem: um `TypeError` que
+   * fala de algo indefinido não é PDF ruim, é código chamando o que o navegador
+   * não tem.
+   */
+  if (nome === "TypeError" && /is not a function|undefined is not|not iterable/i.test(mensagem)) {
+    return "navegador-sem-suporte";
+  }
+
   return "desconhecida";
 }

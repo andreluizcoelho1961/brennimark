@@ -1,4 +1,5 @@
 import { classificarErroDoParser, temAssinaturaDePdf, type FalhaDePdf } from "./pdf-erros";
+import { prepararAmbienteDePdf } from "./stream-iteravel";
 import type { PaginaExtraida } from "./texto";
 import type { ItemDeOutline } from "./tipos";
 
@@ -106,6 +107,9 @@ export async function lerPdf(
   // Antes do parser: o PDF.js desanexa o buffer que recebe.
   const digest = await sha256(buffer);
 
+  // Antes de carregar a biblioteca: ela itera ReadableStream com `for await`,
+  // e o Safari não implementa isso. Ver `stream-iteravel.ts`.
+  prepararAmbienteDePdf();
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -124,8 +128,23 @@ export async function lerPdf(
 
   const paginas: PaginaExtraida[] = [];
   for (let numero = 1; numero <= documento.numPages; numero += 1) {
-    const pagina = await documento.getPage(numero);
-    const conteudo = await pagina.getTextContent();
+    /*
+     * A extração também é classificada, e não só a abertura do documento.
+     *
+     * O `try` de cima cobria apenas `getDocument`. Quando o Safari derrubou
+     * `getTextContent` com um `TypeError` — ver `stream-iteravel.ts` —, a
+     * exceção passou por fora de toda classificação e chegou à interface como
+     * "falha inesperada", que mandou a investigação atrás do arquivo em vez do
+     * navegador. Ler a página é tão parte da leitura quanto abrir o documento.
+     */
+    let pagina;
+    let conteudo;
+    try {
+      pagina = await documento.getPage(numero);
+      conteudo = await pagina.getTextContent();
+    } catch (erro) {
+      throw new FalhaDeLeitura(classificarErroDoParser(erro), descricaoTecnica(erro));
+    }
     const [, , , alturaDaPagina] = pagina.view;
 
     paginas.push({
@@ -176,6 +195,9 @@ export async function renderizarPaginasComoImagem(
   if (numeros.length === 0) return saida;
 
   const buffer = await arquivo.arrayBuffer();
+  // Antes de carregar a biblioteca: ela itera ReadableStream com `for await`,
+  // e o Safari não implementa isso. Ver `stream-iteravel.ts`.
+  prepararAmbienteDePdf();
   const pdfjs = await import("pdfjs-dist");
   pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     "pdfjs-dist/build/pdf.worker.min.mjs",
