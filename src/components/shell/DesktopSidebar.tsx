@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useIsEnglish } from "@/platform/locale-client";
 import { isDestinationActive, withBase, type ShellSection } from "./navigation";
 import { NavegacaoDeDocumentos } from "./NavegacaoDeDocumentos";
 import type { DocPageEntry } from "@/content/docs";
@@ -91,6 +92,8 @@ export function DesktopSidebar({
    *  de 152 seções só era alcançável pela busca. */
   docs?: readonly DocPageEntry[];
 }) {
+  const isEnglish = useIsEnglish();
+
   // Sem destino E sem página não há navegação. Uma coluna vazia de 224px é
   // área morta que sugere que algo falhou ao carregar.
   if (sections.length === 0 && docs.length === 0) return null;
@@ -100,7 +103,9 @@ export function DesktopSidebar({
 
   return (
     <nav
-      aria-label="Navegação principal"
+      // Landmark de navegação anunciado no idioma da interface. Estava fixo em
+      // português: quem usa o produto em inglês ouvia "Navegação principal".
+      aria-label={isEnglish ? "Main navigation" : "Navegação principal"}
       className="hidden w-[var(--shell-sidebar)] flex-none flex-col gap-[var(--space-shell-5)] overflow-y-auto border-r border-platform-border bg-platform-bg px-[var(--space-shell-3)] py-[var(--space-shell-5)] lg:flex"
     >
       {/*

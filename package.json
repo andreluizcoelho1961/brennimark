@@ -13,8 +13,10 @@
     "evaluate:brand-chat": "node scripts/evaluate-brand-chat.mjs",
     "test:ci": "npm run test:brand-context",
     "verify": "npm run lint && npm run typecheck && npm run test:ci && npm run build && npm run test:e2e",
+    "pretest:e2e": "npm run fixtures:pdf",
     "test:e2e": "playwright test",
-    "fixtures:pdf": "python3 scripts/gerar-fixtures-pdf.py"
+    "fixtures:pdf": "python3 scripts/gerar-fixtures-pdf.py",
+    "fixtures:escala": "python3 scripts/gerar-fixture-escala.py"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.16",

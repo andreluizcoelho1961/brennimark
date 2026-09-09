@@ -60,9 +60,26 @@ test("o erro técnico também não vai para o console do navegador", async ({ pa
   page.on("console", (m) => registrado.push(m.text()));
   await abrirAFalha(page, 1440);
 
+  /**
+   * Espera o log CHEGAR, em vez de supor que já chegou.
+   *
+   * `abrirAFalha` espera a fronteira de erro ficar visível, e a leitura do
+   * console acontecia no instante seguinte. Os dois eventos são próximos mas
+   * não ordenados: o log sai do tratamento de erro do React, e nada garante
+   * que ele preceda a pintura.
+   *
+   * O sintoma foi um vermelho só em WebKit no CI, que passava três de três
+   * localmente — a diferença sendo carga. Uma suíte que só passa em máquina
+   * folgada não diz nada sobre o produto; diz sobre a máquina.
+   */
+  await expect
+    .poll(() => registrado.filter((l) => l.includes("falha ao renderizar")).length, {
+      timeout: 10_000,
+    })
+    .toBeGreaterThan(0);
+
   // Log de navegador vai para relatório de suporte e para captura de tela.
   const nosso = registrado.filter((l) => l.includes("falha ao renderizar"));
-  expect(nosso.length).toBeGreaterThan(0);
   expect(nosso.join(" ")).not.toContain("hunter2");
   expect(nosso.join(" ")).not.toContain("manual_do_cliente");
 });

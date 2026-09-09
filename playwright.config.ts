@@ -19,6 +19,24 @@ import { defineConfig, devices } from "@playwright/test";
  */
 const PORTA = 3210;
 
+/**
+ * As suítes que rodam nos três motores — casadas pelo NOME DO ARQUIVO.
+ *
+ * A âncora `[^/]*\.spec\.ts$` não é preciosismo: o `testMatch` do Playwright
+ * é aplicado ao CAMINHO COMPLETO, e um padrão solto passa a casar com o nome
+ * do diretório. Em 09/09/2026 isto aconteceu de verdade — o worktree se chama
+ * `Brennimark-visualizador`, a palavra "visualizador" entrou no padrão, e
+ * TODA a suíte passou a rodar em WebKit e Firefox por causa da pasta.
+ *
+ * O sintoma foi cinco falhas de foco de gaveta em WebKit, num spec que nunca
+ * foi escrito para rodar ali. Pior: o CI não via nada, porque o diretório dele
+ * (`/home/runner/work/brennimark/brennimark`) não contém a palavra — o mesmo
+ * defeito produzia resultados diferentes em máquinas diferentes.
+ */
+const NOS_TRES_MOTORES =
+  /(^|\/)(importador|visualizador|navegacao-do-manual|limites-de-erro|utilidades-contratadas)[^/]*\.spec\.ts$/;
+
+
 export default defineConfig({
   testDir: "./e2e",
   outputDir: "./e2e/.artefatos",
@@ -43,7 +61,12 @@ export default defineConfig({
    * Um manual que abre no Chrome e falha no Safari é um manual que não abre
    * para metade dos designers.
    *
-   * Só a suíte do importador roda nos três. O resto da interface é HTML e CSS
+   * O visualizador entra na mesma lista, e pelo mesmo motivo elevado à
+   * potência: ele é PDF.js renderizando em canvas, com worker, camada de texto
+   * e cancelamento de render. Sete defeitos escaparam de 626 testes de unidade
+   * e só apareceram num navegador com um manual real.
+   *
+   * Só essas suítes rodam nos três. O resto da interface é HTML e CSS
    * comuns; rodar tudo em triplicado triplicaria o tempo do CI sem responder a
    * nenhuma pergunta nova.
    */
@@ -52,12 +75,12 @@ export default defineConfig({
     {
       name: "webkit-importador",
       use: { ...devices["Desktop Safari"] },
-      testMatch: /(importador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|importador-payload).*\.spec\.ts/,
+      testMatch: NOS_TRES_MOTORES,
     },
     {
       name: "firefox-importador",
       use: { ...devices["Desktop Firefox"] },
-      testMatch: /(importador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|importador-payload).*\.spec\.ts/,
+      testMatch: NOS_TRES_MOTORES,
     },
   ],
 

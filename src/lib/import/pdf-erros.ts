@@ -14,6 +14,7 @@ export type FalhaDePdf =
   | "protegido-por-senha"
   | "corrompido"
   | "grande-demais"
+  | "acima-do-plano"
   | "paginas-demais"
   | "sem-texto"
   | "navegador-sem-suporte"
@@ -41,6 +42,18 @@ const DIAGNOSTICOS: Record<FalhaDePdf, { pt: string; en: string }> = {
   "grande-demais": {
     pt: "O arquivo passa do limite de tamanho.",
     en: "The file is over the size limit.",
+  },
+  /**
+   * O teto do PLANO, e não o do produto — e a diferença precisa aparecer.
+   *
+   * "Grande demais" sem qualificação faz uma agência concluir que o Brennimark
+   * não aceita manuais grandes. A verdade é outra: o produto aceita, esta
+   * instalação é que ainda não. Uma frase honesta aqui evita uma objeção de
+   * venda construída sobre um limite de hospedagem provisório.
+   */
+  "acima-do-plano": {
+    pt: "Este manual passa do limite da instalação atual, não do produto.",
+    en: "This manual is over the current installation's limit, not the product's.",
   },
   "paginas-demais": {
     pt: "O PDF tem mais páginas do que o limite permite.",

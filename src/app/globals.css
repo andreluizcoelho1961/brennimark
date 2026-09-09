@@ -230,3 +230,60 @@ p, blockquote, li {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
+
+/**
+ * A camada de texto do PDF.js.
+ *
+ * Ela é invisível por cima do canvas, e é o que faz o manual ser um DOCUMENTO
+ * e não uma imagem: seleção, cópia, busca do navegador e leitor de tela.
+ * Sem ela, um manual de 743 páginas é opaco para quem usa leitor de tela — e
+ * §19.3 já registrava que acessibilidade não sai de graça do canvas.
+ *
+ * O posicionamento de cada trecho vem de `--scale-factor`, que o componente
+ * define no container. Sem essa variável o texto empilha no canto superior
+ * esquerdo, sobre a página inteira.
+ */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  /* Sem isto o texto invisível pinta por cima do desenho da página. */
+  opacity: 1;
+  z-index: 1;
+}
+
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+/* A seleção precisa ficar visível mesmo com o texto transparente. */
+.textLayer ::selection {
+  background: color-mix(in oklab, var(--color-platform-signal) 35%, transparent);
+}
+
+/**
+ * O destaque da busca.
+ *
+ * Cor da PLATAFORMA, nunca da marca: o destaque é instrumento do produto sobre
+ * o documento do cliente, e herdar a cor da marca faria a marca parecer estar
+ * dizendo algo que ela não diz.
+ */
+.textLayer span[data-achado="sim"] {
+  background: color-mix(in oklab, var(--color-platform-warning) 45%, transparent);
+  border-radius: 2px;
+}
+
+/* O canvas nunca é recortado nem reenquadrado: a página inteira, sempre. */
+.textLayer,
+.textLayer span {
+  pointer-events: auto;
+}

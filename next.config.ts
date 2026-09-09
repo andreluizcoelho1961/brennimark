@@ -23,9 +23,26 @@ if (process.env.BRANDVILLE_DEV_SKIP_AUTH === "true" && process.env.NODE_ENV === 
  * Quando uma marca precisar de fonte auto-hospedada, ela virá como asset dela,
  * servido pelo bucket da marca, não compilado no bundle do produto.
  */
-const supabaseHost = (() => {
+/**
+ * Host, protocolo E porta do Storage, os três da MESMA URL.
+ *
+ * O protocolo estava fixo em `https` e a porta não era considerada — o que
+ * funciona contra o Supabase hospedado e falha contra o stack local, que é
+ * `http://127.0.0.1:54321`. O sintoma não é sutil: `next/image` recusa a URL
+ * com "Invalid src prop" e a página inteira cai no limite de erro.
+ *
+ * Presumir o protocolo do ambiente publicado é o tipo de suposição que só
+ * aparece quando alguém tenta rodar o produto localmente pela primeira vez.
+ */
+const supabaseImagem = (() => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  return url ? new URL(url).hostname : undefined;
+  if (!url) return undefined;
+  const { hostname, protocol, port } = new URL(url);
+  return {
+    hostname,
+    protocol: protocol.replace(":", "") as "http" | "https",
+    ...(port ? { port } : {}),
+  };
 })();
 
 const nextConfig: NextConfig = {
@@ -37,8 +54,8 @@ const nextConfig: NextConfig = {
      * teve `remotePatterns`, porque nada até agora tentava exibir uma
      * imagem vinda de fora de `/public`.
      */
-    remotePatterns: supabaseHost
-      ? [{ protocol: "https", hostname: supabaseHost, pathname: "/storage/v1/object/sign/**" }]
+    remotePatterns: supabaseImagem
+      ? [{ ...supabaseImagem, pathname: "/storage/v1/object/sign/**" }]
       : [],
   },
 };

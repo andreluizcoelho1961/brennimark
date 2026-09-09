@@ -87,6 +87,15 @@ const V2 = [
   // informação, e não pode vestir a cor de marca nenhuma — nem a do cliente
   // apresentado, nem a de um release antigo.
   "src/components/ai/AssistantMessage.tsx",
+  /**
+   * O visualizador do documento-fonte é o caso mais afiado da fronteira:
+   * a moldura cerca a página do CLIENTE, e as duas ficam encostadas na tela.
+   * Um botão de zoom que herdasse a cor da marca faria o instrumento do
+   * produto parecer parte do manual — e um manual de fundo preto e um de fundo
+   * bege precisam da mesma barra.
+   */
+  "src/components/documento-fonte/VisualizadorDePdf.tsx",
+  "src/components/documento-fonte/PaginaDoPdf.tsx",
 ];
 
 test("nenhum componente da V2 usa token de release de cliente", () => {
@@ -112,18 +121,49 @@ test("a V2 não veste a marca nem ramifica por instância", () => {
   }
 });
 
-test("a rota de laboratório é fechada em produção", () => {
-  const rota = ler("src/app/dev/shell-v2/[[...slug]]/page.tsx");
-  assert.match(rota, /NODE_ENV === "production"/);
-  assert.match(rota, /notFound\(\)/);
+/**
+ * Toda bancada de desenvolvimento fecha em produção.
+ *
+ * A lista cresce junto com as bancadas — uma rota de laboratório que vaza para
+ * produção não quebra nada, e é justamente por isso que ninguém percebe: ela
+ * fica lá, alcançável por quem souber a URL, mostrando dado de cliente numa
+ * tela que nunca passou por revisão de produto.
+ */
+const BANCADAS = [
+  "src/app/dev/shell-v2/[[...slug]]/page.tsx",
+  "src/app/dev/visualizador/page.tsx",
+];
+
+test("as rotas de laboratório são fechadas em produção", () => {
+  for (const arquivo of BANCADAS) {
+    const rota = ler(arquivo);
+    assert.match(rota, /NODE_ENV === "production"/, `${arquivo} não fecha em produção`);
+    assert.match(rota, /notFound\(\)/, `${arquivo} não chama notFound`);
+  }
 });
 
 test("a V2 não tem texto de interface fixo em um idioma", () => {
   for (const arquivo of V2) {
     const fonte = ler(arquivo);
     // Rótulo visível precisa passar por escolha de idioma, não literal solto.
-    const literaisSuspeitos = fonte.match(/>\s*(Buscar|Search|Configurações|Settings)\s*</g);
-    assert.equal(literaisSuspeitos, null, `${arquivo} tem rótulo fixo: ${literaisSuspeitos?.join(", ")}`);
+    const entreTags = fonte.match(/>\s*(Buscar|Search|Configurações|Settings)\s*</g);
+    assert.equal(entreTags, null, `${arquivo} tem rótulo fixo: ${entreTags?.join(", ")}`);
+
+    /**
+     * O furo que esta linha fecha, encontrado em 09/09/2026: a guarda só via
+     * rótulo ENTRE TAGS. Um `placeholder="Buscar"` ou um
+     * `aria-label="Tela cheia"` passavam limpos — e são texto de interface
+     * igual, com o agravante de o `aria-label` ser lido justamente por quem
+     * depende dele.
+     */
+    const emAtributo = fonte.match(
+      /(placeholder|aria-label|title|alt)="[^"]*[À-ÿ][^"]*"/g,
+    );
+    assert.equal(
+      emAtributo,
+      null,
+      `${arquivo} tem texto de interface fixo em atributo: ${emAtributo?.join(", ")}`,
+    );
   }
 });
 

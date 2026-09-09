@@ -61,6 +61,17 @@ const PENDENTES_ESPERADAS: string[] = [
   // Não muda comportamento — nenhum grant, nenhum corpo de função. Escrita,
   // ainda não aplicada: aplicar em banco é decisão do proprietário.
   "kill_switch_excecao_registrada",
+  /**
+   * Alinha o bucket de importação ao teto real do plano gratuito (50 MB).
+   *
+   * Escrita em 09/09/2026, NÃO aplicada em produção: mexer no teto do Storage
+   * hospedado muda o que o produto aceita de um cliente, e aplicar em banco é
+   * decisão do proprietário. O requisito de 100 MiB continua de pé em
+   * `TETO_DO_PRODUTO_BYTES` — o que esta migration corrige é o bucket prometer
+   * um tamanho que a plataforma recusa, fazendo a pessoa pagar o upload
+   * inteiro para receber um erro conhecido antes do primeiro byte.
+   */
+  "bucket_alinhado_ao_plano_gratuito",
 ];
 
 /**
