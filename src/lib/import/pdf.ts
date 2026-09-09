@@ -189,7 +189,19 @@ export async function lerPdf(
 export async function renderizarPaginasComoImagem(
   arquivo: File,
   numeros: readonly number[],
-  { escala = 2 }: { escala?: number } = {},
+  {
+    escala = 2,
+    aoProgredir,
+  }: {
+    escala?: number;
+    /**
+     * Chamado depois de CADA página, com quantas já saíram e quantas foram
+     * pedidas. Existe porque esta função é a parte cara da publicação — num
+     * manual de identidade ela leva minutos — e sem relato quem espera não
+     * distingue trabalho em curso de travamento.
+     */
+    aoProgredir?: (feitas: number, total: number) => void;
+  } = {},
 ): Promise<Map<number, Blob>> {
   const saida = new Map<number, Blob>();
   if (numeros.length === 0) return saida;
@@ -206,6 +218,7 @@ export async function renderizarPaginasComoImagem(
 
   const documento = await pdfjs.getDocument({ data: buffer }).promise;
 
+  let feitas = 0;
   for (const numero of numeros) {
     if (numero < 1 || numero > documento.numPages) continue;
 
@@ -222,6 +235,18 @@ export async function renderizarPaginasComoImagem(
       canvas.toBlob(resolve, "image/png"),
     );
     if (blob) saida.set(numero, blob);
+
+    // Depois de gravar, não antes: o número relatado é de páginas PRONTAS, e
+    // uma barra que anda antes do trabalho existir é a que faz a última etapa
+    // parecer travada.
+    feitas += 1;
+    aoProgredir?.(feitas, numeros.length);
+
+    // Devolve a thread ao navegador entre páginas. Sem isto o laço monopoliza
+    // o processador, a interface congela e o relato de progresso não chega a
+    // ser pintado — o usuário veria os números só no fim, que é o mesmo que
+    // não os ver.
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   return saida;

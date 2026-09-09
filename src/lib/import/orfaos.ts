@@ -158,14 +158,24 @@ export type ResultadoDoEnvio =
 export async function enviarArquivosDaImportacao(
   portas: PortasDeEnvio,
   plano: PlanoDeEnvio,
+  /**
+   * Relato opcional de progresso, chamado a cada imagem processada — enviada
+   * ou não. A contagem é de TENTATIVAS concluídas, não de sucessos: uma imagem
+   * que falha não derruba a importação, e uma barra que parasse nela mentiria
+   * sobre o que ainda falta.
+   */
+  aoProgredir?: (feitas: number, total: number) => void,
 ): Promise<ResultadoDoEnvio> {
   const imagensEnviadas: string[] = [];
+  let processadas = 0;
   for (const imagem of plano.imagens) {
     const envio = await portas
       .enviarImagem(imagem.caminho, imagem.dados)
       .catch((erro: unknown) => ({ erro: String(erro) }));
     // Uma imagem que falha ao enviar não derruba a importação: a seção publica
     // só com o texto. Mas ela também não entra na lista — não há o que limpar.
+    processadas += 1;
+    aoProgredir?.(processadas, plano.imagens.length);
     if (envio.erro) continue;
     imagensEnviadas.push(imagem.caminho);
   }
