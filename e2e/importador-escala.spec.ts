@@ -79,7 +79,16 @@ test("arquivo acima do limite de tamanho é recusado antes de qualquer leitura",
   await page.goto("/dev/importar?maxBytes=100");
   await page.setInputFiles('input[type="file"]', fixture("manual-de-teste.pdf"));
 
-  await expect(page.getByText(/limite de tamanho/i)).toBeVisible();
+  /**
+   * A mensagem é a da INSTALAÇÃO, e não a do produto.
+   *
+   * O teto reduzido a 100 bytes representa o teto do plano; o arquivo tem
+   * 1,2 KB e está muito abaixo dos 100 MiB que o produto suporta. Dizer
+   * "grande demais" aqui seria mentir sobre a capacidade do produto por causa
+   * de um limite de hospedagem — ver `motivoDeRecusaPorTamanho`, onde os dois
+   * ramos têm teste próprio, sem precisar de um PDF de 100 MiB.
+   */
+  await expect(page.getByText(/limite da instalação atual/i)).toBeVisible();
   await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toHaveCount(0);
 });
 

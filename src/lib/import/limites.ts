@@ -68,3 +68,25 @@ export const LIMITES_DE_IMPORTACAO = {
 export function emMB(bytes: number): number {
   return Math.round(bytes / MB);
 }
+
+/**
+ * Qual recusa cabe a um arquivo deste tamanho — ou nenhuma.
+ *
+ * Extraída de `lerPdf` depois de o CI pegar o que a suíte local não pegou: a
+ * decisão entre as duas mensagens vivia dentro de uma função que só roda com
+ * um `File` e um navegador, então a única forma de exercitá-la era carregar um
+ * PDF de verdade. Um ramo que precisa de 100 MiB para ser testado é um ramo
+ * que ninguém testa.
+ *
+ * `maxBytes` é o teto EFETIVO da instalação, que pode vir de configuração; o
+ * teto do produto é constante. A distinção entre as duas recusas é de produto:
+ * "não aceitamos" e "esta instalação ainda não aceita" dizem coisas diferentes
+ * para quem está avaliando comprar.
+ */
+export function motivoDeRecusaPorTamanho(
+  bytes: number,
+  maxBytes: number,
+): "grande-demais" | "acima-do-plano" | null {
+  if (bytes <= maxBytes) return null;
+  return bytes > TETO_DO_PRODUTO_BYTES ? "grande-demais" : "acima-do-plano";
+}
