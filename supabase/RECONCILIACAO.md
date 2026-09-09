@@ -90,12 +90,14 @@ mesma redefinição duas vezes, a segunda com a versão mais antiga.
 
 ## O que fica pendente
 
-`fix/contabilidade-ia` traz duas migrações que não existem nesta base:
+`fix/contabilidade-ia` **foi mesclada à `main` em 08/09/2026** (`cce53b8`, PR #3).
+As duas migrações que esta base não conhecia agora vivem na `main`, e a direção
+do rebase inverteu: é esta branch que passa a se apoiar nelas.
 
 | Arquivo | Situação |
 |---|---|
-| `20260905140000_ai_expiry_contencao_server_only_e_idade_minima.sql` | **aplicada** no banco como `20260905153236` — precisa do mesmo `git mv` quando aquela branch for rebaseada sobre esta |
-| `20260905160000_ai_ledger_exposicao_de_cobranca.sql` | **não aplicada** — é, e deve continuar sendo, a única migração local pendente |
+| `20260905140000_ai_expiry_contencao_server_only_e_idade_minima.sql` | **aplicada** no banco como `20260905153236` — o `git mv` para o carimbo de produção continua devendo, e agora é trabalho **desta** branch, no rebase sobre a `main` |
+| `20260905160000_ai_ledger_exposicao_de_cobranca.sql` | **não aplicada** em produção — é, e deve continuar sendo, a única migração local pendente. Foi aplicada ao stack **local** em 08/09 para a prova de concorrência, sem carimbo em `schema_migrations`, e `db reset` desfaz |
 
 ## Condições de integração — estado em 08/09/2026
 
@@ -107,7 +109,7 @@ executado. Estado por condição:
 | 1 | Replay completo a partir de banco vazio | ✅ duas execuções, `exit 0`, 47 migrações em ordem |
 | 2 | Schema final equivalente ao remoto | ✅ medido, ver tabela abaixo |
 | 3 | Advisors e testes verdes | ⏳ testes verdes; advisors ainda não conferidos nos dois lados |
-| 4 | Só `charge_exposed_at` pendente | ⏳ vale para esta branch; a contenção chega com `fix/contabilidade-ia` |
+| 4 | Só `charge_exposed_at` pendente | ✅ com o PR #3 na `main`, a contenção deixou de ser "de outra branch"; `charge_exposed_at` segue a única não aplicada em produção |
 
 **A equivalência, medida com a mesma consulta nos dois bancos:**
 
@@ -150,9 +152,29 @@ e chamada com o cliente de sessão.
 
 ### O que ainda falta antes de integrar
 
-- Conferir **advisors** nos dois bancos.
-- Recriar, como artefato versionado, a **prova de concorrência**: as quatro
-  corridas foram executadas contra o stack local, com espera observada em
-  `pg_stat_activity`, mas o ensaio foi desfeito no reset e não ficou registrado.
-  Ela é o portão do PR #3, e pertence àquela branch.
+- Conferir **advisors** nos dois bancos. **É o único item restante.**
+- Fazer o `git mv` de `20260905140000` para o carimbo `20260905153236` no rebase
+  sobre a `main`, conforme a tabela de pendências acima.
+
+### ✅ Portão fechado: a prova de concorrência (08/09/2026)
+
+O que esta seção cobrava — recriar como artefato versionado as quatro corridas,
+cujo ensaio de 05/09 se perdeu no reset sem ficar registrado — **foi feito e
+está na `main`** pelo PR #3:
+
+- `scripts/prova-de-concorrencia-ai-ledger.sh` — rig reexecutável
+- `docs/evidencias/prova-de-concorrencia-ai-ledger-2026-09-08.md` — a execução registrada
+
+Os dois caminhos são da `main`. Esta branch só os enxerga depois do rebase, e
+por isso ficam como caminho e não como link — um link relativo aqui apontaria
+para nada.
+
+A espera voltou a ser **observada, e não presumida**: o rig procura um backend
+em `wait_event_type = 'Lock'` em `pg_stat_activity` e trata ausência de espera
+como falha — sem isso, um resultado correto pode ser acidente de agendamento. A
+corrida 1 roda também contra uma réplica pré-correção, que reproduz o defeito
+(`999` sobrescreve `111`); um teste que passasse dos dois lados não testaria a
+correção.
+
+Onze asserções, quatro esperas observadas, três execuções consecutivas verdes.
 
