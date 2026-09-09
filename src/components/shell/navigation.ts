@@ -107,7 +107,14 @@ export function shellSections({
     {
       id: "manual",
       label: t("Manual", "Manual"),
-      destinations: [{ href: "/docs", label: t("Visão geral", "Overview"), mobile: true }],
+      destinations: [
+        {
+          href: "/docs/original",
+          label: t("Manual original", "Original manual"),
+          mobile: true,
+        },
+        { href: "/docs", label: t("Visão geral", "Overview"), mobile: true },
+      ],
     },
     {
       id: "consultar",
