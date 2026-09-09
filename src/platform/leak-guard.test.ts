@@ -1561,3 +1561,39 @@ test("a prova de concorrência não mascara falha de nenhuma sessão", () => {
   assert.match(rig, /if wait "\$pidA"/, "a sessão A precisa ter o exit code conferido");
   assert.match(rig, /if wait "\$pidB"/, "a sessão B precisa ter o exit code conferido");
 });
+
+test("a exceção de advisor do kill switch só vale enquanto as duas guardas existirem", () => {
+  /*
+   * `kill_switch_ativo` é `SECURITY DEFINER` executável por `authenticated`, e
+   * o advisor do Supabase acusa isso (regra 0029). A exceção foi registrada
+   * como intencional em `20260909160000_kill_switch_excecao_registrada.sql` —
+   * mas ela é aceitável por ser ESTREITA, não por estar escrita.
+   *
+   * Este teste é o que impede a justificativa de sobreviver ao que a
+   * justificava. Se alguém remover a exigência de autenticação, a checagem de
+   * membership, ou fizer a função devolver mais que os dois booleanos, a
+   * exceção deixa de valer — e aqui reprova.
+   */
+  const migracao = lerCodigo(
+    "supabase/migrations/20260903152804_ai_budget_expiry_and_kill_switch_read.sql",
+  );
+  const corpo = migracao.slice(
+    migracao.indexOf("create or replace function public.kill_switch_ativo"),
+  );
+
+  assert.match(
+    corpo,
+    /if actor is null then\s*\n\s*raise exception 'authentication required'/,
+    "sem exigir autenticação, a função vira leitura anônima do estado do orçamento",
+  );
+  assert.match(
+    corpo,
+    /from public\.workspace_members m\s*\n\s*where m\.workspace_id = p_workspace_id and m\.user_id = actor/,
+    "sem a checagem de membership, qualquer autenticado lê o kill switch de qualquer conta",
+  );
+  assert.match(
+    corpo,
+    /returns table \(workspace boolean, marca boolean\)/,
+    "a exceção se apoia em devolver DOIS BOOLEANOS e nada mais da linha de orçamento",
+  );
+});
