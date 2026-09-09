@@ -1532,7 +1532,7 @@ test("liquidar exige registro de exposição — a invariante recíproca", () =>
    * e é melhor que nada guardar.
    */
   const migracao = lerCodigo(
-    "supabase/migrations/20260905160000_ai_ledger_exposicao_de_cobranca.sql",
+    "supabase/migrations/20260909014823_ai_ledger_exposicao_de_cobranca.sql",
   );
   assert.match(
     migracao,

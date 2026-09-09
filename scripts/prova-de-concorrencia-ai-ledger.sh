@@ -3,7 +3,7 @@
 # Prova de concorrência do razão de IA — as quatro corridas.
 #
 # Recria, como artefato reexecutável, o ensaio que sustenta a migração
-# `20260905160000_ai_ledger_exposicao_de_cobranca.sql`. O ensaio original
+# `20260909014823_ai_ledger_exposicao_de_cobranca.sql`. O ensaio original
 # rodou contra o stack local em 05/09 e se perdeu num `db reset` sem ter sido
 # registrado; este script existe para que isso não dependa mais de memória.
 #
