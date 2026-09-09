@@ -67,31 +67,66 @@ quando a ação proposta descarta alguma coisa.
 mesmo necessária, faça por cópia para fora primeiro — nunca `git checkout --`
 direto sobre trabalho não commitado.
 
-## Fatia 1 — a ordem é vinculante
+## Fatia 1 — visualizador fiel (plano de 09/09/2026)
 
-Branch: `fatia-1/transporte`. Plano: `docs/plan/replanejamento-studio-guia-2026-09-04.md`, §18.3.
+Branch: `fatia-1/visualizador`. Plano de produto aprovado por André em
+09/09/2026; substitui a Etapa A anterior deste arquivo.
 
-**Etapa A (transporte) vem inteira antes da Etapa B (visualizador).** Construir
-a interface antes de saber como os bytes chegam é apostar a interface numa
-hipótese não verificada.
+**O que mudou, e por quê.** A ordem antiga era A.1 (perguntar ao Supabase se
+`Access-Control-Expose-Headers` é configurável) → A.2 (borda) → A.3 (rota).
+Ela está **encerrada**, não abandonada: a medição no navegador (§18.2.8 do
+replanejamento) já respondeu a pergunta que A.1 faria, e respondeu contra a URL
+assinada direta.
 
-A ordem dentro da Etapa A não é preferência — é a ordem de alavanca:
+| | URL assinada direta | Rota de mesma origem |
+|---|---|---|
+| `accept-ranges` / `content-range` visíveis ao JS | **não** | sim |
+| Requisições até a 1ª página | 1 | 11 |
+| **Bytes até a 1ª página** | **11,3 MiB** (o arquivo inteiro) | **0,61 MiB** |
 
-| | |
+O Storage do Supabase não expõe esses dois cabeçalhos por CORS; o PDF.js os lê
+para decidir se pode pedir intervalos, não os vê, conclui que não há suporte a
+Range e baixa tudo. **Por isso o transporte é rota de mesma origem, e a
+investigação não se reabre** — nem por ticket de suporte, nem por conta de
+borda.
+
+**Contrato da rota** — nasce com todos, não ganha depois:
+
+| Requisito | Por quê |
 |---|---|
-| **A.1** | Supabase expõe `Access-Control-Expose-Headers` no plano hospedado? É a pergunta mais barata e a de maior alavanca: **se a resposta for sim, A.2 e A.3 deixam de existir** |
-| **A.2** | Camada de borda — e ela nasce com os requisitos **B1–B6** (§18.3.0), que são eliminatórios, não desejáveis |
-| **A.3** | Rota na Vercel — **só se A.1 e A.2 não resolverem** |
-| **A.4** | Medir no ambiente **publicado**, com arquivo próximo de 100 MiB |
-| **A.5** | Decidir o transporte, com os números de A.4 na mesa |
+| Recebe o **identificador do documento**, nunca um caminho de Storage | caminho vindo do cliente é proxy aberto |
+| Autoriza usuário, conta e marca **antes do primeiro byte** | a autorização é do produto, não do token |
+| **Exige `Range`** | a resposta da Vercel tem teto de 4,5 MB: servir o arquivo inteiro é impossível, não indesejável |
+| Repassa `206`, `Content-Range`, `Accept-Ranges`, `ETag` | é o que o navegador precisa **ver** |
+| Cancela a origem no abandono | senão paga banda por bytes que ninguém lê |
+| Renova autorização sem perder a página atual | a expiração devolve **400**, não 401/403 |
 
-**Nesta abertura não se constrói:** visualizador, rota intermediária, nem
-schema. O primeiro trabalho técnico é **apenas A.1**.
+**O identificador, hoje e depois.** O documento-fonte durável
+(`brand_source_documents`) é a Etapa 2. Até ela existir, a rota usa
+`brand_imports.id`. **O contrato do endpoint muda uma vez, na Etapa 2** — está
+escrito aqui para não virar surpresa.
 
-**Material de teste:** PDF **sintético** de ~100 MiB para escala e transporte;
-material próprio ou explicitamente autorizado para comparação visual. O manual
-da GE foi excluído do Storage e das cópias locais (§18.2.0, §18.3.3) — refazer
-aquela comparação exige novo envio com autorização específica.
+**Portões de aceite da Etapa 1:**
+
+- comparação visual lado a lado contra um **renderizador independente**
+  (`pdftoppm`, `mutool` ou Ghostscript). Comparar PDF.js com PDF.js é espelho,
+  não teste;
+- nenhuma página recortada ou reformatada; proporção, rotação e margens
+  originais;
+- Safari, Chromium e Firefox; iPhone e Android **físicos**;
+- **camada de texto tem portão próprio** — seleção, busca e leitor de tela,
+  inclusive sob zoom e rotação. Não é item de lista ao lado de "tela cheia";
+- manual pequeno (40–50 páginas) fecha o **Marco A**. O manual de ~100 MiB é
+  portão separado, que destrava com plano pago — um não segura o outro.
+
+**A cobertura de páginas NÃO é portão desta etapa.** O PDF.js renderiza do PDF
+e nunca consulta nossas seções, então "todas as páginas aparecem" passa de
+graça aqui. A perda real está na camada semântica
+(`src/lib/import/secoes.ts:289`) e o portão de cobertura é da **Etapa 2**.
+
+**Congelado enquanto Etapas 1 e 2 não fecharem:** heurística visual, novas
+funções de IA, melhorias cosméticas, expansão da administração, e
+reorganização que não aproxime o fluxo de aceite.
 
 ## Material de marca de terceiro
 
