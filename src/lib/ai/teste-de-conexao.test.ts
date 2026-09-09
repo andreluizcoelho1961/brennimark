@@ -81,6 +81,7 @@ test("teste pago reserva, respeita o teto e liquida com o uso real", async () =>
       data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }],
     },
     kill_switch_ativo: { data: [{ workspace: false, marca: false }] },
+    marcar_exposicao_de_cobranca_server: { data: true },
     consolidar_execucao_de_ia_server: { data: null },
   });
   let tetoRecebido = 0;
@@ -104,13 +105,19 @@ test("teste pago reserva, respeita o teto e liquida com o uso real", async () =>
   assert.deepEqual(chamadas.map((chamada) => chamada.fn), [
     "reservar_execucao_de_ia_server",
     "kill_switch_ativo",
+    // A marcação entra AQUI: depois do kill switch, antes do despacho. É o
+    // instante em que o pedido passa a poder gerar cobrança, e liquidar sem
+    // ela passou a ser erro. Esta asserção de sequência é o que apanhou a
+    // mudança quando ela chegou pela outra branch.
+    "marcar_exposicao_de_cobranca_server",
     "consolidar_execucao_de_ia_server",
   ]);
   assert.equal(chamadas[0].args.p_workspace_id, "ws-1");
   assert.equal(chamadas[0].args.p_brand_id, "brand-1");
   assert.equal(chamadas[0].args.p_task, "prompt");
   assert.equal(chamadas[2].args.p_execution_id, "exec-1");
-  assert.deepEqual(chamadas[2].args.p_usage_snapshot, {
+  assert.equal(chamadas[3].args.p_execution_id, "exec-1");
+  assert.deepEqual(chamadas[3].args.p_usage_snapshot, {
     inputTokens: 12,
     outputTokens: 1,
     cachedInputTokens: undefined,

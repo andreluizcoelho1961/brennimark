@@ -1518,3 +1518,30 @@ test("o detector de títulos exige uma palavra, não só destaque", () => {
     "destaque tipográfico voltou a bastar para virar título",
   );
 });
+
+test("liquidar exige registro de exposição — a invariante recíproca", () => {
+  /*
+   * `charge_exposed_at` fecha duas portas, não uma. Uma: não se libera reserva
+   * exposta. A outra, esta: não existe execução LIQUIDADA sem registro de
+   * exposição ao provedor — liquidar sem ele seria cobrar por um pedido que o
+   * razão não sabe ter saído.
+   *
+   * A guarda é textual porque a invariante vive em SQL e o CI deste projeto
+   * não sobe Supabase (ver ci.yml). Ela não prova o comportamento no banco;
+   * prova que a regra não sumiu do arquivo — que é o que se pode provar daqui,
+   * e é melhor que nada guardar.
+   */
+  const migracao = lerCodigo(
+    "supabase/migrations/20260905160000_ai_ledger_exposicao_de_cobranca.sql",
+  );
+  assert.match(
+    migracao,
+    /if linha\.charge_exposed_at is null then\s*\n\s*raise exception/,
+    "consolidar precisa recusar liquidação sem exposição registrada",
+  );
+  assert.match(
+    migracao,
+    /for update/,
+    "as funções que leem e depois atualizam a mesma linha precisam travá-la",
+  );
+});

@@ -25,11 +25,43 @@ function supabaseFalso(resposta: RespostaRpc | Record<string, RespostaRpc>) {
     cliente: {
       rpc: async (fn: string, args: Record<string, unknown>) => {
         chamadas.push({ fn, args });
+        /*
+         * A marcação de exposição tem padrão PRÓPRIO: `true`.
+         *
+         * O executor recusa despachar quando ela não devolve `true`, então um
+         * padrão `null` faria toda esta suíte testar o caminho de recusa — e
+         * os testes de liquidação parariam de exercer liquidação nenhuma,
+         * passando por vacuidade. Quem quiser testar a recusa a declara
+         * explicitamente, como os testes abaixo fazem.
+         */
+        if (fn === "marcar_exposicao_de_cobranca_server" && !(porFuncao && fn in porFuncao)) {
+          return { data: true, error: null };
+        }
         const r = porFuncao ? (porFuncao[fn] ?? { data: null, error: null }) : (resposta as RespostaRpc);
         return { data: r.data ?? null, error: r.error ?? null };
       },
     } as never,
   };
+}
+
+/**
+ * A sequência normal de um despacho: marcar a exposição de cobrança ANTES,
+ * liquidar DEPOIS.
+ *
+ * A marcação aparece aqui em vez de ser filtrada porque ela é uma chamada
+ * real ao banco, e esconder chamada de dinheiro numa asserção de chamadas de
+ * dinheiro seria o começo do próximo defeito.
+ */
+const MARCA_E_LIQUIDA = [
+  "marcar_exposicao_de_cobranca_server",
+  "consolidar_execucao_de_ia_server",
+];
+
+/** Os argumentos da liquidação, seja qual for a posição dela na sequência. */
+function liquidacao(chamadas: { fn: string; args: Record<string, unknown> }[]) {
+  const c = chamadas.find((x) => x.fn === "consolidar_execucao_de_ia_server");
+  assert.ok(c, "nenhuma liquidação foi chamada");
+  return c.args;
 }
 
 const RESERVA_OK = { data: [{ ok: true, motivo: "reservado", execution_id: "exec-1", status: "reserved" }] };
@@ -454,10 +486,10 @@ test("despacho com sucesso: liquida com o uso REAL, não com o teto reservado", 
   });
   const texto = execucao.firstChunk + (await drenarTudo(execucao.iterator));
   assert.equal(texto, "a cor primária é vermelho.");
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14 + 40 * 0.40);
-  assert.equal(chamadas[0].args.p_provider, "ollama-cloud");
-  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { inputTokens: 500, outputTokens: 40, cachedInputTokens: undefined });
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, 500 * 0.14 + 40 * 0.40);
+  assert.equal(liquidacao(chamadas).p_provider, "ollama-cloud");
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { inputTokens: 500, outputTokens: 40, cachedInputTokens: undefined });
 });
 
 test("sinal já abortado ANTES do primeiro attempt: libera integralmente — o único caso real de pré-despacho", async () => {
@@ -512,9 +544,9 @@ test("despacho que falha imediatamente: liquida conservador pelo teto, NUNCA lib
       }),
     }),
   );
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
-  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
 });
 
 test("timeout do primeiro chunk: liquida conservador pelo teto, NUNCA libera", async () => {
@@ -537,9 +569,9 @@ test("timeout do primeiro chunk: liquida conservador pelo teto, NUNCA libera", a
       }),
     }),
   );
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
-  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
 });
 
 test("cancelamento depois do primeiro token: NUNCA produz custo zero", async () => {
@@ -568,10 +600,10 @@ test("cancelamento depois do primeiro token: NUNCA produz custo zero", async () 
   // a aba no meio da resposta.
   await execucao.iterator.next();
   await execucao.cancel(new Error("cliente desistiu"));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
-  assert.ok((chamadas[0].args.p_settled_micros as number) > 0, "custo zero é exatamente o que este teste proíbe");
-  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.ok((liquidacao(chamadas).p_settled_micros as number) > 0, "custo zero é exatamente o que este teste proíbe");
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
 });
 
 test("queda de streaming no meio, mas com uso CONHECIDO: liquida o uso real, não o teto", async () => {
@@ -593,9 +625,9 @@ test("queda de streaming no meio, mas com uso CONHECIDO: liquida o uso real, nã
     }),
   });
   await assert.rejects(() => drenarTudo(execucao.iterator));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, 500 * 0.14 + 40 * 0.40);
-  assert.notEqual(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, 500 * 0.14 + 40 * 0.40);
+  assert.notEqual(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
 });
 
 test("queda de streaming no meio, com uso DESCONHECIDO: liquida conservador pelo teto", async () => {
@@ -611,9 +643,9 @@ test("queda de streaming no meio, com uso DESCONHECIDO: liquida conservador pelo
     }),
   });
   await assert.rejects(() => drenarTudo(execucao.iterator));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
-  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
 });
 
 test("nunca consulta o kill switch em voo — só decidirExecucao faz isso, antes do despacho", async () => {
@@ -636,7 +668,7 @@ test("nunca consulta o kill switch em voo — só decidirExecucao faz isso, ante
   });
   await drenarTudo(execucao.iterator);
   assert.ok(!chamadas.some((c) => c.fn === "kill_switch_ativo"));
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
 });
 
 test("um segundo attempt na lista é ignorado — nenhum fallback automático", async () => {
@@ -671,7 +703,199 @@ test("sem uso mensurável ao terminar: liquida conservador pelo teto, não liber
     }),
   });
   await drenarTudo(execucao.iterator);
-  assert.deepEqual(chamadas.map((c) => c.fn), ["consolidar_execucao_de_ia_server"]);
-  assert.equal(chamadas[0].args.p_settled_micros, RESERVED_MICROS);
-  assert.deepEqual(chamadas[0].args.p_usage_snapshot, { unknown: true });
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
+});
+
+// ─── Uso PARCIAL: o campo que falta não é zero ─────────────────────────────
+//
+// A guarda do conservador exigia que ENTRADA e SAÍDA estivessem ausentes, com
+// `&&`. Com um campo só presente, o outro virava zero por `?? 0` — e consumo
+// desconhecido passava a ser cobrado como consumo nulo, sempre para o lado que
+// perde dinheiro. Um zero MEDIDO é um fato; um campo AUSENTE é ignorância, e o
+// contrato de orçamento não pode confundir os dois.
+
+test("uso parcial — só entrada relatada — liquida conservador, não trata a saída como zero", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(500, undefined)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
+});
+
+test("uso parcial — só saída relatada — liquida conservador, não trata a entrada como zero", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(undefined, 20)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
+});
+
+test("uso com número não finito é desconhecido, não é aritmética", async () => {
+  // `NaN` propaga por toda a conta e chega ao banco como `NaN` — que não é
+  // "custo zero", é ausência de número num campo que precisa de número.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(Number.NaN, 40)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
+});
+
+test("uso com número negativo é desconhecido — nenhum provedor consome tokens negativos", async () => {
+  // Um negativo aqui ABATE o custo de outro campo. É a única forma de uma
+  // execução real liquidar por menos do que consumiu de fato.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(-1_000_000, 40)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
+});
+
+test("zero MEDIDO continua sendo zero — a correção não pode punir o caso legítimo", async () => {
+  // A guarda nova não pode transformar "o provedor relatou 0 tokens de saída"
+  // em desconhecido: isso cobraria o teto de uma execução que de fato não
+  // gerou saída, e seria o erro simétrico ao que se está consertando.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["ok"]),
+      usage: Promise.resolve(usoFalso(500, 0)),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(liquidacao(chamadas).p_settled_micros, 500 * 0.14);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { inputTokens: 500, outputTokens: 0, cachedInputTokens: undefined });
+});
+
+// ─── Exposição de cobrança: marcar ANTES, e abortar se não der ─────────────
+//
+// O item 5 nasceu de uma execução despachada cuja liquidação falhou: a reserva
+// ficava `reserved` para sempre, e uma expiração posterior a transformaria em
+// `released` — apagando custo real. `charge_exposed_at` é o fato que faltava,
+// e ele só serve se for gravado ANTES do despacho.
+
+test("falha ao marcar a exposição impede o despacho — nada é enviado ao provedor", async () => {
+  /*
+   * A asserção que importa não é o erro: é `despachou === false`. Uma
+   * implementação que marcasse depois, ou que seguisse mesmo com o erro,
+   * produziria custo que o razão não conhece — exatamente o defeito.
+   */
+  let despachou = false;
+  const { cliente } = supabaseFalso({
+    marcar_exposicao_de_cobranca_server: { error: { code: "57014", message: "timeout" } },
+  });
+  await assert.rejects(
+    () => executarComOrcamento({
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+      dispatch: () => {
+        despachou = true;
+        return { textStream: geradorDeTexto(["nunca"]), usage: Promise.resolve(usoFalso(1, 1)) };
+      },
+    }),
+    /exposição de cobrança/,
+  );
+  assert.equal(despachou, false, "despachou mesmo sem conseguir marcar a exposição");
+});
+
+test("banco recusando a marcação (false) também impede o despacho", async () => {
+  // `false` significa que a reserva já não está reservada. Despachar geraria
+  // custo sem reserva — pior que não responder.
+  let despachou = false;
+  const { cliente } = supabaseFalso({
+    marcar_exposicao_de_cobranca_server: { data: false },
+  });
+  await assert.rejects(
+    () => executarComOrcamento({
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+      dispatch: () => {
+        despachou = true;
+        return { textStream: geradorDeTexto(["nunca"]), usage: Promise.resolve(usoFalso(1, 1)) };
+      },
+    }),
+    /exposição de cobrança/,
+  );
+  assert.equal(despachou, false);
+});
+
+test("a marcação vem ANTES do despacho, não depois", async () => {
+  // Marcar depois deixaria aberta exatamente a janela que o item 5 descreve:
+  // o pedido saiu, o razão não sabe.
+  const ordem: string[] = [];
+  const { cliente } = supabaseFalso({ data: null });
+  const clienteObservado = {
+    rpc: async (fn: string, args: Record<string, unknown>) => {
+      ordem.push(fn);
+      return (cliente as unknown as { rpc: (f: string, a: Record<string, unknown>) => Promise<unknown> }).rpc(fn, args);
+    },
+  } as never;
+
+  const execucao = await executarComOrcamento({
+    serviceClient: clienteObservado, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => {
+      ordem.push("DESPACHO");
+      return { textStream: geradorDeTexto(["ok"]), usage: Promise.resolve(usoFalso(10, 2)) };
+    },
+  });
+  await drenarTudo(execucao.iterator);
+
+  assert.equal(ordem[0], "marcar_exposicao_de_cobranca_server");
+  assert.equal(ordem[1], "DESPACHO");
+});
+
+test("sinal já abortado: NÃO marca exposição — nada saiu, e liberar continua certo", async () => {
+  /*
+   * O único caso real de pré-despacho. Marcar aqui transformaria uma liberação
+   * legítima numa liquidação conservadora, cobrando por um pedido que nunca
+   * tocou a rede. O erro barato é o outro.
+   */
+  const controle = new AbortController();
+  controle.abort();
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+
+  await assert.rejects(() => executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000, parentSignal: controle.signal,
+    dispatch: () => ({ textStream: geradorDeTexto(["nunca"]), usage: Promise.resolve(usoFalso(1, 1)) }),
+  }));
+
+  assert.equal(
+    chamadas.some((c) => c.fn === "marcar_exposicao_de_cobranca_server"),
+    false,
+    "marcou exposição num pedido que nunca foi despachado",
+  );
 });

@@ -6,7 +6,7 @@ import {
 } from "./catalogo";
 import {
   consolidarExecucao, killSwitchAtivo, liberarReserva, mensagemDeOrcamento, reservarExecucao,
-  type MotivoDeRecusa, type SnapshotDeUso, type SnapshotDePreco,
+  type MotivoDeRecusa, type SnapshotDeUso, type SnapshotDePreco, marcarExposicaoDeCobranca,
 } from "./orcamento";
 import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
@@ -410,6 +410,20 @@ async function aguardarUsoComTimeout(
  * esta função trocar de perfil por conta própria liquidaria com um preço
  * que ninguém reservou.
  */
+/**
+ * O razão não conseguiu registrar que a cobrança ia acontecer.
+ *
+ * Erro próprio, e não um genérico, porque a resposta ao usuário é diferente:
+ * nada foi enviado ao provedor, então não há custo — e tentar de novo é
+ * seguro, ao contrário de quase toda outra falha deste módulo.
+ */
+export class FalhaDeExposicaoDeCobranca extends Error {
+  constructor() {
+    super("não foi possível registrar a exposição de cobrança antes do despacho");
+    this.name = "FalhaDeExposicaoDeCobranca";
+  }
+}
+
 export async function executarComOrcamento<TAttempt extends { config: { provider: string; model: string } }>(
   params: {
     /** Ver o comentário em `decidirExecucao` — cliente de serviço, não a sessão do usuário. */
@@ -444,6 +458,15 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
 
   let encerrado = false;
 
+  /**
+   * Um número de tokens de fato relatado pelo provedor.
+   *
+   * Separado em função nomeada porque a pergunta que ele responde não é
+   * "existe?", é "é utilizável numa conta de dinheiro?".
+   */
+  const tokensRelatados = (n: number | undefined): n is number =>
+    typeof n === "number" && Number.isFinite(n) && n >= 0;
+
   /** A liquidação conservadora — nunca vira custo zero. */
   const consolidarConservador = async () => {
     const usageSnapshot: SnapshotDeUso = { unknown: true };
@@ -460,12 +483,28 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     if (encerrado) return;
     encerrado = true;
     const usage = usageCapturado ? await aguardarUsoComTimeout(usageCapturado, usageTimeoutMs) : null;
-    if (!usage || (usage.inputTokens === undefined && usage.outputTokens === undefined)) {
+    /*
+     * Liquidar pelo uso real exige o uso INTEIRO, e exige que ele seja um
+     * número.
+     *
+     * A guarda anterior exigia que os DOIS campos estivessem ausentes (`&&`)
+     * para cair no conservador. Com um campo só presente, o outro virava zero
+     * pelo `?? 0` logo abaixo — e consumo desconhecido passava a ser cobrado
+     * como consumo nulo, sempre para o lado que perde dinheiro. A diferença
+     * que o contrato precisa preservar: um zero MEDIDO é um fato do provedor;
+     * um campo AUSENTE é ignorância nossa, e ignorância liquida pelo teto.
+     *
+     * `Number.isFinite` barra `NaN` e infinitos, que propagariam pela conta
+     * até o banco; `>= 0` barra negativo, que seria a única forma de uma
+     * execução real liquidar por MENOS do que consumiu — um negativo em
+     * entrada abate o custo da saída.
+     */
+    if (!usage || !tokensRelatados(usage.inputTokens) || !tokensRelatados(usage.outputTokens)) {
       await consolidarConservador();
       return;
     }
     const settledMicros = custoDeReservaMicros(pricing, {
-      entrada: usage.inputTokens ?? 0, saida: usage.outputTokens ?? 0,
+      entrada: usage.inputTokens, saida: usage.outputTokens,
     });
     const usageSnapshot: SnapshotDeUso = {
       inputTokens: usage.inputTokens, outputTokens: usage.outputTokens,
@@ -477,6 +516,30 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
       usageSnapshot,
     });
   };
+
+  /*
+   * A exposição é marcada AQUI: depois de saber que vamos despachar, antes de
+   * despachar.
+   *
+   * Mais cedo (logo após a reserva) marcaria como exposto um pedido que chega
+   * com o sinal já abortado e nunca toca a rede — o único caso real de
+   * pré-despacho, e o único que pode ser liberado integralmente. Mais tarde
+   * seria depois do despacho, que é justamente a janela em que o custo passa a
+   * existir sem o razão saber.
+   *
+   * Sobra uma janela estreita: abortar entre esta marcação e o despacho. Ela
+   * liquida conservador em vez de liberar — paga-se por algo que talvez não
+   * tenha saído. É o erro barato; o caro é o contrário.
+   */
+  if (!params.parentSignal?.aborted) {
+    const exposicao = await marcarExposicaoDeCobranca(serviceClient, { userId, executionId });
+    if ("erro" in exposicao || !exposicao.exposta) {
+      // Não despachar é deliberado. Uma execução cujo custo o razão não
+      // conseguiria registrar não deve acontecer — derrubar a resposta é o
+      // preço, e é menor que custo invisível.
+      throw new FalhaDeExposicaoDeCobranca();
+    }
+  }
 
   let prepared: PreparedFallbackStream<TAttempt>;
   try {
