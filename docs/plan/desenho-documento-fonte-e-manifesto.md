@@ -401,3 +401,132 @@ certo pelo motivo errado.
 A prova agora: **26 verificações**, cada uma conferindo o NOME EXATO da
 constraint ou o SQLSTATE, com mundo próprio (duas contas, duas marcas), dados
 isolados por caso, e `rollback` no fim.
+
+## 9. Dívida arquitetural — a publicação em duas transações
+
+**Registrado em 10/09/2026, com o Marco B integrado. Esta é uma decisão
+transitória, autorizada como tal, e não o desenho pretendido.**
+
+### 9.1 O que existe hoje
+
+Publicar uma importação são **duas transações que não são atômicas entre si**:
+
+| | Onde roda | Com que autoridade | O que grava |
+|---|---|---|---|
+| **A** | navegador | sessão, `security invoker` | `brands`, `brand_documents`, `brand_imports` |
+| **B** | rota de servidor | `service_role`, `security definer` | `brand_source_documents`, `brand_source_pages` |
+
+A separação não é preguiça: é consequência de duas exigências verdadeiras que
+hoje não cabem no mesmo lugar. A transação A precisa da sessão de quem
+importa, porque toda RLS de marca e documento se apoia em `auth.uid()`. A
+transação B **não pode** rodar com essa sessão, porque completude do manifesto
+(`1..N`, sem furo e sem repetição) e imutabilidade dos campos de procedência
+não são expressáveis linha a linha — e conceder `insert` direto ao cliente
+para depois pedir que ele se comporte seria uma garantia que a interface faz,
+não que o banco impõe. Ver §8.2.
+
+### 9.2 O que torna a janela habitável
+
+Cinco coisas, e nenhuma delas fecha a janela — todas a tornam **legível e
+recuperável**:
+
+1. **A interface não declara sucesso antes de B.** O importador não navega até
+   o registro concluir. Ver `registrar-do-navegador.ts`: um `200` sem
+   `documentoId` não conta como sucesso.
+2. **`brand_imports.source_document_id is null` é o sinal de publicação
+   incompleta**, e ele é visível — no importador e no manual original.
+3. **A RPC é idempotente por `sha256`**, então repetir é seguro. Medido:
+   repetir devolve o mesmo documento, não cria um segundo, não duplica o
+   manifesto.
+4. **O pedido de B é derivado, não enviado.** O manifesto vive no relatório da
+   transação A, e o servidor o lê de lá. É isso que faz a repetição usar o
+   mesmo pedido por construção e a recuperação sobreviver a um recarregamento
+   — inclusive de outro aparelho, e por outra pessoa.
+5. **O vínculo é escrito por último.** Falhar nele deixa uma publicação
+   completa marcada como incompleta, que é o erro seguro dos dois: a próxima
+   tentativa fecha o vínculo sem duplicar nada.
+
+O estado intermediário, portanto, não é corrupção: é uma marca legível, com o
+manual original servindo normalmente, cujo registro por página está pendente e
+declarado.
+
+### 9.3 Por que ainda é dívida
+
+O que as cinco mitigações **não** resolvem:
+
+- **A janela existe.** Entre A e B há um intervalo em que a marca está no ar
+  com procedência por página inexistente. Nenhuma quantidade de recuperação
+  transforma isso em atomicidade.
+- **A conclusão depende de alguém voltar.** Se quem publicou fechar a aba e
+  ninguém abrir o manual original, a pendência permanece — visível, mas
+  parada. Não há drenagem automática, ao contrário da fila de exclusão de
+  objetos órfãos.
+- **O manifesto viaja duas vezes.** Ele é gravado no relatório em A e lido de
+  novo em B. Numa transação única seria montado uma vez.
+- **Dois clientes Supabase numa rota** é superfície a mais para errar. Hoje a
+  fronteira está clara — a chave de serviço só executa a RPC, e não tem
+  `select` em `brand_documents` de propósito —, mas ela é mantida por
+  disciplina e revisão, não pelo tipo.
+
+### 9.4 Para onde migrar
+
+**A publicação inteira deve virar uma transação única no servidor.** Uma rota
+que recebe o pedido de importação completo, autentica a sessão, e chama **uma**
+RPC `security definer` que grava marca, documentos, importação, documento-fonte
+e manifesto — ou nada.
+
+O que essa migração exige, e por isso não foi feita agora:
+
+1. `publish_brand_import` passa a ser chamada pelo servidor, não pelo
+   navegador. Ela é `security invoker` e derivaria o ator de `auth.uid()`;
+   passaria a receber o ator como parâmetro, como `registrar_documento_fonte`
+   já faz — e com ele a mesma verificação de titularidade.
+2. O envio dos arquivos ao Storage continua no navegador (é ele que tem os
+   bytes), então a ordem "arquivos primeiro, banco depois" não muda. A fila
+   de limpeza de órfãos continua sendo a rede de segurança dessa metade.
+3. O payload de publicação passa a atravessar a rede até o servidor. Medido em
+   1.000 páginas: o manifesto sozinho são **234 KiB**, e os documentos com
+   texto integral são maiores — precisa medir contra o limite de corpo de
+   pedido da função antes de decidir se cabe numa chamada.
+4. A prova SQL cresce: hoje ela prova as constraints do manifesto; passaria a
+   precisar provar que **uma falha em qualquer ponto não deixa marca meia
+   criada** — o caso que hoje é impossível de ter porque as duas transações
+   são separadas de propósito.
+
+### 9.5 Medição de 10/09/2026, em 1.000 páginas
+
+`scripts/medir-manifesto-de-mil-paginas.sh`, no stack local:
+
+| Medida | Valor |
+|---|---|
+| Páginas no manifesto | 1.000 |
+| Payload do manifesto | 239.493 bytes (233,9 KiB) |
+| Bytes por página | 239,5 |
+| Folga contra 4,5 MB | 18,8× |
+| **Duração da transação B** | **36,0 ms** |
+| Duração da repetição idempotente | 3,1 ms |
+| Páginas gravadas | 1.000 |
+| Páginas sem seção (10% sintético) | 100 |
+| Documentos-fonte após repetir | 1 |
+| Páginas após repetir | 1.000 |
+| Relatório com manifesto | 134,1 KiB (vai para TOAST) |
+
+Duas leituras que mudam o planejamento:
+
+- **36 ms não é o gargalo.** A publicação de um manual grande leva minutos, e
+  eles estão na renderização das páginas visuais e no envio ao Storage. A
+  transação que se temia — mil `insert` mais três verificações de conjunto —
+  custa menos que uma requisição de rede. A migração para transação única não
+  precisa ser feita por desempenho.
+- **A repetição custa 3,1 ms.** O caminho de recuperação é dez vezes mais
+  barato que o caminho normal, porque a idempotência sai por `sha256` antes de
+  qualquer escrita. Oferecer "tentar de novo" não tem custo que justifique
+  hesitar.
+
+### 9.6 Condição de encerramento da dívida
+
+Esta seção sai do documento quando existir **uma** transação de servidor que
+grave marca, documentos, importação, documento-fonte e manifesto, com prova SQL
+de que uma falha em qualquer ponto não deixa nada gravado. Até então, a §9.2
+descreve garantias que não se afrouxam: cada uma tem teste, e nenhuma é
+preferência de estilo.
