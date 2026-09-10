@@ -127,8 +127,15 @@ export interface PortasDoRegistro {
     brandId: string,
     workspaceId: string,
   ): Promise<Leitura<RegistroDeImportacao>>;
-  /** Resolve slugs de seção para ids, sob RLS, dentro desta marca. */
-  secoes(brandId: string, slugs: string[]): Promise<Leitura<Map<string, string>>>;
+  /**
+   * Todas as seções desta marca, num mapa de slug para id, sob RLS.
+   *
+   * A marca inteira, e não os slugs pedidos: mandar até 500 slugs de 60
+   * caracteres num `.in(...)` põe tudo na query string, e o teto de linha de
+   * requisição varia por proxy — a falha seria segura, mas permanente, e
+   * repetir montaria a mesma URL. Ver `secoes-da-marca.ts`.
+   */
+  secoes(brandId: string): Promise<Leitura<Map<string, string>>>;
   /**
    * Chama a RPC com a chave de serviço.
    *
@@ -343,7 +350,7 @@ export async function registrarDocumentoFonte(
   ];
   let porSlug = new Map<string, string>();
   if (slugs.length > 0) {
-    const resolvidas = await portas.secoes(marcaId, slugs);
+    const resolvidas = await portas.secoes(marcaId);
     if (resolvidas.erro || !resolvidas.dados) {
       return falhaDeLeitura("secoes", resolvidas.erro);
     }

@@ -114,8 +114,11 @@ function portas(
           erro: null,
         };
       },
-      async secoes() {
+      async secoes(brandId) {
         if (erro("secoes")) return { dados: null, erro: erro("secoes") };
+        // A marca inteira, e não os slugs pedidos: é o que a rota faz desde
+        // que o `.in(...)` saiu. Ver `secoes-da-marca.ts`.
+        assert.equal(brandId, MARCA);
         return { dados: opcoes.secoes ?? new Map([["cores", SECAO]]), erro: null };
       },
       async registrar(argumentos) {

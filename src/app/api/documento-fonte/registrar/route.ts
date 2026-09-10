@@ -7,6 +7,7 @@ import {
   type PortasDoRegistro,
   type RegistroDeImportacao,
 } from "@/lib/documento-fonte/registrar";
+import { lerSecoesDaMarca, type PaginaDeSecoes } from "@/lib/documento-fonte/secoes-da-marca";
 
 /**
  * O segundo passo da publicação, no servidor.
@@ -99,23 +100,32 @@ export async function POST(request: Request) {
       return { dados: (data as RegistroDeImportacao | null) ?? null, erro: error };
     },
 
-    async secoes(brandId, slugs) {
-      const { data, error } = await sessao
-        .from("brand_documents")
-        .select("id, slug")
-        .eq("brand_id", brandId)
-        .in("slug", slugs);
+    async secoes(brandId) {
       /*
-       * Erro NÃO vira mapa vazio. Um mapa vazio significaria "nenhum destes
-       * slugs existe", que é um fato sobre a extração; erro significa "não
-       * sei", e as duas coisas levam a manifestos diferentes — um deles
-       * permanente e errado.
+       * As seções da marca por PÁGINAS, e não os slugs num `.in(...)`.
+       *
+       * O `.in` mandava até 500 slugs de 60 caracteres na query string, e o
+       * teto de linha de requisição varia por proxy. A falha era segura desde
+       * a correção da leitura — virava 503 —, mas PERMANENTE: repetir monta a
+       * mesma URL e falha igual, e o manual grande ficaria impossível de
+       * registrar sob uma mensagem que diz "tente de novo".
+       *
+       * Buscar tudo numa ida trocaria isso por uma truncagem silenciosa em
+       * `max_rows`. A regra da paginação vive em `secoes-da-marca.ts`, com
+       * teste; aqui fica só a consulta.
        */
-      if (error) return { dados: null, erro: error };
-      return {
-        dados: new Map((data ?? []).map((s) => [s.slug as string, s.id as string])),
-        erro: null,
-      };
+      return lerSecoesDaMarca(async (de, ate) => {
+        const { data, error } = await sessao
+          .from("brand_documents")
+          .select("id, slug")
+          .eq("brand_id", brandId)
+          // Ordem estável entre as idas: sem ela, uma página pode repetir
+          // linhas e outra pode nunca aparecer.
+          .order("id", { ascending: true })
+          .range(de, ate);
+        if (error) return { dados: null, erro: error };
+        return { dados: (data ?? []) as PaginaDeSecoes[], erro: null };
+      });
     },
 
     async registrar(argumentos) {
