@@ -152,19 +152,39 @@ test("em 375px a página continua inteira, sem remontar o documento", async ({ p
  * rota media o tamanho dessa resposta contra o teto de fatia e devolvia 413 —
  * tornando impossível abrir qualquer manual acima de 4 MiB.
  */
-test("a requisição sem Range é atendida, e as seguintes usam intervalo", async ({ page }) => {
-  const respostas: number[] = [];
+/**
+ * A invariante que protege PRODUÇÃO, e ela custou uma sessão para aparecer.
+ *
+ * Passando `url` ao PDF.js, ele faz uma primeira requisição **sem `Range`**
+ * para descobrir se o servidor aceita intervalos, e aborta o corpo depois. Em
+ * localhost isso é inofensivo. Numa função da Vercel é fatal: a rota começa a
+ * repassar o arquivo inteiro, a função estoura a duração, o corpo chega
+ * truncado, e o manual passa **sessenta segundos sem abrir** — medido em
+ * produção.
+ *
+ * Este teste não verifica desempenho, que varia com a máquina. Verifica a
+ * FORMA das requisições: se alguma sair sem `Range`, o defeito voltou.
+ */
+test("nenhuma requisição sem Range chega ao transporte", async ({ page }) => {
+  const semIntervalo: string[] = [];
+  const status: number[] = [];
+
+  page.on("request", (r) => {
+    if (!r.url().includes("/dev/fixture/")) return;
+    // `HEAD` é o único legítimo sem `Range`: ele traz o tamanho e não tem
+    // corpo, então nenhum byte atravessa a função.
+    if (r.method() !== "HEAD" && !r.headers()["range"]) semIntervalo.push(r.method());
+  });
   page.on("response", (r) => {
-    if (r.url().includes("/dev/fixture/")) respostas.push(r.status());
+    if (r.url().includes("/dev/fixture/")) status.push(r.status());
   });
 
   await abrir(page);
   await irPara(page, 500);
 
-  expect(respostas.length).toBeGreaterThan(0);
-  // Nenhuma recusa. 200 e 206 são os dois sucessos possíveis aqui.
-  expect(respostas.every((s) => s === 200 || s === 206)).toBe(true);
-  expect(respostas).toContain(206);
+  expect(semIntervalo).toEqual([]);
+  expect(status.every((s) => s === 200 || s === 206)).toBe(true);
+  expect(status).toContain(206);
 });
 
 /**
@@ -185,8 +205,13 @@ test.describe("manual acima do teto de fatia", () => {
 
   test("abre e desenha, sem recusa de intervalo", async ({ page }) => {
     const status: number[] = [];
+    const semIntervalo: string[] = [];
     page.on("response", (r) => {
       if (r.url().includes("/dev/fixture/")) status.push(r.status());
+    });
+    page.on("request", (r) => {
+      if (!r.url().includes("/dev/fixture/")) return;
+      if (r.method() !== "HEAD" && !r.headers()["range"]) semIntervalo.push(r.method());
     });
 
     await page.goto(ACIMA);
@@ -196,6 +221,9 @@ test.describe("manual acima do teto de fatia", () => {
     // 413 é a recusa que fechava a porta. Nenhuma resposta pode trazê-la.
     expect(status).not.toContain(413);
     expect(status.every((s) => s === 200 || s === 206)).toBe(true);
+    // E o arquivo inteiro nunca é pedido de uma vez — é o que matava a função
+    // em produção justamente com manual deste tamanho.
+    expect(semIntervalo).toEqual([]);
   });
 
   test("um intervalo maior que o teto volta APARADO, e diz o que traz", async ({ page }) => {

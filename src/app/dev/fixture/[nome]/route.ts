@@ -19,6 +19,44 @@ import { contentRange, contentRangeForaDoAlcance, resolverRange } from "@/lib/do
  * Fora de produção por construção, e o nome do arquivo nunca vira caminho: só
  * um nome da pasta de fixtures é aceito, sem separador e sem `..`.
  */
+/**
+ * `HEAD` explícito, e não derivado.
+ *
+ * O visualizador descobre o tamanho por `HEAD` antes de pedir intervalos — é
+ * o que evita a requisição sem `Range` que mata a função em produção. O Next
+ * deriva `HEAD` de `GET` executando o corpo e descartando, o que aqui
+ * significaria ler 4 MiB do disco para jogar fora. Explícito, ele só mede.
+ */
+export async function HEAD(
+  _request: Request,
+  { params }: { params: Promise<{ nome: string }> },
+) {
+  if (process.env.NODE_ENV === "production") notFound();
+  const { nome } = await params;
+  const arquivo = validar(nome);
+  if (!arquivo) return new Response(null, { status: 404 });
+  try {
+    const { size } = await stat(arquivo);
+    return new Response(null, {
+      status: 200,
+      headers: {
+        "content-type": "application/pdf",
+        "accept-ranges": "bytes",
+        "content-length": String(size),
+        "cache-control": "no-store",
+      },
+    });
+  } catch {
+    return new Response(null, { status: 404 });
+  }
+}
+
+/** Sem barra, sem `..`: o nome é um rótulo, não um caminho. */
+function validar(nome: string): string | null {
+  if (!/^[a-z0-9][a-z0-9._-]{0,80}\.pdf$/i.test(nome) || nome.includes("..")) return null;
+  return path.join(process.cwd(), "e2e/fixtures", nome);
+}
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ nome: string }> },
@@ -26,12 +64,9 @@ export async function GET(
   if (process.env.NODE_ENV === "production") notFound();
 
   const { nome } = await params;
-  // Sem barra, sem `..`, sem nada que navegue. O nome é um rótulo, não um caminho.
-  if (!/^[a-z0-9][a-z0-9._-]{0,80}\.pdf$/i.test(nome) || nome.includes("..")) {
-    return new Response(null, { status: 404 });
-  }
+  const arquivo = validar(nome);
+  if (!arquivo) return new Response(null, { status: 404 });
 
-  const arquivo = path.join(process.cwd(), "e2e/fixtures", nome);
   let tamanho: number;
   try {
     tamanho = (await stat(arquivo)).size;

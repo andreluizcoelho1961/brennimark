@@ -98,17 +98,95 @@ export function VisualizadorDePdf({
     ).toString();
 
     /**
-     * A configuração que faz a rota valer a pena.
+     * O documento é carregado por TRANSPORTE DE INTERVALOS, e não por URL.
      *
-     * `disableStream` e `disableAutoFetch` impedem o PDF.js de puxar o arquivo
-     * inteiro em segundo plano — sem os dois, ele pede intervalos E baixa tudo
-     * mesmo assim, e a economia de banda que motivou a rota desaparece.
+     * ─── O que estava errado, e só produção mostrou ──────────────────────
      *
-     * `rangeChunkSize` em 64 KiB é o que a sondagem mediu: sufixo de 64 KiB
-     * mais início de 64 KiB bastam para abrir o documento.
+     * Passando `url`, o PDF.js faz uma primeira requisição **sem `Range`**:
+     * ela existe para ler `Accept-Ranges` e `Content-Length` e decidir que
+     * pode pedir intervalos, e o cliente aborta o corpo em seguida.
+     *
+     * Em localhost isso é inofensivo — o "servidor" está na mesma máquina e o
+     * aborto chega antes de qualquer byte importar. Numa função da Vercel é
+     * fatal: a rota começa a repassar o arquivo INTEIRO, e um manual de 4 MiB
+     * atravessando uma função com teto de duração morre no meio. O PDF.js
+     * recebe corpo truncado, tenta de novo, e o manual passa **sessenta
+     * segundos sem abrir** — medido em produção, com o total de páginas
+     * aparecendo como "—" porque o documento nunca carregou.
+     *
+     * ─── O que passa a acontecer ─────────────────────────────────────────
+     *
+     * Um `HEAD` traz o tamanho — resposta sem corpo, barata — e o
+     * `PDFDataRangeTransport` pede pedaços. **Nenhuma requisição sem `Range`
+     * chega à rota**, e é isso que o teste `nenhuma requisição sem Range`
+     * tranca: é a invariante que protege produção, e não uma preferência.
      */
+    const cabecalhos = await fetch(url, { method: "HEAD", cache: "no-store" });
+    if (!cabecalhos.ok) {
+      throw Object.assign(new Error("documento indisponível"), { status: cabecalhos.status });
+    }
+    const tamanho = Number(cabecalhos.headers.get("content-length"));
+    if (!Number.isFinite(tamanho) || tamanho <= 0) {
+      throw Object.assign(new Error("tamanho desconhecido"), { status: 502 });
+    }
+
+    const transporte = new pdfjs.PDFDataRangeTransport(tamanho, null, false);
+    transporte.requestDataRange = (inicio: number, fim: number) => {
+      /**
+       * Preenche o intervalo pedido, inteiro, mesmo que a rota apare.
+       *
+       * A rota apara fatias acima do teto de 4 MiB — e devolve menos bytes do
+       * que foram pedidos, dizendo a verdade no `Content-Range`. Entregar essa
+       * fatia curta ao PDF.js o deixaria esperando o resto para sempre. O laço
+       * continua de onde parou até completar o que foi pedido.
+       */
+      void (async () => {
+        try {
+          /**
+           * O limite é o FIM DO ARQUIVO, não o fim pedido.
+           *
+           * O PDF.js pede intervalos que passam do fim — é legítimo, e o
+           * servidor apara. A primeira versão deste laço somava os bytes
+           * recebidos e, como nunca alcançava o fim pedido, pedia outra fatia
+           * COMEÇANDO no fim do arquivo. A rota respondia `416`, o laço
+           * desistia sem entregar nada, e o PDF.js esperava aquele pedaço para
+           * sempre: o documento abria (47 páginas), e as páginas nunca
+           * pintavam. Nenhum erro no console — só canvas preto.
+           */
+          const limite = Math.min(fim, tamanho);
+          let cursor = inicio;
+          const pedacos: Uint8Array[] = [];
+
+          while (cursor < limite) {
+            const resposta = await fetch(url, {
+              headers: { Range: `bytes=${cursor}-${limite - 1}` },
+              cache: "no-store",
+            });
+            if (resposta.status !== 206 && resposta.status !== 200) break;
+            const parte = new Uint8Array(await resposta.arrayBuffer());
+            // Resposta vazia não avança o cursor, e repetir seria laço infinito.
+            if (parte.byteLength === 0) break;
+            pedacos.push(parte);
+            cursor += parte.byteLength;
+          }
+
+          if (pedacos.length === 0) return;
+          const total = pedacos.reduce((a, p) => a + p.byteLength, 0);
+          const junto = new Uint8Array(total);
+          let posicao = 0;
+          for (const p of pedacos) {
+            junto.set(p, posicao);
+            posicao += p.byteLength;
+          }
+          transporte.onDataRange(inicio, junto);
+        } catch {
+          // Abandono ou rede: o PDF.js trata a ausência do pedaço.
+        }
+      })();
+    };
+
     const tarefa = pdfjs.getDocument({
-      url,
+      range: transporte,
       disableStream: true,
       disableAutoFetch: true,
       rangeChunkSize: 65_536,
