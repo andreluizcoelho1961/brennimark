@@ -72,6 +72,15 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * Corrige `enqueue_import_cleanup`, que falhava em toda chamada (42P10)
+   * desde que a fila ganhou `bucket_id`. Só o insert muda; invoker, grants e
+   * a recusa de importação publicada ficam como estavam.
+   *
+   * Escrita em 10/09/2026, NÃO aplicada em produção: aplicar em banco é
+   * decisão do proprietário. Prova em `scripts/prova-limpeza-de-importacao.sh`.
+   */
+  "limpeza_de_importacao_enfileira_de_fato",
 ];
 
 /**
