@@ -158,3 +158,68 @@ export function totalDoContentRange(cabecalho: string | null): number | null {
   const casou = /^bytes\s+(?:\d+-\d+|\*)\/(\d+)$/.exec(cabecalho.trim());
   return casou ? Number(casou[1]) : null;
 }
+
+/**
+ * O `Range` que vai à ORIGEM, já aparado ao teto.
+ *
+ * ─── Por que aparar ANTES, e não conferir depois ─────────────────────────
+ *
+ * A rota repassava o `Range` original ao Storage e só calculava o intervalo
+ * aparado depois da resposta. Se a origem devolvesse mais de 4 MiB — o que ela
+ * faz, porque o pedido era o original — a conferência acusava divergência e a
+ * rota respondia **502**, em vez de entregar a fatia aparada.
+ *
+ * O teto existe porque a resposta de uma função da Vercel é truncada acima de
+ * 4,5 MB. Conferir depois de os bytes já estarem em trânsito é tarde: ou a
+ * função já pagou por eles, ou o corpo chega cortado.
+ *
+ * ─── Aparar sem saber o tamanho total ───────────────────────────────────
+ *
+ * Nenhum dos três casos precisa do tamanho do arquivo, e isso importa: saber o
+ * total exigiria um `HEAD` a mais por pedido, que é justamente o custo que
+ * esta rota passou o dia inteiro eliminando.
+ *
+ *   bytes=N-M   o fim vira `min(M, N + teto - 1)`
+ *   bytes=N-    o fim passa a ser explícito: `N + teto - 1`. Se ultrapassar o
+ *               arquivo, a origem apara — e aparar pelo fim do arquivo é o
+ *               comportamento normal dela
+ *   bytes=-N    sufixo: vira `bytes=-teto`. O cliente pediu a cauda; recebe
+ *               uma cauda mais curta, e o `Content-Range` diz qual
+ *
+ * Sem `Range`, devolve `null`: a requisição segue sem o cabeçalho, e é o
+ * cliente que aborta ao ler os cabeçalhos.
+ */
+export function rangeParaOrigem(
+  cabecalho: string | null,
+  teto: number = TETO_DA_FATIA,
+): string | null {
+  if (!cabecalho) return null;
+
+  const bruto = cabecalho.trim();
+  // Multi-intervalo e malformado são ignorados, como em `resolverRange`: a
+  // origem recebe a requisição sem `Range`.
+  if (bruto.includes(",")) return null;
+
+  const casou = PADRAO.exec(bruto);
+  if (!casou) return null;
+
+  const [, esquerda, direita] = casou;
+  if (esquerda === "" && direita === "") return null;
+
+  if (esquerda === "") {
+    const quantos = Number(direita);
+    if (!Number.isFinite(quantos) || quantos <= 0) return bruto;
+    return `bytes=-${Math.min(quantos, teto)}`;
+  }
+
+  const inicio = Number(esquerda);
+  if (!Number.isFinite(inicio) || inicio < 0) return bruto;
+
+  const tetoDoFim = inicio + teto - 1;
+  const fim = direita === "" ? tetoDoFim : Math.min(Number(direita), tetoDoFim);
+  // Intervalo invertido segue cru: quem decide o 416 é a origem, e reescrever
+  // um pedido inválido esconderia o erro do cliente.
+  if (fim < inicio) return bruto;
+
+  return `bytes=${inicio}-${fim}`;
+}

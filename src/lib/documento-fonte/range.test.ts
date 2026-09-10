@@ -5,6 +5,7 @@ import {
   contentRange,
   contentRangeForaDoAlcance,
   ifRangeAutoriza,
+  rangeParaOrigem,
   resolverRange,
   totalDoContentRange,
 } from "./range";
@@ -175,4 +176,66 @@ test("Content-Range ausente ou sem total devolve null, nunca NaN", () => {
   assert.equal(totalDoContentRange(null), null);
   assert.equal(totalDoContentRange("bytes 0-1023/*"), null);
   assert.equal(totalDoContentRange("lixo"), null);
+});
+
+// ─── O intervalo que vai à ORIGEM, aparado antes do pedido ─────────────────
+
+/**
+ * A regressão que estes casos trancam: a rota repassava o `Range` original ao
+ * Storage e só conferia o tamanho DEPOIS. Um pedido acima do teto voltava
+ * maior, a conferência acusava divergência, e a resposta era **502** em vez da
+ * fatia aparada.
+ */
+test("pedido dentro do teto atravessa igual", () => {
+  assert.equal(rangeParaOrigem("bytes=0-1023"), "bytes=0-1023");
+});
+
+test("pedido acima do teto é aparado ANTES de ir à origem", () => {
+  assert.equal(rangeParaOrigem("bytes=0-99999999"), `bytes=0-${TETO_DA_FATIA - 1}`);
+});
+
+test("intervalo aberto ganha fim explícito no teto", () => {
+  // `bytes=1000-` sem fim faria a origem devolver o arquivo inteiro a partir
+  // de 1000 — que é exatamente o corpo grande que a função não sustenta.
+  assert.equal(rangeParaOrigem("bytes=1000-"), `bytes=1000-${1000 + TETO_DA_FATIA - 1}`);
+});
+
+test("aparar preserva o início pedido", () => {
+  assert.equal(
+    rangeParaOrigem("bytes=500-99999999"),
+    `bytes=500-${500 + TETO_DA_FATIA - 1}`,
+  );
+});
+
+test("sufixo acima do teto vira sufixo do tamanho do teto", () => {
+  // O cliente pediu a cauda; recebe uma cauda mais curta, e o `Content-Range`
+  // dirá exatamente qual. Nenhum destes casos precisa do tamanho do arquivo —
+  // saber o total custaria um HEAD por pedido.
+  assert.equal(rangeParaOrigem("bytes=-99999999"), `bytes=-${TETO_DA_FATIA}`);
+  assert.equal(rangeParaOrigem("bytes=-1024"), "bytes=-1024");
+});
+
+test("sem Range, nada é enviado à origem", () => {
+  assert.equal(rangeParaOrigem(null), null);
+});
+
+test("multi-intervalo e malformado seguem sem Range", () => {
+  for (const ruim of ["bytes=0-99,200-299", "bytes=abc-def", "items=0-10", "bytes=-"]) {
+    assert.equal(rangeParaOrigem(ruim), null, `falhou em: ${ruim}`);
+  }
+});
+
+test("intervalo invertido segue cru — o 416 é da origem", () => {
+  // Reescrever um pedido inválido esconderia o erro do cliente.
+  assert.equal(rangeParaOrigem("bytes=500-100"), "bytes=500-100");
+});
+
+test("o aparo e a conferência concordam sobre o mesmo pedido", () => {
+  // A rota apara, pede, e depois confere com `resolverRange` sobre o intervalo
+  // APARADO. Se os dois discordassem, toda fatia grande viraria 502 — que era
+  // exatamente o defeito.
+  const total = 50_000_000;
+  const paraOrigem = rangeParaOrigem("bytes=0-49999999")!;
+  const conferido = resolverRange(paraOrigem, total);
+  assert.deepEqual(conferido, { tipo: "parcial", inicio: 0, fim: TETO_DA_FATIA - 1 });
 });

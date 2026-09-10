@@ -321,3 +321,83 @@ fundacionais. As outras três ficam de fora, com motivo:
 
 **O critério:** entra o que faz a página parar de sumir. O resto entra quando
 tiver tela ou consumidor.
+
+---
+
+## 8. Revisão de 10/09 — seis brechas medidas, e as decisões que elas forçaram
+
+A primeira versão desta fatia foi revisada. **Cada afirmação da revisão foi
+verificada contra o banco antes de qualquer correção**, e todas se
+confirmaram.
+
+| # | Brecha | Estado antes | Fechada por |
+|---|---|---|---|
+| 1 | página 999 num documento com `page_count = 3` | **aceita** | gatilho `pagina_dentro_do_documento` |
+| 2 | owner reescrevia `pdf_sha256`, `storage_path`, `page_count` | **aceito** | sem `grant update`; escrita só por RPC |
+| 3 | página da marca B em documento da marca A | **aceita** | FK composta `(source_document_id, brand_id, workspace_id)` |
+| 4 | página apontando para seção de outra marca | **aceita** | FK composta contra `brand_documents` |
+| 5 | `brand_imports.source_document_id` sem coerência | **aceito** | FK composta |
+| 6 | manual e anexo ativos ao mesmo tempo | **recusado, e era errado** | índice único por `(marca, tipo)` |
+
+### 8.1 A unidade de versionamento — decisão registrada
+
+O índice de "uma ativa" era por MARCA, e isso contradizia a própria coluna
+`tipo`: a tabela declarava quatro tipos e o esquema permitia um documento
+ativo só. Três opções foram consideradas — por tipo, por família documental, e
+manual único com anexos livres.
+
+**Escolhido: uma ativa por TIPO.** É o que a coluna já implica, não exige
+esquema novo, e a substituição continua tendo significado dentro do tipo. A
+alternativa "por família" exigiria decidir o que é família antes de existir
+tela que a use; "manual único" trata anexo como cidadão de segunda classe e
+não resolve dois anexos com o mesmo papel.
+
+**Reversível:** trocar o índice é uma migration de uma linha; não trava dado.
+
+**Consequência que a prova pegou:** a unicidade de `versao` também precisou
+passar a ser por tipo. Com `unique (brand_id, workspace_id, versao)`, um manual
+v1 e um anexo v1 colidiam — a decisão dizia uma coisa e o esquema outra.
+
+### 8.2 Escrita só por RPC — e o que isso resolve de uma vez
+
+Duas garantias não são expressáveis linha a linha:
+
+- **completude** — "existem exatamente 1..N, sem furo e sem repetição" é
+  propriedade do CONJUNTO; nenhum `check` alcança, porque cada linha é válida
+  sozinha;
+- **imutabilidade** — campo de procedência que aceita `update` não é
+  procedência.
+
+A saída é a mesma para as duas: `authenticated` **só lê**. Documento e
+manifesto entram juntos, numa transação, por `registrar_documento_fonte`, que
+valida a faixa inteira antes de gravar. Campos editoriais mudam por
+`editar_documento_fonte`, que não alcança nenhum campo de procedência.
+
+Exclusão não tem RPC de propósito: acontece pelo `on delete cascade` da marca,
+que já passa pela fila durável de remoção de arquivos.
+
+### 8.3 Dois defeitos que a própria prova encontrou
+
+Ambos da mesma família — `on delete set null` colidindo com constraints:
+
+1. **a coerência tornava a curadoria impossível.** `document_id` é `set null`
+   para a página sobreviver; mas a check exige
+   `(cobertura='secao') = (document_id is not null)`, então o `set null`
+   produzia linha incoerente e **o DELETE da seção falhava**. Fechado pelo
+   gatilho `soltar_secao`;
+2. **`set null` sem lista de colunas zerava as três.** A FK composta zerava
+   também `brand_id` e `workspace_id`, que são `not null` — e o DELETE falhava
+   de novo, por outro caminho. Fechado com `set null (document_id)`, nomeando
+   a coluna. Há precedente no esquema desde 02/09.
+
+### 8.4 A prova, refeita
+
+A versão anterior tratava qualquer erro com "violates" como sucesso. Se a
+preparação de um caso falhasse, ele passava **sem alcançar a constraint**. Foi
+exatamente o que aconteceu quando a prova ficou estrita: dois casos de marca
+cruzada estavam batendo na unicidade de página antes da chave composta — erro
+certo pelo motivo errado.
+
+A prova agora: **26 verificações**, cada uma conferindo o NOME EXATO da
+constraint ou o SQLSTATE, com mundo próprio (duas contas, duas marcas), dados
+isolados por caso, e `rollback` no fim.
