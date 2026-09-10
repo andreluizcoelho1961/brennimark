@@ -26,11 +26,13 @@ Os ADRs vigentes, em ordem:
 - [`docs/adr/0003`](./docs/adr/0003-produto-hospedado-multi-marca.md) — produto hospedado
   multi-marca; **substitui o 0001**
 - [`docs/adr/0004`](./docs/adr/0004-o-produto-age-na-criacao.md) — o produto age na criação
+- [`docs/adr/0005`](./docs/adr/0005-a-curadoria-editorial-e-do-produto.md) — a curadoria editorial
+  é do produto
 
 `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRANDVILLE_MATRIX.md` são
 **históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
 
-## Next.js 16.2.10
+## Next.js 16.3.4
 
 Tem mudanças incompatíveis com versões anteriores. Antes de alterar APIs, roteamento, cache,
 middleware/proxy, Server Components ou convenções do App Router, consultar `node_modules/next/dist/docs/`.
@@ -100,8 +102,79 @@ Nunca apagar, reescrever ou normalizar silenciosamente dados, histórico ou asse
 npm run verify
 ```
 
-Roda a mesma sequência do CI: lint, tipos, as três suítes e o build de produção. Se passa aqui,
-passa lá.
+Roda a mesma sequência do CI, nesta ordem: lint, tipos, testes de unidade, build de produção e a
+suíte de navegador.
 
-O CI existe em `.github/workflows/ci.yml` mas **nunca rodou**: o repositório não tem remoto. Uma
-execução remota verde é gate obrigatório antes do primeiro piloto.
+**Rodar o `verify` INTEIRO antes de empurrar, sempre.** Unidade e build verdes não autorizam push:
+em 09/09/2026 três commits foram empurrados com o CI vermelho em seguida, e nenhuma das três
+causas aparecia fora do navegador — texto de mensagem mudado, `testMatch` casando com o nome do
+diretório, e uma corrida latente exposta pelo aumento de carga da suíte.
+
+Em worktree novo, `npm ci` de verdade: `node_modules` como atalho simbólico quebra o Turbopack com
+"Symlink points out of the filesystem root".
+
+**Correção de 10/09/2026 — duas afirmações que este arquivo fazia e eram falsas:** ele dizia que o
+repositório não tem remoto e que o CI nunca rodou. Existe `origin` em
+`github.com/andreluizcoelho1961/brennimark`, e o CI ("Lint, tipos, testes, build e navegador",
+~11 min) roda verde desde 05/09. O gate de execução remota verde **já foi cumprido**.
+
+O CI do PR roda `refs/pull/N/merge`, então testa a integração com a `main` **atual**, não a branch
+isolada: uma falha nova depois de um push pode ser choque com a `main` que andou, e não regressão
+do commit.
+
+## Transporte do documento-fonte — invariantes que não se afrouxam
+
+`src/lib/documento-fonte/` e `src/app/api/documento-fonte/[id]/`. Estas regras custaram uma sessão
+inteira de caçada; cada uma tem teste, e nenhuma é preferência de estilo.
+
+**Nenhuma resposta passa de 4 MiB.** A resposta de uma função da Vercel é truncada acima de
+4,5 MB, e corpo truncado com `content-length` cheio é um PDF corrompido sem aviso. O teto **apara**
+o intervalo e devolve `206` com `Content-Range` honesto — aparar promete menos e cumpre; recusar
+com 413 quebrou todo manual acima de 4 MiB. `HEAD` é isento: não tem corpo.
+
+**O visualizador nunca pede o arquivo inteiro.** Ele faz `HEAD` para o tamanho e usa
+`PDFDataRangeTransport`. Passar a URL ao PDF.js faz ele sondar **sem `Range`**, a rota começa a
+repassar o arquivo todo, a função estoura a duração e o manual não abre — 60 segundos, medido em
+produção. Há teste de navegador trancando essa invariante.
+
+**A autorização do transporte é enxuta, e por medição.** Uma consulta autorizada pela RLS: se a
+linha vem, o banco provou. Usar a autorização das páginas de interface custava **~350 ms por
+pedido de intervalo** contra 16 ms — ela resolve workspaces, marcas, perfil, documentos e
+capacidades e valida o token pela rede.
+
+**`Server-Timing` fica na resposta.** `autorizacao`, `documento`, `sessao`, `storage`. Quando o
+sintoma é lentidão, ler a etapa vem antes de formular hipótese: três rodadas foram gastas em
+teoria — uma delas errada — e a instrumentação resolveu na primeira leitura.
+
+**Cache não mente sobre a representação.** Esta URL serve intervalos diferentes, então nada de
+`immutable`: ele descreve representação completa, e "zero bytes transferidos" era o navegador
+reaproveitando conteúdo parcial entre intervalos.
+
+## Limites: do produto e da instalação
+
+São dois números, e confundi-los deixa a conta de hospedagem decidir o escopo.
+
+| | Valor | Natureza |
+|---|---|---|
+| `TETO_DO_PRODUTO_BYTES` | 100 MiB | requisito, constante no código |
+| `TETO_DO_PLANO_BYTES` | 50 MB | `NEXT_PUBLIC_TETO_DE_IMPORTACAO_MB` |
+
+O Supabase Free impõe 50 MB por arquivo como limite global de plataforma; o limite por bucket não
+pode ultrapassá-lo. A recusa **diz qual dos dois** barrou: "passa do limite da instalação atual,
+não do produto". Dizer só "grande demais" faria uma agência concluir que o produto não serve para
+manuais grandes, sobre um limite provisório.
+
+Migrar ao Pro são dois passos, nenhum automático: a variável na Vercel e uma migration subindo o
+bucket. Teto de Storage é estado do banco, e estado do banco muda por migration versionada.
+
+## Provas versionadas
+
+Garantia que ninguém reexecuta é garantia que alguém remove numa refatoração sem perceber.
+
+- `scripts/prova-de-concorrencia-ai-ledger.sh` — as travas do razão de IA
+- `scripts/prova-manifesto-por-pagina.sh` — as constraints do documento-fonte
+
+**Prova confere o NOME EXATO da constraint**, não "algum erro". Uma versão anterior tratava
+qualquer `violates` como sucesso, e um caso cuja preparação falhava passava sem nunca alcançar a
+constraint pretendida — falso positivo estrutural. Cada caso também precisa de dados isolados:
+dado compartilhado entre casos foi o que produziu o falso positivo.
