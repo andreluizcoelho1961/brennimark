@@ -189,6 +189,40 @@ test("nenhum relato sugere que a publicação falhou por inteiro", () => {
   }
 });
 
+/**
+ * O zero falso também não pode nascer do lado do navegador.
+ *
+ * O servidor passou a mandar `null` quando não mede. Se o parse convertesse
+ * ausência em `0`, o mesmo defeito voltaria por este lado: "não sei" chegaria
+ * à tela como "não há pendência".
+ */
+test("resposta idempotente sem contagem chega como null, nunca como zero", async () => {
+  for (const corpo of [
+    { documentoId: "doc-1", paginas: 47, paginasSemSecao: null, jaEstava: true },
+    { documentoId: "doc-1", paginas: 47, jaEstava: true },
+  ]) {
+    const r = await registrarImportacao(PEDIDO, respondendo(200, corpo));
+    assert.equal(r.ok, true, JSON.stringify(corpo));
+    if (r.ok) {
+      assert.notStrictEqual(r.paginasSemSecao, 0, JSON.stringify(corpo));
+      assert.strictEqual(r.paginasSemSecao, null, JSON.stringify(corpo));
+    }
+  }
+});
+
+test("zero medido pelo servidor atravessa como zero", async () => {
+  const r = await registrarImportacao(
+    PEDIDO,
+    respondendo(200, { documentoId: "doc-1", paginas: 47, paginasSemSecao: 0, jaEstava: false }),
+  );
+  assert.equal(r.ok, true);
+  if (r.ok) assert.strictEqual(r.paginasSemSecao, 0);
+});
+
+test("pendência não medida não gera relato", () => {
+  assert.equal(relatarPendenciaDeSecao(null, 47), null);
+});
+
 test("pendência de seção só é relatada quando existe", () => {
   assert.equal(relatarPendenciaDeSecao(0, 100), null);
   assert.equal(relatarPendenciaDeSecao(-1, 100), null);

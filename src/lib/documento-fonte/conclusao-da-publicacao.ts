@@ -114,10 +114,15 @@ export function relatarConclusao(codigo: string): RelatoDaConclusao {
  * editorial esperando antes de a marca ir na frente de um cliente.
  */
 export function relatarPendenciaDeSecao(
-  paginasSemSecao: number,
+  paginasSemSecao: number | null,
   total: number,
 ): { pt: string; en: string } | null {
-  if (paginasSemSecao <= 0) return null;
+  /*
+   * `null` é "não medido", e não gera relato — mas também não gera a
+   * afirmação de que está tudo coberto. A diferença mora em quem chama: um
+   * zero declarado é um fato sobre o manifesto; um `null` é ausência de fato.
+   */
+  if (paginasSemSecao === null || paginasSemSecao <= 0) return null;
 
   return {
     pt: `${paginasSemSecao} de ${total} páginas ficaram sem seção. Elas estão registradas e visíveis no manual original — a curadoria atribui a seção depois.`,

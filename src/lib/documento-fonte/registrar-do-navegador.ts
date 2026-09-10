@@ -22,7 +22,13 @@ export interface PedidoDoNavegador {
 }
 
 export type RespostaDoRegistro =
-  | { ok: true; paginas: number; paginasSemSecao: number; jaEstava: boolean }
+  | {
+      ok: true;
+      paginas: number;
+      /** `null` quando o servidor não mediu. Nunca vira `0` aqui. */
+      paginasSemSecao: number | null;
+      jaEstava: boolean;
+    }
   | { ok: false; codigo: string; repetivel: boolean };
 
 export async function registrarImportacao(
@@ -77,7 +83,12 @@ export async function registrarImportacao(
   return {
     ok: true,
     paginas: typeof corpo.paginas === "number" ? corpo.paginas : 0,
-    paginasSemSecao: typeof corpo.paginasSemSecao === "number" ? corpo.paginasSemSecao : 0,
+    /*
+     * Ausente ou nulo continua `null`. Converter para `0` aqui refaria, do
+     * lado do navegador, o mesmo zero falso que o servidor deixou de mandar:
+     * "não sei" chegaria à tela como "não há pendência".
+     */
+    paginasSemSecao: typeof corpo.paginasSemSecao === "number" ? corpo.paginasSemSecao : null,
     jaEstava: corpo.jaEstava === true,
   };
 }

@@ -133,7 +133,8 @@ async function lerEstadoDoRegistro(
   incompleta: boolean;
   sourceDocumentId: string | null;
   importId: string | null;
-  paginasSemSecao: number;
+  /** `null` quando não foi medido. Zero é afirmação, não padrão. */
+  paginasSemSecao: number | null;
 } | null> {
   const { data, error } = await supabase
     .from("brand_imports")
@@ -147,7 +148,8 @@ async function lerEstadoDoRegistro(
   const importId = (data.import_id as string | null) ?? null;
 
   if (!sourceDocumentId) {
-    return { incompleta: true, sourceDocumentId: null, importId, paginasSemSecao: 0 };
+    // Sem documento-fonte não há manifesto para contar: não medido.
+    return { incompleta: true, sourceDocumentId: null, importId, paginasSemSecao: null };
   }
 
   // `head: true` porque só a contagem interessa: mil páginas sem seção seriam
@@ -162,6 +164,11 @@ async function lerEstadoDoRegistro(
     incompleta: false,
     sourceDocumentId,
     importId,
-    paginasSemSecao: erroDaContagem ? 0 : (count ?? 0),
+    /*
+     * Contagem que FALHOU não é contagem zero. A versão anterior dizia `0`
+     * quando a consulta caía, e zero apaga o aviso: páginas sem seção reais
+     * sumiriam da vista de quem cura justamente quando o banco tropeçou.
+     */
+    paginasSemSecao: erroDaContagem ? null : (count ?? null),
   };
 }

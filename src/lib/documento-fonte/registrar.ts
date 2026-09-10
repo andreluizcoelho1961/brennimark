@@ -172,8 +172,16 @@ export type ResultadoDoRegistro =
       ok: true;
       documentoId: string;
       paginas: number;
-      /** Páginas que ficaram sem seção. Pendência de curadoria, não erro. */
-      paginasSemSecao: number;
+      /**
+       * Páginas que ficaram sem seção. Pendência de curadoria, não erro.
+       *
+       * `null` quando NÃO FOI MEDIDO nesta resposta — e nunca `0` no lugar.
+       * Zero é uma afirmação: "não há pendência". Quem lê um zero esconde o
+       * aviso; quem lê `null` sabe que precisa perguntar a quem mede. O
+       * atalho `jaEstava` não conta as páginas, porque existe justamente para
+       * responder sem mais idas ao banco.
+       */
+      paginasSemSecao: number | null;
       /** Verdadeiro quando já estava registrado e nada foi gravado agora. */
       jaEstava: boolean;
     }
@@ -316,7 +324,14 @@ export async function registrarDocumentoFonte(
       ok: true,
       documentoId: registro.source_document_id,
       paginas: registro.page_count,
-      paginasSemSecao: 0,
+      /*
+       * Não medido, e dito como tal. Este caminho devolvia `0`, e o aceite
+       * local de 10/09 pegou o efeito: a marca tinha 1 página sem seção, e a
+       * resposta idempotente afirmava que não havia nenhuma. Contar aqui
+       * exigiria mais uma ida ao banco num atalho que existe para evitá-la; o
+       * manual original já mede o número de onde ele mora.
+       */
+      paginasSemSecao: null,
       jaEstava: true,
     };
   }

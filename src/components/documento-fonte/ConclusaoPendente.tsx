@@ -117,7 +117,8 @@ export function PendenciaDeSecao({
   paginasSemSecao,
   total,
 }: {
-  paginasSemSecao: number;
+  /** `null` quando não foi medido; o componente então não afirma nada. */
+  paginasSemSecao: number | null;
   total: number;
 }) {
   const isEnglish = useIsEnglish();

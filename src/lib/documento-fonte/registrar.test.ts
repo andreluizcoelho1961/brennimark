@@ -271,6 +271,49 @@ test("importação já vinculada responde concluída sem chamar a RPC", async ()
   assert.equal(chamadas.length, 0);
 });
 
+/**
+ * A resposta idempotente nunca declara falsamente zero páginas sem seção.
+ *
+ * O aceite local de 10/09 pegou isto com dado real: a marca tinha 1 página
+ * sem seção, e o atalho `jaEstava` respondia `paginasSemSecao: 0`. Zero é uma
+ * afirmação — "não há pendência" —, e este caminho não conta nada. O teste
+ * monta exatamente esse cenário: um manifesto COM páginas sem seção, já
+ * vinculado, para que um zero só possa ser mentira.
+ */
+test("resposta idempotente nunca declara falsamente zero páginas sem seção", async () => {
+  const banco = bancoDeTeste([pagina(1, { secao_slug: "cores" }), pagina(2), pagina(3)]);
+  banco.linha.source_document_id = "doc-anterior";
+
+  const r = await registrarDocumentoFonte(pedido, portas(banco).portas);
+
+  assert.equal(r.ok, true);
+  if (r.ok) {
+    assert.equal(r.jaEstava, true);
+    assert.notStrictEqual(r.paginasSemSecao, 0, "zero seria afirmação sem medida");
+    assert.strictEqual(r.paginasSemSecao, null);
+  }
+});
+
+/**
+ * O contraste: no caminho que GRAVA, o número é medido e chega como número —
+ * inclusive o zero, quando o manifesto está todo coberto. `null` fica restrito
+ * ao que não foi contado.
+ */
+test("no caminho que grava, a contagem é medida e sai como número", async () => {
+  const coberto = bancoDeTeste([pagina(1, { secao_slug: "cores" })]);
+  const rCoberto = await registrarDocumentoFonte(pedido, portas(coberto).portas);
+  assert.equal(rCoberto.ok, true);
+  if (rCoberto.ok) {
+    assert.equal(rCoberto.jaEstava, false);
+    assert.strictEqual(rCoberto.paginasSemSecao, 0, "zero medido é zero de verdade");
+  }
+
+  const comFalta = bancoDeTeste([pagina(1, { secao_slug: "cores" }), pagina(2)]);
+  const rComFalta = await registrarDocumentoFonte(pedido, portas(comFalta).portas);
+  assert.equal(rComFalta.ok, true);
+  if (rComFalta.ok) assert.strictEqual(rComFalta.paginasSemSecao, 1);
+});
+
 // ─── Consulta que FALHOU não é consulta que não achou ──────────────────────
 
 /**
