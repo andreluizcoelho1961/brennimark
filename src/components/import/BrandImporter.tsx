@@ -355,11 +355,21 @@ export function BrandImporter({
       if (objetoNovo) {
         const remocao = await supabase.storage.from("brand-imports").remove([caminho]);
         if (remocao.error) {
-          await supabase.rpc("enqueue_import_cleanup", {
+          // Se nem a fila aceitar, o PDF fica fora do Storage limpo e fora da
+          // fila. Ignorar este erro foi o que deixou um defeito da função
+          // (42P10 em toda chamada) passar sem rastro nenhum.
+          const pendencia = await supabase.rpc("enqueue_import_cleanup", {
             p_workspace_id: workspaceId,
             p_import_id: importId,
             p_pdf_sha256: hash,
           });
+          if (pendencia.error) {
+            console.error(JSON.stringify({
+              level: "error", msg: "importacao_deixou_objeto_sem_destino",
+              caminhos: [caminho],
+              sqlstate: pendencia.error.code,
+            }));
+          }
         }
       }
       /**
