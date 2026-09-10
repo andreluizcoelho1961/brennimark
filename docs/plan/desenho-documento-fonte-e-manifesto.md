@@ -279,3 +279,45 @@ Condição 2 do ADR-0003, sem exceção:
    `version = 1` para todo mundo é verdade.
 3. **Confirmar que a pendência 4 da §20.2 está fechada por observação** (§1
    acima) — o arquivo já está no lugar, nada a promover, nada a copiar.
+
+---
+
+## 7. Revisão de 10/09 — os campos que o plano de produto acrescentou
+
+O plano de 09/09 especificou a Etapa 2 com campos que este desenho não tinha.
+Eles entram, e a lista abaixo é a definitiva.
+
+### 7.1 `brand_source_documents` — acréscimos
+
+| Campo | Por que o plano pede |
+|---|---|
+| `tipo` | um manual não é a única coisa que uma marca envia: haverá anexo, apresentação, guia de aplicação. Sem o campo, o primeiro anexo vira "manual" ou vira tabela nova |
+| `idioma` | o manual da GE é em inglês e a interface em português; a extração e a IA precisam saber qual é qual. Já existe em `brands.language`, mas o **documento** pode divergir da marca |
+| `estado_de_processamento` | importar, renderizar miniaturas e extrair texto não terminam juntos. Sem estado, a interface não distingue "ainda processando" de "processou e não achou nada" — e essa distinção é a diferença entre paciência e desconfiança |
+
+### 7.2 `brand_source_pages` — acréscimos
+
+| Campo | Por que o plano pede |
+|---|---|
+| `miniatura` | caminho no Storage. A prévia de importação e a curadoria mostram 743 páginas; sem miniatura, mostram 743 retângulos vazios |
+| `estado_de_processamento` | por PÁGINA, e não só por documento: uma página pode falhar sozinha |
+| `erro` | quando ela falha, o motivo fica NA LINHA. "Algo deu errado em algum lugar do manual" não é diagnóstico |
+
+E permanecem, deste desenho, os dois que o plano não nomeia e que são a razão
+de a tabela existir: **`cobertura` e `motivo_da_cobertura`**. Sem eles a tabela
+registra o que sobrou; com eles, a ausência precisa de justificativa escrita.
+
+### 7.3 O que esta fatia NÃO faz, e é decisão de escopo
+
+O plano lista cinco estruturas na Etapa 2. Duas entram agora — as duas
+fundacionais. As outras três ficam de fora, com motivo:
+
+| Estrutura | Por que fica de fora |
+|---|---|
+| `outline_nodes` | o índice do PDF já é extraído e vive em memória na importação. Persistir é útil e não desbloqueia nada agora |
+| `navigation_nodes` | navegação curada é a Etapa 3 (prévia e curadoria). Criar a tabela antes da tela que a edita é criar esquema sem consumidor |
+| `managed_documents` | é a Etapa 4 (editor gerenciado). Depende da decisão de §9 — representação publicada como referência — que é da Fatia 7 |
+| `brand_chunks` | é a Etapa 7 (busca e IA). Já existe recuperação lexical funcionando; trocá-la antes do manifesto estar populado seria mexer nas duas ao mesmo tempo |
+
+**O critério:** entra o que faz a página parar de sumir. O resto entra quando
+tiver tela ou consumidor.
