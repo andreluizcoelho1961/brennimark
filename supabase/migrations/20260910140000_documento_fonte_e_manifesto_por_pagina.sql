@@ -462,11 +462,27 @@ begin
 end;
 $$;
 
--- Server-only: chamada por rota do servidor com a chave de serviço, nunca do
--- navegador. É a disciplina que o CLAUDE.md exige de toda função definer.
+/*
+ * Server-only: chamada por rota do servidor com a chave de serviço, nunca do
+ * navegador. É a disciplina que o CLAUDE.md exige de toda função definer.
+ *
+ * ─── E `service_role` precisa do grant EXPLÍCITO ─────────────────────────
+ *
+ * `revoke ... from public` remove o `EXECUTE` implícito de TODO MUNDO,
+ * inclusive de `service_role`, que não é superusuário — ele tem `bypassrls`,
+ * o que é outra coisa. Sem o grant abaixo a função ficava executável por
+ * ninguém: "server-only" virava "nobody-only", e o manifesto nunca poderia
+ * ser escrito.
+ *
+ * Medido antes da correção: `has_function_privilege('service_role', ...)`
+ * devolvia **false** para as duas RPCs.
+ */
 revoke execute on function public.registrar_documento_fonte(
   uuid, uuid, text, text, bigint, integer, text, text, text, jsonb, uuid)
   from public, anon, authenticated;
+grant execute on function public.registrar_documento_fonte(
+  uuid, uuid, text, text, bigint, integer, text, text, text, jsonb, uuid)
+  to service_role;
 
 /*
  * A única mutação permitida: campos EDITORIAIS.
@@ -515,6 +531,8 @@ $$;
 
 revoke execute on function public.editar_documento_fonte(uuid, text, text, text, uuid)
   from public, anon, authenticated;
+grant execute on function public.editar_documento_fonte(uuid, text, text, text, uuid)
+  to service_role;
 
 -- ─── Os grants, e o que a ausência deles significa ──────────────────────
 --
@@ -580,7 +598,20 @@ alter table public.brand_imports
   add constraint brand_imports_source_document_mesma_marca_fkey
   foreign key (source_document_id, brand_id, workspace_id)
   references public.brand_source_documents (id, brand_id, workspace_id)
-  on delete set null;
+  /*
+   * Coluna NOMEADA — a terceira vez que este defeito aparece nesta migration,
+   * e a que passou pela primeira revisão.
+   *
+   * `on delete set null` sem lista zera TODAS as colunas da chave, incluindo
+   * `brand_id` e `workspace_id`, que são `not null`. Medido: apagar o
+   * documento-fonte falhava com "null value in column workspace_id of relation
+   * brand_imports violates not-null constraint" — e o registro de importação
+   * ficava impossível de desvincular.
+   *
+   * Só `source_document_id` é opcional aqui; as outras duas são a identidade
+   * da linha.
+   */
+  on delete set null (source_document_id);
 
 create index brand_imports_source_document_idx
   on public.brand_imports (source_document_id) where source_document_id is not null;

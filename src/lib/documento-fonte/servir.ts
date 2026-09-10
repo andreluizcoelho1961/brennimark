@@ -67,6 +67,29 @@ const RESPOSTA_REPASSADA = [
   "last-modified",
 ];
 
+/**
+ * Recusa a resposta da origem FECHANDO o corpo dela.
+ *
+ * ─── O vazamento que isto corrige ────────────────────────────────────────
+ *
+ * As recusas depois do `fetch` — 413, 502, credencial vencida — devolviam sem
+ * tocar em `origem.body`. O corpo é um `ReadableStream` aberto: sem cancelar,
+ * a conexão com o Storage continua, e a função segue pagando banda e duração
+ * por bytes que ninguém vai ler. É exatamente o custo que o `signal` do
+ * cliente existe para evitar, escapando por outra porta.
+ *
+ * `cancel()` pode rejeitar se o corpo já terminou ou já foi consumido; isso
+ * não é erro e não deve mascarar o motivo da recusa.
+ */
+async function recusar(origem: Response, resposta: Response): Promise<Response> {
+  try {
+    await origem.body?.cancel();
+  } catch {
+    // Já encerrado ou já consumido: nada a fazer.
+  }
+  return resposta;
+}
+
 export async function servirDocumentoFonte(
   request: Request,
   { id, metodo }: { id: string; metodo: "GET" | "HEAD" },
@@ -212,14 +235,16 @@ export async function servirDocumentoFonte(
   }
 
   if (origem.status === 416) {
-    return new Response(null, {
+    // 416 não tem corpo por definição; cancelar é inofensivo e mantém a regra
+    // uniforme — toda saída pós-`fetch` que não repassa o corpo, fecha o corpo.
+    return recusar(origem, new Response(null, {
       status: 416,
       headers: {
         "accept-ranges": "bytes",
         "content-range": origem.headers.get("content-range") ?? contentRangeForaDoAlcance(0),
         ...CABECALHOS_FIXOS,
       },
-    });
+    }));
   }
 
   /**
@@ -253,7 +278,7 @@ export async function servirDocumentoFonte(
      * visualizador tratar credencial vencida como documento inválido.
      */
     const status = [400, 401, 403].includes(origem.status) ? 401 : 502;
-    return NextResponse.json({ error: "documento_indisponivel" }, { status });
+    return recusar(origem, NextResponse.json({ error: "documento_indisponivel" }, { status }));
   }
 
   const cabecalhos = new Headers(CABECALHOS_FIXOS);
@@ -301,18 +326,43 @@ export async function servirDocumentoFonte(
    * pedir intervalos — quebrando o desenho inteiro. O teste pegou.
    */
   const corpoAnunciado = Number(cabecalhos.get("content-length") ?? Number.NaN);
-  if (metodo === "GET" && Number.isFinite(corpoAnunciado) && corpoAnunciado > TETO_DA_FATIA) {
-    return NextResponse.json(
-      {
-        error: "peca_por_intervalo",
-        detalhe:
-          "Este documento passa do que uma resposta desta rota sustenta. " +
-          "Use HEAD para o tamanho e Range para os pedaços.",
-        teto: TETO_DA_FATIA,
-        tamanho: corpoAnunciado,
-      },
-      { status: 413 },
-    );
+
+  /*
+   * Resposta INTEIRA (200) só atravessa com tamanho COMPROVADO dentro do teto.
+   *
+   * A versão anterior só recusava quando o `content-length` existia E passava
+   * do teto. Sem o cabeçalho, a verificação era pulada e o corpo seguia sem
+   * prova nenhuma de caber — que é o mesmo risco, com menos aviso: a função da
+   * Vercel trunca acima de 4,5 MB, e corpo cortado com o cliente esperando o
+   * resto é um PDF corrompido em silêncio.
+   *
+   * Uma resposta 206 não passa por aqui: o `Content-Range` dela já foi
+   * conferido contra o intervalo aparado, e o intervalo aparado cabe por
+   * construção.
+   *
+   * `HEAD` é isento: não tem corpo, e o `content-length` dele descreve o que
+   * um GET traria.
+   */
+  if (metodo === "GET" && origem.status === 200) {
+    const semTamanho = !Number.isFinite(corpoAnunciado);
+    if (semTamanho || corpoAnunciado > TETO_DA_FATIA) {
+      return recusar(
+        origem,
+        NextResponse.json(
+          {
+            error: "peca_por_intervalo",
+            detalhe: semTamanho
+              ? "A origem não declarou o tamanho, e sem ele não há como provar " +
+                "que a resposta cabe. Use HEAD para o tamanho e Range para os pedaços."
+              : "Este documento passa do que uma resposta desta rota sustenta. " +
+                "Use HEAD para o tamanho e Range para os pedaços.",
+            teto: TETO_DA_FATIA,
+            ...(semTamanho ? {} : { tamanho: corpoAnunciado }),
+          },
+          { status: 413 },
+        ),
+      );
+    }
   }
   cabecalhos.set(
     "server-timing",
@@ -345,7 +395,7 @@ export async function servirDocumentoFonte(
     if (esperado.tipo === "parcial") {
       const dito = contentRangeDaOrigem ?? "";
       if (dito !== `bytes ${esperado.inicio}-${esperado.fim}/${total}`) {
-        return NextResponse.json({ error: "intervalo_divergente" }, { status: 502 });
+        return recusar(origem, NextResponse.json({ error: "intervalo_divergente" }, { status: 502 }));
       }
     }
     /**

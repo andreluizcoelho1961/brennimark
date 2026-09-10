@@ -41,8 +41,8 @@ create temp table resultado (
  * Escopo: tabelas TEMPORÁRIAS, desta transação, que o `rollback` do fim
  * descarta. Nada disso alcança o esquema do produto.
  */
-grant select, insert on resultado to authenticated, anon;
-grant usage, select on sequence resultado_ordem_seq to authenticated, anon;
+grant select, insert on resultado to authenticated, anon, service_role;
+grant usage, select on sequence resultado_ordem_seq to authenticated, anon, service_role;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- O mundo da prova: duas contas reais, duas marcas
@@ -99,7 +99,7 @@ begin
   create temp table mundo as
   select u_a as usuario_a, u_b as usuario_b, w_a as conta_a, w_b as conta_b,
          m_a as marca_a, m_b as marca_b;
-  grant select on mundo to authenticated, anon;
+  grant select on mundo to authenticated, anon, service_role;
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
@@ -133,10 +133,21 @@ begin
   values (p_caso, coalesce(p_constraint, p_sqlstate), obtido, ok);
 end $$;
 
-/* Um documento-fonte válido da marca A, base de vários casos. */
+/*
+ * Um documento-fonte válido da marca A, base de vários casos.
+ *
+ * Criado como **`service_role`**, e isto é deliberado: é o papel que a rota de
+ * servidor usa. A versão anterior chamava a RPC como `postgres`, que é
+ * superusuário — e uma prova que só passa com privilégio de superusuário não
+ * prova que o caminho de produção funciona. Foi assim que o `grant execute`
+ * ausente para `service_role` passou pela primeira revisão: a função estava
+ * executável por NINGUÉM, e a prova não notava.
+ */
 do $$
 declare d uuid;
 begin
+  set local role service_role;
+
   select public.registrar_documento_fonte(
     conta_a, marca_a, 'a/i/'||repeat('a',64)||'.pdf', repeat('a',64), 1000, 2,
     'manual', 'pt-BR', 'Manual A',
@@ -144,6 +155,12 @@ begin
       jsonb_build_object('pagina',1,'largura_pt',600,'altura_pt',800,'tem_texto',true),
       jsonb_build_object('pagina',2,'largura_pt',600,'altura_pt',800,'tem_texto',false)),
     usuario_a) into d from mundo;
+
+  -- Volta ao papel da sessão ANTES de contar: `service_role` não tem `select`
+  -- nas tabelas, e não precisa — a RPC é `definer`, e leitura de manifesto
+  -- passa pela sessão do usuário, com RLS. Contar sob o papel errado media o
+  -- privilégio, não o resultado.
+  reset role;
 
   insert into resultado (caso, esperado, obtido, passou)
   values ('a RPC registra documento com manifesto 1..N', 'documento criado',
@@ -154,7 +171,7 @@ begin
   from public.brand_source_pages where source_document_id = d;
 
   create temp table doc_a as select d as id;
-  grant select on doc_a to authenticated, anon;
+  grant select on doc_a to authenticated, anon, service_role;
 end $$;
 
 /*
@@ -186,7 +203,7 @@ begin
   select conta_a, marca_a, d, 1, 10, 10, false, 'sem-secao', 'ocupada' from mundo;
 
   create temp table doc_livre as select d as id;
-  grant select on doc_livre to authenticated, anon;
+  grant select on doc_livre to authenticated, anon, service_role;
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
@@ -436,6 +453,130 @@ select pg_temp.espera_recusa(
       jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
       usuario_a) from mundo$f$,
   'brand_source_documents_uma_ativa_por_tipo');
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 6b. Quem pode executar as RPCs
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Medido antes da correção: `has_function_privilege('service_role', ...)`
+-- devolvia **false** para as duas. `revoke ... from public` remove o EXECUTE
+-- implícito de todo mundo, e `service_role` não é superusuário — ele tem
+-- `bypassrls`, que é outra coisa. A função "server-only" estava executável por
+-- ninguém, e o manifesto nunca poderia ser escrito.
+do $$
+declare nome text; papel text; pode boolean; esperado boolean;
+begin
+  foreach nome in array array['registrar_documento_fonte', 'editar_documento_fonte'] loop
+    foreach papel in array array['service_role', 'authenticated', 'anon'] loop
+      esperado := (papel = 'service_role');
+      select bool_or(has_function_privilege(papel, p.oid, 'EXECUTE')) into pode
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = nome;
+
+      insert into resultado (caso, esperado, obtido, passou)
+      values (papel || ' executa ' || nome, esperado::text, coalesce(pode, false)::text,
+              coalesce(pode, false) = esperado);
+    end loop;
+  end loop;
+end $$;
+
+/* E não basta o privilégio constar: a chamada precisa passar de fato. */
+do $$
+declare d uuid; estado text;
+begin
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_b, marca_b, 'sr', repeat('5',64), 1, 1,
+    'manual', null, '',
+    jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
+    usuario_b) into d from mundo;
+  reset role;
+
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('service_role registra de fato', 'criado',
+          case when d is null then 'null' else 'criado' end, d is not null);
+exception when others then
+  reset role;
+  get stacked diagnostics estado = returned_sqlstate;
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('service_role registra de fato', 'criado', 'ERRO ' || estado, false);
+end $$;
+
+do $$
+declare estado text;
+begin
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', (select usuario_a from mundo), 'role', 'authenticated')::text, true);
+  begin
+    perform public.registrar_documento_fonte(
+      '00000000-0000-4000-8000-000000000000'::uuid,
+      '00000000-0000-4000-8000-000000000000'::uuid,
+      'x', repeat('6',64), 1, 1, 'manual', null, '', '[]'::jsonb,
+      '00000000-0000-4000-8000-000000000001'::uuid);
+    insert into resultado (caso, esperado, obtido, passou)
+    values ('authenticated NAO executa a RPC', '42501', 'EXECUTOU', false);
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate;
+    insert into resultado (caso, esperado, obtido, passou)
+    values ('authenticated NAO executa a RPC', '42501', estado, estado = '42501');
+  end;
+  reset role;
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 6c. Apagar o documento-fonte desvincula o import, sem destruir a linha
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Medido antes da correção: a FK usava `on delete set null` SEM lista de
+-- colunas, então o Postgres zerava também `brand_id` e `workspace_id`, que são
+-- `not null` — e o DELETE do documento-fonte falhava com
+-- "null value in column workspace_id of relation brand_imports".
+--
+-- É a terceira aparição do mesmo defeito nesta migration, e a que passou pela
+-- primeira revisão.
+do $$
+declare d uuid; imp uuid; sobrou integer; nulo boolean; conta uuid; marca uuid;
+begin
+  /*
+   * Na marca B, e com tipo livre.
+   *
+   * Os quatro tipos da marca A já estão ativos nos casos anteriores — usar
+   * mais um ali bateria em `uma_ativa_por_tipo` e o caso reprovaria pelo
+   * motivo errado. É a mesma lição que os casos de marca cruzada deram: dado
+   * isolado por caso não é preciosismo.
+   */
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_b, marca_b, 'para-import', repeat('4',64), 1, 1,
+    'guia', null, '',
+    jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
+    usuario_b) into d from mundo;
+  reset role;
+
+  imp := gen_random_uuid();
+  insert into public.brand_imports (workspace_id, import_id, brand_id, storage_path, pdf_sha256,
+                                    page_count, document_count, report, created_by,
+                                    source_document_id)
+  select conta_b, imp, marca_b, 'i', repeat('4',64), 1, 1, '{}', usuario_b, d from mundo;
+
+  delete from public.brand_source_documents where id = d;
+
+  -- `max(uuid)` não existe; a linha é uma só, então lê-se direto.
+  select count(*) into sobrou from public.brand_imports where import_id = imp;
+  select source_document_id is null, workspace_id, brand_id
+    into nulo, conta, marca
+  from public.brand_imports where import_id = imp;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('o import sobrevive ao documento apagado', '1', sobrou::text, sobrou = 1),
+    ('source_document_id ficou nulo', 'true', coalesce(nulo, false)::text, coalesce(nulo, false)),
+    ('workspace_id foi PRESERVADO', 'preservado',
+     case when conta is null then 'zerado' else 'preservado' end, conta is not null),
+    ('brand_id foi PRESERVADO', 'preservado',
+     case when marca is null then 'zerado' else 'preservado' end, marca is not null);
+exception when others then
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('apagar o documento-fonte desvincula o import', 'sem erro', 'ERRO ' || sqlstate || ': ' || sqlerrm, false);
+end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 7. A página sobrevive à seção apagada

@@ -72,6 +72,26 @@ function portas(
   };
 }
 
+/**
+ * Um corpo cujo cancelamento é OBSERVÁVEL.
+ *
+ * Sem isto não há como provar que a rota fecha o fluxo da origem ao recusar —
+ * e uma recusa que deixa o corpo aberto mantém a conexão com o Storage viva,
+ * pagando banda e duração por bytes que ninguém lê.
+ */
+function corpoObservavel(bytes: number): { corpo: ReadableStream; cancelado: () => boolean } {
+  let cancelado = false;
+  const corpo = new ReadableStream({
+    pull(controlador) {
+      controlador.enqueue(new Uint8Array(Math.min(bytes, 1024)));
+    },
+    cancel() {
+      cancelado = true;
+    },
+  });
+  return { corpo, cancelado: () => cancelado };
+}
+
 /** Uma origem que honra `Range` corretamente, como o Storage faz. */
 function respostaDeFatia(pedido: Registro): Response {
   if (!pedido.range) {
@@ -344,4 +364,123 @@ test("ver não é baixar, e o cache não mente sobre a representação", async (
   assert.doesNotMatch(r.headers.get("cache-control") ?? "", /immutable/);
   assert.equal(r.headers.get("x-content-type-options"), "nosniff");
   assert.match(r.headers.get("server-timing") ?? "", /autorizacao;dur=\d+/);
+});
+
+
+// ─── O corpo da origem é FECHADO em toda recusa ────────────────────────────
+
+/**
+ * A regressão: as recusas depois do `fetch` — 413, 502, credencial vencida —
+ * devolviam sem tocar em `origem.body`. O corpo é um `ReadableStream` aberto:
+ * a conexão com o Storage continuava, e a função seguia pagando banda e
+ * duração por bytes que ninguém iria ler.
+ */
+test("413 por tamanho cancela o fluxo da origem", async () => {
+  const { corpo, cancelado } = corpoObservavel(TAMANHO);
+  const { portas: p } = portas({
+    resposta: () =>
+      new Response(corpo, {
+        status: 200,
+        headers: { "content-length": String(TAMANHO) },
+      }),
+  });
+
+  const r = await servirDocumentoFonte(pedir(), { id: ID, metodo: "GET" }, p);
+
+  assert.equal(r.status, 413);
+  assert.equal(cancelado(), true, "o corpo da origem ficou aberto");
+});
+
+/**
+ * Sem `content-length` não há como PROVAR que a resposta cabe no teto.
+ *
+ * A versão anterior só recusava quando o cabeçalho existia e passava do teto —
+ * sem ele, a verificação era pulada e o corpo seguia sem prova nenhuma. Mesmo
+ * risco, com menos aviso.
+ */
+test("200 sem Content-Length é recusado, e o fluxo é cancelado", async () => {
+  const { corpo, cancelado } = corpoObservavel(1024);
+  const { portas: p } = portas({
+    resposta: () => new Response(corpo, { status: 200 }),
+  });
+
+  const r = await servirDocumentoFonte(pedir(), { id: ID, metodo: "GET" }, p);
+
+  assert.equal(r.status, 413);
+  const json = (await r.json()) as { detalhe: string };
+  assert.match(json.detalhe, /não declarou o tamanho/);
+  assert.equal(cancelado(), true, "o corpo da origem ficou aberto");
+});
+
+test("credencial vencida cancela o fluxo da origem", async () => {
+  const { corpo, cancelado } = corpoObservavel(1024);
+  const { portas: p } = portas({
+    resposta: () => new Response(corpo, { status: 400 }),
+  });
+
+  const r = await servirDocumentoFonte(pedir("bytes=0-1023"), { id: ID, metodo: "GET" }, p);
+
+  assert.equal(r.status, 401);
+  assert.equal(cancelado(), true, "o corpo da origem ficou aberto");
+});
+
+test("intervalo divergente cancela o fluxo da origem", async () => {
+  const { corpo, cancelado } = corpoObservavel(1024);
+  const { portas: p } = portas({
+    // Origem mentindo: pediram 0-1023 e ela diz ter mandado outra faixa.
+    resposta: () =>
+      new Response(corpo, {
+        status: 206,
+        headers: {
+          "content-range": `bytes 4096-5119/${TAMANHO}`,
+          "content-length": "1024",
+        },
+      }),
+  });
+
+  const r = await servirDocumentoFonte(pedir("bytes=0-1023"), { id: ID, metodo: "GET" }, p);
+
+  assert.equal(r.status, 502);
+  assert.equal(cancelado(), true, "o corpo da origem ficou aberto");
+});
+
+/**
+ * A contraprova: quando a resposta É repassada, o corpo NÃO pode ser
+ * cancelado — senão o cliente recebe cabeçalhos e nenhum byte.
+ */
+test("206 dentro do teto repassa o corpo, sem cancelar", async () => {
+  const { corpo, cancelado } = corpoObservavel(1024);
+  const { portas: p } = portas({
+    resposta: () =>
+      new Response(corpo, {
+        status: 206,
+        headers: {
+          "content-range": `bytes 0-1023/${TAMANHO}`,
+          "content-length": "1024",
+        },
+      }),
+  });
+
+  const r = await servirDocumentoFonte(pedir("bytes=0-1023"), { id: ID, metodo: "GET" }, p);
+
+  assert.equal(r.status, 206);
+  assert.equal(cancelado(), false, "o corpo foi cancelado e o cliente ficaria sem bytes");
+  assert.ok(r.body !== null);
+});
+
+test("documento pequeno com tamanho declarado repassa o corpo", async () => {
+  const PEQUENO = 4096;
+  const { corpo, cancelado } = corpoObservavel(PEQUENO);
+  const { portas: p } = portas({
+    resposta: () =>
+      new Response(corpo, {
+        status: 200,
+        headers: { "content-length": String(PEQUENO) },
+      }),
+  });
+
+  const r = await servirDocumentoFonte(pedir(), { id: ID, metodo: "GET" }, p);
+
+  assert.equal(r.status, 200);
+  assert.equal(cancelado(), false);
 });
