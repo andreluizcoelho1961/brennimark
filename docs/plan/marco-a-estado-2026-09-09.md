@@ -135,3 +135,63 @@ estado do banco muda por migration versionada.
 **Ressalva de método:** as evidências visuais desta rodada são medições de DOM
 e comparação de pixels. A captura de tela do painel de desenvolvimento não
 respeitou a viewport emulada, e por isso não foi usada como prova.
+
+---
+
+## 7. 10/09 — o que produção mostrou, e localhost não podia mostrar
+
+O manual do Bradesco abriu em produção e levou **60 segundos sem carregar**. O
+campo de página mostrava `1 de —`: o total era desconhecido, ou seja, o
+documento nunca abriu. A `main` estava verde, 285 testes de navegador nos três
+motores passavam, e o manual abria em 2 segundos em localhost.
+
+### 7.1 As duas causas, em ordem de descoberta
+
+| # | Causa | Como apareceu |
+|---|---|---|
+| 1 | **Teto de fatia recusava com 413** em vez de aparar | o Bradesco tem 4,07 MiB, 70 KB acima do teto de 4 MiB; o PDF.js pede o documento inteiro num intervalo em algumas situações e recebia recusa |
+| 2 | **A primeira requisição do PDF.js vai sem `Range`** | a rota repassava o arquivo INTEIRO por uma função da Vercel, que estoura a duração; corpo truncado, tentativa, repetição |
+
+A segunda é a que explicava os 60 segundos. A primeira era real e foi
+corrigida antes, sem resolver o sintoma — **duas causas no mesmo caminho, e
+consertar uma deixou a outra intacta.**
+
+### 7.2 A lição que vale além deste caso
+
+**Todos os meus testes mediam a forma da RESPOSTA. Nenhum media a forma da
+REQUISIÇÃO.**
+
+Por isso 285 testes verdes conviviam com um produto que não abria em produção.
+A requisição sem `Range` é inofensiva quando o servidor está na mesma máquina
+e fatal quando há uma função com teto de duração no meio — e a diferença não
+está em nada que a resposta contenha.
+
+A invariante que passou a ser trancada não é de desempenho, que varia com a
+máquina: é de **forma**. Nenhuma requisição sem `Range` sai do visualizador,
+exceto `HEAD`, que não tem corpo.
+
+### 7.3 Três correções que eu havia declarado prontas
+
+- o **teto**: eu havia escrito que aparar "seria pior que recusar". O argumento
+  estava invertido — aparar promete menos e cumpre; recusar quebra;
+- o **`immutable`**: eu apresentei "zero bytes transferidos" como ganho. Era o
+  navegador reaproveitando conteúdo parcial entre intervalos diferentes;
+- a **guarda de build** de `SKIP_AUTH`: vigiava o codinome legado e protegia
+  nada desde a renomeação.
+
+### 7.4 Um falso positivo que quase entrou no relatório
+
+Reportei quase como defeito do produto que o ajuste à largura caía para escala
+1. Rodei o teste de controle — a `main` limpa apresentava o mesmo — e a causa
+era o **painel oculto suspendendo `rAF`**, que suspende o `ResizeObserver`.
+Artefato da bancada, já registrado na §18.2.8.
+
+Virou correção legítima de robustez: medir a coluna direto antes de observar,
+porque aba em segundo plano tem o mesmo comportamento de uma bancada oculta.
+
+### 7.5 Regra de trabalho que fica
+
+**Rodar a suíte inteira antes de empurrar, sempre.** Em 09/09 eu empurrei três
+vezes com o CI vermelho em seguida: uma por não rodar o navegador, uma por
+mexer no `testMatch` sem prever o efeito, e uma por aumentar a carga do CI e
+expor uma corrida latente.
