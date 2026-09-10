@@ -579,22 +579,166 @@ exception when others then
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
+-- 6d. Repetir a chamada NÃO duplica — a idempotência do segundo passo
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- A publicação acontece em dois passos que não são atômicos entre si. Se a
+-- resposta do segundo se perder na rede, a interface repete — e repetir não
+-- pode criar um segundo documento nem duplicar as linhas do manifesto.
+do $$
+declare
+  primeiro uuid; segundo uuid; docs integer; pags integer;
+begin
+  set local role service_role;
+
+  select public.registrar_documento_fonte(conta_b, marca_b, 'repete', repeat('c',64), 1, 3,
+    'apresentacao', null, 'Repetível',
+    jsonb_build_array(
+      jsonb_build_object('pagina',1,'largura_pt',10,'altura_pt',10,'tem_texto',true),
+      jsonb_build_object('pagina',2,'largura_pt',10,'altura_pt',10,'tem_texto',false),
+      jsonb_build_object('pagina',3,'largura_pt',10,'altura_pt',10,'tem_texto',true)),
+    usuario_b) into primeiro from mundo;
+
+  -- A MESMA chamada, de novo — é o que a interface faz ao tentar outra vez.
+  select public.registrar_documento_fonte(conta_b, marca_b, 'repete', repeat('c',64), 1, 3,
+    'apresentacao', null, 'Repetível',
+    jsonb_build_array(
+      jsonb_build_object('pagina',1,'largura_pt',10,'altura_pt',10,'tem_texto',true),
+      jsonb_build_object('pagina',2,'largura_pt',10,'altura_pt',10,'tem_texto',false),
+      jsonb_build_object('pagina',3,'largura_pt',10,'altura_pt',10,'tem_texto',true)),
+    usuario_b) into segundo from mundo;
+
+  reset role;
+
+  select count(*) into docs from public.brand_source_documents
+  where pdf_sha256 = repeat('c',64);
+  select count(*) into pags from public.brand_source_pages
+  where source_document_id = primeiro;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('repetir devolve o MESMO documento', 'igual',
+     case when primeiro = segundo then 'igual' else 'diferente' end, primeiro = segundo),
+    ('repetir nao cria segundo documento', '1', docs::text, docs = 1),
+    ('repetir nao duplica o manifesto', '3', pags::text, pags = 3);
+exception when others then
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('repetir a chamada nao duplica', 'sem erro', 'ERRO ' || sqlstate || ': ' || sqlerrm, false);
+end $$;
+
+/* Arquivo DIFERENTE do mesmo tipo continua barrado: substituir é explícito. */
+select pg_temp.espera_recusa(
+  'outro arquivo do mesmo tipo ainda e barrado',
+  $f$select public.registrar_documento_fonte(conta_b, marca_b, 'outro', repeat('d',64), 1, 1,
+      'apresentacao', null, '',
+      jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
+      usuario_b) from mundo$f$,
+  'brand_source_documents_uma_ativa_por_tipo');
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 6e. Correção estrutural PRESERVA as páginas
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- O cenário que o Marco B exige: unir, mover e remover seção — o trabalho da
+-- curadoria — sem perder página. Nenhuma linha do manifesto desaparece; o que
+-- muda é a cobertura, e ela passa a dizer por quê.
+do $$
+declare
+  d uuid; s1 uuid; s2 uuid;
+  antes integer; depois integer; sem_secao integer; com_motivo integer;
+begin
+  -- Duas seções na marca A, e um documento de 4 páginas ligado a elas.
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', (select usuario_a from mundo), 'role', 'authenticated')::text, true);
+  insert into public.brand_documents (workspace_id, brand_id, instance_key, slug, group_name,
+                                      title, status, updated_by)
+  select conta_a, marca_a, 'marca-a', 'estrutural-1', 'G', 'Cores', 'draft', usuario_a from mundo
+  returning id into s1;
+  insert into public.brand_documents (workspace_id, brand_id, instance_key, slug, group_name,
+                                      title, status, updated_by)
+  select conta_a, marca_a, 'marca-a', 'estrutural-2', 'G', 'Tipografia', 'draft', usuario_a from mundo
+  returning id into s2;
+  perform set_config('request.jwt.claims', '', true);
+
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_a, marca_a, 'estrutural', repeat('e',64), 1, 4,
+    'guia', null, '',
+    jsonb_build_array(
+      jsonb_build_object('pagina',1,'largura_pt',10,'altura_pt',10,'tem_texto',true,'document_id',s1),
+      jsonb_build_object('pagina',2,'largura_pt',10,'altura_pt',10,'tem_texto',true,'document_id',s1),
+      jsonb_build_object('pagina',3,'largura_pt',10,'altura_pt',10,'tem_texto',true,'document_id',s2),
+      jsonb_build_object('pagina',4,'largura_pt',10,'altura_pt',10,'tem_texto',false)),
+    usuario_a) into d from mundo;
+  reset role;
+
+  select count(*) into antes from public.brand_source_pages where source_document_id = d;
+
+  /*
+   * UNIR: as páginas da seção 2 passam para a seção 1, e a seção 2 é apagada.
+   * É a operação de curadoria mais destrutiva que existe.
+   */
+  update public.brand_source_pages set document_id = s1
+  where source_document_id = d and document_id = s2;
+
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', (select usuario_a from mundo), 'role', 'authenticated')::text, true);
+  delete from public.brand_documents where id = s2;
+  -- REMOVER: a seção 1 também sai, e as quatro páginas ficam sem nenhuma.
+  delete from public.brand_documents where id = s1;
+  perform set_config('request.jwt.claims', '', true);
+
+  select count(*) into depois from public.brand_source_pages where source_document_id = d;
+  select count(*) into sem_secao from public.brand_source_pages
+  where source_document_id = d and cobertura = 'sem-secao';
+  select count(*) into com_motivo from public.brand_source_pages
+  where source_document_id = d and length(btrim(motivo_da_cobertura)) > 0;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('unir e remover secao NAO perde pagina', antes::text, depois::text, antes = depois),
+    ('toda pagina ficou sem-secao', '4', sem_secao::text, sem_secao = 4),
+    ('toda ausencia tem motivo escrito', '4', com_motivo::text, com_motivo = 4);
+exception when others then
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('correcao estrutural preserva paginas', 'sem erro',
+          'ERRO ' || sqlstate || ': ' || sqlerrm, false);
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
 -- 7. A página sobrevive à seção apagada
 -- ════════════════════════════════════════════════════════════════════════
 do $$
-declare d uuid; existe integer; cob text; motivo text;
+declare d uuid; existe integer; cob text; motivo text; secao uuid;
 begin
-  select public.registrar_documento_fonte(conta_a, marca_a, 'g', repeat('7',64), 1, 1,
-    'guia', null, '',
+  /*
+   * Marca B, tipo `anexo`.
+   *
+   * Os quatro tipos da marca A já estão ocupados pelos casos anteriores. Tipo
+   * é recurso escasso por marca nesta prova, e escolher um já ativo faria o
+   * caso reprovar por `uma_ativa_por_tipo` em vez de pelo que ele testa.
+   */
+  /*
+   * A seção é resolvida ANTES de trocar para `service_role`.
+   *
+   * `service_role` não tem `select` em `brand_documents`, e isso é
+   * deliberado — a superfície da chave de serviço fica no mínimo. A
+   * consequência para o produto: a rota de registro resolve seção com a
+   * SESSÃO do usuário, sob RLS, e passa só os ids à RPC.
+   */
+  select id into secao from public.brand_documents
+  where brand_id = (select marca_b from mundo) limit 1;
+
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_b, marca_b, 'g', repeat('7',64), 1, 1,
+    'anexo', null, '',
     jsonb_build_array(jsonb_build_object(
-      'pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true,
-      'document_id',(select id from public.brand_documents where brand_id=(select marca_a from mundo) limit 1))),
-    usuario_a) into d from mundo;
+      'pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true,'document_id',secao)),
+    usuario_b) into d from mundo;
+  reset role;
 
   -- O gatilho de auditoria editorial exige `auth.uid()` owner: apagar seção é
-  -- ato de curadoria, e a prova precisa fazê-lo como quem cura.
+  -- ato de curadoria, e a prova precisa fazê-lo como quem cura — aqui, o dono
+  -- da conta B.
   perform set_config('request.jwt.claims',
-    json_build_object('sub', (select usuario_a from mundo), 'role', 'authenticated')::text, true);
+    json_build_object('sub', (select usuario_b from mundo), 'role', 'authenticated')::text, true);
 
   delete from public.brand_documents
   where id = (select document_id from public.brand_source_pages where source_document_id = d);

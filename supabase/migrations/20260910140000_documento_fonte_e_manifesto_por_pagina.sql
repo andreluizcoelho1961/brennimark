@@ -155,6 +155,11 @@ create unique index brand_source_documents_uma_ativa_por_tipo
   on public.brand_source_documents (brand_id, workspace_id, tipo)
   where status = 'ativa';
 
+-- Sustenta a busca de idempotência da RPC: mesma marca, mesmo tipo, mesmo
+-- arquivo. Sem ele, cada repetição varre a tabela.
+create unique index brand_source_documents_idempotencia
+  on public.brand_source_documents (brand_id, workspace_id, tipo, pdf_sha256);
+
 create index brand_source_documents_marca_idx
   on public.brand_source_documents (brand_id, workspace_id, versao desc);
 create index brand_source_documents_substitui_idx
@@ -410,6 +415,34 @@ begin
   if menor <> 1 or maior <> p_page_count then
     raise exception 'manifesto com furo: faixa % a %, esperada 1 a %',
       menor, maior, p_page_count using errcode = '22023';
+  end if;
+
+  /*
+   * ─── IDEMPOTÊNCIA: mesma marca, mesmo tipo, mesmo arquivo ──────────────
+   *
+   * A publicação acontece em dois passos que NÃO são atômicos entre si: o
+   * navegador publica marca e seções, e depois uma rota de servidor registra o
+   * documento-fonte e o manifesto. Se a resposta do segundo passo se perder na
+   * rede, a interface precisa poder repetir — e repetir não pode criar um
+   * segundo documento nem duplicar 743 linhas de manifesto.
+   *
+   * A chave natural é o `sha256`: mesmo arquivo, mesma marca, mesmo tipo é o
+   * mesmo documento. Encontrado, devolve o id existente e não toca no
+   * manifesto.
+   *
+   * Isto NÃO afrouxa a regra de "uma ativa por tipo": um arquivo DIFERENTE do
+   * mesmo tipo continua barrado pelo índice, porque substituir é ato
+   * explícito. O que passa a ser tolerado é a repetição do mesmo ato.
+   */
+  select id into novo_id
+  from public.brand_source_documents
+  where brand_id = p_brand_id
+    and workspace_id = p_workspace_id
+    and tipo = coalesce(nullif(p_tipo, ''), 'manual')
+    and pdf_sha256 = p_pdf_sha256;
+
+  if novo_id is not null then
+    return novo_id;
   end if;
 
   /*
