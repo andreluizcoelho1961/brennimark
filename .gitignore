@@ -56,3 +56,4 @@ next-env.d.ts
 # manual de importação. Nunca versionado — nem as sintéticas, para a pasta
 # não virar um lugar onde material de cliente acaba entrando sem querer.
 /public/.bancada/
+e2e/fixtures/acima-do-teto.pdf

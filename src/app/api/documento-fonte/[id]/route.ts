@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
 import { BUCKETS, caminhoDeImportacao } from "@/lib/storage/caminhos";
 import {
-  TETO_DA_FATIA,
   contentRangeForaDoAlcance,
   resolverRange,
   totalDoContentRange,
@@ -68,7 +67,20 @@ async function urlAssinada(
  * Repassar é o requisito, não reimplementar: cada cabeçalho reconstruído aqui
  * é uma chance de divergir do que o PDF.js espera.
  */
-const PEDIDO_REPASSADO = ["range", "if-range", "if-none-match", "if-modified-since"];
+const PEDIDO_REPASSADO = ["range", "if-range"];
+
+/**
+ * Condicionais que só atravessam quando NÃO há intervalo.
+ *
+ * `If-None-Match` numa requisição com `Range` pode render `304 Not Modified` —
+ * e um 304 não tem corpo. O cliente pediu bytes específicos e recebe nada, e o
+ * PDF.js fica esperando um pedaço que nunca chega.
+ *
+ * `If-Range` continua sempre: ele existe justamente para requisição com
+ * intervalo, e serve para o servidor recusar colar pedaços de arquivos
+ * diferentes.
+ */
+const CONDICIONAIS_SEM_INTERVALO = ["if-none-match", "if-modified-since"];
 
 /** E os que voltam. `accept-ranges` e `content-range` são o motivo da rota existir. */
 const RESPOSTA_REPASSADA = [
@@ -156,9 +168,16 @@ async function servir(
   }
 
   const pedido = new Headers();
+  const temIntervalo = request.headers.get("range") !== null;
   for (const nome of PEDIDO_REPASSADO) {
     const valor = request.headers.get(nome);
     if (valor) pedido.set(nome, valor);
+  }
+  if (!temIntervalo) {
+    for (const nome of CONDICIONAIS_SEM_INTERVALO) {
+      const valor = request.headers.get(nome);
+      if (valor) pedido.set(nome, valor);
+    }
   }
 
   let origem: Response;
@@ -253,12 +272,6 @@ async function servir(
   if (Number.isFinite(total)) {
     const esperado = resolverRange(request.headers.get("range"), total);
 
-    if (esperado.tipo === "grande-demais") {
-      return NextResponse.json(
-        { error: "intervalo_grande_demais", teto: TETO_DA_FATIA, pedidos: esperado.pedidos },
-        { status: 413 },
-      );
-    }
     if (esperado.tipo === "parcial") {
       const dito = contentRangeDaOrigem ?? "";
       if (dito !== `bytes ${esperado.inicio}-${esperado.fim}/${total}`) {
@@ -305,14 +318,23 @@ const CABECALHOS_FIXOS = {
    */
   "content-disposition": "inline",
   /**
-   * Documento de cliente não fica em cache compartilhado — `private`, nunca
-   * `public`. Mas dentro do navegador de quem já tem permissão, ele pode ser
-   * guardado com folga: **o caminho do objeto é o `sha256` do próprio arquivo**,
-   * então aqueles bytes não podem mudar sem mudar de endereço. `immutable`
-   * evita a revalidação a cada intervalo — medido: com `must-revalidate`, uma
-   * navegação por quatro páginas distantes transferiu três vezes o tamanho do
-   * PDF, repedindo pedaços que o navegador já tinha.
+   * `private`, e SEM `immutable`.
+   *
+   * A versão anterior usava `private, max-age=300, immutable`, com o argumento
+   * de que o caminho do objeto é o `sha256` do arquivo e portanto os bytes não
+   * mudam. O argumento é verdadeiro sobre o ARQUIVO e falso sobre a RESPOSTA:
+   * esta URL serve intervalos diferentes, e `immutable` descreve uma
+   * representação completa que não varia.
+   *
+   * A medição que parecia vitória — "quatro saltos, zero bytes transferidos" —
+   * era o navegador reaproveitando conteúdo PARCIAL entre intervalos
+   * diferentes. Zero byte porque nada foi conferido, não porque nada era
+   * necessário. É a classe exata de corrupção que esta rota existe para
+   * impedir, apresentada como ganho de desempenho.
+   *
+   * Cache de intervalo é do PDF.js, que sabe qual pedaço tem. O navegador
+   * revalida.
    */
-  "cache-control": "private, max-age=300, immutable",
+  "cache-control": "private, max-age=0, must-revalidate",
   "x-content-type-options": "nosniff",
 } as const;

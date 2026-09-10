@@ -1,14 +1,22 @@
 import type { NextConfig } from "next";
 
 /**
- * BRANDVILLE_DEV_SKIP_AUTH desliga a verificação de sessão e serve o conteúdo
+ * A guarda vigiava o NOME ERRADO, e por isso não guardava nada.
+ *
+ * O código lê `BRENNIMARK_DEV_SKIP_AUTH` em cinco lugares, incluindo o
+ * middleware. Esta verificação checava `BRANDVILLE_DEV_SKIP_AUTH` — o codinome
+ * legado. A renomeação trocou os leitores e esqueceu o guarda, então ligar a
+ * flag em produção NÃO derrubava o build: servia o produto sem autenticação, em
+ * silêncio.
+ *
+ * BRENNIMARK_DEV_SKIP_AUTH desliga a verificação de sessão e serve o conteúdo
  * estático do guide sem login. É uma conveniência de desenvolvimento local e
  * nunca deve alcançar um ambiente publicado — demonstrações comerciais usam uma
  * instalação sanitizada com autenticação real, não esta flag.
  */
-if (process.env.BRANDVILLE_DEV_SKIP_AUTH === "true" && process.env.NODE_ENV === "production") {
+if (process.env.BRENNIMARK_DEV_SKIP_AUTH === "true" && process.env.NODE_ENV === "production") {
   throw new Error(
-    "BRANDVILLE_DEV_SKIP_AUTH=true em build de producao. Essa flag serve o guide sem autenticacao " +
+    "BRENNIMARK_DEV_SKIP_AUTH=true em build de producao. Essa flag serve o guide sem autenticacao " +
       "e e exclusiva de desenvolvimento local. Remova-a das variaveis de ambiente deste deploy.",
   );
 }

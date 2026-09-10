@@ -172,13 +172,30 @@ export function VisualizadorDePdf({
     };
   }, [documento]);
 
-  /** A largura da coluna decide o "ajustar à largura", e ela muda com a janela. */
+  /**
+   * A largura da coluna decide o "ajustar à largura".
+   *
+   * MEDE DIRETO primeiro, e só depois observa. O `ResizeObserver` entrega por
+   * frame de animação — e aba em segundo plano tem `requestAnimationFrame`
+   * suspenso, então a primeira entrega pode nunca chegar. Sem ela a largura
+   * ficava em zero, `escalaDe` caía no fallback de escala 1, e uma página de
+   * 1920pt era desenhada com 1920px de canvas: quatro vezes os pixels
+   * necessários, transbordando a coluna.
+   *
+   * Medir direto também evita o desenho duplo do caminho normal — antes, toda
+   * abertura renderizava uma vez em escala 1 e outra na escala certa.
+   */
   useEffect(() => {
     const coluna = colunaRef.current;
     if (!coluna) return;
-    const observador = new ResizeObserver(([entrada]) => {
-      setLarguraDaColuna(entrada.contentRect.width);
-    });
+
+    const medir = (largura: number) => {
+      if (largura > 0) setLarguraDaColuna(largura);
+    };
+
+    medir(coluna.clientWidth);
+
+    const observador = new ResizeObserver(([entrada]) => medir(entrada.contentRect.width));
     observador.observe(coluna);
     return () => observador.disconnect();
   }, []);
@@ -477,7 +494,11 @@ export function VisualizadorDePdf({
                    */
                   <div
                     key={numero}
-                    className="absolute left-0 right-0 px-[var(--space-shell-3)]"
+                    // Sem padding próprio: a coluna já tem o dela, e as duas
+                    // somadas recuavam a página duas vezes — a escala vinha da
+                    // largura da coluna e o espaço real era menor, o que
+                    // produzia rolagem horizontal de alguns pixels.
+                    className="absolute left-0 right-0"
                     style={{
                       top: `${deslocamentos[numero - 1]}px`,
                       height: `${larguraDaColuna * proporcao}px`,
