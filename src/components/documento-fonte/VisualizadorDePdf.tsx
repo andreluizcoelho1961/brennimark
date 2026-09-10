@@ -189,7 +189,21 @@ export function VisualizadorDePdf({
       range: transporte,
       disableStream: true,
       disableAutoFetch: true,
-      rangeChunkSize: 65_536,
+      /**
+       * 256 KiB por pedaço, e não os 64 KiB da sondagem original.
+       *
+       * A sondagem mediu bytes: 64 KiB de sufixo mais 64 KiB de início bastam
+       * para abrir o documento, e isso continua verdade. O que ela não pesava
+       * é o custo de cada IDA E VOLTA em produção — cada intervalo é uma
+       * invocação de função serverless, com partida a frio, resolução de
+       * sessão e consulta ao banco antes do primeiro byte.
+       *
+       * Um manual de 4 MiB pedia ~20 pedaços; com 256 KiB são ~13. Menos viagens
+       * sem puxar quase o arquivo todo: 512 KiB transferia 77% dele. Continua
+       * muito abaixo do teto de 4 MiB por fatia, e o número é ajustável agora que
+       * `Server-Timing` dá a medida de produção.
+       */
+      rangeChunkSize: 262_144,
       withCredentials: true,
     });
 
