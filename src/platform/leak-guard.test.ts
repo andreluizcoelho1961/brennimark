@@ -813,6 +813,22 @@ test("falha ao limpar uma importação abandonada vira pendência", () => {
   );
 });
 
+test("a pendência que a fila recusa deixa rastro", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  // Chamar a RPC com `await` solto descarta o erro. Foi assim que um 42P10 em
+  // toda chamada deixou PDFs fora do Storage limpo e fora da fila, sem registro.
+  assert.doesNotMatch(
+    importador,
+    /^\s*await\s+supabase\.rpc\(\s*"enqueue_import_cleanup"/m,
+    "o resultado de enqueue_import_cleanup precisa ser guardado e conferido",
+  );
+  assert.match(
+    importador,
+    /const\s+(\w+)\s*=\s*await\s+supabase\.rpc\(\s*"enqueue_import_cleanup"[\s\S]*?if\s*\(\s*\1\.error\s*\)[\s\S]{0,300}?importacao_deixou_objeto_sem_destino[\s\S]{0,200}?sqlstate/,
+    "falha ao enfileirar precisa virar importacao_deixou_objeto_sem_destino com o SQLSTATE",
+  );
+});
+
 /**
  * O primeiro usuário do produto não pode ficar preso.
  *
