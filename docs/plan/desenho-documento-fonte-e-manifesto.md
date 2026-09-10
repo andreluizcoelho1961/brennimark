@@ -442,9 +442,25 @@ recuperável**:
    transação A, e o servidor o lê de lá. É isso que faz a repetição usar o
    mesmo pedido por construção e a recuperação sobreviver a um recarregamento
    — inclusive de outro aparelho, e por outra pessoa.
-5. **O vínculo é escrito por último.** Falhar nele deixa uma publicação
-   completa marcada como incompleta, que é o erro seguro dos dois: a próxima
-   tentativa fecha o vínculo sem duplicar nada.
+5. **O vínculo é escrito DENTRO da transação B**, por `p_import_id`.
+
+   Ele nasceu do lado errado. A rota o escrevia depois, com o cliente da
+   sessão — e isso não podia funcionar: `authenticated` tem `select` e
+   `insert` em `brand_imports` e **nenhum `update`**, nem grant nem policy.
+   Toda publicação falharia com 42501 no último passo, e a rota classificaria
+   isso como falha temporária, oferecendo eternamente uma nova tentativa que
+   jamais concluiria.
+
+   Conceder `update` a `authenticated` seria a correção errada: a coluna
+   afirma que a publicação está completa, e quem a escreve à mão pode afirmar
+   completude que não existe — o produto passaria a confiar numa declaração do
+   cliente exatamente onde decidiu não confiar.
+
+   Dentro da RPC, documento, manifesto e vínculo ficam na mesma transação: os
+   três acontecem ou nenhum acontece. `private.vincular_importacao_ao_documento`
+   valida conta, marca **e `sha256`** antes de escrever, e recusa com `P0002`
+   se nada corresponde — senão um `import_id` qualquer marcaria como completa
+   a publicação de outro PDF.
 
 O estado intermediário, portanto, não é corrupção: é uma marca legível, com o
 manual original servindo normalmente, cujo registro por página está pendente e
@@ -467,6 +483,13 @@ O que as cinco mitigações **não** resolvem:
   fronteira está clara — a chave de serviço só executa a RPC, e não tem
   `select` em `brand_documents` de propósito —, mas ela é mantida por
   disciplina e revisão, não pelo tipo.
+- **A geometria é repetível, não autêntica.** Ela vem de uma linha durável, e
+  é isso que faz a repetição mandar o mesmo pedido. Mas foi **medida pelo
+  navegador** durante a transação A, e nenhuma leitura posterior do relatório
+  transforma isso em prova. Autenticidade exigiria medir o PDF no servidor —
+  outra decisão, com outro custo, e não tomada. Onde a distinção importa:
+  procedência editorial (de onde saiu a regra) está garantida; procedência
+  criptográfica da MEDIDA não está.
 
 ### 9.4 Para onde migrar
 
@@ -488,10 +511,10 @@ O que essa migração exige, e por isso não foi feita agora:
    1.000 páginas: o manifesto sozinho são **234 KiB**, e os documentos com
    texto integral são maiores — precisa medir contra o limite de corpo de
    pedido da função antes de decidir se cabe numa chamada.
-4. A prova SQL cresce: hoje ela prova as constraints do manifesto; passaria a
-   precisar provar que **uma falha em qualquer ponto não deixa marca meia
-   criada** — o caso que hoje é impossível de ter porque as duas transações
-   são separadas de propósito.
+4. A prova SQL cresce: hoje ela prova as constraints do manifesto e o vínculo;
+   passaria a precisar provar que **uma falha em qualquer ponto não deixa marca
+   meia criada** — o caso que hoje é impossível de ter porque as duas
+   transações são separadas de propósito.
 
 ### 9.5 Medição de 10/09/2026, em 1.000 páginas
 
@@ -503,8 +526,9 @@ O que essa migração exige, e por isso não foi feita agora:
 | Payload do manifesto | 239.493 bytes (233,9 KiB) |
 | Bytes por página | 239,5 |
 | Folga contra 4,5 MB | 18,8× |
-| **Duração da transação B** | **36,0 ms** |
-| Duração da repetição idempotente | 3,1 ms |
+| **Duração da transação B** (com o vínculo) | **40,9 ms** |
+| Duração da repetição idempotente | 6,1 ms |
+| Vínculo fechado na mesma transação | sim |
 | Páginas gravadas | 1.000 |
 | Páginas sem seção (10% sintético) | 100 |
 | Documentos-fonte após repetir | 1 |
@@ -513,12 +537,12 @@ O que essa migração exige, e por isso não foi feita agora:
 
 Duas leituras que mudam o planejamento:
 
-- **36 ms não é o gargalo.** A publicação de um manual grande leva minutos, e
+- **41 ms não é o gargalo.** A publicação de um manual grande leva minutos, e
   eles estão na renderização das páginas visuais e no envio ao Storage. A
-  transação que se temia — mil `insert` mais três verificações de conjunto —
-  custa menos que uma requisição de rede. A migração para transação única não
+  transação que se temia — mil `insert`, três verificações de conjunto e o
+  vínculo — custa menos que uma requisição de rede. A migração para transação única não
   precisa ser feita por desempenho.
-- **A repetição custa 3,1 ms.** O caminho de recuperação é dez vezes mais
+- **A repetição custa 6,1 ms.** O caminho de recuperação é dez vezes mais
   barato que o caminho normal, porque a idempotência sai por `sha256` antes de
   qualquer escrita. Oferecer "tentar de novo" não tem custo que justifique
   hesitar.

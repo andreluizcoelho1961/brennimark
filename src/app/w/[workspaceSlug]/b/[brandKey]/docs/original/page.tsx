@@ -86,7 +86,11 @@ export default async function ManualOriginal({
   return (
     <div className="flex h-[calc(100dvh-var(--shell-topbar,56px))] flex-col">
       {registro?.incompleta && registro.importId && (
-        <ConclusaoPendente marcaChave={alvo.brandKey} importId={registro.importId} />
+        <ConclusaoPendente
+          contaSlug={alvo.workspaceSlug}
+          marcaChave={alvo.brandKey}
+          importId={registro.importId}
+        />
       )}
       {/*
         Páginas sem seção: pendência de CURADORIA, e não defeito. Elas estão

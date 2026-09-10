@@ -482,7 +482,9 @@ export function BrandImporter({
   async function concluirRegistro(marca: string, importacao: string) {
     setConcluindo(true);
     setProgresso({ etapa: "gravando", feito: 0, total: 0 });
-    const registro = await registrarImportacao({ marca, importId: importacao });
+    const registro = await registrarImportacao({
+      workspace: workspaceSlug, marca, importId: importacao,
+    });
     setConcluindo(false);
     setProgresso(null);
 

@@ -28,9 +28,12 @@ import { registrarImportacao } from "@/lib/documento-fonte/registrar-do-navegado
  * documento-fonte não está registrado.
  */
 export function ConclusaoPendente({
+  contaSlug,
   marcaChave,
   importId,
 }: {
+  /** O slug da conta: `brands.key` é único dentro dela, não globalmente. */
+  contaSlug: string;
   marcaChave: string;
   importId: string;
 }) {
@@ -43,7 +46,9 @@ export function ConclusaoPendente({
 
   async function tentar() {
     setTentando(true);
-    const registro = await registrarImportacao({ marca: marcaChave, importId });
+    const registro = await registrarImportacao({
+      workspace: contaSlug, marca: marcaChave, importId,
+    });
     setTentando(false);
 
     if (!registro.ok) {

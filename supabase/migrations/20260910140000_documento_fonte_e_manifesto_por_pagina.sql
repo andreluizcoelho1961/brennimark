@@ -327,6 +327,80 @@ create trigger brand_source_pages_pagina_dentro_do_documento
 
 -- ════════════════════════════════════════════════════════════════════════
 -- 4. Escrita só por RPC — completude e imutabilidade do original
+/*
+ * ─── O vínculo da importação com o documento-fonte ──────────────────────
+ *
+ * `brand_imports.source_document_id` é o SINAL de publicação completa: nulo
+ * significa que o manifesto não foi registrado, e é isso que a interface
+ * mostra como pendência.
+ *
+ * Ele era escrito pela rota, com o cliente da sessão, e não podia funcionar:
+ * `authenticated` tem `select` e `insert` em `brand_imports` e nenhum
+ * `update`. Toda publicação falharia com 42501 no último passo, e — pior — a
+ * rota classificava isso como falha temporária, oferecendo eternamente uma
+ * nova tentativa que jamais concluiria.
+ *
+ * Conceder `update` a `authenticated` seria a correção errada. Esta coluna
+ * afirma que a publicação está completa; quem a escreve à mão pode afirmar
+ * completude que não existe, e o produto passaria a confiar numa declaração do
+ * cliente exatamente onde decidiu não confiar.
+ *
+ * Aqui dentro, o vínculo entra na MESMA transação do documento e do
+ * manifesto. Os três acontecem juntos ou nenhum acontece.
+ *
+ * As quatro condições do `where` são a validação: a importação precisa ser
+ * desta conta, desta marca e DESTE arquivo. Sem elas, um `p_import_id` de
+ * outra marca marcaria como completa uma publicação alheia.
+ */
+create function private.vincular_importacao_ao_documento(
+  p_import_id          uuid,
+  p_source_document_id uuid,
+  p_brand_id           uuid,
+  p_workspace_id       uuid,
+  p_pdf_sha256         text
+)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  afetadas integer;
+begin
+  -- Documento-fonte sem importação de origem é legítimo: um original trazido
+  -- por outro caminho não tem o que vincular.
+  if p_import_id is null then
+    return;
+  end if;
+
+  update public.brand_imports
+     set source_document_id = p_source_document_id
+   where import_id = p_import_id
+     and brand_id = p_brand_id
+     and workspace_id = p_workspace_id
+     and pdf_sha256 = p_pdf_sha256;
+
+  get diagnostics afetadas = row_count;
+
+  /*
+   * Zero linhas não é "nada a fazer": é um pedido que não corresponde ao
+   * mundo. Ou a importação não existe, ou é de outra marca, ou é de outro
+   * arquivo — e nos três casos gravar o documento sem o vínculo produziria
+   * uma publicação permanentemente marcada como incompleta, que nenhuma
+   * repetição conserta. Levantar aqui desfaz a transação inteira.
+   *
+   * `(workspace_id, import_id)` é único, então no máximo uma linha é atingida.
+   */
+  if afetadas = 0 then
+    raise exception 'importação % não corresponde a esta marca e a este arquivo', p_import_id
+      using errcode = 'P0002';
+  end if;
+end;
+$$;
+
+revoke execute on function private.vincular_importacao_ao_documento(
+  uuid, uuid, uuid, uuid, text) from public, anon, authenticated;
+
 -- ════════════════════════════════════════════════════════════════════════
 --
 -- ─── Por que não há `grant insert/update/delete` ─────────────────────────
@@ -357,7 +431,27 @@ create function public.registrar_documento_fonte(
   p_idioma       text,
   p_titulo       text,
   p_paginas      jsonb,
-  p_created_by   uuid
+  p_created_by   uuid,
+  /*
+   * A importação a vincular, e ela entra AQUI de propósito.
+   *
+   * O vínculo era escrito pela rota, com o cliente da sessão. Não funcionava:
+   * `authenticated` tem `select` e `insert` em `brand_imports` e nenhum
+   * `update` — nem grant nem policy. O `update` falharia com 42501 em toda
+   * publicação, e a interface classificaria isso como falha temporária,
+   * oferecendo para sempre uma nova tentativa que nunca conclui.
+   *
+   * Liberar `update` a `authenticated` seria a correção errada: a coluna diz
+   * que a publicação está completa, e quem pode escrevê-la à mão pode declarar
+   * completa uma publicação que não é. Dentro desta função, documento,
+   * manifesto e vínculo ficam na MESMA transação — que é o que a fatia
+   * pretendia desde o começo e a rota não conseguia entregar.
+   *
+   * Nulo é permitido: registrar um documento-fonte sem importação de origem é
+   * legítimo (um original trazido por outro caminho), e nesse caso não há o
+   * que vincular.
+   */
+  p_import_id    uuid default null
 )
 returns uuid
 language plpgsql
@@ -442,6 +536,10 @@ begin
     and pdf_sha256 = p_pdf_sha256;
 
   if novo_id is not null then
+    -- Repetir precisa fechar o vínculo, e não só devolver o id: a tentativa
+    -- anterior pode ter gravado o documento e sido interrompida antes disto.
+    perform private.vincular_importacao_ao_documento(
+      p_import_id, novo_id, p_brand_id, p_workspace_id, p_pdf_sha256);
     return novo_id;
   end if;
 
@@ -491,6 +589,9 @@ begin
     nullif(p->>'confianca', '')::numeric
   from jsonb_array_elements(p_paginas) as p;
 
+  perform private.vincular_importacao_ao_documento(
+    p_import_id, novo_id, p_brand_id, p_workspace_id, p_pdf_sha256);
+
   return novo_id;
 end;
 $$;
@@ -511,10 +612,10 @@ $$;
  * devolvia **false** para as duas RPCs.
  */
 revoke execute on function public.registrar_documento_fonte(
-  uuid, uuid, text, text, bigint, integer, text, text, text, jsonb, uuid)
+  uuid, uuid, text, text, bigint, integer, text, text, text, jsonb, uuid, uuid)
   from public, anon, authenticated;
 grant execute on function public.registrar_documento_fonte(
-  uuid, uuid, text, text, bigint, integer, text, text, text, jsonb, uuid)
+  uuid, uuid, text, text, bigint, integer, text, text, text, jsonb, uuid, uuid)
   to service_role;
 
 /*

@@ -51,7 +51,7 @@ do $$
 declare
   u_a uuid := '11111111-1111-4111-8111-111111111111';
   u_b uuid := '22222222-2222-4222-8222-222222222222';
-  w_a uuid; w_b uuid; m_a uuid; m_b uuid;
+  w_a uuid; w_b uuid; m_a uuid; m_b uuid; m_c uuid;
 begin
   insert into auth.users (id, email, aud, role)
   values (u_a, 'prova-a@local.test', 'authenticated', 'authenticated'),
@@ -73,6 +73,21 @@ begin
                              metadata, navigation, theme, ai, legal)
   values (w_b, 'marca-b', 'Marca B', 'B', 'Marca de prova B', 'pt-BR', '{}', '{}', '{}', '{}', '{}')
   returning id into m_b;
+
+  /*
+   * Marca C, com os QUATRO tipos livres.
+   *
+   * `tipo` tem vocabulário fechado — `manual`, `anexo`, `apresentacao`,
+   * `guia` — e cada marca só pode ter um ATIVO por tipo. Os casos anteriores
+   * já ocupam tipos nas marcas A e B, e reaproveitar um deles fazia os casos
+   * do vínculo reprovarem por `uma_ativa_por_tipo` antes de alcançar o que
+   * pretendiam provar. É o mesmo falso positivo estrutural que esta prova
+   * existe para não ter: dado isolado por caso não é preciosismo.
+   */
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language,
+                             metadata, navigation, theme, ai, legal)
+  values (w_b, 'marca-c', 'Marca C', 'C', 'Marca de prova C', 'pt-BR', '{}', '{}', '{}', '{}', '{}')
+  returning id into m_c;
 
   /*
    * Uma seção em cada marca, para os casos de vínculo cruzado.
@@ -98,7 +113,7 @@ begin
 
   create temp table mundo as
   select u_a as usuario_a, u_b as usuario_b, w_a as conta_a, w_b as conta_b,
-         m_a as marca_a, m_b as marca_b;
+         m_a as marca_a, m_b as marca_b, m_c as marca_c;
   grant select on mundo to authenticated, anon, service_role;
 end $$;
 
@@ -755,6 +770,151 @@ begin
     ('o motivo foi registrado', 'com motivo',
      case when length(btrim(coalesce(motivo,''))) > 0 then 'com motivo' else 'vazio' end,
      length(btrim(coalesce(motivo,''))) > 0);
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 8. O VÍNCULO, dentro da transação
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Ele era escrito pela rota, com o cliente da sessão, e não podia funcionar:
+-- `authenticated` tem `select` e `insert` em `brand_imports` e nenhum
+-- `update` — nem grant nem policy. Toda publicação falharia com 42501 no
+-- último passo, e a rota classificaria isso como falha temporária, oferecendo
+-- eternamente uma nova tentativa que jamais concluiria.
+--
+-- Agora `p_import_id` entra na RPC e o vínculo acontece na MESMA transação do
+-- documento e do manifesto. Estes casos provam as quatro coisas que decidem
+-- se isso está correto:
+--
+--   8a. o vínculo é escrito de fato, e `authenticated` continua sem `update`;
+--   8b. importação de OUTRA marca é recusada, e nada é gravado;
+--   8c. importação do OUTRO arquivo é recusada — o `sha256` faz parte da
+--       validação, senão um import qualquer marcaria como completa a
+--       publicação de outro PDF;
+--   8d. repetir fecha o vínculo que a tentativa anterior deixou aberto.
+do $$
+declare
+  d uuid; imp uuid; vinculado uuid; pode boolean;
+  paginas jsonb := jsonb_build_array(
+    jsonb_build_object('pagina',1,'largura_pt',10,'altura_pt',10,'tem_texto',true));
+begin
+  -- ── 8a. o caminho normal ──
+  imp := gen_random_uuid();
+  insert into public.brand_imports (workspace_id, import_id, brand_id, storage_path,
+                                    pdf_sha256, page_count, document_count, report, created_by)
+  select conta_b, imp, marca_c, 'v1', repeat('a',64), 1, 0, '{}', usuario_b from mundo;
+
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_b, marca_c, 'v1', repeat('a',64), 1, 1,
+    'manual', null, '', paginas, usuario_b, imp) into d from mundo;
+  reset role;
+
+  select source_document_id into vinculado from public.brand_imports where import_id = imp;
+
+  /*
+   * A ausência de `update` para `authenticated` é o motivo de o vínculo ter
+   * mudado de lugar. Conferir aqui trava a regra: se alguém "resolver" o
+   * problema concedendo o privilégio, este caso reprova e diz por quê.
+   */
+  select has_table_privilege('authenticated', 'public.brand_imports', 'UPDATE') into pode;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('a RPC escreve o vinculo', 'vinculado',
+     case when vinculado = d then 'vinculado' else 'nulo ou errado' end, vinculado = d),
+    ('authenticated NAO tem update em brand_imports', 'false', pode::text, pode = false);
+exception when others then
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('a RPC escreve o vinculo', 'sem erro', 'ERRO ' || sqlstate || ': ' || sqlerrm, false);
+end $$;
+
+-- ── 8b e 8c: importação que não corresponde derruba a transação inteira ──
+--
+-- Zero linhas atingidas não é "nada a fazer": é um pedido que não corresponde
+-- ao mundo. Gravar o documento sem o vínculo produziria uma publicação
+-- permanentemente marcada como incompleta, que nenhuma repetição conserta.
+do $$
+declare
+  imp_outra uuid; imp_outro_arquivo uuid; docs_antes integer; docs_depois integer;
+  paginas jsonb := jsonb_build_array(
+    jsonb_build_object('pagina',1,'largura_pt',10,'altura_pt',10,'tem_texto',true));
+begin
+  -- Um import da marca A, para tentar vincular a um documento da marca B.
+  imp_outra := gen_random_uuid();
+  insert into public.brand_imports (workspace_id, import_id, brand_id, storage_path,
+                                    pdf_sha256, page_count, document_count, report, created_by)
+  select conta_a, imp_outra, marca_a, 'v2', repeat('b',64), 1, 0, '{}', usuario_a from mundo;
+
+  -- Um import da marca B, mas de OUTRO arquivo.
+  imp_outro_arquivo := gen_random_uuid();
+  insert into public.brand_imports (workspace_id, import_id, brand_id, storage_path,
+                                    pdf_sha256, page_count, document_count, report, created_by)
+  select conta_b, imp_outro_arquivo, marca_c, 'v3', repeat('d',64), 1, 0, '{}', usuario_b from mundo;
+
+  select count(*) into docs_antes from public.brand_source_documents;
+
+  perform pg_temp.espera_recusa(
+    'import de outra marca e recusado',
+    format($f$select public.registrar_documento_fonte(conta_b, marca_c, 'v4', repeat('e',64), 1, 1,
+      'anexo', null, '', %L::jsonb, usuario_b, %L::uuid) from mundo$f$, paginas, imp_outra),
+    null, 'P0002');
+
+  perform pg_temp.espera_recusa(
+    'import de outro arquivo e recusado',
+    format($f$select public.registrar_documento_fonte(conta_b, marca_c, 'v5', repeat('f',64), 1, 1,
+      'anexo', null, '', %L::jsonb, usuario_b, %L::uuid) from mundo$f$,
+      paginas, imp_outro_arquivo),
+    null, 'P0002');
+
+  select count(*) into docs_depois from public.brand_source_documents;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('a recusa do vinculo NAO deixa documento gravado', docs_antes::text, docs_depois::text,
+     docs_antes = docs_depois);
+end $$;
+
+-- ── 8d. repetir fecha o vínculo que ficou aberto ──
+--
+-- O caso real da recuperação: a tentativa anterior gravou o documento e foi
+-- interrompida, ou o vínculo foi desfeito por uma correção. Repetir precisa
+-- fechar sem criar um segundo documento.
+do $$
+declare
+  d uuid; repetido uuid; imp uuid; vinculado uuid; docs integer;
+  paginas jsonb := jsonb_build_array(
+    jsonb_build_object('pagina',1,'largura_pt',10,'altura_pt',10,'tem_texto',true));
+begin
+  imp := gen_random_uuid();
+  insert into public.brand_imports (workspace_id, import_id, brand_id, storage_path,
+                                    pdf_sha256, page_count, document_count, report, created_by)
+  select conta_b, imp, marca_c, 'v6', repeat('7',64), 1, 0, '{}', usuario_b from mundo;
+
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_b, marca_c, 'v6', repeat('7',64), 1, 1,
+    'guia', null, '', paginas, usuario_b, imp) into d from mundo;
+  reset role;
+
+  -- Simula a interrupção: o documento existe, o vínculo não.
+  update public.brand_imports set source_document_id = null where import_id = imp;
+
+  set local role service_role;
+  select public.registrar_documento_fonte(conta_b, marca_c, 'v6', repeat('7',64), 1, 1,
+    'guia', null, '', paginas, usuario_b, imp) into repetido from mundo;
+  reset role;
+
+  select source_document_id into vinculado from public.brand_imports where import_id = imp;
+  select count(*) into docs from public.brand_source_documents
+  where brand_id = (select marca_c from mundo) and tipo = 'guia';
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('repetir devolve o mesmo documento no vinculo', 'igual',
+     case when repetido = d then 'igual' else 'diferente' end, repetido = d),
+    ('repetir FECHA o vinculo que ficou aberto', 'vinculado',
+     case when vinculado = d then 'vinculado' else 'ainda nulo' end, vinculado = d),
+    ('repetir nao cria segundo documento no vinculo', '1', docs::text, docs = 1);
+exception when others then
+  insert into resultado (caso, esperado, obtido, passou)
+  values ('repetir FECHA o vinculo que ficou aberto', 'sem erro',
+          'ERRO ' || sqlstate || ': ' || sqlerrm, false);
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════

@@ -58,6 +58,19 @@ begin
                                       title, status, updated_by)
   values (w, m, 'medida', 'manual', 'Manual', 'Manual', 'draft', u);
 
+  /*
+   * A importação existe, para a medição exercitar a transação B COMPLETA.
+   *
+   * O vínculo acontece dentro da RPC, e sem uma linha para vincular a medição
+   * mediria uma transação mais curta que a real — justamente o número que se
+   * quer conhecer.
+   */
+  insert into public.brand_imports (workspace_id, import_id, brand_id, storage_path,
+                                    pdf_sha256, page_count, document_count, report, created_by)
+  values (w, '99999999-9999-4999-8999-999999999999', m,
+          w::text || '/medida/' || repeat('a', 64) || '.pdf',
+          repeat('a', 64), 1000, 1, '{}', u);
+
   perform set_config('medida.conta', w::text, true);
   perform set_config('medida.marca', m::text, true);
   perform set_config('medida.ator', u::text, true);
@@ -144,7 +157,8 @@ begin
     p_idioma := 'pt-BR',
     p_titulo := 'Manual de mil paginas',
     p_paginas := current_setting('medida.paginas')::jsonb,
-    p_created_by := current_setting('medida.ator')::uuid
+    p_created_by := current_setting('medida.ator')::uuid,
+    p_import_id := '99999999-9999-4999-8999-999999999999'
   );
 
   fim := clock_timestamp();
@@ -154,6 +168,11 @@ begin
   from public.brand_source_pages where source_document_id = doc_id;
 
   insert into medida (o_que, valor) values
+    ('vinculo fechado na mesma transacao',
+      case when exists (
+        select 1 from public.brand_imports
+        where import_id = '99999999-9999-4999-8999-999999999999'
+          and source_document_id = doc_id) then 'sim' else 'NAO' end),
     ('duracao da transacao B (ms)',
       round(extract(milliseconds from (fim - comeco))::numeric, 1)::text),
     ('paginas gravadas', gravadas::text),
@@ -187,7 +206,8 @@ begin
     p_idioma := 'pt-BR',
     p_titulo := 'Manual de mil paginas',
     p_paginas := current_setting('medida.paginas')::jsonb,
-    p_created_by := current_setting('medida.ator')::uuid
+    p_created_by := current_setting('medida.ator')::uuid,
+    p_import_id := '99999999-9999-4999-8999-999999999999'
   );
 
   fim := clock_timestamp();

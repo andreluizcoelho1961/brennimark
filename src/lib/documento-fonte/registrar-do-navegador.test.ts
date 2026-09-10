@@ -19,7 +19,11 @@ function respondendo(status: number, corpo: unknown): typeof fetch {
     })) as unknown as typeof fetch;
 }
 
-const PEDIDO = { marca: "padaria", importId: "88888888-8888-4888-8888-888888888888" };
+const PEDIDO = {
+  workspace: "padaria-sp",
+  marca: "padaria",
+  importId: "88888888-8888-4888-8888-888888888888",
+};
 
 test("o pedido leva duas cordas, e nada de manifesto", async () => {
   let corpoEnviado = "";
@@ -29,7 +33,13 @@ test("o pedido leva duas cordas, e nada de manifesto", async () => {
   }) as unknown as typeof fetch;
 
   await registrarImportacao(PEDIDO, buscar);
+  /*
+   * A conta viaja junto porque `brands.key` é único DENTRO dela, e não
+   * globalmente: sem ela, quem participa de duas contas com uma marca
+   * `padaria` em cada receberia 404 para uma marca que existe.
+   */
   assert.deepEqual(JSON.parse(corpoEnviado), {
+    workspace: "padaria-sp",
     marca: "padaria",
     import_id: PEDIDO.importId,
   });
@@ -124,9 +134,10 @@ test("erro sem corpo conhecido é repetível", async () => {
  */
 test("todo código de falha tem relato nas duas línguas", () => {
   const codigos = [
-    "nao_autenticado", "pedido_invalido", "marca_nao_encontrada",
-    "importacao_nao_encontrada", "manifesto_ausente", "manifesto_invalido",
-    "sem_permissao", "falha_ao_vincular", "falha_temporaria",
+    "nao_autenticado", "pedido_invalido", "conta_nao_encontrada",
+    "marca_nao_encontrada", "importacao_nao_encontrada", "manifesto_ausente",
+    "manifesto_invalido", "sem_permissao", "falha_de_leitura",
+    "falha_temporaria",
   ];
 
   for (const codigo of codigos) {
@@ -143,13 +154,13 @@ test("todo código de falha tem relato nas duas línguas", () => {
  * quem clica falhar de novo sem entender por quê.
  */
 test("só as falhas repetíveis oferecem nova tentativa", () => {
-  for (const codigo of ["falha_temporaria", "falha_ao_vincular"]) {
+  for (const codigo of ["falha_temporaria", "falha_de_leitura"]) {
     assert.equal(relatarConclusao(codigo).ofereceNovaTentativa, true, codigo);
   }
   for (const codigo of [
     "sem_permissao", "nao_autenticado", "manifesto_ausente",
-    "manifesto_invalido", "marca_nao_encontrada", "importacao_nao_encontrada",
-    "pedido_invalido",
+    "manifesto_invalido", "conta_nao_encontrada", "marca_nao_encontrada",
+    "importacao_nao_encontrada", "pedido_invalido",
   ]) {
     assert.equal(relatarConclusao(codigo).ofereceNovaTentativa, false, codigo);
   }
@@ -168,9 +179,9 @@ test("código desconhecido cai no temporário, e não em texto vazio", () => {
  */
 test("nenhum relato sugere que a publicação falhou por inteiro", () => {
   const codigos = [
-    "nao_autenticado", "marca_nao_encontrada", "importacao_nao_encontrada",
-    "manifesto_ausente", "manifesto_invalido", "sem_permissao",
-    "falha_ao_vincular", "falha_temporaria",
+    "nao_autenticado", "conta_nao_encontrada", "marca_nao_encontrada",
+    "importacao_nao_encontrada", "manifesto_ausente", "manifesto_invalido",
+    "sem_permissao", "falha_de_leitura", "falha_temporaria",
   ];
   for (const codigo of codigos) {
     const { pt } = relatarConclusao(codigo);

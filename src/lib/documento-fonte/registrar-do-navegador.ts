@@ -11,6 +11,12 @@
  */
 
 export interface PedidoDoNavegador {
+  /**
+   * O slug da conta. Ele existe no pedido porque `brands.key` é único DENTRO
+   * da conta, e não globalmente: quem participa de duas contas com uma marca
+   * `padaria` em cada precisa dizer de qual está falando.
+   */
+  workspace: string;
   marca: string;
   importId: string;
 }
@@ -20,7 +26,7 @@ export type RespostaDoRegistro =
   | { ok: false; codigo: string; repetivel: boolean };
 
 export async function registrarImportacao(
-  { marca, importId }: PedidoDoNavegador,
+  { workspace, marca, importId }: PedidoDoNavegador,
   buscar: typeof fetch = fetch,
 ): Promise<RespostaDoRegistro> {
   let resposta: Response;
@@ -28,7 +34,7 @@ export async function registrarImportacao(
     resposta = await buscar("/api/documento-fonte/registrar", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ marca, import_id: importId }),
+      body: JSON.stringify({ workspace, marca, import_id: importId }),
     });
   } catch {
     /*

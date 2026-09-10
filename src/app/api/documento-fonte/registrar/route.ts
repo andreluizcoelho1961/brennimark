@@ -17,15 +17,24 @@ import {
  *
  * ─── Dois clientes, e a fronteira entre eles ────────────────────────────
  *
- *   sessão            resolve usuário, marca, importação e seções, SOB RLS. É
- *                     ela que garante que a seção pertence à marca de quem
- *                     pede, e que a importação pertence à conta.
+ *   sessão            resolve usuário, conta, marca, importação e seções, SOB
+ *                     RLS. É ela que garante que a seção pertence à marca de
+ *                     quem pede, e que a importação pertence à conta.
  *   chave de serviço  chama a RPC `service_role`-only, que é a única capaz de
- *                     gravar manifesto completo sem dar `insert` ao cliente.
+ *                     gravar manifesto completo — e de fechar o vínculo, que
+ *                     `authenticated` não pode escrever.
  *
  * A chave de serviço **nunca** resolve nada do domínio: ela não tem `select`
  * em `brand_documents`, de propósito. Trocar isso por conveniência ampliaria a
  * superfície da chave mais poderosa do sistema.
+ *
+ * ─── Toda porta devolve `{ dados, erro }`, e isso não é cerimônia ───────
+ *
+ * "A consulta rodou e não há linha" e "a consulta não rodou" precisam chegar
+ * separadas ao módulo: a primeira é 404 permanente, a segunda é 503 repetível.
+ * Colapsar as duas produzia o pior defeito desta rota — uma queda de banco na
+ * resolução de seções gravava mil páginas como `sem-secao`, o vínculo fechava,
+ * e a idempotência impedia qualquer repetição de corrigir.
  */
 export async function POST(request: Request) {
   let pedido: PedidoDeRegistro;
@@ -44,55 +53,75 @@ export async function POST(request: Request) {
        * apenas lido dos cookies. Este é o ponto em que o servidor decide quem
        * é o ator de uma escrita — é o lugar onde a ida à Auth API se paga.
        */
-      const { data } = await sessao.auth.getUser();
-      return data.user ? { id: data.user.id } : null;
+      const { data, error } = await sessao.auth.getUser();
+      return { dados: data?.user ? { id: data.user.id } : null, erro: error };
     },
 
-    async marca(chave) {
-      const { data } = await sessao
+    async conta(slug) {
+      // `workspaces.slug` tem índice único global, então o slug sozinho
+      // resolve uma conta só. A RLS decide se esta pessoa a alcança.
+      const { data, error } = await sessao
+        .from("workspaces")
+        .select("id")
+        .eq("slug", slug)
+        .maybeSingle();
+      return { dados: data ?? null, erro: error };
+    },
+
+    async marca(contaId, chave) {
+      /*
+       * O PAR, e não a chave sozinha. `brands` garante
+       * `unique (workspace_id, key)` — a chave é única dentro da conta, não
+       * globalmente. Quem participa de duas contas com uma marca `padaria` em
+       * cada faria `maybeSingle` receber duas linhas e recusar, e a rota
+       * responderia 404 para uma marca que existe.
+       */
+      const { data, error } = await sessao
         .from("brands")
-        .select("id, workspace_id")
+        .select("id")
+        .eq("workspace_id", contaId)
         .eq("key", chave)
         .maybeSingle();
-      return data ?? null;
+      return { dados: data ?? null, erro: error };
     },
 
     async importacao(importId, brandId, workspaceId) {
       // Os três filtros, sempre. A FK composta já garantiria o vínculo, mas
       // deixar conta ou marca de fora faria esta consulta depender de uma
       // garantia que vive em outro arquivo.
-      const { data } = await sessao
+      const { data, error } = await sessao
         .from("brand_imports")
-        .select("id, storage_path, pdf_sha256, page_count, source_document_id, report")
+        .select("import_id, storage_path, pdf_sha256, page_count, source_document_id, report")
         .eq("import_id", importId)
         .eq("brand_id", brandId)
         .eq("workspace_id", workspaceId)
         .maybeSingle();
-      return (data as RegistroDeImportacao | null) ?? null;
+      return { dados: (data as RegistroDeImportacao | null) ?? null, erro: error };
     },
 
     async secoes(brandId, slugs) {
-      const { data } = await sessao
+      const { data, error } = await sessao
         .from("brand_documents")
         .select("id, slug")
         .eq("brand_id", brandId)
         .in("slug", slugs);
-      return new Map((data ?? []).map((s) => [s.slug as string, s.id as string]));
+      /*
+       * Erro NÃO vira mapa vazio. Um mapa vazio significaria "nenhum destes
+       * slugs existe", que é um fato sobre a extração; erro significa "não
+       * sei", e as duas coisas levam a manifestos diferentes — um deles
+       * permanente e errado.
+       */
+      if (error) return { dados: null, erro: error };
+      return {
+        dados: new Map((data ?? []).map((s) => [s.slug as string, s.id as string])),
+        erro: null,
+      };
     },
 
     async registrar(argumentos) {
       const servico = createServiceClient();
       const { data, error } = await servico.rpc("registrar_documento_fonte", argumentos);
       return { id: (data as string | null) ?? null, erro: error };
-    },
-
-    async vincular(id, sourceDocumentId) {
-      // Sob a sessão, com RLS: só quem pode escrever na conta fecha o vínculo.
-      const { error } = await sessao
-        .from("brand_imports")
-        .update({ source_document_id: sourceDocumentId })
-        .eq("id", id);
-      return { erro: error };
     },
   };
 

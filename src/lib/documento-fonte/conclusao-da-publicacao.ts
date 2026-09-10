@@ -33,9 +33,16 @@ const RELATOS: Record<CodigoDeFalha, RelatoDaConclusao> = {
     en: "The brand was created, but registering the source document didn't finish. Nothing was lost — retrying picks up where it stopped.",
     ofereceNovaTentativa: true,
   },
-  falha_ao_vincular: {
-    pt: "O documento original foi registrado, mas a importação não foi marcada como concluída. Tentar de novo fecha o registro sem duplicar nada.",
-    en: "The source document was registered, but the import wasn't marked complete. Retrying closes it without duplicating anything.",
+  /*
+   * Consulta que não rodou — banco fora do ar, PostREST recusando, rede entre
+   * a função e o banco. É o oposto de "não encontrei": não se sabe, então
+   * nada foi gravado e repetir é o certo. Distinguir importa porque a
+   * alternativa era gravar o manifesto sem seção nenhuma e fechar o vínculo,
+   * perdendo a estrutura do manual em silêncio e para sempre.
+   */
+  falha_de_leitura: {
+    pt: "Não foi possível ler os dados da marca para concluir o registro. Nada foi gravado — tentar de novo conclui de onde parou.",
+    en: "The brand's data couldn't be read to finish registration. Nothing was saved — retrying picks up where it stopped.",
     ofereceNovaTentativa: true,
   },
   nao_autenticado: {
@@ -61,6 +68,11 @@ const RELATOS: Record<CodigoDeFalha, RelatoDaConclusao> = {
   manifesto_invalido: {
     pt: "O registro das páginas ficou inconsistente e não pode ser gravado como está. A marca está no ar, e importar o PDF de novo reconstrói o registro.",
     en: "The page record came out inconsistent and can't be saved as is. The brand is live, and importing the PDF again rebuilds the record.",
+    ofereceNovaTentativa: false,
+  },
+  conta_nao_encontrada: {
+    pt: "A conta não foi encontrada para concluir o registro. Abra a marca e conclua a partir do manual original.",
+    en: "The account couldn't be found to finish registration. Open the brand and finish from its source manual.",
     ofereceNovaTentativa: false,
   },
   marca_nao_encontrada: {

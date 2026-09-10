@@ -16,9 +16,9 @@
  *
  * ─── O pedido é DERIVADO, não enviado ──────────────────────────────────
  *
- * Este módulo recebe apenas `{ marca, import_id }`. Todo o manifesto sai do
- * relatório que a transação A gravou em `brand_imports.report`, lido aqui sob
- * RLS.
+ * Este módulo recebe apenas `{ workspace, marca, import_id }`. Todo o
+ * manifesto sai do relatório que a transação A gravou em
+ * `brand_imports.report`, lido aqui sob RLS.
  *
  * A alternativa era o navegador reenviar o manifesto inteiro na segunda
  * chamada. Ela cai em três dos requisitos de uma vez:
@@ -34,14 +34,17 @@
  *   3. **nada privilegiado vem do payload.** Geometria e slugs deixam de ser
  *      declaração do cliente na segunda transação.
  *
- * O custo é o relatório carregar o manifesto (uma linha de geometria por
- * página). É `jsonb` e o Postgres o guarda fora da linha; medido no passo 5.
+ * Uma precisão sobre o que isso garante: a geometria é **repetível**, porque
+ * vem de uma linha durável. Ela não é **autêntica** — foi medida pelo
+ * navegador durante a transação A, e nenhuma leitura posterior do relatório
+ * transforma isso em prova. Autenticidade exigiria medir o PDF no servidor,
+ * que é outra decisão, com outro custo, e não está tomada.
  *
  * ─── Os dois clientes, e por que não é um só ────────────────────────────
  *
  * `service_role` tem `bypassrls`, mas **grants continuam valendo**: ele não
  * tem `select` em `brand_documents`, de propósito, para a superfície da chave
- * ficar no mínimo. Então marca, importação e seção são resolvidas com a
+ * ficar no mínimo. Então conta, marca, importação e seção são resolvidas com a
  * **sessão do usuário**, sob RLS — é ela que garante que a seção pertence à
  * marca de quem pede — e só os identificadores já resolvidos vão à RPC.
  */
@@ -66,8 +69,7 @@ export interface PaginaDoRelatorio {
 
 /** O que a rota lê de `brand_imports`, sob RLS. */
 export interface RegistroDeImportacao {
-  /** A chave primária da linha, para o vínculo final. */
-  id: string;
+  import_id: string;
   storage_path: string;
   pdf_sha256: string;
   page_count: number;
@@ -81,29 +83,61 @@ export interface RegistroDeImportacao {
   };
 }
 
-/** O pedido inteiro. Duas cordas, e nenhuma delas é um id privilegiado. */
+/**
+ * O pedido inteiro: três cordas, e nenhuma delas é um id privilegiado.
+ *
+ * `workspace` existe porque `brands.key` é único **dentro** da conta, e não
+ * globalmente — a garantia é `unique (workspace_id, key)`. Quem participa de
+ * duas contas que tenham uma marca `padaria` em cada veria a consulta por
+ * chave sozinha devolver duas linhas: `maybeSingle` recusa, e a rota
+ * responderia 404 para uma marca que existe. O par exato resolve uma só.
+ */
 export interface PedidoDeRegistro {
+  workspace: string;
   marca: string;
   import_id: string;
 }
 
+/**
+ * O resultado de uma leitura no banco, com a distinção que importa.
+ *
+ * `{ dados: null, erro: null }` é "a consulta rodou e não há linha" — 404.
+ * `{ dados: null, erro: <algo> }` é "a consulta não rodou" — 503, repetível.
+ *
+ * Colapsar os dois foi o defeito mais perigoso desta rota: uma queda de banco
+ * na resolução de seções gravava as mil páginas como `sem-secao`, fechava o
+ * vínculo, e a idempotência impedia qualquer repetição de corrigir. Perda
+ * silenciosa e permanente de estrutura, com aparência de publicação limpa.
+ */
+export interface Leitura<T> {
+  dados: T | null;
+  erro: unknown;
+}
+
 export interface PortasDoRegistro {
   /** O usuário da SESSÃO. Nunca vem do corpo da requisição. */
-  ator(): Promise<{ id: string } | null>;
-  /** Resolve a marca pela chave, sob RLS. */
-  marca(chave: string): Promise<{ id: string; workspace_id: string } | null>;
+  ator(): Promise<Leitura<{ id: string }>>;
+  /** Resolve a conta pelo slug, sob RLS. `workspaces.slug` é único global. */
+  conta(slug: string): Promise<Leitura<{ id: string }>>;
+  /** Resolve a marca pelo par exato (conta, chave), sob RLS. */
+  marca(contaId: string, chave: string): Promise<Leitura<{ id: string }>>;
   /** Lê a importação, sob RLS, exigindo marca e conta. */
   importacao(
     importId: string,
     brandId: string,
     workspaceId: string,
-  ): Promise<RegistroDeImportacao | null>;
+  ): Promise<Leitura<RegistroDeImportacao>>;
   /** Resolve slugs de seção para ids, sob RLS, dentro desta marca. */
-  secoes(brandId: string, slugs: string[]): Promise<Map<string, string>>;
-  /** Chama a RPC com a chave de serviço. */
+  secoes(brandId: string, slugs: string[]): Promise<Leitura<Map<string, string>>>;
+  /**
+   * Chama a RPC com a chave de serviço.
+   *
+   * O vínculo com a importação vai DENTRO dela, por `p_import_id`: documento,
+   * manifesto e vínculo na mesma transação. A rota não escreve em
+   * `brand_imports` — `authenticated` não tem `update` nessa tabela, e
+   * conceder seria deixar o cliente declarar completude.
+   */
   registrar(argumentos: Record<string, unknown>): Promise<{ id: string | null; erro: unknown }>;
-  /** Liga o registro de importação ao documento-fonte, sob RLS. */
-  vincular(id: string, sourceDocumentId: string): Promise<{ erro: unknown }>;
 }
 
 /**
@@ -117,12 +151,13 @@ export interface PortasDoRegistro {
 export type CodigoDeFalha =
   | "nao_autenticado"
   | "pedido_invalido"
+  | "conta_nao_encontrada"
   | "marca_nao_encontrada"
   | "importacao_nao_encontrada"
   | "manifesto_ausente"
   | "manifesto_invalido"
   | "sem_permissao"
-  | "falha_ao_vincular"
+  | "falha_de_leitura"
   | "falha_temporaria";
 
 export type ResultadoDoRegistro =
@@ -160,6 +195,11 @@ function recusar(
   tecnico?: string,
 ): ResultadoDoRegistro {
   return { ok: false, status, codigo, repetivel, tecnico };
+}
+
+/** Falha de consulta: temporária e repetível, nunca "não encontrado". */
+function falhaDeLeitura(onde: string, erro: unknown): ResultadoDoRegistro {
+  return recusar(503, "falha_de_leitura", true, `${onde}: ${mensagemTecnica(erro) ?? "erro"}`);
 }
 
 /**
@@ -202,7 +242,13 @@ function classificarErroDaRpc(erro: unknown): { codigo: CodigoDeFalha; status: n
     case "22023": // invalid_parameter_value — manifesto incompleto, repetido ou com furo
     case "22004": // null_value_not_allowed — autor ausente
       return { codigo: "manifesto_invalido", status: 422 };
-    case "P0002": // no_data_found — o objeto do Storage não está lá
+    /*
+     * P0002 vem de dois lugares, e os dois querem dizer a mesma coisa para
+     * quem chamou: o objeto do Storage não está lá, ou a importação não
+     * corresponde a esta marca e a este arquivo — a validação que o vínculo
+     * faz dentro da transação.
+     */
+    case "P0002":
       return { codigo: "importacao_nao_encontrada", status: 404 };
     default:
       // Desconhecido é tratado como TEMPORÁRIO, de propósito: repetir é
@@ -217,7 +263,7 @@ export async function registrarDocumentoFonte(
   pedido: PedidoDeRegistro,
   portas: PortasDoRegistro,
 ): Promise<ResultadoDoRegistro> {
-  if (!pedido?.marca || !UUID.test(pedido?.import_id ?? "")) {
+  if (!pedido?.workspace || !pedido?.marca || !UUID.test(pedido?.import_id ?? "")) {
     return recusar(400, "pedido_invalido", false);
   }
 
@@ -229,15 +275,26 @@ export async function registrarDocumentoFonte(
    * se quem chama administra a conta.
    */
   const ator = await portas.ator();
-  if (!ator) return recusar(401, "nao_autenticado", false);
+  if (ator.erro) return falhaDeLeitura("sessao", ator.erro);
+  if (!ator.dados) return recusar(401, "nao_autenticado", false);
 
-  const marca = await portas.marca(pedido.marca);
+  const conta = await portas.conta(pedido.workspace);
+  if (conta.erro) return falhaDeLeitura("conta", conta.erro);
   // "Não existe" e "não é sua" respondem igual: responder diferente
   // confirmaria o endereço para quem sonda.
-  if (!marca) return recusar(404, "marca_nao_encontrada", false);
+  if (!conta.dados) return recusar(404, "conta_nao_encontrada", false);
 
-  const registro = await portas.importacao(pedido.import_id, marca.id, marca.workspace_id);
-  if (!registro) return recusar(404, "importacao_nao_encontrada", false);
+  const marca = await portas.marca(conta.dados.id, pedido.marca);
+  if (marca.erro) return falhaDeLeitura("marca", marca.erro);
+  if (!marca.dados) return recusar(404, "marca_nao_encontrada", false);
+
+  const marcaId = marca.dados.id;
+  const contaId = conta.dados.id;
+
+  const importacao = await portas.importacao(pedido.import_id, marcaId, contaId);
+  if (importacao.erro) return falhaDeLeitura("importacao", importacao.erro);
+  if (!importacao.dados) return recusar(404, "importacao_nao_encontrada", false);
+  const registro = importacao.dados;
 
   /*
    * Já vinculado é sucesso, e sem tocar no banco.
@@ -268,17 +325,30 @@ export async function registrarDocumentoFonte(
   /*
    * Slugs → ids, sob RLS e dentro desta marca.
    *
-   * Um slug que não resolve NÃO vira erro: vira página sem seção, com motivo.
-   * Recusar a publicação inteira porque uma seção não foi encontrada perderia
-   * o manifesto todo por causa de uma linha — e o manifesto existe justamente
-   * para que ausência seja registrada em vez de descartada. A contagem volta
-   * no resultado, para a interface mostrar como pendência.
+   * A distinção entre "a consulta rodou e o slug não existe" e "a consulta
+   * falhou" é a coisa mais importante deste trecho. A primeira é um fato sobre
+   * a extração: vira página sem seção, com motivo, e a publicação segue —
+   * recusar tudo por causa de uma linha perderia o manifesto inteiro, e o
+   * manifesto existe justamente para registrar ausência em vez de descartá-la.
+   *
+   * A segunda é um acidente, e tratá-la como a primeira era o pior defeito
+   * possível aqui: uma queda de banco gravava as mil páginas como `sem-secao`,
+   * o vínculo fechava, e a idempotência por `sha256` impedia qualquer
+   * repetição de consertar. A estrutura do manual se perdia em silêncio, com
+   * aparência de publicação bem-sucedida. Por isso: 503, repetível, e NADA
+   * gravado.
    */
   const slugs = [
     ...new Set(doRelatorio.map((p) => p.secao_slug).filter((s): s is string => Boolean(s))),
   ];
-  const porSlug =
-    slugs.length > 0 ? await portas.secoes(marca.id, slugs) : new Map<string, string>();
+  let porSlug = new Map<string, string>();
+  if (slugs.length > 0) {
+    const resolvidas = await portas.secoes(marcaId, slugs);
+    if (resolvidas.erro || !resolvidas.dados) {
+      return falhaDeLeitura("secoes", resolvidas.erro);
+    }
+    porSlug = resolvidas.dados;
+  }
 
   const paginas = doRelatorio
     // Ordem estável: o payload precisa ser idêntico entre tentativas, e a
@@ -308,8 +378,8 @@ export async function registrarDocumentoFonte(
   const semSecao = paginas.filter((p) => p.document_id === null).length;
 
   const { id, erro } = await portas.registrar({
-    p_workspace_id: marca.workspace_id,
-    p_brand_id: marca.id,
+    p_workspace_id: contaId,
+    p_brand_id: marcaId,
     p_storage_path: registro.storage_path,
     p_pdf_sha256: registro.pdf_sha256,
     p_byte_size: registro.report.bytes ?? 0,
@@ -318,7 +388,18 @@ export async function registrarDocumentoFonte(
     p_idioma: null,
     p_titulo: typeof registro.report.arquivo === "string" ? registro.report.arquivo : "",
     p_paginas: paginas,
-    p_created_by: ator.id,
+    p_created_by: ator.dados.id,
+    /*
+     * O vínculo vai DENTRO da transação.
+     *
+     * Ele era escrito depois, pela rota, com o cliente da sessão — e não podia
+     * funcionar: `authenticated` não tem `update` em `brand_imports`. Toda
+     * publicação falharia com 42501 no último passo, e a rota chamaria isso de
+     * falha temporária, oferecendo eternamente uma nova tentativa que jamais
+     * concluiria. Agora documento, manifesto e vínculo acontecem juntos ou
+     * nenhum acontece.
+     */
+    p_import_id: registro.import_id,
   });
 
   if (erro || !id) {
@@ -326,20 +407,13 @@ export async function registrarDocumentoFonte(
     return recusar(status, codigo, codigo === "falha_temporaria", mensagemTecnica(erro));
   }
 
-  /*
-   * O vínculo é escrito por último, e ele é o SINAL de publicação completa.
-   *
-   * `source_document_id is null` significa incompleta. Falhar aqui deixa o
-   * documento e o manifesto já gravados e a linha ainda marcada como
-   * incompleta — que é o erro seguro dos dois, porque a repetição é
-   * idempotente e a próxima tentativa fecha o vínculo sem duplicar nada.
-   */
-  const { erro: erroDoVinculo } = await portas.vincular(registro.id, id);
-  if (erroDoVinculo) {
-    return recusar(503, "falha_ao_vincular", true, mensagemTecnica(erroDoVinculo));
-  }
-
-  return { ok: true, documentoId: id, paginas: paginas.length, paginasSemSecao: semSecao, jaEstava: false };
+  return {
+    ok: true,
+    documentoId: id,
+    paginas: paginas.length,
+    paginasSemSecao: semSecao,
+    jaEstava: false,
+  };
 }
 
 function mensagemTecnica(erro: unknown): string | undefined {

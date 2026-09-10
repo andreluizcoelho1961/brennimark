@@ -10,9 +10,12 @@ import {
 /**
  * O segundo passo da publicação, com banco e chave de serviço controlados.
  *
- * O teste que decide se a solução transitória é aceitável é o ciclo completo:
- * A passa, B falha, a aba recarrega, a repetição conclui, e nenhuma página se
- * perde. É a condição imposta para aceitar duas transações não atômicas.
+ * Dois testes decidem se a solução transitória é aceitável:
+ *
+ *   - o ciclo A passa / B falha / recarrega / repete / conclui, que é a
+ *     condição imposta para aceitar duas transações não atômicas;
+ *   - a distinção entre "consulta rodou e não achou" e "consulta não rodou",
+ *     que era o defeito capaz de perder a estrutura de um manual em silêncio.
  */
 
 const MARCA = "44444444-4444-4444-8444-444444444444";
@@ -20,7 +23,6 @@ const CONTA = "55555555-5555-4555-8555-555555555555";
 const ATOR = "66666666-6666-4666-8666-666666666666";
 const SECAO = "77777777-7777-4777-8777-777777777777";
 const IMPORT = "88888888-8888-4888-8888-888888888888";
-const LINHA = "99999999-9999-4999-8999-999999999999";
 const HASH = "b".repeat(64);
 
 type Chamada = Record<string, unknown>;
@@ -38,13 +40,16 @@ const pagina = (n: number, extra: Partial<PaginaDoRelatorio> = {}): PaginaDoRela
  *
  * O ciclo com recarregamento só significa algo se o estado sobreviver do lado
  * do banco enquanto o do cliente é jogado fora. Por isso a linha de
- * `brand_imports` mora aqui, num objeto que as portas leem e escrevem — e
- * "recarregar a página" é construir portas novas sobre o mesmo banco.
+ * `brand_imports` mora aqui, num objeto que as portas leem — e "recarregar a
+ * página" é construir portas novas sobre o mesmo banco.
+ *
+ * O vínculo é feito pela RPC, dentro da transação: aqui a RPC escreve
+ * `source_document_id` na linha, como a função de verdade faz.
  */
 function bancoDeTeste(paginas: PaginaDoRelatorio[] = [pagina(1), pagina(2)]) {
   return {
     linha: {
-      id: LINHA,
+      import_id: IMPORT,
       storage_path: "conta/import/hash.pdf",
       pdf_sha256: HASH,
       page_count: paginas.length,
@@ -60,36 +65,58 @@ function bancoDeTeste(paginas: PaginaDoRelatorio[] = [pagina(1), pagina(2)]) {
 
 type Banco = ReturnType<typeof bancoDeTeste>;
 
+interface Opcoes {
+  ator?: { id: string } | null;
+  conta?: { id: string } | null;
+  marca?: { id: string } | null;
+  secoes?: Map<string, string>;
+  /** Erros de LEITURA, por porta: a consulta não rodou. */
+  erroDe?: Partial<Record<"ator" | "conta" | "marca" | "importacao" | "secoes", unknown>>;
+  /** Recebe o número da tentativa GLOBAL desta bancada. */
+  rpcFalha?: (n: number) => { code?: string; message?: string } | null;
+}
+
 function portas(
   banco: Banco,
-  opcoes: {
-    ator?: { id: string } | null;
-    marca?: { id: string; workspace_id: string } | null;
-    secoes?: Map<string, string>;
-    /** Recebe o número da tentativa GLOBAL desta bancada. */
-    rpcFalha?: (n: number) => { code?: string; message?: string } | null;
-    vinculoFalha?: (n: number) => unknown;
-  } = {},
-  contador: { rpc: number; vinculo: number } = { rpc: 0, vinculo: 0 },
+  opcoes: Opcoes = {},
+  contador: { rpc: number } = { rpc: 0 },
 ): { portas: PortasDoRegistro; chamadas: Chamada[] } {
   const chamadas: Chamada[] = [];
+  const erro = (qual: keyof NonNullable<Opcoes["erroDe"]>) => opcoes.erroDe?.[qual] ?? null;
 
   return {
     chamadas,
     portas: {
       async ator() {
-        return "ator" in opcoes ? opcoes.ator! : { id: ATOR };
+        if (erro("ator")) return { dados: null, erro: erro("ator") };
+        return { dados: "ator" in opcoes ? opcoes.ator! : { id: ATOR }, erro: null };
       },
-      async marca() {
-        return "marca" in opcoes ? opcoes.marca! : { id: MARCA, workspace_id: CONTA };
+      async conta(slug) {
+        if (erro("conta")) return { dados: null, erro: erro("conta") };
+        if ("conta" in opcoes) return { dados: opcoes.conta!, erro: null };
+        return { dados: slug === "padaria-sp" ? { id: CONTA } : null, erro: null };
+      },
+      async marca(contaId, chave) {
+        if (erro("marca")) return { dados: null, erro: erro("marca") };
+        if ("marca" in opcoes) return { dados: opcoes.marca!, erro: null };
+        // O PAR exato, como a consulta real: chave sozinha não resolve.
+        const achou = contaId === CONTA && chave === "padaria";
+        return { dados: achou ? { id: MARCA } : null, erro: null };
       },
       async importacao(importId, brandId, workspaceId) {
-        if (importId !== IMPORT || brandId !== MARCA || workspaceId !== CONTA) return null;
+        if (erro("importacao")) return { dados: null, erro: erro("importacao") };
+        if (importId !== IMPORT || brandId !== MARCA || workspaceId !== CONTA) {
+          return { dados: null, erro: null };
+        }
         // Cópia, como um `select` devolveria: a lógica não pode mutar a linha.
-        return JSON.parse(JSON.stringify(banco.linha)) as RegistroDeImportacao;
+        return {
+          dados: JSON.parse(JSON.stringify(banco.linha)) as RegistroDeImportacao,
+          erro: null,
+        };
       },
       async secoes() {
-        return opcoes.secoes ?? new Map([["cores", SECAO]]);
+        if (erro("secoes")) return { dados: null, erro: erro("secoes") };
+        return { dados: opcoes.secoes ?? new Map([["cores", SECAO]]), erro: null };
       },
       async registrar(argumentos) {
         chamadas.push(argumentos);
@@ -103,27 +130,22 @@ function portas(
          * gravado, e não sobre quantas vezes a função foi chamada.
          */
         const chave = `${argumentos.p_pdf_sha256}`;
-        const jaExiste = banco.documentos.includes(chave);
-        if (!jaExiste) banco.documentos.push(chave);
+        if (!banco.documentos.includes(chave)) banco.documentos.push(chave);
         banco.manifesto.set(
           chave,
           (argumentos.p_paginas as { pagina: number }[]).map((p) => p.pagina),
         );
+        // O vínculo acontece DENTRO da transação, como na RPC de verdade.
+        if (argumentos.p_import_id === banco.linha.import_id) {
+          banco.linha.source_document_id = chave;
+        }
         return { id: chave, erro: null };
-      },
-      async vincular(id, sourceDocumentId) {
-        contador.vinculo += 1;
-        const falha = opcoes.vinculoFalha?.(contador.vinculo);
-        if (falha) return { erro: falha };
-        if (id !== LINHA) return { erro: { message: "linha errada" } };
-        banco.linha.source_document_id = sourceDocumentId;
-        return { erro: null };
       },
     },
   };
 }
 
-const pedido = { marca: "padaria", import_id: IMPORT };
+const pedido = { workspace: "padaria-sp", marca: "padaria", import_id: IMPORT };
 
 // ─── O ciclo que o Marco B exige ───────────────────────────────────────────
 
@@ -132,14 +154,13 @@ const pedido = { marca: "padaria", import_id: IMPORT };
  *
  * O recarregamento é o passo que mais importa e o mais fácil de fingir: aqui
  * ele é honesto porque as portas da segunda tentativa são construídas de novo
- * e o pedido não carrega NADA além de marca e importação. Se o payload
+ * e o pedido não carrega NADA além de conta, marca e importação. Se o payload
  * dependesse de estado do cliente, esta tentativa não teria o que enviar.
  */
 test("ciclo completo: A passa, B falha, recarrega, repete e conclui sem perder página", async () => {
   const banco = bancoDeTeste([pagina(1), pagina(2), pagina(3)]);
-  const contador = { rpc: 0, vinculo: 0 };
+  const contador = { rpc: 0 };
 
-  // Primeira tentativa: a RPC cai.
   const primeira = await registrarDocumentoFonte(
     pedido,
     portas(banco, { rpcFalha: (n) => (n === 1 ? { message: "conexão perdida" } : null) }, contador)
@@ -157,8 +178,7 @@ test("ciclo completo: A passa, B falha, recarrega, repete e conclui sem perder p
   );
 
   // ── recarregar a aba: portas novas, zero estado do cliente ──
-  const depois = portas(banco, {}, contador);
-  const segunda = await registrarDocumentoFonte(pedido, depois.portas);
+  const segunda = await registrarDocumentoFonte(pedido, portas(banco, {}, contador).portas);
 
   assert.equal(segunda.ok, true);
   if (segunda.ok) {
@@ -180,7 +200,7 @@ test("ciclo completo: A passa, B falha, recarrega, repete e conclui sem perder p
  */
 test("a repetição depois de recarregar monta um payload idêntico", async () => {
   const banco = bancoDeTeste([pagina(2, { secao_slug: "cores" }), pagina(1)]);
-  const contador = { rpc: 0, vinculo: 0 };
+  const contador = { rpc: 0 };
 
   const a = portas(banco, { rpcFalha: (n) => (n === 1 ? { message: "queda" } : null) }, contador);
   await registrarDocumentoFonte(pedido, a.portas);
@@ -208,32 +228,24 @@ test("as páginas vão em ordem numérica, qualquer que seja a do relatório", a
 });
 
 /**
- * Falhar ao VINCULAR é o caso mais escorregadio: o documento e o manifesto já
- * existem, mas a publicação continua marcada como incompleta. É o erro seguro
- * dos dois, e a próxima tentativa precisa fechar o vínculo sem duplicar.
+ * O vínculo vai DENTRO da transação, por `p_import_id`.
+ *
+ * Ele era escrito depois, pela rota, com o cliente da sessão — e não podia
+ * funcionar: `authenticated` tem `select` e `insert` em `brand_imports` e
+ * nenhum `update`. Toda publicação falharia com 42501 no último passo, e a
+ * rota chamaria isso de falha temporária, oferecendo eternamente uma nova
+ * tentativa que jamais concluiria.
  */
-test("falha no vínculo mantém source_document_id nulo e a repetição fecha", async () => {
+test("o id da importação viaja para a RPC, e o vínculo não é escrito pela rota", async () => {
   const banco = bancoDeTeste();
-  const contador = { rpc: 0, vinculo: 0 };
+  const { portas: p, chamadas } = portas(banco);
+  const r = await registrarDocumentoFonte(pedido, p);
 
-  const primeira = await registrarDocumentoFonte(
-    pedido,
-    portas(banco, { vinculoFalha: (n) => (n === 1 ? { message: "sem rede" } : null) }, contador)
-      .portas,
-  );
-  assert.equal(primeira.ok, false);
-  if (!primeira.ok) {
-    assert.equal(primeira.codigo, "falha_ao_vincular");
-    assert.equal(primeira.repetivel, true);
-  }
-  assert.equal(banco.linha.source_document_id, null);
-  assert.equal(banco.documentos.length, 1, "a RPC gravou, mesmo com o vínculo falhando");
-
-  const segunda = await registrarDocumentoFonte(pedido, portas(banco, {}, contador).portas);
-  assert.equal(segunda.ok, true);
-  assert.equal(banco.linha.source_document_id, HASH);
-  assert.equal(banco.documentos.length, 1, "a repetição não criou um segundo documento");
-  assert.deepEqual(banco.manifesto.get(HASH), [1, 2]);
+  assert.equal(r.ok, true);
+  assert.equal(chamadas[0].p_import_id, IMPORT);
+  // A porta de vínculo não existe mais: se existisse, haveria um caminho de
+  // escrita em brand_imports fora da transação.
+  assert.equal("vincular" in p, false);
 });
 
 /**
@@ -256,15 +268,174 @@ test("importação já vinculada responde concluída sem chamar a RPC", async ()
   assert.equal(chamadas.length, 0);
 });
 
+// ─── Consulta que FALHOU não é consulta que não achou ──────────────────────
+
+/**
+ * O defeito mais perigoso desta rota, e o mais silencioso.
+ *
+ * A consulta de seções ignorava `error`. Uma queda de banco, uma URL longa
+ * demais, um PostgREST recusando — qualquer um deles devolvia `data` nulo, e
+ * as mil páginas eram gravadas como `sem-secao`. O vínculo fechava em seguida,
+ * a idempotência por `sha256` impedia qualquer repetição de corrigir, e a
+ * publicação ficava com aparência de limpa. Perda de estrutura permanente,
+ * sem nenhum sinal.
+ */
+test("falha ao consultar seções é 503 repetível, e NADA é gravado", async () => {
+  const banco = bancoDeTeste([pagina(1, { secao_slug: "cores" }), pagina(2)]);
+  const { portas: p, chamadas } = portas(banco, {
+    erroDe: { secoes: { code: "08006", message: "connection failure" } },
+  });
+
+  const r = await registrarDocumentoFonte(pedido, p);
+
+  assert.equal(r.ok, false);
+  if (!r.ok) {
+    assert.equal(r.codigo, "falha_de_leitura");
+    assert.equal(r.status, 503);
+    assert.equal(r.repetivel, true);
+  }
+  assert.equal(chamadas.length, 0, "a RPC não pode ser chamada com seções desconhecidas");
+  assert.equal(banco.documentos.length, 0);
+  assert.equal(banco.linha.source_document_id, null);
+});
+
+/**
+ * O contraste que dá sentido ao teste acima: a MESMA ausência de id, por
+ * motivo diferente, tem desfecho oposto. Consulta que rodou e não achou o slug
+ * é um fato sobre a extração, e a publicação segue.
+ */
+test("consulta que rodou sem achar o slug segue como sem-seção", async () => {
+  const banco = bancoDeTeste([pagina(1, { secao_slug: "cores" }), pagina(2)]);
+  const { portas: p, chamadas } = portas(banco, { secoes: new Map() });
+
+  const r = await registrarDocumentoFonte(pedido, p);
+
+  assert.equal(r.ok, true);
+  if (r.ok) assert.equal(r.paginasSemSecao, 2);
+  assert.equal(chamadas.length, 1);
+});
+
+test("falha de leitura em qualquer porta é 503 repetível, nunca 404", async () => {
+  // A porta e o rótulo que ela usa no log. `ator` registra como `sessao`
+  // porque é o que caiu do ponto de vista de quem lê o log: a leitura da
+  // sessão, e não a existência de um ator.
+  const portasEObservadas: [keyof NonNullable<Opcoes["erroDe"]>, string][] = [
+    ["ator", "sessao"],
+    ["conta", "conta"],
+    ["marca", "marca"],
+    ["importacao", "importacao"],
+  ];
+
+  for (const [qual, rotulo] of portasEObservadas) {
+    const banco = bancoDeTeste();
+    const { portas: p, chamadas } = portas(banco, {
+      erroDe: { [qual]: { code: "08006", message: "db fora" } },
+    });
+
+    const r = await registrarDocumentoFonte(pedido, p);
+    assert.equal(r.ok, false, qual);
+    if (!r.ok) {
+      assert.equal(r.codigo, "falha_de_leitura", qual);
+      assert.equal(r.status, 503, qual);
+      assert.equal(r.repetivel, true, qual);
+      /*
+       * QUAL leitura caiu fica no log. Sem isso, "falha_de_leitura" obrigaria
+       * a adivinhar entre quatro consultas — e este código existe justamente
+       * para não deixar um acidente virar diagnóstico por eliminação.
+       */
+      assert.match(r.tecnico ?? "", new RegExp(rotulo), qual);
+    }
+    assert.equal(chamadas.length, 0, qual);
+  }
+});
+
+/**
+ * Ausência de linha continua sendo 404 permanente. Sem este teste, a correção
+ * acima poderia ter transformado todo 404 em 503 — e a interface passaria a
+ * oferecer nova tentativa para uma marca que não existe.
+ */
+test("ausência de linha continua 404 permanente", async () => {
+  const casos: [string, Opcoes | Record<string, never>, string][] = [
+    ["conta", { conta: null }, "conta_nao_encontrada"],
+    ["marca", { marca: null }, "marca_nao_encontrada"],
+  ];
+
+  for (const [rotulo, opcoes, codigo] of casos) {
+    const banco = bancoDeTeste();
+    const r = await registrarDocumentoFonte(pedido, portas(banco, opcoes as Opcoes).portas);
+    assert.equal(r.ok, false, rotulo);
+    if (!r.ok) {
+      assert.equal(r.codigo, codigo, rotulo);
+      assert.equal(r.status, 404, rotulo);
+      assert.equal(r.repetivel, false, rotulo);
+    }
+  }
+});
+
+// ─── A marca é resolvida pelo PAR, não pela chave ──────────────────────────
+
+/**
+ * `brands` garante `unique (workspace_id, key)`: a chave é única dentro da
+ * conta, e não globalmente. Quem participa de duas contas com uma marca
+ * `padaria` em cada faria `maybeSingle` receber duas linhas e recusar — e a
+ * rota responderia 404 para uma marca que existe.
+ */
+test("a marca é resolvida pelo par conta+chave", async () => {
+  const banco = bancoDeTeste();
+  const vistas: [string, string][] = [];
+
+  const p = portas(banco).portas;
+  const original = p.marca.bind(p);
+  p.marca = async (contaId, chave) => {
+    vistas.push([contaId, chave]);
+    return original(contaId, chave);
+  };
+
+  const r = await registrarDocumentoFonte(pedido, p);
+  assert.equal(r.ok, true);
+  assert.deepEqual(vistas, [[CONTA, "padaria"]]);
+});
+
+test("a mesma chave em outra conta não resolve esta marca", async () => {
+  const banco = bancoDeTeste();
+  const r = await registrarDocumentoFonte(
+    { workspace: "outra-conta", marca: "padaria", import_id: IMPORT },
+    portas(banco).portas,
+  );
+
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.equal(r.codigo, "conta_nao_encontrada");
+});
+
+test("pedido sem conta é recusado antes de qualquer consulta", async () => {
+  const banco = bancoDeTeste();
+  const { portas: p, chamadas } = portas(banco);
+
+  for (const ruim of [
+    { workspace: "", marca: "padaria", import_id: IMPORT },
+    { workspace: "padaria-sp", marca: "", import_id: IMPORT },
+    { workspace: "padaria-sp", marca: "padaria", import_id: "nao-e-uuid" },
+    { workspace: "padaria-sp", marca: "padaria", import_id: "" },
+  ]) {
+    const r = await registrarDocumentoFonte(ruim, p);
+    assert.equal(r.ok, false, JSON.stringify(ruim));
+    if (!r.ok) {
+      assert.equal(r.codigo, "pedido_invalido");
+      assert.equal(r.repetivel, false);
+    }
+  }
+  assert.equal(chamadas.length, 0);
+});
+
 // ─── Nada privilegiado vem do payload ──────────────────────────────────────
 
 /**
- * O pedido tem duas cordas. Um `created_by`, um `workspace_id` ou uma
+ * O pedido tem três cordas. Um `created_by`, um `workspace_id` ou uma
  * geometria enviados pelo navegador seriam declaração de quem não pode
  * declará-la — e a RPC usa `p_created_by` para decidir se quem chama
  * administra a conta.
  */
-test("o ator e a conta vêm da sessão e da marca, e o corpo não influencia", async () => {
+test("o ator e a conta vêm da sessão e da resolução, e o corpo não influencia", async () => {
   const banco = bancoDeTeste();
   const { portas: p, chamadas } = portas(banco);
 
@@ -275,12 +446,14 @@ test("o ator e a conta vêm da sessão e da marca, e o corpo não influencia", a
       p_created_by: "00000000-0000-4000-8000-000000000000",
       p_workspace_id: "11111111-1111-4111-8111-111111111111",
       p_paginas: [{ pagina: 1, largura_pt: 1, altura_pt: 1 }],
+      p_import_id: "22222222-2222-4222-8222-222222222222",
     } as never,
     p,
   );
 
   assert.equal(chamadas[0].p_created_by, ATOR);
   assert.equal(chamadas[0].p_workspace_id, CONTA);
+  assert.equal(chamadas[0].p_import_id, IMPORT, "o import_id vem da linha lida, não do corpo");
   assert.equal((chamadas[0].p_paginas as unknown[]).length, 2, "a geometria vem do relatório");
 });
 
@@ -310,33 +483,18 @@ test("sem sessão é 401 permanente, e a chave de serviço não sai do cofre", a
   assert.equal(chamadas.length, 0);
 });
 
-test("marca inalcançável e importação de outra conta respondem igual: 404", async () => {
+test("importação de outra marca não é alcançada", async () => {
   const banco = bancoDeTeste();
-
-  const semMarca = await registrarDocumentoFonte(pedido, portas(banco, { marca: null }).portas);
-  assert.equal(semMarca.ok, false);
-  if (!semMarca.ok) assert.equal(semMarca.codigo, "marca_nao_encontrada");
-
-  const outraImportacao = await registrarDocumentoFonte(
-    { marca: "padaria", import_id: "12121212-1212-4212-8212-121212121212" },
+  const r = await registrarDocumentoFonte(
+    { ...pedido, import_id: "12121212-1212-4212-8212-121212121212" },
     portas(banco).portas,
   );
-  assert.equal(outraImportacao.ok, false);
-  if (!outraImportacao.ok) {
-    assert.equal(outraImportacao.codigo, "importacao_nao_encontrada");
-    assert.equal(outraImportacao.repetivel, false);
-  }
-});
 
-test("import_id fora do formato é recusado antes de qualquer consulta", async () => {
-  const banco = bancoDeTeste();
-  const { portas: p, chamadas } = portas(banco);
-  for (const ruim of ["", "nao-e-uuid", "../../etc"]) {
-    const r = await registrarDocumentoFonte({ marca: "padaria", import_id: ruim }, p);
-    assert.equal(r.ok, false, `"${ruim}" deveria ser recusado`);
-    if (!r.ok) assert.equal(r.codigo, "pedido_invalido");
+  assert.equal(r.ok, false);
+  if (!r.ok) {
+    assert.equal(r.codigo, "importacao_nao_encontrada");
+    assert.equal(r.repetivel, false);
   }
-  assert.equal(chamadas.length, 0);
 });
 
 // ─── Seção não resolvida é pendência visível, não erro ─────────────────────
@@ -377,10 +535,29 @@ test("slug que não resolve vira sem-seção com motivo, e conta como pendência
 });
 
 test("manifesto inteiro coberto não reporta pendência", async () => {
-  const banco = bancoDeTeste([pagina(1, { secao_slug: "cores" }), pagina(2, { secao_slug: "cores" })]);
+  const banco = bancoDeTeste([
+    pagina(1, { secao_slug: "cores" }),
+    pagina(2, { secao_slug: "cores" }),
+  ]);
   const r = await registrarDocumentoFonte(pedido, portas(banco).portas);
   assert.equal(r.ok, true);
   if (r.ok) assert.equal(r.paginasSemSecao, 0);
+});
+
+/**
+ * Manifesto sem nenhum slug não deve consultar seções. Não é otimização: é o
+ * que garante que uma queda de banco na consulta de seções não derrube uma
+ * publicação que não dependia dela.
+ */
+test("manifesto sem slug nenhum não consulta seções", async () => {
+  const banco = bancoDeTeste();
+  const { portas: p, chamadas } = portas(banco, {
+    erroDe: { secoes: { message: "esta porta nem deveria ser chamada" } },
+  });
+
+  const r = await registrarDocumentoFonte(pedido, p);
+  assert.equal(r.ok, true);
+  assert.equal(chamadas.length, 1);
 });
 
 // ─── Relatório defeituoso é permanente, não repetível ──────────────────────
@@ -441,6 +618,8 @@ test("cada SQLSTATE da RPC vira um código estável", async () => {
     ["42501", "sem_permissao", 403, false],
     ["22023", "manifesto_invalido", 422, false],
     ["22004", "manifesto_invalido", 422, false],
+    // P0002 vem do objeto do Storage ausente OU da importação que não
+    // corresponde a esta marca e a este arquivo — a validação do vínculo.
     ["P0002", "importacao_nao_encontrada", 404, false],
     ["08006", "falha_temporaria", 503, true],
     ["", "falha_temporaria", 503, true],
