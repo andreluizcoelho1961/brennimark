@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
+import { createClient } from "@/lib/supabase/server";
 import { BUCKETS, caminhoDeImportacao } from "@/lib/storage/caminhos";
 import {
   contentRangeForaDoAlcance,
@@ -23,42 +23,30 @@ import {
  * e baixar — não cria uma garantia que não existe.
  */
 
-/** A URL assinada só precisa durar a viagem até o Storage, do lado do servidor. */
-const VALIDADE_DA_ASSINATURA = 300;
-
-/** Margem de segurança: a assinatura é descartada antes de vencer de verdade. */
-const FOLGA_DA_ASSINATURA = 30_000;
-
 /**
- * Assinaturas já emitidas, por caminho canônico.
+ * O endereço dos bytes no Storage, lido com o token da SESSÃO.
  *
- * Abrir um manual dispara ~11 pedidos de intervalo, e assinar uma URL nova a
- * cada um custava ~400 ms de ida ao Storage POR PEDIDO — a maior parte do tempo
- * até a primeira página, e nenhuma dela útil.
+ * ─── Por que não uma URL assinada ────────────────────────────────────────
  *
- * **Por que isto não é um furo de autorização:** a chave do cache é o caminho
- * canônico, que só é montado DEPOIS de a sessão, a conta e a marca terem sido
- * resolvidas e a linha ter sido lida com a RLS valendo. Quem não passa por essa
- * porta nunca chega a consultar o cache — ele não guarda permissão, guarda
- * apenas o endereço assinado de um objeto que o chamador já provou poder ler.
+ * Assinar custa uma ida e volta ao Storage — ~400 ms — e o visualizador faz
+ * uma requisição por intervalo. Havia um cache de assinaturas em memória de
+ * módulo, e ele resolvia isso **em localhost**, onde o processo é um só e vive.
+ *
+ * Em produção o processo é serverless: cada invocação pode cair numa instância
+ * diferente, e memória de módulo não é estado compartilhado. O cache errava na
+ * maior parte dos pedidos e o custo voltava inteiro, multiplicado pelo número
+ * de intervalos.
+ *
+ * O endpoint `authenticated` aceita o token do usuário e aplica as MESMAS
+ * políticas de Storage que a URL assinada aplicaria. Não é atalho de
+ * segurança: é o mesmo controle, sem a ida e volta para emitir uma credencial
+ * que a requisição já traz.
  */
-const assinaturas = new Map<string, { url: string; expiraEm: number }>();
-
-async function urlAssinada(
-  supabase: { storage: { from(b: string): { createSignedUrl(p: string, s: number): Promise<{ data: { signedUrl: string } | null; error: unknown }> } } },
-  caminho: string,
-): Promise<string | null> {
-  const guardada = assinaturas.get(caminho);
-  if (guardada && guardada.expiraEm > Date.now() + FOLGA_DA_ASSINATURA) return guardada.url;
-
-  const nova = await supabase.storage.from(BUCKETS.importacoes).createSignedUrl(caminho, VALIDADE_DA_ASSINATURA);
-  if (nova.error || !nova.data?.signedUrl) return null;
-
-  assinaturas.set(caminho, {
-    url: nova.data.signedUrl,
-    expiraEm: Date.now() + VALIDADE_DA_ASSINATURA * 1000,
-  });
-  return nova.data.signedUrl;
+function enderecoNoStorage(caminho: string): string {
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/$/, "");
+  // Cada segmento codificado: nome de arquivo não escapa do caminho.
+  const partes = caminho.split("/").map(encodeURIComponent).join("/");
+  return `${base}/storage/v1/object/authenticated/${BUCKETS.importacoes}/${partes}`;
 }
 
 /**
@@ -111,42 +99,69 @@ async function servir(
   { params }: { params: Promise<{ id: string }> },
   metodo: "GET" | "HEAD",
 ): Promise<Response> {
-  const resolvido = await marcaDaRota(request);
-  // A autorização acontece ANTES do primeiro byte: sessão, conta e marca
-  // resolvidas sem que nada tenha sido pedido ao Storage.
-  if (!resolvido.ok) return resolvido.resposta;
-  const { auth, workspaceId, brandId } = resolvido;
+  const marcaEntrada = Date.now();
 
+  /**
+   * A autorização do transporte é ENXUTA, e isto foi medido.
+   *
+   * ─── O que estava errado ─────────────────────────────────────────────
+   *
+   * Esta rota usava `marcaDaRota`, que resolve o contexto inteiro de produto:
+   * lista os workspaces da pessoa, as marcas de cada um, o perfil, os
+   * documentos, as capacidades — e chama `auth.getUser()`, que é uma ida à
+   * Auth API pela rede.
+   *
+   * `Server-Timing` mediu **329–374 ms por requisição** só nessa etapa, contra
+   * 4–7 ms da consulta ao documento e 6–36 ms da ida ao Storage. Multiplicado
+   * pelo número de intervalos, é o custo dominante — e era ele, não o
+   * transporte, que fazia o manual levar 45 segundos em produção.
+   *
+   * ─── Por que UMA consulta basta, e não é atalho ──────────────────────
+   *
+   * `brand_imports` tem RLS: a política só devolve linha de workspace do qual
+   * a pessoa é membro. Se a linha vem, a autorização está provada pelo banco —
+   * que é a fronteira de segurança real, e não a interface (CLAUDE.md).
+   * Nenhuma verificação foi removida: o que saiu foi o trabalho de montar
+   * navegação, capacidades e lista de marcas, que esta rota nunca usou.
+   *
+   * `getUser()` também sai: ele valida o token contra a Auth API, e a consulta
+   * abaixo já é autorizada pelo mesmo token dentro do Postgres. Duas
+   * validações do mesmo JWT, uma delas pela rede.
+   *
+   * A marca continua conferida — pelo `inner join` com `brands`, no mesmo
+   * ida-e-volta, em vez de por uma resolução separada.
+   */
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) {
     return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
   }
 
-  /**
-   * O identificador é do DOCUMENTO, nunca um caminho de Storage.
-   *
-   * Caminho vindo do cliente transformaria a rota em proxy aberto: bastaria
-   * trocar a string para ler o arquivo de outra conta com a sessão de quem tem
-   * direito a esta. O caminho é resolvido aqui dentro, a partir da linha.
-   *
-   * Os dois filtros, sempre. `brand_id` sozinho bastaria pela FK composta, mas
-   * deixar o workspace de fora tornaria a consulta dependente de uma garantia
-   * que vive em outro arquivo.
-   */
-  const { data: linha, error } = await auth.supabase
+  const marcaChave = new URL(request.url).searchParams.get("b");
+  if (!marcaChave) {
+    return NextResponse.json({ error: "sem_marca" }, { status: 409 });
+  }
+
+  const supabase = await createClient();
+
+  const consulta = supabase
     .from("brand_imports")
-    .select("import_id, storage_path, pdf_sha256")
+    .select("import_id, storage_path, pdf_sha256, workspace_id, brands!inner(key)")
     .eq("id", id)
-    .eq("workspace_id", workspaceId)
-    .eq("brand_id", brandId)
+    .eq("brands.key", marcaChave)
     .maybeSingle();
+
+  const { data: linha, error } = await consulta;
+  const marcaAutorizado = Date.now();
+  const marcaDocumento = marcaAutorizado;
 
   if (error) {
     return NextResponse.json({ error: "falha_ao_resolver_documento" }, { status: 500 });
   }
-  // "Não existe" e "não é sua" respondem igual: responder diferente confirmaria
-  // o endereço para quem está sondando.
+  // "Não existe", "não é sua" e "sem sessão" respondem igual: responder
+  // diferente confirmaria o endereço para quem está sondando.
   if (!linha) return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
+
+  const workspaceId = linha.workspace_id;
 
   /**
    * O caminho gravado é o caminho canônico desta conta para este arquivo?
@@ -162,10 +177,19 @@ async function servir(
     return NextResponse.json({ error: "caminho_nao_canonico" }, { status: 409 });
   }
 
-  const assinada = await urlAssinada(auth.supabase, canonico);
-  if (!assinada) {
-    return NextResponse.json({ error: "documento_indisponivel" }, { status: 502 });
+  /**
+   * O token que a requisição já traz nos cookies.
+   *
+   * `getSession` lê o que o cliente do servidor já resolveu — não é uma ida à
+   * Auth API. A autorização de produto (sessão, conta, marca) aconteceu acima;
+   * isto é o que faz o Storage aplicar as políticas dele também.
+   */
+  const { data: sessao } = await supabase.auth.getSession();
+  const token = sessao.session?.access_token;
+  if (!token) {
+    return NextResponse.json({ error: "not_authenticated" }, { status: 401 });
   }
+  const endereco = enderecoNoStorage(canonico);
 
   const pedido = new Headers();
   const temIntervalo = request.headers.get("range") !== null;
@@ -180,9 +204,21 @@ async function servir(
     }
   }
 
+  /**
+   * O custo de cada etapa, devolvido ao navegador.
+   *
+   * `Server-Timing` aparece no painel de rede de qualquer navegador. Duas
+   * rodadas de "está lento" foram gastas em hipótese porque este número não
+   * existia — e das duas, uma hipótese minha estava errada. Medir a etapa
+   * separa o que é a nossa rota do que é a viagem ao Storage.
+   */
+  const marcaOrigem = Date.now();
+
   let origem: Response;
   try {
-    origem = await fetch(assinada, {
+    pedido.set("authorization", `Bearer ${token}`);
+    pedido.set("apikey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    origem = await fetch(endereco, {
       method: metodo,
       headers: pedido,
       /**
@@ -236,13 +272,13 @@ async function servir(
 
   if (!origem.ok && origem.status !== 206) {
     /**
-     * A expiração da URL assinada devolve **400**, não 401 nem 403.
+     * Credencial vencida chega como 400, 401 ou 403, dependendo do caminho.
      *
      * Traduzida aqui para 401, que é o que um cliente sabe tratar: pedir a
      * página de novo e retomar de onde estava. Deixar o 400 subir faria o
      * visualizador tratar credencial vencida como documento inválido.
      */
-    const status = origem.status === 400 ? 401 : 502;
+    const status = [400, 401, 403].includes(origem.status) ? 401 : 502;
     return NextResponse.json({ error: "documento_indisponivel" }, { status });
   }
 
@@ -255,6 +291,15 @@ async function servir(
   // intervalos em vez de baixar tudo.
   cabecalhos.set("accept-ranges", "bytes");
   cabecalhos.set("content-type", "application/pdf");
+  cabecalhos.set(
+    "server-timing",
+    [
+      `autorizacao;dur=${marcaAutorizado - marcaEntrada}`,
+      `documento;dur=${marcaDocumento - marcaAutorizado}`,
+      `sessao;dur=${marcaOrigem - marcaDocumento}`,
+      `storage;dur=${Date.now() - marcaOrigem}`,
+    ].join(", "),
+  );
 
   /**
    * A conferência que impede o pior defeito desta rota.
