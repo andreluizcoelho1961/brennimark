@@ -166,3 +166,71 @@ test("a requisição sem Range é atendida, e as seguintes usam intervalo", asyn
   expect(respostas.every((s) => s === 200 || s === 206)).toBe(true);
   expect(respostas).toContain(206);
 });
+
+/**
+ * O manual ACIMA DO TETO DE FATIA.
+ *
+ * Esta é a regressão mais cara da rota, e ela era de desenho: o teto recusava
+ * com 413 em vez de aparar. O PDF.js pede o documento inteiro num único
+ * intervalo em algumas situações, recebia a recusa e caía numa sequência de
+ * tentativas — um manual real de 4,07 MiB, apenas 70 KB acima do teto, abria
+ * "super lento" em produção e às vezes não abria.
+ *
+ * `acima-do-teto.pdf` reproduz a PROPRIEDADE do manual real (4,12 MiB) sem
+ * carregar material de cliente para o repositório. É o que torna este caso
+ * repetível: o manual que expôs o defeito não pode ser versionado.
+ */
+test.describe("manual acima do teto de fatia", () => {
+  const ACIMA = "/dev/visualizador?fixture=acima-do-teto.pdf";
+
+  test("abre e desenha, sem recusa de intervalo", async ({ page }) => {
+    const status: number[] = [];
+    page.on("response", (r) => {
+      if (r.url().includes("/dev/fixture/")) status.push(r.status());
+    });
+
+    await page.goto(ACIMA);
+    await expect(page.locator("canvas").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator(".textLayer span").first()).toBeVisible({ timeout: 30_000 });
+
+    // 413 é a recusa que fechava a porta. Nenhuma resposta pode trazê-la.
+    expect(status).not.toContain(413);
+    expect(status.every((s) => s === 200 || s === 206)).toBe(true);
+  });
+
+  test("um intervalo maior que o teto volta APARADO, e diz o que traz", async ({ page }) => {
+    await page.goto(ACIMA);
+
+    const r = await page.evaluate(async () => {
+      const resp = await fetch("/dev/fixture/acima-do-teto.pdf", {
+        headers: { Range: "bytes=0-99999999" },
+        cache: "no-store",
+      });
+      return {
+        status: resp.status,
+        contentRange: resp.headers.get("content-range"),
+        recebido: (await resp.arrayBuffer()).byteLength,
+      };
+    });
+
+    const TETO = 4 * 1024 * 1024;
+    expect(r.status).toBe(206);
+    expect(r.recebido).toBe(TETO);
+    // O `Content-Range` descreve EXATAMENTE o que veio. É isso que separa
+    // "prometer menos" de "entregar menos do que se promete".
+    expect(r.contentRange).toMatch(new RegExp(`^bytes 0-${TETO - 1}/\\d+$`));
+  });
+
+  test("a página não estoura a largura da coluna", async ({ page }) => {
+    await page.goto(ACIMA);
+    await expect(page.locator("canvas").first()).toBeVisible({ timeout: 30_000 });
+
+    const estoura = await page.evaluate(() => {
+      const rolo = [...document.querySelectorAll("div")].find(
+        (d) => d.scrollHeight > d.clientHeight + 50,
+      );
+      return rolo ? rolo.scrollWidth > rolo.clientWidth + 1 : false;
+    });
+    expect(estoura).toBe(false);
+  });
+});

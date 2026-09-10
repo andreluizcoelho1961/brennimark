@@ -94,9 +94,41 @@ test("multi-intervalo é ignorado, nunca atendido pela metade", () => {
   assert.deepEqual(resolverRange("bytes=0-99,200-299", TAMANHO), { tipo: "completo" });
 });
 
-test("pedido acima do teto da fatia é recusado, não aparado", () => {
+/**
+ * A regressão mais cara desta rota, e ela era de DESENHO.
+ *
+ * O teto recusava com 413 em vez de aparar. O PDF.js pede o documento inteiro
+ * num único intervalo em algumas situações, recebia a recusa, e caía numa
+ * sequência de tentativas — um manual de 4,07 MiB, apenas 70 KB acima do teto,
+ * abria "super lento" em produção.
+ *
+ * Aparar não entrega menos do que se promete: promete menos. O `Content-Range`
+ * descreve exatamente os bytes enviados.
+ */
+test("pedido acima do teto é APARADO ao teto, não recusado", () => {
   const r = resolverRange(`bytes=0-${TETO_DA_FATIA}`, TAMANHO);
-  assert.deepEqual(r, { tipo: "grande-demais", pedidos: TETO_DA_FATIA + 1 });
+  assert.deepEqual(r, { tipo: "parcial", inicio: 0, fim: TETO_DA_FATIA - 1 });
+});
+
+test("o documento inteiro pedido de uma vez vira a primeira fatia", () => {
+  // O caso exato do manual real: 4,07 MiB pedidos num intervalo só.
+  const quaseQuatroEMeio = 4_263_503;
+  const r = resolverRange(`bytes=0-${quaseQuatroEMeio - 1}`, quaseQuatroEMeio);
+  assert.deepEqual(r, { tipo: "parcial", inicio: 0, fim: TETO_DA_FATIA - 1 });
+});
+
+test("aparar preserva o INÍCIO pedido, nunca o desloca", () => {
+  // Aparar pelo fim entrega um prefixo do que foi pedido, que o cliente
+  // consegue continuar. Aparar pelo início entregaria outro pedaço.
+  const r = resolverRange(`bytes=1000-${1000 + TETO_DA_FATIA + 500}`, 50_000_000);
+  assert.deepEqual(r, { tipo: "parcial", inicio: 1000, fim: 1000 + TETO_DA_FATIA - 1 });
+});
+
+test("um intervalo sem Range continua sendo o arquivo inteiro, mesmo acima do teto", () => {
+  // Sem `Range` não há o que aparar: a resposta é 200 e o cliente aborta ao
+  // ler os cabeçalhos. Foi recusar ISTO que fechou a porta para todo manual
+  // acima de 4 MiB.
+  assert.deepEqual(resolverRange(null, 100_000_000), { tipo: "completo" });
 });
 
 test("exatamente no teto ainda passa", () => {

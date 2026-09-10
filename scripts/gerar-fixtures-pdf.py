@@ -106,6 +106,41 @@ def documento(paginas: list[list[str]], com_outline: bool = False,
     return montar(objetos)
 
 
+def acima_do_teto(bytes_alvo: int) -> bytes:
+    """Um PDF valido de poucas paginas e tamanho ALVO, para o teto de fatia.
+
+    Por que ele existe: o teto de fatia da rota de transporte recusava pedido de
+    intervalo maior que ele, e o manual real que expos isso tem 4,07 MiB —
+    apenas 70 KB acima do teto de 4 MiB. Esse manual e material de terceiro e
+    nao pode entrar no repositorio; o que precisa ser reproduzido nao e o
+    conteudo dele, e a PROPRIEDADE: um documento logo acima do teto.
+
+    O tamanho vem de um objeto de preenchimento NAO REFERENCIADO. O leitor o
+    ignora, a estrutura continua valida, e o padrao e repetido em vez de
+    aleatorio para o arquivo ser identico a cada geracao.
+    """
+    conteudo = fluxo(["Acima do teto", "Uma pagina, muitos bytes."])
+    objetos = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+        b"/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+        f"<< /Length {len(conteudo)} >>\nstream\n".encode() + conteudo + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+
+    # Duas passagens: monta sem preenchimento para medir o custo fixo, depois
+    # com a sobra exata. Chutar o tamanho deixaria a fixture perto do teto sem
+    # garantia de estar ACIMA dele, que e a unica coisa que ela precisa provar.
+    base = len(montar(objetos + [b"<< /Length 0 >>\nstream\n\nendstream"]))
+    sobra = max(bytes_alvo - base, 1024)
+    recheio = (b"%" + b"A" * 78 + b"\n") * (sobra // 80)
+    objetos.append(
+        f"<< /Length {len(recheio)} >>\nstream\n".encode() + recheio + b"\nendstream"
+    )
+    return montar(objetos)
+
+
 def main() -> int:
     DESTINO.mkdir(parents=True, exist_ok=True)
 
@@ -138,6 +173,14 @@ def main() -> int:
 
     # Corrompido: assinatura valida, estrutura destruida. Precisa de mensagem
     # propria — nao e "nao e um PDF".
+    # Logo acima do teto de fatia de 4 MiB da rota de transporte. Fica fora do
+    # git pelo tamanho; o gerador a reconstroi identica.
+    TETO_DA_FATIA = 4 * 1024 * 1024
+    acima = acima_do_teto(TETO_DA_FATIA + 128 * 1024)
+    (DESTINO / "acima-do-teto.pdf").write_bytes(acima)
+    print(f"acima-do-teto.pdf: {len(acima)} bytes ({len(acima) / 1048576:.2f} MiB)")
+    assert len(acima) > TETO_DA_FATIA, "a fixture precisa ficar ACIMA do teto"
+
     valido = arquivos["manual-de-teste.pdf"]
     corrompido = bytearray(valido)
     inicio_xref = corrompido.rfind(b"xref")

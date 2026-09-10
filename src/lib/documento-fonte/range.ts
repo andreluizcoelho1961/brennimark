@@ -15,13 +15,26 @@
 /**
  * Teto de uma fatia, em bytes.
  *
- * A resposta de uma função da Vercel tem teto de 4,5 MB. Um pedido acima disso
- * não pode ser atendido — e atender pela metade seria pior que recusar: o
- * `Content-Range` prometeria bytes que o corpo não traz, e o cliente montaria
- * o documento com um buraco silencioso no meio.
+ * A resposta de uma função da Vercel tem teto de 4,5 MB, e 4 MiB deixa margem
+ * para cabeçalhos.
  *
- * 4 MiB deixa margem para cabeçalhos. O PDF.js pede 64 KiB por vez, então este
- * teto não é alcançado por uso normal — ele existe para o pedido patológico.
+ * ─── O que este teto FAZ, e o que ele fazia antes ────────────────────────
+ *
+ * Ele **apara** o intervalo. A primeira versão **recusava** com 413, sob o
+ * argumento de que servir menos do que foi pedido produziria um documento com
+ * buraco silencioso. O argumento estava errado, e o erro custou caro.
+ *
+ * Aparar não é servir menos do que se promete: é prometer menos. O
+ * `Content-Range` descreve EXATAMENTE os bytes enviados, e a RFC 9110 permite
+ * ao servidor satisfazer um pedido de intervalo com um intervalo menor. Um
+ * cliente que ignore o `Content-Range` estaria quebrado com qualquer servidor
+ * atrás de um limite de tamanho — que é a maioria deles.
+ *
+ * Recusar, sim, produzia o defeito: o PDF.js pede o documento inteiro num
+ * único intervalo em algumas situações, recebia 413, e caía numa sequência de
+ * tentativas. Foi o que fez um manual de 4,07 MiB — 70 KB acima do teto —
+ * abrir "super lento" em produção. `acima-do-teto.pdf` reproduz a propriedade
+ * sem carregar material de cliente.
  */
 export const TETO_DA_FATIA = 4 * 1024 * 1024;
 
@@ -31,9 +44,7 @@ export type Resolucao =
   /** Um intervalo satisfazível: bytes de `inicio` a `fim`, inclusive nos dois. */
   | { tipo: "parcial"; inicio: number; fim: number }
   /** Fora do arquivo: 416, com `Content-Range: bytes *&#47;<tamanho>`. */
-  | { tipo: "fora-do-alcance" }
-  /** Satisfazível, porém maior que esta rota consegue servir: 413. */
-  | { tipo: "grande-demais"; pedidos: number };
+  | { tipo: "fora-do-alcance" };
 
 const PADRAO = /^bytes=(\d*)-(\d*)$/;
 
@@ -95,8 +106,9 @@ export function resolverRange(cabecalho: string | null, tamanho: number): Resolu
     if (fim < inicio) return { tipo: "fora-do-alcance" };
   }
 
-  const pedidos = fim - inicio + 1;
-  if (pedidos > TETO_DA_FATIA) return { tipo: "grande-demais", pedidos };
+  // Aparado ao teto, mantendo o início. O `Content-Range` da resposta dirá
+  // exatamente o que foi enviado, e o cliente pede o resto se quiser.
+  if (fim - inicio + 1 > TETO_DA_FATIA) fim = inicio + TETO_DA_FATIA - 1;
 
   return { tipo: "parcial", inicio, fim };
 }
