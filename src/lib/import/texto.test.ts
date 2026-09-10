@@ -7,7 +7,7 @@ const item = (texto: string, x: number, y: number, altura = 10, fonte = "F1"): I
   ({ texto, x, y, altura, fonte });
 
 const pagina = (numero: number, itens: ItemDeTexto[]): PaginaExtraida =>
-  ({ numero, alturaDaPagina: 800, itens });
+  ({ numero, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0, itens });
 
 test("itens na mesma altura viram uma linha, na ordem da leitura", () => {
   const linhas = linhasDe(pagina(1, [

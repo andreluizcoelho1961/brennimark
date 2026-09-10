@@ -25,6 +25,17 @@ export interface PaginaExtraida {
   numero: number;
   /** Altura da página em pontos, para saber o que é topo e o que é rodapé. */
   alturaDaPagina: number;
+  /**
+   * A geometria do ORIGINAL, para o manifesto por página.
+   *
+   * Caixa NÃO rotacionada (`page.view`) mais a rotação declarada, e não o
+   * viewport já rotacionado. O manifesto registra o que o PDF diz; girar é
+   * conta do visualizador, que já a faz. Guardar o resultado rotacionado
+   * perderia a informação de que houve rotação.
+   */
+  larguraPt: number;
+  alturaPt: number;
+  rotacao: number;
   itens: ItemDeTexto[];
 }
 

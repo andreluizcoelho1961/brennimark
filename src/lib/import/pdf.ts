@@ -156,11 +156,23 @@ export async function lerPdf(
     } catch (erro) {
       throw new FalhaDeLeitura(classificarErroDoParser(erro), descricaoTecnica(erro));
     }
-    const [, , , alturaDaPagina] = pagina.view;
+    const [x0, y0, x1, y1] = pagina.view;
+    const alturaDaPagina = y1;
 
     paginas.push({
       numero,
       alturaDaPagina,
+      /*
+       * A geometria sai de graça: a página já está aberta para extrair texto.
+       *
+       * `view` é a caixa em pontos, e pode não começar em zero — daí a
+       * subtração em vez de usar `view[2]` e `view[3]` direto. `alturaDaPagina`
+       * continua sendo `y1` para não mexer na detecção de topo e rodapé, que
+       * depende dela e está coberta por teste.
+       */
+      larguraPt: x1 - x0,
+      alturaPt: y1 - y0,
+      rotacao: ((Math.trunc(pagina.rotate ?? 0) % 360) + 360) % 360,
       itens: conteudo.items.flatMap((item) => {
         if (!("str" in item) || !item.str.trim()) return [];
         // transform = [a, b, c, d, e, f]; e/f são a origem, d a altura efetiva.

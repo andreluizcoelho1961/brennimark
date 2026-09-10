@@ -39,10 +39,14 @@ async function extrair(): Promise<{ paginas: PaginaExtraida[]; outline: ItemDeOu
   for (let numero = 1; numero <= doc.numPages; numero += 1) {
     const pagina = await doc.getPage(numero);
     const conteudo = await pagina.getTextContent();
-    const [, , , alturaDaPagina] = pagina.view;
+    const [gx0, gy0, gx1, gy1] = pagina.view;
+    const alturaDaPagina = gy1;
     paginas.push({
       numero,
       alturaDaPagina,
+      larguraPt: gx1 - gx0,
+      alturaPt: gy1 - gy0,
+      rotacao: ((Math.trunc(pagina.rotate ?? 0) % 360) + 360) % 360,
       itens: conteudo.items.flatMap((item) => {
         if (!("str" in item) || !item.str.trim()) return [];
         const [, , , escalaY, x, y] = item.transform;

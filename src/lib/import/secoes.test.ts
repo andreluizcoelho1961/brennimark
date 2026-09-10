@@ -12,14 +12,14 @@ const item = (texto: string, y: number, altura = 12): ItemDeTexto =>
 
 /** Uma pagina com um titulo destacado e um corpo. */
 const comTitulo = (numero: number, titulo: string, corpo: string): PaginaExtraida =>
-  ({ numero, alturaDaPagina: 800, itens: [item(titulo, 700, 30), item(corpo, 600, 12)] });
+  ({ numero, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0, itens: [item(titulo, 700, 30), item(corpo, 600, 12)] });
 
 /** Uma pagina so de corpo, sem destaque. */
 const soCorpo = (numero: number, corpo: string): PaginaExtraida =>
-  ({ numero, alturaDaPagina: 800, itens: [item(corpo, 600, 12)] });
+  ({ numero, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0, itens: [item(corpo, 600, 12)] });
 
 const vazia = (numero: number): PaginaExtraida =>
-  ({ numero, alturaDaPagina: 800, itens: [] });
+  ({ numero, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0, itens: [] });
 
 const linhasPorPagina = (paginas: PaginaExtraida[]) =>
   new Map(paginas.map((p) => [p.numero, p.itens.map((i) => i.texto)]));
@@ -213,7 +213,7 @@ test("uma secao longa demais e quebrada em blocos", () => {
 
 test("uma linha de corpo comprida nao vira titulo", () => {
   const longa = "esta linha tem mais de oitenta caracteres e por isso nao pode ser tomada como um titulo de secao";
-  const paginas = [{ numero: 1, alturaDaPagina: 800, itens: [item(longa, 700, 30)] }];
+  const paginas = [{ numero: 1, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0, itens: [item(longa, 700, 30)] }];
   const { secoes } = agrupar({ paginas });
   assert.equal(secoes[0].metodo, "page-range");
 });
@@ -271,7 +271,7 @@ test("a validacao acusa pagina sem destino", () => {
 
 test("cabecalho removido vira decisao anotada", () => {
   const paginas = [1, 2, 3, 4, 5].map((n) => ({
-    numero: n, alturaDaPagina: 800,
+    numero: n, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0,
     itens: [item("Brand Guidelines", 780, 8), item(`corpo ${n}`, 600, 12), item(String(n), 20, 8)],
   }));
   const repetidos = detectarRepetidos(paginas);
@@ -291,7 +291,7 @@ test("o texto da secao nao e truncado", () => {
   // 14pt de entrelinha: a distancia real entre linhas de um corpo de 12pt.
   // Com 1pt, elas cairiam na mesma faixa e se fundiriam — corretamente.
   const muitas = Array.from({ length: 60 }, (_, i) => item(`paragrafo ${i}`, 700 - i * 14, 12));
-  const paginas = [{ numero: 1, alturaDaPagina: 800, itens: muitas }];
+  const paginas = [{ numero: 1, alturaDaPagina: 800, larguraPt: 595, alturaPt: 800, rotacao: 0, itens: muitas }];
   const { secoes } = agrupar({ paginas });
   // O limite antigo de 40 paragrafos cortava sem avisar.
   assert.equal(secoes[0].linhas.length, 60);
