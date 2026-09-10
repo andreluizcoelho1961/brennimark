@@ -18,6 +18,7 @@ import type { BrandvilleUtilityKey } from "@/brandville/types";
 import { caminhoDeAsset, caminhoDeImportacao } from "@/lib/storage/caminhos";
 import { enviarArquivosDaImportacao, garantirAusencia } from "@/lib/import/orfaos";
 import { portasDeEnvioSupabase } from "@/lib/import/portas-supabase";
+import { relatarObjetoSemDestino } from "@/lib/import/relatar-rastro";
 
 
 
@@ -244,11 +245,13 @@ export function BrandImporter({
       // `perdidos` é o único desfecho em que um objeto ficou sem destino.
       // Registrar é o mínimo: sem isso, um arquivo de terceiro sem dono é
       // indistinguível de um arquivo que nunca existiu.
+      // O rastro vai ao log do SERVIDOR, além do console: um aviso só no
+      // navegador some quando a aba fecha. Ver `lib/import/relatar-rastro.ts`.
       if (envio.limpeza.perdidos.length > 0) {
-        console.error(JSON.stringify({
-          level: "error", msg: "importacao_deixou_objeto_sem_destino",
+        void relatarObjetoSemDestino({
+          origem: "envio",
           caminhos: envio.limpeza.perdidos.map((item) => item.caminho),
-        }));
+        });
       }
       setPublicando(false); setProgresso(null);
       setMensagem(t("Não foi possível enviar o arquivo.", "Couldn't upload the file."));
@@ -364,11 +367,11 @@ export function BrandImporter({
             p_pdf_sha256: hash,
           });
           if (pendencia.error) {
-            console.error(JSON.stringify({
-              level: "error", msg: "importacao_deixou_objeto_sem_destino",
+            void relatarObjetoSemDestino({
+              origem: "fila",
               caminhos: [caminho],
               sqlstate: pendencia.error.code,
-            }));
+            });
           }
         }
       }
@@ -389,10 +392,10 @@ export function BrandImporter({
         caminhosDeImagemEnviados.map((c) => ({ bucket: "brand-assets", caminho: c })),
       );
       if (limpezaDasImagens.perdidos.length > 0) {
-        console.error(JSON.stringify({
-          level: "error", msg: "importacao_deixou_objeto_sem_destino",
+        void relatarObjetoSemDestino({
+          origem: "imagens",
           caminhos: limpezaDasImagens.perdidos.map((item) => item.caminho),
-        }));
+        });
       }
       // Chave repetida é conflito, não erro genérico: já existe uma marca com
       // este nome, e sobrescrever apagaria curadoria.

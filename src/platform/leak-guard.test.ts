@@ -824,9 +824,43 @@ test("a pendência que a fila recusa deixa rastro", () => {
   );
   assert.match(
     importador,
-    /const\s+(\w+)\s*=\s*await\s+supabase\.rpc\(\s*"enqueue_import_cleanup"[\s\S]*?if\s*\(\s*\1\.error\s*\)[\s\S]{0,300}?importacao_deixou_objeto_sem_destino[\s\S]{0,200}?sqlstate/,
-    "falha ao enfileirar precisa virar importacao_deixou_objeto_sem_destino com o SQLSTATE",
+    /const\s+(\w+)\s*=\s*await\s+supabase\.rpc\(\s*"enqueue_import_cleanup"[\s\S]*?if\s*\(\s*\1\.error\s*\)[\s\S]{0,300}?relatarObjetoSemDestino\([\s\S]{0,200}?sqlstate/,
+    "falha ao enfileirar precisa virar rastro, com o SQLSTATE",
   );
+});
+
+/**
+ * O rastro precisa chegar a um log que alguém lê.
+ *
+ * O importador é componente de tela: um `console.error` dele fica no navegador
+ * de quem importou e some quando a aba fecha. A primeira versão do rastro (PR
+ * #22) era exatamente isso — melhor que o silêncio, mas fora de qualquer log
+ * consultável. Agora todo arquivo sem destino passa pelo ajudante, que também
+ * avisa a rota do servidor.
+ */
+test("todo arquivo sem destino é relatado ao servidor, não só ao console", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.doesNotMatch(
+    importador,
+    /importacao_deixou_objeto_sem_destino/,
+    "o importador não escreve o rastro direto no console: use relatarObjetoSemDestino",
+  );
+  // As três origens do importador passam pelo ajudante.
+  for (const origem of ["envio", "fila", "imagens"]) {
+    assert.match(
+      importador,
+      new RegExp(`relatarObjetoSemDestino\\(\\{\\s*origem:\\s*"${origem}"`),
+      `a origem ${origem} precisa passar por relatarObjetoSemDestino`,
+    );
+  }
+
+  const ajudante = lerCodigo("src/lib/import/relatar-rastro.ts");
+  assert.match(ajudante, /"\/api\/importacao\/rastro"/, "o ajudante avisa a rota do servidor");
+  assert.match(ajudante, /keepalive:\s*true/, "sem keepalive o aviso morre quando a aba fecha");
+
+  const rota = lerCodigo("src/app/api/importacao/rastro/route.ts");
+  assert.match(rota, /auth\.getUser\(\)/, "o ator do rastro vem da sessão validada");
+  assert.doesNotMatch(rota, /createServiceClient/, "registrar log não precisa da chave de serviço");
 });
 
 /**
