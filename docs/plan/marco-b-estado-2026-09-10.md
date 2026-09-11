@@ -3,9 +3,10 @@
 **"O sistema propõe a navegação, eu corrijo a estrutura pela interface, e nenhuma
 página do original se perde."**
 
-**Estado honesto: Marco B alcançado no ambiente local. Publicação em produção
-ainda pendente.** Nenhuma migração da Fatia 2 está aplicada em produção, e o PR
-não foi mergeado.
+**Estado honesto, 11/09/2026: Marco B em produção.** A migração da Fatia 2 foi
+aplicada ao banco hospedado (`20260911155633`), o PR #19 foi mergeado
+(`3e66b41`), e a conferência em produção passou — ver §11. Até 10/09 o estado
+era "alcançado só no ambiente local"; as seções abaixo registram o caminho.
 
 Este documento registra o aceite, o que foi medido e o que continua aberto.
 Nenhum PDF, captura de tela ou trecho do material real do cliente está no Git —
@@ -139,9 +140,11 @@ máquina.
    deixa rastro no log do servidor).
 2. ~~Corrigir o congelamento da renderização com a aba oculta~~ — **feito em
    11/09**, ver §8; confirmado com aba oculta de verdade em §10.
-3. Aplicar a migração `documento_fonte_e_manifesto_por_pagina` em produção.
-4. **Alinhar o nome do arquivo ao ledger, no PR** — ver abaixo.
-5. Só então o merge do PR, **mediante autorização nominal**.
+3. ~~Aplicar a migração `documento_fonte_e_manifesto_por_pagina` em produção~~ —
+   **feito em 11/09**, carimbada `20260911155633`, por autorização nominal.
+4. ~~**Alinhar o nome do arquivo ao ledger, no PR**~~ — **feito**, `15d602b`.
+5. ~~Só então o merge do PR, **mediante autorização nominal**~~ — **feito**,
+   `3e66b41`, por autorização nominal. Ver §11.
 
 A migração e o merge acontecem na mesma janela, com a migração primeiro. Se o PR
 entrar sem ela, toda publicação em produção passará a mostrar "Publicação
@@ -301,3 +304,95 @@ duas marcas de teste existem só no banco local.
 
 Com isto, **não resta bloqueio técnico conhecido para a janela de produção**
 (§7). A janela depende da autorização nominal de André.
+
+## 11. Janela de produção e conferência — 11/09
+
+Duas autorizações nominais de André, separadas: aplicar a migração, e depois o
+merge.
+
+### 11.1 Migração
+
+| Verificação | Resultado |
+|---|---|
+| Conteúdo aplicado | idêntico ao arquivo validado em `6ca600e` (35 536 bytes, SHA-256 `a84bf6652ef74e3e…`) |
+| Carimbo no ledger | `20260911155633`; produção passou a 52 migrações |
+| Alinhamento no repositório | `15d602b` — `git mv` com 100% de similaridade, linha em `historico-remoto.txt`, saída de `PENDENTES_ESPERADAS` |
+| Esquema de produção × banco local recriado do zero | **77 impressões digitais** — funções, constraints, índices, políticas, gatilhos e RLS **idênticos**; as 53 provas locais valem para esses objetos |
+| `authenticated` / `anon` | só `SELECT` sob RLS para `authenticated`; nada para `anon`; nenhuma RPC executável por eles |
+| SECURITY DEFINER | três funções, `revoke` de `anon` e `authenticated`, `search_path` vazio |
+| Advisors de segurança | nenhum aviso novo (seguem os dois preexistentes: exceção registrada do `kill_switch_ativo` e proteção de senha vazada desligada) |
+| Advisors de performance | INFO: sete chaves estrangeiras da Fatia 2 sem índice que as cubra por inteiro, e índices ainda sem uso (tabelas recém-criadas). **Dívida** para uma migração de índices; impacto nulo no volume atual |
+
+**Diferença de ambiente, não regressão:** em produção, `service_role` tem
+privilégios completos nas tabelas novas — como já tem em todas as antigas, pelo
+padrão do Supabase hospedado. No stack local ele é mais restrito em todas.
+Registrado porque o local não reproduz esse aspecto de produção.
+
+### 11.2 A importação anterior ao manifesto
+
+Antes do merge apareceu um problema que nenhum teste pegava: a única marca de
+produção, a do Marco A (09/09), tem `source_document_id` nulo e relatório sem
+`paginas`. A tela tratava todo nulo como "publicação incompleta", e a retomada
+responderia `manifesto_ausente` para sempre — aviso falso com botão inútil na
+marca que o André mostrou abrindo em 5 segundos. Corrigido em `f56a022`
+(`classificarPublicacao`: completo, incompleto, anterior ao manifesto), com
+guarda e contraprova.
+
+A condição levantada antes do merge — `SUPABASE_SECRET_KEY` no ambiente
+Production da Vercel — foi confirmada por André na tela de variáveis, e provada
+depois pela importação nova, que só conclui com ela.
+
+### 11.3 Conferência em produção, depois do merge
+
+Deploy de produção do `3e66b41` concluído; CI da `main` no `3e66b41` verde
+([run 34629082344](https://github.com/andreluizcoelho1961/brennimark/actions/runs/34629082344),
+11 min). Conferência pela interface, no Chrome real, com login do André.
+
+| Critério | Resultado |
+|---|---|
+| Marco A (importação antiga) | nota "Manual publicado antes do registro por página"; **sem** aviso de incompleta e sem botão; 47 páginas desenhadas; console limpo |
+| Importação nova, marca `bradesco-manifesto` | transação A → `200` em 1,1 s; transação B → `200` em 2,8 s |
+| Manifesto | **47/47** linhas e páginas distintas, faixa `1..47`, 0 ausentes; 1 `sem-secao` com motivo; 1 documento-fonte; 43 seções |
+| Recarga | 47 páginas, 43 seções na navegação, aviso de 1 página sem seção, sem incompleta, console limpo |
+| Marco A intocado | 43 seções e o PDF inalterados; nada foi reescrito |
+
+A marca `bradesco-manifesto` fica em produção, como autorizado. O PDF foi usado
+por cópia de transporte fora do repositório, apagada ao fim.
+
+### 11.4 Achado: o tempo de publicação em produção é o envio das imagens
+
+A publicação levou **58,6 s** do clique ao fim em produção, contra < 5 s no
+local. As duas transações somam menos de 4 s. Medido no Storage (UTC):
+
+| Etapa | Momento | |
+|---|---|---|
+| clique | ~17:47:22 | |
+| primeira imagem de página concluída | 17:47:52 | ~30 s após o clique |
+| 25 imagens concluídas | até 17:48:15 | janela de 22,6 s |
+| PDF original, 4,07 MiB | 17:48:17 | |
+| transação A | 17:48:18 | 1,1 s |
+| transação B | 17:48:21 | 2,8 s |
+
+**As 25 imagens de página somam 33,9 MiB** — média 1,35 MiB, maior 3,8 MiB,
+oito vezes o próprio PDF. São PNG em escala 2. No local o Storage está na
+mesma máquina e o envio é instantâneo. A hipótese mais provável é que o tempo
+seja o envio desses arquivos pela conexão de quem importa (a conta fecha com
+~5–6 Mbit/s de subida) — **não confirmada**: falta uma medição de rede por
+imagem, e ela vem antes de qualquer correção.
+
+Por que importa: o tempo cresce com o número de páginas visuais (47 páginas já
+encostam no teto de 60 s; 743 não seriam viáveis), e o espaço também — o plano
+Free do Supabase tem 1 GB de Storage, e ~38 MiB por importação lotam o plano
+em cerca de 25 importações. Não é defeito de integridade e não reabre o Marco
+B; é a próxima prioridade de desempenho. Caminhos prováveis, a medir: WebP ou
+JPEG em vez de PNG, ou escala menor.
+
+### 11.5 O que continua aberto
+
+- tempo e tamanho das imagens de página (§11.4);
+- índices das chaves estrangeiras da Fatia 2 (§11.1);
+- aviso de `key` do React na `PlatformTopBar` (§10);
+- defeitos P3 de §4: "remover seção" na prévia, e o motivo da página sem texto;
+- `bucket_alinhado_ao_plano_gratuito` continua não aplicada, com o mesmo
+  problema de carimbo de §7.1;
+- publicação em duas transações é solução transitória (§1, decisão 1).
