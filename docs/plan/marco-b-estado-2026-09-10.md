@@ -70,10 +70,10 @@ conferidas (`service_role` executa, `authenticated` não).
 | # | Defeito | Classe | Estado |
 |---|---|---|---|
 | 1 | O atalho `jaEstava` respondia `paginasSemSecao: 0` sem medir; a marca tinha 1 página sem seção | P3, B2 | **corrigido** em `7f6a54a` — ver §6 |
-| 2 | A renderização da publicação **congela com a aba oculta**: `requestAnimationFrame` não dispara, e a publicação levou ~23 min em vez de segundos | P2, produto | aberto — antes de demonstração a cliente |
+| 2 | A renderização da publicação **congela com a aba oculta**: `requestAnimationFrame` não dispara, e a publicação levou ~23 min em vez de segundos | P2, produto | **corrigido em 11/09** — ver §8. Provado com a aba oculta simulada; não conferido ainda numa aba oculta de verdade |
 | 3 | A prévia do importador não oferece "remover seção"; remover só existe depois de publicar | P3, curadoria | aberto |
 | 4 | A página sem texto recebe o motivo "não entrou em nenhuma seção", embora a extração saiba que ela não tem texto | P3, manifesto | aberto |
-| 5 | `enqueue_import_cleanup` declara `on conflict` com duas colunas contra um índice único de três, e falha com `42P10` em toda chamada | **bloqueador operacional** | aberto, em trabalho separado |
+| 5 | `enqueue_import_cleanup` declara `on conflict` com duas colunas contra um índice único de três, e falha com `42P10` em toda chamada | **bloqueador operacional** | **corrigido em 10/09** — PR #21, aplicado em produção |
 
 Achados que **não** são defeito de produto:
 
@@ -134,8 +134,8 @@ máquina.
 1. ~~Corrigir `enqueue_import_cleanup`~~ — **feito em 10–11/09**: PRs #21 (a
    função enfileira de fato, aplicada em produção) e #22 e #24 (a recusa da fila
    deixa rastro no log do servidor).
-2. Corrigir o congelamento da renderização com a aba oculta — antes de qualquer
-   demonstração a cliente.
+2. ~~Corrigir o congelamento da renderização com a aba oculta~~ — **feito em
+   11/09**, ver §8. Falta conferir uma vez com a aba oculta de verdade.
 3. Aplicar a migração `documento_fonte_e_manifesto_por_pagina` em produção.
 4. **Alinhar o nome do arquivo ao ledger, no PR** — ver abaixo.
 5. Só então o merge do PR, **mediante autorização nominal**.
@@ -174,3 +174,36 @@ Na janela, então:
 
 `bucket_alinhado_ao_plano_gratuito` (`20260909213000`) está na mesma situação e
 vai precisar do mesmo ajuste quando for aplicada.
+
+## 8. Correção do congelamento com a aba oculta — 11/09
+
+**Causa, dois freios do navegador:**
+
+1. o pdf.js desenha cada página em fatias de ~15 ms e agenda a próxima com
+   `requestAnimationFrame`. Aba oculta não tem quadro, e a página para no meio;
+2. entre páginas, o importador cedia com `setTimeout(0)`, que o Chrome limita a
+   um por segundo em aba oculta e, depois de cinco minutos, a um por minuto —
+   o que explica os ~23 minutos.
+
+**Correção, em `src/lib/import/pdf.ts`:** o desenho de página da publicação não
+espera quadro (o canvas vira PNG e sobe; a tela não mostra o desenho), e a
+pausa entre páginas usa `MessageChannel`, que não sofre a limitação de timers.
+Não se usou `intent: "print"`, que desligaria o quadro pela API pública: ele
+muda o que é desenhado — anotações "não imprimir", camadas opcionais — e a
+imagem precisa ser a da tela. O campo desligado é interno do pdf.js; se uma
+atualização o renomear, o teste abaixo reprova.
+
+**Prova:** `e2e/importador-aba-oculta.spec.ts`, nos três motores. A página se
+declara oculta e `requestAnimationFrame` nunca executa; a publicação de
+`manual-visual.pdf` precisa desenhar e enviar as páginas visuais e chegar à RPC
+em até 20 s. Contraprova: com a correção desligada, o teste reprova nos três
+motores, sem nenhum pedido depois do clique — o congelamento reproduzido.
+
+**Verificação da versão integrada** (Fatia 2 + `main` até o #24):
+`npm run verify` completo (758 unidade, build, 288 navegador); prova do
+manifesto, 53 verificações; prova da fila de limpeza (#21), 18 verificações —
+todas verdes no banco local.
+
+**O que a simulação não cobre:** a limitação de timers em si (o teste não
+reduz a frequência dos timers) e uma aba oculta de verdade. Falta uma
+publicação com o manual real e a aba em segundo plano, medindo o tempo.
