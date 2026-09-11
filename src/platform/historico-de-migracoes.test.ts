@@ -72,18 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * Etapa 2 — documento-fonte durável e manifesto por página.
-   *
-   * Escrita em 10/09/2026 e aplicada ao stack LOCAL, com as garantias provadas
-   * por `scripts/prova-manifesto-por-pagina.sh`. NÃO aplicada em produção:
-   * duas tabelas com RLS mais um gatilho são a categoria mais cara de
-   * reverter, e aplicar em banco é decisão do proprietário.
-   *
-   * Ela não muda comportamento por si só — o manifesto só passa a ser populado
-   * quando a RPC de publicação escrever nele, que é o passo seguinte da fatia.
-   */
-  "documento_fonte_e_manifesto_por_pagina",
+  // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
+  // aplicada ao banco hospedado por autorização nominal do proprietário,
+  // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
+  // em `6ca600e`; RLS, grants e SECURITY DEFINER conferidos depois.
 ];
 
 /**
