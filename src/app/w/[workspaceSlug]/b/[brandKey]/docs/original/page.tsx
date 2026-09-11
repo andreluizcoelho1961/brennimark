@@ -4,8 +4,11 @@ import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { VisualizadorDePdf } from "@/components/documento-fonte/VisualizadorDePdf";
 import {
-  ConclusaoPendente, PendenciaDeSecao,
+  AnteriorAoManifesto, ConclusaoPendente, PendenciaDeSecao,
 } from "@/components/documento-fonte/ConclusaoPendente";
+import {
+  classificarPublicacao, type EstadoDaPublicacao,
+} from "@/lib/documento-fonte/conclusao-da-publicacao";
 
 /**
  * O manual original — a camada visual canônica.
@@ -85,7 +88,8 @@ export default async function ManualOriginal({
 
   return (
     <div className="flex h-[calc(100dvh-var(--shell-topbar,56px))] flex-col">
-      {registro?.incompleta && registro.importId && (
+      {registro?.estado === "anterior-ao-manifesto" && <AnteriorAoManifesto />}
+      {registro?.estado === "incompleto" && registro.importId && (
         <ConclusaoPendente
           contaSlug={alvo.workspaceSlug}
           marcaChave={alvo.brandKey}
@@ -130,7 +134,7 @@ async function lerEstadoDoRegistro(
     : NonNullable<Awaited<ReturnType<typeof getBrandvilleAuthContext>>>["supabase"],
   id: string,
 ): Promise<{
-  incompleta: boolean;
+  estado: EstadoDaPublicacao;
   sourceDocumentId: string | null;
   importId: string | null;
   /** `null` quando não foi medido. Zero é afirmação, não padrão. */
@@ -138,7 +142,13 @@ async function lerEstadoDoRegistro(
 } | null> {
   const { data, error } = await supabase
     .from("brand_imports")
-    .select("import_id, source_document_id")
+    /*
+     * Só a PRIMEIRA página do relatório, e não a lista: a pergunta é se o
+     * relatório tem páginas, e mil páginas trazidas para responder sim ou não
+     * seriam o mesmo desperdício que `head: true` evita abaixo. Ver
+     * `classificarPublicacao`.
+     */
+    .select("import_id, source_document_id, primeira_pagina:report->paginas->0")
     .eq("id", id)
     .maybeSingle();
 
@@ -147,9 +157,14 @@ async function lerEstadoDoRegistro(
   const sourceDocumentId = (data.source_document_id as string | null) ?? null;
   const importId = (data.import_id as string | null) ?? null;
 
-  if (!sourceDocumentId) {
+  const estado = classificarPublicacao(
+    sourceDocumentId,
+    (data as { primeira_pagina?: unknown }).primeira_pagina != null,
+  );
+
+  if (estado !== "completo") {
     // Sem documento-fonte não há manifesto para contar: não medido.
-    return { incompleta: true, sourceDocumentId: null, importId, paginasSemSecao: null };
+    return { estado, sourceDocumentId: null, importId, paginasSemSecao: null };
   }
 
   // `head: true` porque só a contagem interessa: mil páginas sem seção seriam
@@ -161,7 +176,7 @@ async function lerEstadoDoRegistro(
     .is("document_id", null);
 
   return {
-    incompleta: false,
+    estado,
     sourceDocumentId,
     importId,
     /*

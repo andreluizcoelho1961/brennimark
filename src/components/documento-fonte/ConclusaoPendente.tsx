@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useIsEnglish } from "@/platform/locale-client";
 import {
-  relatarConclusao, relatarPendenciaDeSecao,
+  RELATO_ANTERIOR_AO_MANIFESTO, relatarConclusao, relatarPendenciaDeSecao,
 } from "@/lib/documento-fonte/conclusao-da-publicacao";
 import { registrarImportacao } from "@/lib/documento-fonte/registrar-do-navegador";
 
@@ -102,6 +102,25 @@ export function ConclusaoPendente({
         )}
       </div>
     </section>
+  );
+}
+
+/**
+ * Publicação anterior ao registro por página — nota, sem ação.
+ *
+ * Cliente pelo mesmo motivo de `PendenciaDeSecao`: o idioma é decidido no
+ * cliente. Ver `classificarPublicacao`.
+ */
+export function AnteriorAoManifesto() {
+  const isEnglish = useIsEnglish();
+  return (
+    <p
+      role="note"
+      data-anterior-ao-manifesto
+      className="border-b border-platform-border px-[var(--space-shell-4)] py-[var(--space-shell-3)] text-[12px] text-platform-text-muted"
+    >
+      {isEnglish ? RELATO_ANTERIOR_AO_MANIFESTO.en : RELATO_ANTERIOR_AO_MANIFESTO.pt}
+    </p>
   );
 }
 

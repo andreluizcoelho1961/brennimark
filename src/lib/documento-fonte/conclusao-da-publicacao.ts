@@ -106,6 +106,49 @@ export function relatarConclusao(codigo: string): RelatoDaConclusao {
 }
 
 /**
+ * Os três estados de uma publicação, vistos do manual original.
+ *
+ *   completo               o manifesto por página existe
+ *   incompleto             a transação A gravou o relatório COM as páginas, e a
+ *                          B não concluiu — a retomada consegue terminar
+ *   anterior-ao-manifesto  o relatório não tem páginas: a importação foi feita
+ *                          antes de o registro por página existir
+ *
+ * ─── Por que o terceiro estado existe ───────────────────────────────────
+ *
+ * `brand_imports.source_document_id` nulo tem DOIS significados, e a migração
+ * da fatia 2 já dizia isso: nas importações anteriores a ela, o nulo "é VERDADE
+ * e não buraco". A tela tratava todo nulo como publicação incompleta. Em
+ * produção isso atingia a única marca existente, a do Marco A: o manual abria
+ * com um aviso de incompleta e um botão de retomada que nunca concluiria —
+ * sem `paginas` no relatório, a rota responde `manifesto_ausente`, sempre.
+ *
+ * O critério é o mesmo de `conferirManifesto` em `registrar.ts`: relatório sem
+ * páginas é o que torna a retomada impossível. Os dois lados decidem pela
+ * mesma pergunta, para a tela nunca oferecer o que o servidor vai recusar.
+ */
+export type EstadoDaPublicacao = "completo" | "incompleto" | "anterior-ao-manifesto";
+
+export function classificarPublicacao(
+  sourceDocumentId: string | null,
+  relatorioTemPaginas: boolean,
+): EstadoDaPublicacao {
+  if (sourceDocumentId) return "completo";
+  return relatorioTemPaginas ? "incompleto" : "anterior-ao-manifesto";
+}
+
+/**
+ * Nota, e não aviso: não há nada pendente nem nada perdido. O PDF e as seções
+ * estão lá; o que não existe é o registro página a página, que nasceu depois.
+ * Sem promessa de ação — reimportar criaria outra marca, e sugerir isso como
+ * conserto seria trocar um aviso falso por um conselho ruim.
+ */
+export const RELATO_ANTERIOR_AO_MANIFESTO = {
+  pt: "Manual publicado antes do registro por página. O PDF original e as seções estão aqui; o que esta publicação não tem é a contagem de páginas por seção, que passou a existir depois.",
+  en: "Manual published before per-page registration. The source PDF and its sections are here; what this publication lacks is the per-section page count, which came later.",
+} as const;
+
+/**
  * O que dizer quando o registro CONCLUIU mas deixou páginas sem seção.
  *
  * Não é erro e não bloqueia nada: a página está registrada, medida e ligada ao
