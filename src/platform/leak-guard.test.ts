@@ -1622,7 +1622,7 @@ test("a exceção de advisor do kill switch só vale enquanto as duas guardas ex
   /*
    * `kill_switch_ativo` é `SECURITY DEFINER` executável por `authenticated`, e
    * o advisor do Supabase acusa isso (regra 0029). A exceção foi registrada
-   * como intencional em `20260909160000_kill_switch_excecao_registrada.sql` —
+   * como intencional em `20260910215914_kill_switch_excecao_registrada.sql` —
    * mas ela é aceitável por ser ESTREITA, não por estar escrita.
    *
    * Este teste é o que impede a justificativa de sobreviver ao que a
