@@ -57,10 +57,10 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Registra a exceção de advisor de `kill_switch_ativo` num `comment on`.
-  // Não muda comportamento — nenhum grant, nenhum corpo de função. Escrita,
-  // ainda não aplicada: aplicar em banco é decisão do proprietário.
-  "kill_switch_excecao_registrada",
+  // `kill_switch_excecao_registrada` saiu daqui em 10/09/2026: aplicada ao
+  // banco hospedado por decisão do proprietário, carimbada `20260910215914`.
+  // Medido depois: só o comentário mudou — corpo, grants, SECURITY DEFINER e
+  // search_path idênticos ao estado anterior.
   /**
    * Alinha o bucket de importação ao teto real do plano gratuito (50 MB).
    *

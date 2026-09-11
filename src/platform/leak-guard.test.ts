@@ -813,6 +813,60 @@ test("falha ao limpar uma importação abandonada vira pendência", () => {
   );
 });
 
+test("a pendência que a fila recusa deixa rastro", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  // Chamar a RPC com `await` solto descarta o erro. Foi assim que um 42P10 em
+  // toda chamada deixou PDFs fora do Storage limpo e fora da fila, sem registro.
+  assert.doesNotMatch(
+    importador,
+    /^\s*await\s+supabase\.rpc\(\s*"enqueue_import_cleanup"/m,
+    "o resultado de enqueue_import_cleanup precisa ser guardado e conferido",
+  );
+  assert.match(
+    importador,
+    /const\s+(\w+)\s*=\s*await\s+supabase\.rpc\(\s*"enqueue_import_cleanup"[\s\S]*?if\s*\(\s*\1\.error\s*\)[\s\S]{0,300}?relatarObjetoSemDestino\([\s\S]{0,200}?sqlstate/,
+    "falha ao enfileirar precisa virar rastro, com o SQLSTATE",
+  );
+});
+
+/**
+ * O rastro precisa chegar a um log que alguém lê.
+ *
+ * O importador é componente de tela: um `console.error` dele fica no navegador
+ * de quem importou e some quando a aba fecha. A primeira versão do rastro (PR
+ * #22) era exatamente isso — melhor que o silêncio, mas fora de qualquer log
+ * consultável. Agora todo arquivo sem destino passa pelo ajudante, que também
+ * avisa a rota do servidor.
+ */
+test("todo arquivo sem destino é relatado ao servidor, não só ao console", () => {
+  const importador = lerCodigo("src/components/import/BrandImporter.tsx");
+  assert.doesNotMatch(
+    importador,
+    /importacao_deixou_objeto_sem_destino/,
+    "o importador não escreve o rastro direto no console: use relatarObjetoSemDestino",
+  );
+  // As três origens do importador passam pelo ajudante.
+  for (const origem of ["envio", "fila", "imagens"]) {
+    assert.match(
+      importador,
+      new RegExp(`relatarObjetoSemDestino\\(\\{\\s*origem:\\s*"${origem}"`),
+      `a origem ${origem} precisa passar por relatarObjetoSemDestino`,
+    );
+  }
+
+  const ajudante = lerCodigo("src/lib/import/relatar-rastro.ts");
+  assert.match(ajudante, /"\/api\/importacao\/rastro"/, "o ajudante avisa a rota do servidor");
+  assert.match(ajudante, /keepalive/, "sem keepalive o aviso morre quando a aba fecha");
+  // O teto do keepalive é de 64 KiB em BYTES, somados entre os pedidos em voo:
+  // contar caminhos não mede isso.
+  assert.match(ajudante, /TextEncoder/, "os lotes são medidos em bytes UTF-8");
+  assert.match(ajudante, /ORCAMENTO_KEEPALIVE_BYTES/, "o keepalive tem orçamento para a soma dos lotes");
+
+  const rota = lerCodigo("src/app/api/importacao/rastro/route.ts");
+  assert.match(rota, /auth\.getUser\(\)/, "o ator do rastro vem da sessão validada");
+  assert.doesNotMatch(rota, /createServiceClient/, "registrar log não precisa da chave de serviço");
+});
+
 /**
  * O primeiro usuário do produto não pode ficar preso.
  *
@@ -1606,7 +1660,7 @@ test("a exceção de advisor do kill switch só vale enquanto as duas guardas ex
   /*
    * `kill_switch_ativo` é `SECURITY DEFINER` executável por `authenticated`, e
    * o advisor do Supabase acusa isso (regra 0029). A exceção foi registrada
-   * como intencional em `20260909160000_kill_switch_excecao_registrada.sql` —
+   * como intencional em `20260910215914_kill_switch_excecao_registrada.sql` —
    * mas ela é aceitável por ser ESTREITA, não por estar escrita.
    *
    * Este teste é o que impede a justificativa de sobreviver ao que a
