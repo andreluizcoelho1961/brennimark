@@ -131,13 +131,46 @@ máquina.
 
 ## 7. Antes da produção, nesta ordem
 
-1. Corrigir `enqueue_import_cleanup` — trabalho e PR separados. É a fila que
-   impede um PDF de cliente de ficar no Storage sem dono, e hoje ela não funciona.
+1. ~~Corrigir `enqueue_import_cleanup`~~ — **feito em 10–11/09**: PRs #21 (a
+   função enfileira de fato, aplicada em produção) e #22 e #24 (a recusa da fila
+   deixa rastro no log do servidor).
 2. Corrigir o congelamento da renderização com a aba oculta — antes de qualquer
    demonstração a cliente.
 3. Aplicar a migração `documento_fonte_e_manifesto_por_pagina` em produção.
-4. Só então o merge do PR, **mediante autorização nominal**.
+4. **Alinhar o nome do arquivo ao ledger, no PR** — ver abaixo.
+5. Só então o merge do PR, **mediante autorização nominal**.
 
 A migração e o merge acontecem na mesma janela, com a migração primeiro. Se o PR
 entrar sem ela, toda publicação em produção passará a mostrar "Publicação
 incompleta", porque a RPC não existe lá.
+
+### 7.1 O passo 4 existe porque o timestamp do arquivo é mais velho que o ledger
+
+*Acrescentado em 11/09/2026.*
+
+O arquivo é `20260910140000_documento_fonte_e_manifesto_por_pagina.sql`, mas
+produção já registra duas migrações posteriores: `20260910213339` e
+`20260910215914`. Aplicada pela ferramenta do Supabase, a migração entra no
+ledger com o **horário da aplicação**, não com o do nome do arquivo — foi o que
+aconteceu com o kill switch, arquivo `20260909160000`, ledger `20260910215914`,
+e o que o PR #23 teve de consertar depois.
+
+Sem o passo 4, `historico-de-migracoes.test.ts` encontra no repositório uma
+migração cujo timestamp não está no ledger, e **reprova o CI do PR**. O merge
+trava com produção já migrada e o código fora dela — a janela que a ordem acima
+existe para evitar.
+
+Na janela, então:
+
+1. aplicar a migração e **ler no ledger** o timestamp que ela recebeu
+   (`list_migrations`), em vez de presumir;
+2. no PR, renomear o arquivo para esse timestamp (`git mv`, conteúdo
+   intocado), acrescentar a linha em `supabase/historico-remoto.txt` e tirar o
+   nome de `PENDENTES_ESPERADAS`;
+3. CI verde;
+4. merge;
+5. importar um manual em produção e conferir manifesto, recarga e preservação
+   das páginas.
+
+`bucket_alinhado_ao_plano_gratuito` (`20260909213000`) está na mesma situação e
+vai precisar do mesmo ajuste quando for aplicada.
