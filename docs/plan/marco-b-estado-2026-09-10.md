@@ -70,7 +70,7 @@ conferidas (`service_role` executa, `authenticated` não).
 | # | Defeito | Classe | Estado |
 |---|---|---|---|
 | 1 | O atalho `jaEstava` respondia `paginasSemSecao: 0` sem medir; a marca tinha 1 página sem seção | P3, B2 | **corrigido** em `7f6a54a` — ver §6 |
-| 2 | A renderização da publicação **congela com a aba oculta**: `requestAnimationFrame` não dispara, e a publicação levou ~23 min em vez de segundos | P2, produto | **corrigido em 11/09** — ver §8. Provado com a aba oculta simulada; não conferido ainda numa aba oculta de verdade |
+| 2 | A renderização da publicação **congela com a aba oculta**: `requestAnimationFrame` não dispara, e a publicação levou ~23 min em vez de segundos | P2, produto | **corrigido em 11/09** — ver §8; **confirmado com aba oculta de verdade e o manual real** — ver §10 |
 | 3 | A prévia do importador não oferece "remover seção"; remover só existe depois de publicar | P3, curadoria | aberto |
 | 4 | A página sem texto recebe o motivo "não entrou em nenhuma seção", embora a extração saiba que ela não tem texto | P3, manifesto | aberto |
 | 5 | `enqueue_import_cleanup` declara `on conflict` com duas colunas contra um índice único de três, e falha com `42P10` em toda chamada | **bloqueador operacional** | **corrigido em 10/09** — PR #21, aplicado em produção |
@@ -82,7 +82,10 @@ Achados que **não** são defeito de produto:
   Supabase resolve para IP público. `dangerouslyAllowLocalIP` não foi ligado, por
   risco de SSRF.
 - **Dois `HEAD` com `503`** apareceram só na captura da extensão; o servidor
-  registrou `200` e não foi possível reproduzir.
+  registrou `200` e não foi possível reproduzir. **Resolvido em 11/09 (§10):**
+  reapareceu, o servidor de novo registrou `200`, e três `HEAD` feitos de
+  dentro da página receberam `200` com o tamanho exato — é artefato da
+  captura da extensão, não do produto.
 
 ## 5. O que não foi exercitado
 
@@ -135,7 +138,7 @@ máquina.
    função enfileira de fato, aplicada em produção) e #22 e #24 (a recusa da fila
    deixa rastro no log do servidor).
 2. ~~Corrigir o congelamento da renderização com a aba oculta~~ — **feito em
-   11/09**, ver §8. Falta conferir uma vez com a aba oculta de verdade.
+   11/09**, ver §8; confirmado com aba oculta de verdade em §10.
 3. Aplicar a migração `documento_fonte_e_manifesto_por_pagina` em produção.
 4. **Alinhar o nome do arquivo ao ledger, no PR** — ver abaixo.
 5. Só então o merge do PR, **mediante autorização nominal**.
@@ -205,7 +208,8 @@ manifesto, 53 verificações; prova da fila de limpeza (#21), 18 verificações 
 todas verdes no banco local.
 
 **O que a simulação não cobre:** a limitação de timers em si (o teste não
-reduz a frequência dos timers) e uma aba oculta de verdade. Falta uma
+reduz a frequência dos timers) e uma aba oculta de verdade — coberto depois
+pelo aceite real de §10. Faltava uma
 publicação com o manual real e a aba em segundo plano, medindo o tempo.
 
 ## 9. Banco local recriado do zero — 11/09
@@ -243,3 +247,57 @@ o smoke test da versão integrada ou para a janela de produção.
 
 **Não coberto:** os advisors do Supabase só existem no projeto hospedado e não
 foram consultados — nenhuma ação em produção nesta etapa.
+
+## 10. Aceite com o manual real e a aba oculta de verdade — 11/09
+
+Autorizado por André, com escopo explícito: só ambiente local, conta e marca
+criadas pela interface, PDF de fora do Git, nenhuma migração ou alteração em
+produção, nenhum merge, nada do cliente versionado. A conta foi criada e o
+login feito pelo próprio André; o resto foi conduzido pela interface, no Chrome
+real — não no Playwright, que liga opções que desativam a limitação de timers
+em segundo plano e tornaria o teste mais brando que a realidade.
+
+**Código sob aceite:** inalterado desde `2008ae1`; `f80e86d` é o último commit
+com CI verde, e só acrescentou documentação por cima. O commit que registra
+esta seção também altera **só documentação**.
+
+**Método.** O clique em "Criar a marca com estes rascunhos" abriu, no mesmo
+gesto, uma aba nova à frente (`window.open`), e a do importador ficou oculta.
+Um registro na própria página, em `sessionStorage`, anotou clique,
+visibilidade e um contador de quadros de `requestAnimationFrame`; o banco
+local foi consultado a cada ~1 s, como prova independente da aba.
+
+| Critério | Resultado |
+|---|---|
+| Aba oculta após o clique | **60 ms** |
+| `requestAnimationFrame` enquanto oculta | **suspenso** — o contador de quadros parou (1417) e só voltou a andar quando a aba voltou |
+| Conclusão no banco | **≤ 4,9 s** após o clique: 25 imagens, marca (A), documento-fonte e manifesto (B) |
+| Tempo oculta | **46,4 s** — a publicação já tinha concluído, e a aba navegado ao manual, antes de voltar |
+| Transações A e B | concluídas; `POST /api/documento-fonte/registrar` → `200` em **204 ms** |
+| `source_document_id` | preenchido |
+| Manifesto | **47/47** linhas e páginas distintas, faixa `1..47`, 0 ausentes, sem duplicação; 1 documento-fonte na marca |
+| `sem-secao` | 1 página (a 47, sem texto), com motivo registrado |
+| Recarga | manual original com 47 páginas e 43 seções na navegação, sem aviso de publicação incompleta, com o aviso da página sem seção |
+
+**Ressalva — não é benchmark.** Uma primeira tentativa não valeu como aceite: a
+aba criada pela extensão abriu em segundo plano, e a do importador ficou
+**visível** o tempo todo. Ela concluiu em 35–40 s. A diferença para os 4,9 s
+não mede aba oculta contra visível: na primeira execução o servidor de
+desenvolvimento ainda compilava as rotas, e as condições não são comparáveis.
+O que este aceite prova é que a aba oculta **não congela** e fica muito dentro
+do teto de 30 s.
+
+**Achados:**
+
+- os dois `HEAD` com `503` de §4 reapareceram na captura da extensão e foram
+  resolvidos como artefato dela — ver a nota em §4;
+- aviso do React, `Each child in a list should have a unique "key" prop`, na
+  `PlatformTopBar` (filho vindo de `DocsLayout`). Aviso de desenvolvimento, sem
+  efeito visível — **dívida separada**, fora do Marco B.
+
+**Material do cliente:** nada versionado. O PDF foi usado por cópia de
+transporte fora do repositório, apagada ao fim; nenhuma captura foi salva. As
+duas marcas de teste existem só no banco local.
+
+Com isto, **não resta bloqueio técnico conhecido para a janela de produção**
+(§7). A janela depende da autorização nominal de André.
