@@ -131,57 +131,101 @@ export function VisualizadorDePdf({
     }
 
     const transporte = new pdfjs.PDFDataRangeTransport(tamanho, null, false);
+
+    /**
+     * Falha de pedaço NÃO pode virar espera infinita.
+     *
+     * O `PDFDataRangeTransport` não tem como sinalizar erro: ele espera que
+     * `onDataRange` chegue. Se um pedaço falha e ninguém avisa, o documento
+     * fica montado, com o total de páginas correto, e as páginas nunca pintam
+     * — foi exatamente o sintoma de um defeito anterior deste laço, e ele
+     * levou uma sessão para ser encontrado porque o console ficava limpo.
+     *
+     * Três garantias, e nenhuma é opcional:
+     *
+     *   TEMPO      cada pedido tem prazo. Rede que não responde é falha, não
+     *              espera;
+     *   TENTATIVA  uma repetição por pedaço, porque perda isolada é comum e
+     *              recarregar o manual inteiro por causa dela é pior;
+     *   DESISTIR   esgotado o prazo e a repetição, o transporte é abortado e a
+     *              tela diz que não abriu. Silêncio é o único desfecho proibido.
+     */
+    const PRAZO_DO_PEDACO = 20_000;
+    let desistiu = false;
+
+    const desistir = (motivo: string) => {
+      if (desistiu) return;
+      desistiu = true;
+      try {
+        transporte.abort();
+      } catch {
+        // Abortar duas vezes não é erro, e não deve mascarar o motivo.
+      }
+      setFalha(motivo);
+    };
+
     transporte.requestDataRange = (inicio: number, fim: number) => {
-      /**
-       * Preenche o intervalo pedido, inteiro, mesmo que a rota apare.
-       *
-       * A rota apara fatias acima do teto de 4 MiB — e devolve menos bytes do
-       * que foram pedidos, dizendo a verdade no `Content-Range`. Entregar essa
-       * fatia curta ao PDF.js o deixaria esperando o resto para sempre. O laço
-       * continua de onde parou até completar o que foi pedido.
-       */
       void (async () => {
-        try {
-          /**
-           * O limite é o FIM DO ARQUIVO, não o fim pedido.
-           *
-           * O PDF.js pede intervalos que passam do fim — é legítimo, e o
-           * servidor apara. A primeira versão deste laço somava os bytes
-           * recebidos e, como nunca alcançava o fim pedido, pedia outra fatia
-           * COMEÇANDO no fim do arquivo. A rota respondia `416`, o laço
-           * desistia sem entregar nada, e o PDF.js esperava aquele pedaço para
-           * sempre: o documento abria (47 páginas), e as páginas nunca
-           * pintavam. Nenhum erro no console — só canvas preto.
-           */
-          const limite = Math.min(fim, tamanho);
-          let cursor = inicio;
-          const pedacos: Uint8Array[] = [];
+        /**
+         * O limite é o FIM DO ARQUIVO, não o fim pedido.
+         *
+         * O PDF.js pede intervalos que passam do fim — é legítimo, e o
+         * servidor apara. A primeira versão deste laço somava os bytes
+         * recebidos e, como nunca alcançava o fim pedido, pedia outra fatia
+         * COMEÇANDO no fim do arquivo. A rota respondia `416`, o laço desistia
+         * sem entregar nada, e o PDF.js esperava aquele pedaço para sempre.
+         */
+        const limite = Math.min(fim, tamanho);
+        let cursor = inicio;
+        const pedacos: Uint8Array[] = [];
 
-          while (cursor < limite) {
-            const resposta = await fetch(url, {
-              headers: { Range: `bytes=${cursor}-${limite - 1}` },
-              cache: "no-store",
-            });
-            if (resposta.status !== 206 && resposta.status !== 200) break;
-            const parte = new Uint8Array(await resposta.arrayBuffer());
-            // Resposta vazia não avança o cursor, e repetir seria laço infinito.
-            if (parte.byteLength === 0) break;
-            pedacos.push(parte);
-            cursor += parte.byteLength;
+        while (cursor < limite && !desistiu) {
+          let parte: Uint8Array | null = null;
+
+          // Duas tentativas: a primeira e uma repetição.
+          for (let tentativa = 0; tentativa < 2 && parte === null; tentativa += 1) {
+            const prazo = new AbortController();
+            const relogio = setTimeout(() => prazo.abort(), PRAZO_DO_PEDACO);
+            try {
+              const resposta = await fetch(url, {
+                headers: { Range: `bytes=${cursor}-${limite - 1}` },
+                cache: "no-store",
+                signal: prazo.signal,
+              });
+              if (resposta.status !== 206 && resposta.status !== 200) {
+                // Status de recusa não melhora com repetição: 401 é sessão,
+                // 404 é documento, 413 é pedido. Repetir só atrasa a verdade.
+                desistir(resposta.status === 401 ? "expirada" : "indisponivel");
+                return;
+              }
+              const bytes = new Uint8Array(await resposta.arrayBuffer());
+              if (bytes.byteLength > 0) parte = bytes;
+            } catch {
+              // Prazo esgotado ou rede: a repetição decide.
+            } finally {
+              clearTimeout(relogio);
+            }
           }
 
-          if (pedacos.length === 0) return;
-          const total = pedacos.reduce((a, p) => a + p.byteLength, 0);
-          const junto = new Uint8Array(total);
-          let posicao = 0;
-          for (const p of pedacos) {
-            junto.set(p, posicao);
-            posicao += p.byteLength;
+          if (parte === null) {
+            desistir("indisponivel");
+            return;
           }
-          transporte.onDataRange(inicio, junto);
-        } catch {
-          // Abandono ou rede: o PDF.js trata a ausência do pedaço.
+
+          pedacos.push(parte);
+          cursor += parte.byteLength;
         }
+
+        if (desistiu || pedacos.length === 0) return;
+
+        const total = pedacos.reduce((a, p) => a + p.byteLength, 0);
+        const junto = new Uint8Array(total);
+        let posicao = 0;
+        for (const p of pedacos) {
+          junto.set(p, posicao);
+          posicao += p.byteLength;
+        }
+        transporte.onDataRange(inicio, junto);
       })();
     };
 

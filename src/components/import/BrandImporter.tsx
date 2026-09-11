@@ -18,6 +18,11 @@ import type { BrandvilleUtilityKey } from "@/brandville/types";
 import { caminhoDeAsset, caminhoDeImportacao } from "@/lib/storage/caminhos";
 import { enviarArquivosDaImportacao, garantirAusencia } from "@/lib/import/orfaos";
 import { portasDeEnvioSupabase } from "@/lib/import/portas-supabase";
+import {
+  atribuirSlugs, montarManifesto, type GeometriaDaPagina,
+} from "@/lib/documento-fonte/manifesto-da-importacao";
+import { relatarConclusao } from "@/lib/documento-fonte/conclusao-da-publicacao";
+import { registrarImportacao } from "@/lib/documento-fonte/registrar-do-navegador";
 import { relatarObjetoSemDestino } from "@/lib/import/relatar-rastro";
 
 
@@ -58,6 +63,13 @@ export function BrandImporter({
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [linhasPorPagina, setLinhasPorPagina] = useState<Map<number, string[]>>(new Map());
   const [totalDePaginas, setTotalDePaginas] = useState(0);
+  /**
+   * A geometria de cada página, para o manifesto por página.
+   *
+   * Sai da mesma leitura que extrai o texto — a página já está aberta — e vai
+   * para o relatório da transação A, de onde a segunda transação a deriva.
+   */
+  const [geometria, setGeometria] = useState<GeometriaDaPagina[]>([]);
   const [hash, setHash] = useState("");
   /**
    * Identidade DESTA tentativa de importação, estável entre as repetições.
@@ -85,6 +97,19 @@ export function BrandImporter({
    * Numa demonstração, quem espera desiste antes de o produto terminar.
    */
   const [progresso, setProgresso] = useState<ProgressoDaPublicacao | null>(null);
+  /**
+   * A publicação que passou pela transação A e não concluiu a B.
+   *
+   * A marca existe, os documentos existem, o manual original está lá — e o
+   * manifesto por página não foi registrado. A interface NÃO pode declarar
+   * sucesso neste estado, nem chamá-lo de "erro ao publicar": quem lesse
+   * importaria de novo e criaria uma segunda marca. Guardar marca e
+   * importação aqui é o que permite a nova tentativa com o mesmo pedido.
+   */
+  const [pendencia, setPendencia] = useState<
+    { codigo: string; repetivel: boolean; marca: string; importId: string } | null
+  >(null);
+  const [concluindo, setConcluindo] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [nome, setNome] = useState("");
   const [utilidades, setUtilidades] = useState<BrandvilleUtilityKey[]>([]);
@@ -105,7 +130,8 @@ export function BrandImporter({
     secoes.length > 0 && nome.trim().length > 0 && chave.length > 0;
 
   const analisar = useCallback(async (selecionado: File) => {
-    setMensagem(""); setAgrupamento(null); setSecoes([]); setOutline([]); setLendo(true);
+    setMensagem(""); setAgrupamento(null); setSecoes([]); setOutline([]);
+    setGeometria([]); setPendencia(null); setLendo(true);
     try {
       /**
        * Nada de checar o MIME.
@@ -136,6 +162,20 @@ export function BrandImporter({
         pagina.numero,
         linhasUteis(pagina, repetidos).map((linha) => linha.texto),
       ])));
+      /*
+       * A geometria sai da MESMA leitura, e é medida do original: caixa em
+       * pontos e rotação declarada, não o viewport já girado. `caracteres`
+       * conta o texto ÚTIL — sem cabeçalho e rodapé —, porque é ele que
+       * decide se a página tem texto para busca ou é só visual.
+       */
+      setGeometria(documento.paginas.map((pagina) => ({
+        numero: pagina.numero,
+        larguraPt: pagina.larguraPt,
+        alturaPt: pagina.alturaPt,
+        rotacao: pagina.rotacao,
+        caracteres: linhasUteis(pagina, repetidos)
+          .reduce((soma, linha) => soma + linha.texto.length, 0),
+      })));
       setArquivo(selecionado);
       if (!nome) setNome(selecionado.name.replace(/\.pdf$/i, ""));
     } catch (erro) {
@@ -267,11 +307,20 @@ export function BrandImporter({
     }
     const caminhosDeImagemEnviados = envio.imagensEnviadas;
 
-    const usados = new Set<string>();
-    const documentos = secoes.map((secao, indice) => {
-      let slug = slugify(secao.titulo) || secao.id;
-      if (usados.has(slug)) slug = `${slug}-${indice + 1}`;
-      usados.add(slug);
+    /*
+     * UMA atribuição de slug, para os três usos.
+     *
+     * O slug era calculado em três lugares, e o do relatório não aplicava o
+     * desempate: duas seções com o mesmo título — "Aplicações", "Cores", o
+     * feijão de qualquer manual — davam `aplicacoes` e `aplicacoes-2` nos
+     * documentos e `aplicacoes` duas vezes no relatório. O manifesto liga
+     * página a seção POR SLUG, então a segunda ocorrência apontaria para o
+     * documento da primeira: página na seção errada, em silêncio, com o
+     * número certo de páginas. Ver `manifesto-da-importacao.ts`.
+     */
+    const slugPorSecao = atribuirSlugs(secoes);
+    const documentos = secoes.map((secao) => {
+      const slug = slugPorSecao.get(secao.id) ?? secao.id;
       return {
         slug,
         group: "Manual",
@@ -324,7 +373,7 @@ export function BrandImporter({
         // A procedência que a RPC exige: uma entrada por seção, com as faixas
         // de páginas de origem, o método de detecção e a confiança.
         documentos: secoes.map((secao) => ({
-          slug: slugify(secao.titulo) || secao.id,
+          slug: slugPorSecao.get(secao.id) ?? secao.id,
           sourcePageRanges: secao.sourcePageRanges,
           sourcePageStart: inicioDe(secao),
           sourcePageEnd: fimDe(secao),
@@ -338,6 +387,16 @@ export function BrandImporter({
         secoesUnidasPeloLimite: agrupamento.unidasPeloLimite,
         arquivo: arquivo.name,
         bytes: arquivo.size,
+        /*
+         * O MANIFESTO POR PÁGINA, gravado junto da transação A.
+         *
+         * É daqui que a segunda transação deriva o pedido, em vez de o
+         * navegador reenviá-lo. Isso resolve três coisas de uma vez: repetir
+         * manda o mesmo pedido por construção, recarregar a aba não perde a
+         * possibilidade de concluir, e geometria deixa de ser declaração do
+         * cliente na segunda chamada. Ver `documento-fonte/registrar.ts`.
+         */
+        paginas: montarManifesto({ geometria, secoes, totalDePaginas }),
       },
     });
 
@@ -412,9 +471,58 @@ export function BrandImporter({
     }
 
     void data;
-    // A marca acabou de nascer: o destino é ela, e o endereço já existe porque
-    // a chave foi escolhida nesta tela.
-    router.push(`/w/${workspaceSlug}/b/${chave}/docs`);
+
+    /*
+     * A TRANSAÇÃO B, e a interface não declara sucesso antes dela.
+     *
+     * A marca já existe neste ponto — a transação A concluiu. Mas a
+     * publicação só está completa quando o documento-fonte e o manifesto por
+     * página estão registrados, e `brand_imports.source_document_id` deixa de
+     * ser nulo. Navegar agora mostraria uma marca aparentemente pronta cuja
+     * procedência por página não existe, e ninguém saberia que faltou algo.
+     */
+    await concluirRegistro(chave, importId);
+  }
+
+  /**
+   * O segundo passo, isolado para a nova tentativa reusar o MESMO pedido.
+   *
+   * Duas cordas, e nada mais: o manifesto é derivado no servidor do relatório
+   * que a transação A gravou. É por isso que repetir manda um pedido idêntico
+   * sem este componente guardar nada, e por isso que a recuperação funciona
+   * até de outro aparelho — ver `documento-fonte/registrar.ts`.
+   */
+  async function concluirRegistro(marca: string, importacao: string) {
+    setConcluindo(true);
+    setProgresso({ etapa: "gravando", feito: 0, total: 0 });
+    const registro = await registrarImportacao({
+      workspace: workspaceSlug, marca, importId: importacao,
+    });
+    setConcluindo(false);
+    setProgresso(null);
+
+    if (!registro.ok) {
+      // O código, e nunca uma mensagem do banco: o texto na tela é decisão
+      // desta camada, e sai de um vocabulário fechado.
+      setPendencia({ ...registro, marca, importId: importacao });
+      setMensagem("");
+      return;
+    }
+
+    setPendencia(null);
+    /*
+     * Páginas sem seção NÃO são relatadas aqui, e não por descuido.
+     *
+     * Este componente está a uma linha de desmontar: um aviso pintado agora
+     * viveria menos que a navegação. A pendência é durável — são as linhas de
+     * `brand_source_pages` sem `document_id` — e aparece no manual original,
+     * de onde sobrevive a um recarregamento e é vista por quem cura, que não é
+     * necessariamente quem importou.
+     */
+
+    // Agora sim: a marca nasceu completa, e o endereço já existe porque a
+    // chave foi escolhida nesta tela.
+    router.push(`/w/${workspaceSlug}/b/${marca}/docs`);
     router.refresh();
   }
 
@@ -461,6 +569,57 @@ export function BrandImporter({
           >
             {mensagem}
           </p>
+        )}
+
+        {/*
+          A publicação incompleta, e ela não usa a área de mensagem.
+          Mensagem é aviso; isto é um estado do produto que exige ação e
+          precisa dizer as três coisas na ordem: o que existe, o que falta, e
+          o que fazer. `role="alert"` porque quem lê precisa saber agora — a
+          alternativa é fechar a aba achando que terminou.
+        */}
+        {pendencia && (
+          <section
+            role="alert"
+            aria-labelledby="pendencia-titulo"
+            className="mt-[var(--space-shell-5)] rounded-[var(--radius-control)] border border-platform-warning bg-platform-panel p-[var(--space-shell-4)]"
+          >
+            <h2 id="pendencia-titulo" className="text-[14px] font-semibold text-platform-text">
+              {t("Publicação incompleta", "Incomplete publication")}
+            </h2>
+            <p className="mt-[var(--space-shell-3)] text-[13px] leading-relaxed text-platform-text-muted">
+              {(() => {
+                const relato = relatarConclusao(pendencia.codigo);
+                return t(relato.pt, relato.en);
+              })()}
+            </p>
+            <div className="mt-[var(--space-shell-4)] flex flex-wrap items-center gap-[var(--space-shell-3)]">
+              {relatarConclusao(pendencia.codigo).ofereceNovaTentativa && (
+                <button
+                  type="button"
+                  disabled={concluindo}
+                  onClick={() => void concluirRegistro(pendencia.marca, pendencia.importId)}
+                  className="flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40"
+                >
+                  {concluindo
+                    ? t("Concluindo…", "Finishing…")
+                    : t("Tentar concluir de novo", "Try finishing again")}
+                </button>
+              )}
+              {/*
+                O caminho para a marca fica SEMPRE, inclusive quando não há
+                nova tentativa a oferecer. A marca existe; deixar quem
+                publicou sem endereço para ela é o que faz alguém importar de
+                novo e criar uma segunda.
+              */}
+              <a
+                href={`/w/${workspaceSlug}/b/${pendencia.marca}/docs/original`}
+                className="flex min-h-11 items-center rounded-[var(--radius-control)] border border-platform-border px-[var(--space-shell-4)] text-[13px] text-platform-text hover:border-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
+              >
+                {t("Abrir o manual original", "Open the source manual")}
+              </a>
+            </div>
+          </section>
         )}
 
         {agrupamento && (
@@ -661,11 +820,11 @@ export function BrandImporter({
 
               <button
                 type="button"
-                disabled={!podePublicar || publicando}
+                disabled={!podePublicar || publicando || concluindo}
                 onClick={publicar}
                 className="mt-[var(--space-shell-5)] flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40"
               >
-                {publicando
+                {publicando || concluindo
                   ? rotuloDoProgresso(progresso, t)
                   : t("Criar a marca com estes rascunhos", "Create the brand with these drafts")}
               </button>

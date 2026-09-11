@@ -3,6 +3,12 @@ import Link from "next/link";
 import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { VisualizadorDePdf } from "@/components/documento-fonte/VisualizadorDePdf";
+import {
+  AnteriorAoManifesto, ConclusaoPendente, PendenciaDeSecao,
+} from "@/components/documento-fonte/ConclusaoPendente";
+import {
+  classificarPublicacao, type EstadoDaPublicacao,
+} from "@/lib/documento-fonte/conclusao-da-publicacao";
 
 /**
  * O manual original — a camada visual canônica.
@@ -49,6 +55,18 @@ export default async function ManualOriginal({
     .limit(1)
     .maybeSingle();
 
+  /*
+   * O estado do registro do documento-fonte, em consulta SEPARADA de propósito.
+   *
+   * As colunas e tabelas da fatia 2 podem não existir na instalação — a
+   * migração é versionada e aplicada por decisão, não por deploy. Se elas
+   * entrassem no `select` do visualizador, uma instalação sem a migração
+   * perderia a página inteira: o manual original pararia de abrir por causa de
+   * um aviso sobre o manual original. Consulta à parte, erro engolido, e o
+   * visualizador nunca depende disto.
+   */
+  const registro = documento ? await lerEstadoDoRegistro(auth.supabase, documento.id) : null;
+
   if (!documento) {
     return (
       <div className="mx-auto max-w-[560px] p-[var(--space-shell-5)] text-platform-text">
@@ -69,13 +87,103 @@ export default async function ManualOriginal({
   }
 
   return (
-    <div className="h-[calc(100dvh-var(--shell-topbar,56px))]">
-      <VisualizadorDePdf
-        documentoId={documento.id}
-        contaSlug={alvo.workspaceSlug}
-        marcaChave={alvo.brandKey}
-        className="h-full"
-      />
+    <div className="flex h-[calc(100dvh-var(--shell-topbar,56px))] flex-col">
+      {registro?.estado === "anterior-ao-manifesto" && <AnteriorAoManifesto />}
+      {registro?.estado === "incompleto" && registro.importId && (
+        <ConclusaoPendente
+          contaSlug={alvo.workspaceSlug}
+          marcaChave={alvo.brandKey}
+          importId={registro.importId}
+        />
+      )}
+      {/*
+        Páginas sem seção: pendência de CURADORIA, e não defeito. Elas estão
+        registradas, medidas e ligadas ao original — o que falta é alguém dizer
+        a que seção pertencem. Aparece aqui porque quem cura não é
+        necessariamente quem importou, e o aviso do importador morreu com a
+        navegação.
+      */}
+      {registro?.sourceDocumentId && (
+        <PendenciaDeSecao
+          paginasSemSecao={registro.paginasSemSecao}
+          total={documento.page_count}
+        />
+      )}
+      <div className="min-h-0 flex-1">
+        <VisualizadorDePdf
+          documentoId={documento.id}
+          contaSlug={alvo.workspaceSlug}
+          marcaChave={alvo.brandKey}
+          className="h-full"
+        />
+      </div>
     </div>
   );
+}
+
+/**
+ * O estado do registro, e nenhuma exceção que derrube a página.
+ *
+ * Duas leituras que dependem da migração da fatia 2. Falha em qualquer uma
+ * significa "não sei", e "não sei" aqui é o mesmo que não mostrar aviso: o
+ * visualizador continua servindo o PDF, que é a razão de a página existir.
+ */
+async function lerEstadoDoRegistro(
+  supabase: Awaited<ReturnType<typeof getBrandvilleAuthContext>> extends null
+    ? never
+    : NonNullable<Awaited<ReturnType<typeof getBrandvilleAuthContext>>>["supabase"],
+  id: string,
+): Promise<{
+  estado: EstadoDaPublicacao;
+  sourceDocumentId: string | null;
+  importId: string | null;
+  /** `null` quando não foi medido. Zero é afirmação, não padrão. */
+  paginasSemSecao: number | null;
+} | null> {
+  const { data, error } = await supabase
+    .from("brand_imports")
+    /*
+     * Só a PRIMEIRA página do relatório, e não a lista: a pergunta é se o
+     * relatório tem páginas, e mil páginas trazidas para responder sim ou não
+     * seriam o mesmo desperdício que `head: true` evita abaixo. Ver
+     * `classificarPublicacao`.
+     */
+    .select("import_id, source_document_id, primeira_pagina:report->paginas->0")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const sourceDocumentId = (data.source_document_id as string | null) ?? null;
+  const importId = (data.import_id as string | null) ?? null;
+
+  const estado = classificarPublicacao(
+    sourceDocumentId,
+    (data as { primeira_pagina?: unknown }).primeira_pagina != null,
+  );
+
+  if (estado !== "completo") {
+    // Sem documento-fonte não há manifesto para contar: não medido.
+    return { estado, sourceDocumentId: null, importId, paginasSemSecao: null };
+  }
+
+  // `head: true` porque só a contagem interessa: mil páginas sem seção seriam
+  // mil linhas trazidas para pintar um número.
+  const { count, error: erroDaContagem } = await supabase
+    .from("brand_source_pages")
+    .select("pagina", { count: "exact", head: true })
+    .eq("source_document_id", sourceDocumentId)
+    .is("document_id", null);
+
+  return {
+    estado,
+    sourceDocumentId,
+    importId,
+    /*
+     * Contagem que FALHOU não é contagem zero. A versão anterior dizia `0`
+     * quando a consulta caía, e zero apaga o aviso: páginas sem seção reais
+     * sumiriam da vista de quem cura justamente quando o banco tropeçou.
+     */
+    paginasSemSecao: erroDaContagem ? null : (count ?? null),
+  };
 }

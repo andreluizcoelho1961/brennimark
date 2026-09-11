@@ -72,6 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
+  // aplicada ao banco hospedado por autorização nominal do proprietário,
+  // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
+  // em `6ca600e`; RLS, grants e SECURITY DEFINER conferidos depois.
 ];
 
 /**

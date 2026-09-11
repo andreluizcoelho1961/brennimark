@@ -156,11 +156,23 @@ export async function lerPdf(
     } catch (erro) {
       throw new FalhaDeLeitura(classificarErroDoParser(erro), descricaoTecnica(erro));
     }
-    const [, , , alturaDaPagina] = pagina.view;
+    const [x0, y0, x1, y1] = pagina.view;
+    const alturaDaPagina = y1;
 
     paginas.push({
       numero,
       alturaDaPagina,
+      /*
+       * A geometria sai de graça: a página já está aberta para extrair texto.
+       *
+       * `view` é a caixa em pontos, e pode não começar em zero — daí a
+       * subtração em vez de usar `view[2]` e `view[3]` direto. `alturaDaPagina`
+       * continua sendo `y1` para não mexer na detecção de topo e rodapé, que
+       * depende dela e está coberta por teste.
+       */
+      larguraPt: x1 - x0,
+      alturaPt: y1 - y0,
+      rotacao: ((Math.trunc(pagina.rotate ?? 0) % 360) + 360) % 360,
       itens: conteudo.items.flatMap((item) => {
         if (!("str" in item) || !item.str.trim()) return [];
         // transform = [a, b, c, d, e, f]; e/f são a origem, d a altura efetiva.
@@ -241,7 +253,9 @@ export async function renderizarPaginasComoImagem(
     const contexto = canvas.getContext("2d");
     if (!contexto) continue;
 
-    await pagina.render({ canvas, canvasContext: contexto, viewport }).promise;
+    const tarefa = pagina.render({ canvas, canvasContext: contexto, viewport });
+    desenharSemEsperarQuadro(tarefa);
+    await tarefa.promise;
     const blob = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/png"),
     );
@@ -257,10 +271,67 @@ export async function renderizarPaginasComoImagem(
     // o processador, a interface congela e o relato de progresso não chega a
     // ser pintado — o usuário veria os números só no fim, que é o mesmo que
     // não os ver.
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await cederAoNavegador();
   }
 
   return saida;
+}
+
+/**
+ * A publicação não pode depender de a aba estar à vista.
+ *
+ * ─── O defeito ──────────────────────────────────────────────────────────
+ *
+ * No aceite do Marco B (10/09), a publicação levou ~23 minutos em vez de
+ * segundos porque a aba ficou oculta. Dois freios, os dois do navegador:
+ *
+ *   1. o pdf.js desenha cada página em fatias de ~15 ms e agenda a próxima com
+ *      `requestAnimationFrame`. Aba oculta não tem quadro: a fatia agendada
+ *      simplesmente não roda, e a página para no meio;
+ *   2. entre páginas, este laço cedia com `setTimeout(0)`. Em aba oculta o
+ *      Chrome limita esses timers a um por segundo, e depois de cinco minutos
+ *      a um por MINUTO.
+ *
+ * ─── A correção ─────────────────────────────────────────────────────────
+ *
+ * Aqui a tela não mostra o desenho — o canvas vira PNG e sobe. Esperar quadro
+ * não serve a ninguém. O pdf.js escolhe entre quadro e microtarefa pelo campo
+ * `_useRequestAnimationFrame` da tarefa interna; desligá-lo é o que o próprio
+ * pdf.js faz para impressão.
+ *
+ * Por que não `intent: "print"`, que desliga o mesmo campo pela API pública:
+ * a intenção de impressão muda O QUE é desenhado — anotações marcadas "não
+ * imprimir" somem, camadas opcionais seguem o estado de impressão. A imagem
+ * precisa ser a da tela, a mesma que o visualizador mostra.
+ *
+ * O campo é interno. Se uma atualização do pdf.js o renomear, nada quebra
+ * aqui — a tarefa volta a esperar quadro — e quem reprova é
+ * `e2e/importador-aba-oculta.spec.ts`, que publica com os quadros suspensos.
+ */
+function desenharSemEsperarQuadro(tarefa: object) {
+  const interna = (tarefa as { _internalRenderTask?: { _useRequestAnimationFrame?: boolean } })
+    ._internalRenderTask;
+  if (interna && "_useRequestAnimationFrame" in interna) {
+    interna._useRequestAnimationFrame = false;
+  }
+}
+
+/**
+ * Cede a vez ao navegador com uma mensagem, e não com um timer.
+ *
+ * Mensagem de `MessageChannel` não sofre a limitação de timers de aba oculta,
+ * e ainda assim é uma tarefa nova: entre uma página e outra, o navegador pinta
+ * o progresso e atende cliques.
+ */
+function cederAoNavegador(): Promise<void> {
+  return new Promise((resolve) => {
+    const canal = new MessageChannel();
+    canal.port1.onmessage = () => {
+      canal.port1.close();
+      resolve();
+    };
+    canal.port2.postMessage(null);
+  });
 }
 
 /** Nome e mensagem do erro, sem nada do conteúdo do arquivo. */
