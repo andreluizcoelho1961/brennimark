@@ -1958,11 +1958,651 @@ resposta. **Se a resposta for sim, a rota deixa de ser necessária** e
 todo o resto desta etapa encolhe. É a pergunta mais barata e a de maior
 alavanca — por isso vem primeiro.
 
+#### A.1 em andamento — o que a documentação já diz (05/09)
+
+**Parcial, e declarado como parcial.** A A.1 tem três frentes: documentação
+e API de gerenciamento, pergunta ao suporte, e teste com domínio próprio à
+frente do Storage. **Só a primeira foi feita.** As outras duas seguem
+abertas, e a segunda depende de autorização — mandar mensagem ao suporte é
+ação externa em nome do André, não decisão minha.
+
+| Evidência | Fonte | O que indica |
+|---|---|---|
+| `PutBucketCors`, `GetBucketCors`, `DeleteBucketCors` — todos **❌ não suportados** | página *S3 Compatibility* | a via S3 de configurar CORS por bucket **está fechada**. É o caminho mais óbvio, e ele não existe aqui |
+| `Range` **✅ suportado** em `GetObject`; em `HeadObject` aceito mas sem efeito | mesma página | confirma por documentação o que §18.2.2 mediu por `curl`: **o servidor honra Range**. O problema nunca foi o servidor — é o navegador não poder *ler* os cabeçalhos |
+| Configuração de CORS aparece só em **Envoy/Kong**, do self-hosting | guias de auto-hospedagem | no plano hospedado não há gateway sob nosso controle para configurar. Configurar CORS é privilégio de quem opera o gateway |
+| `v1-get-storage-config` / `v1-update-storage-config` | referência da API de gerenciamento | existem, mas nada nos resultados indica campo de CORS ou de cabeçalhos expostos. **Falta ler o esquema dos dois endpoints** antes de afirmar ausência |
+| Storage serve por **Smart CDN** | *Storage Optimizations* | confirma por documentação o `server: cloudflare` observado em §18.2.8, e é o que dá plausibilidade à borda de A.2 |
+
+**Leitura honesta:** três indícios convergem para "não é configurável no plano
+hospedado", e **nenhum deles é uma resposta**. Ausência em resultado de busca
+não é ausência de recurso — é ausência de menção. A.1 só fecha com a resposta
+do suporte ou com o esquema dos endpoints de configuração lido por inteiro.
+
+**O que isso já muda de prático:** se a A.1 confirmar o "não", a alavanca que
+ela tinha desaparece, e a A.2 deixa de ser alternativa para virar **o caminho
+provável** — com os requisitos B1–B6 valendo desde o primeiro rascunho do
+worker, não depois.
+
+#### A.1 — esquemas lidos e painel inspecionado (05/09)
+
+Duas frentes concluídas, **somente leitura**: nenhuma configuração foi
+alterada, e nenhuma mensagem foi enviada ao suporte.
+
+**1. Campos documentados — `GET /v1/projects/{ref}/config/storage`**
+
+`fileSizeLimit` · `features.imageTransformation.enabled` ·
+`features.s3Protocol.enabled` · `features.purgeCache.enabled` ·
+`features.icebergCatalog.{enabled,maxNamespaces,maxTables,maxCatalogs}` ·
+`features.vectorBuckets.{enabled,maxBuckets,maxIndexes}` ·
+`capabilities.{list_v2,iceberg_catalog}` · `external.upstreamTarget` ·
+`migrationVersion` · `databasePoolMode`
+
+**2. Campos aceitos apenas na leitura** — aparecem no `GET` e **não** no corpo
+do `PATCH`:
+
+`capabilities.list_v2` · `capabilities.iceberg_catalog` · `migrationVersion` ·
+`databasePoolMode`
+
+São descritivos: dizem o que a instância **é**, não o que se pede que ela
+passe a ser.
+
+**3. Campos realmente atualizáveis** — `PATCH /v1/projects/{ref}/config/storage`
+aceita **três**, todos opcionais:
+
+| Campo | Tipo |
+|---|---|
+| `fileSizeLimit` | integer |
+| `features` | object |
+| `external` | object |
+
+**4. Configuração de CORS — global ou por bucket**
+
+| Onde procurei | O que encontrei |
+|---|---|
+| `GET`/`PATCH` de `config/storage` | **nenhum campo** de CORS, origem permitida ou cabeçalho exposto |
+| Opções de bucket (`createBucket`) | `public`, `allowedMimeTypes`, `fileSizeLimit` — **nenhuma** de CORS |
+| **Esquema real de `storage.buckets`** no banco do projeto | 12 colunas: `id`, `name`, `owner`, `created_at`, `updated_at`, `public`, `avif_autodetection`, `file_size_limit`, `allowed_mime_types`, `owner_id`, `type`, `versioning_status`. **Nenhuma** de CORS |
+| Varredura de **todo o esquema `storage`** por coluna com `cors`, `origin` ou `header` no nome | **zero resultados**, nas 8 tabelas (`buckets`, `buckets_analytics`, `buckets_vectors`, `migrations`, `objects`, `s3_multipart_uploads`, `s3_multipart_uploads_parts`, `vector_indexes`) |
+| Painel → Storage → Settings | **dois controles apenas**: "Enable image transformation" e "Global file size limit". Nada de CORS |
+| API S3 (`Put`/`Get`/`DeleteBucketCors`) | **❌ não suportados** |
+
+**5. Evidência de ausência — e o que ela não é**
+
+Seis buscas independentes, em três camadas diferentes (documentação, banco
+real, painel), nenhuma encontrou ponto de configuração de CORS. A varredura
+do esquema é a mais forte das seis: ela não consultou documentação, consultou
+**a instância**, e por nome de coluna, não por menção em texto.
+
+**Ainda assim, isto não é prova de impossibilidade.** Fica fora do alcance de
+tudo o que fiz: configuração que o Supabase aplique **fora** do banco e fora
+da API pública — no gateway, no CDN, ou por chave interna concedida a pedido.
+É exatamente onde a resposta estaria, se existisse, e é exatamente onde eu
+não consigo olhar. **Só o suporte fecha isso.** A conclusão honesta é "não há
+via documentada nem exposta ao cliente", não "não existe".
+
+#### Dois achados do painel que a A.1 não procurava, e que mudam a Fatia 1
+
+O projeto está no **plano Free**. Duas consequências, nenhuma delas técnica:
+
+| Achado | Evidência (painel, 05/09) | Consequência |
+|---|---|---|
+| **Teto de upload fixo em 50 MB** | "Free Plan has a fixed upload file size limit of 50 MB" — o campo do limite global aparece **travado**, com convite para o Pro (500 GB) | **o portão dos ~100 MiB da §18.3.2 é inexecutável hoje.** Não é questão de medir devagar: o arquivo não sobe. O portão que a Fatia 1 tem para provar escala depende de uma decisão de plano |
+| **Domínio próprio é add-on do Pro** | "Custom domains are a Pro Plan add-on" | **a terceira frente da A.1 está bloqueada.** Testar se um domínio próprio à frente do Storage muda os cabeçalhos expostos não é possível sem assinar |
+
+Nenhum dos dois é decisão minha, e nenhum se resolve com código. Vão para a
+§20.2 como pendência de plano, não de medição.
+
+#### ✅ A.1 — pergunta enviada ao suporte em 05/09
+
+| Campo | Valor |
+|---|---|
+| Autorização | **expressa**, de André, em 05/09: "Aprovo o envio ao suporte exatamente como está" |
+| Canal | painel → Supabase support → *APIs and client libraries*, severidade *Low*, serviço *Storage*, biblioteca *JavaScript* |
+| Confirmação | **"Support request sent. Your ticket has been logged for brennimark."** Resposta virá em `andreluizcoelho@icloud.com` |
+| Conteúdo | as três perguntas do texto aprovado, com a medição antes delas; **nenhuma credencial e nenhuma URL assinada** no corpo |
+
+**Uma decisão que tomei no formulário, e que não estava no texto aprovado:**
+o campo *"Allow support access to your project — Human support and AI
+diagnostic access"* vinha **ligado por padrão**. **Desliguei antes de enviar.**
+A autorização era para mandar a mensagem, não para conceder a terceiros acesso
+humano e automatizado ao projeto — são consentimentos diferentes, e o segundo
+não foi pedido. A pergunta é sobre comportamento documentado da plataforma,
+não sobre defeito nesta instância: o suporte não precisa entrar no projeto
+para respondê-la. Se pedirem acesso, é André quem liga o botão.
+
+**A.1 fica aguardando resposta. A A.2 corre em paralelo** — não faz sentido
+parar a investigação esperando o prazo do suporte.
+
+#### O plano Free como restrição eliminatória — não como redução do requisito
+
+Registrado por André em 05/09, e a forma importa: **o limite atual não rebaixa
+o produto, ele bloqueia o produto.**
+
+| | |
+|---|---|
+| **O requisito continua sendo ≥ 100 MiB** | é o tamanho de manual de marca real. O Brennimark aceita 100 MiB ou não serve para o que foi feito |
+| **Os 50 MB do Free não reduzem o requisito silenciosamente** | a tentação é "então o produto aceita 50 MB por enquanto". **Não.** O teto é uma restrição da infraestrutura atual, e escrever isso como requisito seria deixar a conta de hospedagem decidir o escopo do produto |
+| **Borda não resolve upload** | Cloudflare ou qualquer camada de borda pode resolver a **entrega** dos bytes ao navegador. O caminho de **subida** para o Supabase continua com o mesmo teto. São dois problemas, e A.2 só toca em um |
+| **Antes da integração da Fatia 1** | escolher entre **plano Pro** ou **outro armazenamento compatível**. É decisão de plataforma e de custo, de André |
+| **O teste de ~100 MiB pode rodar em infraestrutura experimental** | e vale como medição de transporte. **Não vale como aceite completo do fluxo** enquanto o upload real do produto continuar bloqueado — medir a descida não prova a subida |
+
+Isto entra na §20.2 como item 6 e é **portão de integração** da Fatia 1, não
+tarefa dela.
+
+#### A.2 — o worker é experimento isolado
+
+Restrições dadas por André em 05/09, válidas desde o primeiro rascunho:
+
+| Restrição | Por quê |
+|---|---|
+| **Sem material de cliente** | o único manual real foi excluído (§18.2.0, §18.3.3), e não se reintroduz material de terceiro por conveniência de teste |
+| **Somente PDF sintético** | a fixture da §18.2.7 já provou que sabe expor defeito que o arquivo real esconde |
+| **Sem domínio público definitivo** | um experimento não ganha endereço permanente. Endereço permanente é compromisso, e este ainda pode ser descartado inteiro |
+| **Sem credenciais permanentes** | credencial de vida longa numa borda que ainda não passou pelos requisitos B1–B6 é exatamente o proxy aberto que B2 proíbe |
+| **Medir também o custo operacional projetado** | sem isso, "mais barato que a Vercel" é opinião. A comparação de A.5 precisa das duas colunas (§18.3.0, B4) |
+
+**Levantamento do que falta, feito em 05/09:** não há `wrangler` nem
+`cloudflared` instalados, não há configuração de Cloudflare no sistema, e não
+há `wrangler.toml` no repositório. **A.2 precisa de uma conta de borda**, e
+obtê-la é passo de André — não saio procurando credencial.
+
+##### Opções e custos da A.2 — levantados em 05/09, nada criado
+
+Documentação, não execução: **nenhuma conta, Worker, domínio ou credencial de
+borda foi criada.** Os números saíram da documentação dos fornecedores nesta
+data.
+
+**Três correções de André, em 05/09, sobre a primeira versão deste
+levantamento.** Ficam registradas com o erro à vista, porque um levantamento de
+custo que erra o mecanismo leva a decisão errada mesmo quando o número sai
+parecido — e foi o que quase aconteceu aqui.
+
+**Correção 1 — a dúvida sobre CPU do Worker já tinha resposta oficial.** Eu a
+registrei como pergunta em aberto; ela não estava em aberto. A página de limites
+da Cloudflare diz, textualmente: *"Waiting on network requests (such as
+`fetch()` calls, KV reads, or database queries) does **not** count toward CPU
+time"*, e separa isso de *"Duration measures wall-clock time"*.
+
+Logo: **transmitir 100 MiB em streaming não estoura automaticamente os 10 ms do
+plano gratuito** — a espera pelos bytes é wall-clock, não CPU. O que precisa ser
+medido é o **trabalho ativo** do Worker:
+
+- validação da autorização (conta, marca, documento — os requisitos B1–B3);
+- manipulação de cabeçalhos (o `206`, o `Content-Range`, o `ETag` — B6);
+- condução do fluxo entre origem e cliente.
+
+São essas três coisas que consomem CPU, e é o total delas que decide se o plano
+gratuito serve. Medir, não supor.
+
+**Correção 2 — eu descrevi o custo da Vercel com o mecanismo errado.** Afirmei
+que Fast Origin Transfer seria a subida do Supabase para a Function. Não é. A
+documentação define: *"**Fast Origin Transfer**: Data sent between the CDN and
+Vercel Functions"* e *"**Fast Data Transfer**: Data sent between the CDN and the
+visitor's device"*.
+
+As pernas de uma rota na Vercel são, então:
+
+| Perna | Recurso cobrado |
+|---|---|
+| Function → CDN da Vercel | **Fast Origin Transfer** |
+| CDN da Vercel → navegador | **Fast Data Transfer** |
+| `fetch` Supabase → Function | **sem evidência documental de ser Fast Origin Transfer** — não nomear assim sem prova |
+
+**A conclusão sobreviveu à correção do mecanismo, e a estimativa também**, mas
+por outra razão: o mesmo byte é contado duas vezes porque atravessa
+Function→CDN **e** CDN→navegador, não porque sobe do Supabase. Em gru1, plano
+Pro: Fast Origin Transfer **US$ 0,41/GB**; Fast Data Transfer com **1 TB
+incluído**, depois US$ 0,22/GB. Para ~10 GB de respostas de Function por mês,
+**~US$ 4,10** é plausível — a perna Function→CDN, com a perna até o navegador
+dentro da franquia.
+
+Do outro lado, a Cloudflare declara: *"There are no additional charges for data
+transfer (egress) or throughput (bandwidth)"*. Free: 100.000 requisições/dia.
+Pago: US$ 5/mês, 10 milhões de requisições incluídas, US$ 0,30 por milhão
+adicional; 30 milhões de CPU-ms incluídos, US$ 0,02 por milhão adicional.
+
+**Correção 3 — o teto de 4,5 MB não condena toda resposta grande.** Eu tratei o
+limite como se qualquer resposta acima dele necessariamente falhasse. A própria
+Vercel diz que **streaming não tem esse limite**: *"If reducing the response size
+is not feasible, consider streaming your function responses"*. Portanto **não se
+conclui que uma resposta transmitida em fluxo falhe acima de 4,5 MB** — e
+**testar isso no ambiente publicado continua obrigatório** (A.4), porque é
+diferença entre ler a documentação e ver o comportamento.
+
+E há uma recomendação da Vercel que pesa mais que o número, e que empurra a A.3
+para o fim da fila com razão própria: *"Vercel Functions are designed to respond
+quickly to clients and should be treated like a lightweight API layer, not a
+media server"*, com a orientação de guardar arquivo grande em host dedicado e
+entregá-lo **por URL assinada**.
+
+**A formulação correta, corrigida por André em 05/09** — a primeira versão
+dizia que "o fornecedor recomenda exatamente a arquitetura que o produto já
+tem", e isso era amplo demais:
+
+> A recomendação da Vercel favorece o **princípio** de entrega direta por host
+> especializado. A **implementação atual** ainda não atende ao requisito de
+> carregamento progressivo por Range no navegador.
+
+A diferença não é retórica. A Vercel endossa o princípio; ela não valida esta
+implementação, que continua sem Range utilizável pelo PDF.js — que é,
+literalmente, o defeito que a Fatia 1 existe para consertar. Ler o endosso do
+princípio como aprovação do que está no ar seria declarar resolvido o problema
+em aberto.
+
+O que isso muda de fato: **reforça a ordem da Etapa A em vez de alterá-la.** A.1
+(obter o cabeçalho) e A.2 (a borda que o acrescenta sem tirar os bytes da
+origem) são as duas tentativas de preservar a entrega direta *e* tornar o Range
+utilizável; a rota é o que se faz quando as duas falham.
+
+**Limites que decidem a arquitetura**
+
+| | Rota na Vercel | Worker na borda (Cloudflare) |
+|---|---|---|
+| Corpo de resposta | 4,5 MB — **exceto em streaming**, que a doc diz não ter o limite | "No enforced limit" |
+| Duração | Hobby 300 s (padrão e máximo) | "No limit" enquanto o cliente estiver conectado |
+| CPU | Active CPU; espera de I/O não conta | Free 10 ms/invocação; pago 5 min. **Espera de I/O não conta** |
+| Subrequisições | — | Free 50/requisição; pago 10.000 |
+| Cancelamento no abandono | — | trabalho cancelado, salvo `ctx.waitUntil` (até 30 s) |
+
+##### ⚠️ Plano da Vercel confirmado — **Hobby**, e o problema não é preço
+
+Confirmado no painel em 05/09, a pedido de André: `vercel.com/andre-coelho` →
+Billing → **"Hobby Plan · Active"**. Não é Pro.
+
+Isso responde a pergunta em aberto e cria duas outras, uma delas maior que
+qualquer número desta seção.
+
+**1. A comparação de custo da A.5 estava ancorada no plano errado.** A tabela do
+gru1 diz que aquele preço *"is available only to Pro plan users"*. Os ~US$ 4,10
+por 10 GB de respostas de Function **não são o custo de hoje**: são o custo
+*caso* o projeto vá para o Pro. Fica registrado como cenário, não como linha de
+orçamento.
+
+**2. E o Hobby não tem excedente — tem pausa.** *"In most cases, if you exceed
+your usage limits on the Hobby plan, you will have to wait until 30 days have
+passed before you can use the feature again."* Para um produto que entrega
+manuais de 100 MiB, isso não é uma conta maior no fim do mês: é o recurso
+**parando por 30 dias**. Um penhasco, não uma rampa.
+
+**3. O que é maior que os dois, e não é técnico.** A documentação do plano diz,
+textualmente: *"As stated in the fair use guidelines, the Hobby plan restricts
+users to non-commercial, personal use only."*
+
+O Brennimark é **plataforma SaaS de manuais de marca, para ser vendida a
+agências e estúdios**. Isso é uso comercial. O produto está hoje publicado num
+plano cujos termos o restringem a uso pessoal e não comercial.
+
+**Isto não é tarefa da Fatia 1 e não bloqueia A.1 nem A.2** — mas é **portão de
+integração** e, mais que isso, é portão de *venda*: não se cobra de um cliente
+por algo servido em infraestrutura cujos termos proíbem o uso comercial. Vai
+para a §20.2 junto do item do Supabase, porque as duas decisões de plano se
+resolvem melhor na mesma conversa: **Supabase Free trava o upload em 50 MB
+contra um requisito de ≥ 100 MiB; Vercel Hobby restringe o uso a não
+comercial.** Nenhuma das duas tem contorno técnico, e nenhuma é minha para
+decidir.
+
+##### Cache na borda — desligado na primeira experiência, por decisão de André
+
+**A primeira experiência da A.2 começa com conteúdo privado e sem cache.** Não é
+cautela genérica: é o que separa "medir se a borda entrega Range" de "decidir
+onde o manual de um cliente pode repousar". A primeira pergunta é da Fatia 1; a
+segunda não.
+
+O cache é tentador porque o objeto **cabe** — o limite de cache da Cloudflare é
+512 MB nos planos Free/Pro, e o manual tem 100 MiB — e porque zeraria a egressa
+do Supabase em leituras repetidas. É exatamente por caber e compensar que ele
+precisa de decisão própria, e não de um `Cache-Control` escrito de passagem.
+
+Cachear manual **autenticado** exige responder seis coisas, antes e não depois:
+
+| # | Condição | Por quê |
+|---|---|---|
+| 1 | **Autorização antes de qualquer acerto de cache** | um cache que responde antes de autorizar transforma o controle de acesso em enfeite: o primeiro leitor autorizado passa a servir todos os outros |
+| 2 | **Chave de cache sem token pessoal, mas isolada por documento e versão** | com o token na chave, cada leitor tem seu cache e o cache não serve para nada; sem documento e versão na chave, um manual serve o conteúdo de outro |
+| 3 | **Invalidação após exclusão ou nova publicação** | o incidente P0 (§18.2.0) foi exatamente material sobrevivendo à decisão de removê-lo. Um cache sem invalidação recria o incidente numa camada onde ele é ainda menos visível |
+| 4 | **Prevenção de resposta cruzada entre marcas** | é a falha mais cara que este produto pode ter: o manual de um cliente aparecendo para outro |
+| 5 | **Auditoria** | sem trilha, um vazamento por cache é indistinguível de um acesso legítimo |
+| 6 | **Retenção por terceiro** | os bytes passam a residir na infraestrutura da Cloudflare, por tempo que não é nosso. É decisão de tratamento de material de terceiro, não de desempenho |
+
+**Nada disso entra na primeira experiência.** Ela mede transporte com **PDF
+sintético**, privada e sem cache, e o cache vira item próprio se e quando a
+borda for escolhida.
+
+**E "sem cache" precisa significar coisas concretas**, senão é intenção. São
+estas quatro, definidas por André em 05/09, e valem como requisito do primeiro
+Worker:
+
+| # | Requisito operacional | Por quê |
+|---|---|---|
+| C1 | **Não usar a Cache API** | é o caminho pelo qual um Worker guarda resposta sem ninguém escrever `Cache-Control`. "Não cachear" que depende de não ter chamado a API por descuido não é garantia |
+| C2 | **Responder `Cache-Control: private, no-store`** | `private` barra cache compartilhado; `no-store` barra também o do navegador. A instrução precisa sair explícita no fio, não ficar implícita na ausência de cabeçalho |
+| C3 | **Confirmar `cf-cache-status` sem cache reutilizável** | é a verificação que fecha C1 e C2: em vez de acreditar na configuração, olha-se o que a borda respondeu. Mesma disciplina das provas de ausência da §18.2.0 — "mandei não cachear" não é "não cacheou" |
+| C4 | **Não registrar token nem URL assinada em log** | a URL assinada **é** a credencial: quem a lê, lê o manual. Log de borda é retido por terceiro e costuma ser o lugar mais copiado da infraestrutura |
+
+C4 vale destaque porque é o vazamento mais fácil de cometer sem perceber: um
+`console.log(request.url)` num Worker de depuração publica a credencial de
+acesso ao documento no log de um terceiro, e nada na aplicação acusa.
+
+##### Onde a fixture de 99 MiB vai morar durante a A.2
+
+A primeira medição precisa de um PDF que a borda alcance, e a fixture está só em
+disco local. **Condições definidas por André em 05/09**, válidas para quando
+houver autorização:
+
+| Condição | Por quê |
+|---|---|
+| **Armazenamento privado da própria conta experimental de borda** | não toca o Storage do produto, e não cria dependência nova entre a experiência e a infraestrutura real |
+| **Acessível somente pelo Worker** | é o que impede a experiência de virar uma distribuição não intencional |
+| **Sem URL pública** | um endereço público é permanente na prática: uma vez indexado ou compartilhado, deixa de ser experimento |
+| **Hash registrado** | é o que permite afirmar depois que a medição usou *este* arquivo — a mesma disciplina de identidade da §18.3.3 |
+| **Exclusão comprovada após a medição** | não "apagado": **comprovadamente ausente**, com as provas colhidas, como em §18.2.0 e §18.3.3 |
+
+Isso vale mesmo o conteúdo sendo **sintético**. A fixture não é material de
+cliente, e ainda assim o procedimento é o mesmo — porque o hábito é que protege
+quando o arquivo *for* de cliente, e um procedimento que só se aplica quando
+alguém lembra de aplicá-lo não protege ninguém.
+
+**O que segue proibido sem decisão específica de André:** criar conta, Worker,
+domínio ou credencial de borda. Este levantamento é papel, e de propósito.
+
+#### ✅ O sujeito de teste de escala — pronto em 05/09
+
+Feito **antes** da borda existir, de propósito: ele não depende de transporte,
+de plano nem de conta, e sem ele A.2 mediria com o arquivo errado.
+
+`scripts/gerar-fixture-escala.py` — Python puro, **nenhuma dependência nova**,
+no mesmo padrão dos dois geradores que já existiam no repositório.
+
+**Os dois limites na mesma carga.** `src/lib/import/limites.ts` declara
+`maxBytes = 100 MiB` e `maxPaginas = 1000`, e eles são independentes: 1.000
+páginas leves não provam o teto de bytes, e bytes sozinhos não provam o de
+páginas. A fixture plena tem **os dois**:
+
+| Medida | Valor |
+|---|---|
+| Páginas | **1.000** — exatamente o teto |
+| Tamanho | **103.999.778 bytes (99,18 MiB)** — 857.822 bytes abaixo do teto |
+| `sha256` | `627fbf60de2c5e8addb26eec55a751fe34da67f85650cf919c42acec592db87f` |
+| Tempo de geração | **< 1 s** |
+
+É o **pior caso aceitável**: o maior arquivo ao qual o produto ainda deve dizer
+"sim".
+
+**A variante `--variante acima`** sai com **105.498.818 bytes (100,61 MiB)** e
+**mantém as 1.000 páginas**. Isso é deliberado: ela isola o teto de **bytes**,
+então uma recusa só pode ter vindo do tamanho. O teto de **páginas** já tem
+fixture própria (`mil-e-uma-paginas.pdf`), e juntar os dois numa só tornaria
+impossível saber qual regra reprovou o arquivo.
+
+**Composição das 1.000 páginas** — verificada lendo o arquivo com o mesmo
+`pdfjs-dist` que o produto usa:
+
+| Verificado no arquivo de 99 MiB | Resultado |
+|---|---|
+| Páginas que o leitor abre | **1.000** |
+| Retrato / paisagem | **810 / 190** |
+| Com imagem rasterizada | **200** |
+| **Sem texto extraível** | **150** — o caminho que a GE não tinha em nenhuma das 743 páginas |
+| Com texto | 850, somando 388.006 caracteres |
+| Índice declarado | **10 raízes, profundidade 3** |
+
+**PDF de verdade, não bytes depois do `%%EOF`.** O `xref` é calculado sobre os
+deslocamentos reais depois de a lista de objetos estar montada — a mesma
+disciplina do gerador visual, e aqui ela é indispensável porque o ajuste fino
+reconstrói o arquivo várias vezes e cada reconstrução muda o tamanho dos
+objetos. A prova é o leitor abrir as 1.000 páginas, não a extensão do arquivo.
+
+**Como o tamanho é perseguido.** Os bytes de imagem são ruído do gerador
+semeado e vão **sem filtro**: dado comprimível encolheria no `FlateDecode` e o
+arquivo jamais chegaria ao alvo. Uma etapa grossa mede o custo de tudo que não
+é pixel e deduz a altura comum das imagens; uma fina soma linhas à última
+imagem, com passo de 1.440 bytes, até faltar menos de uma linha para o alvo —
+sempre **por baixo**, porque uma fixture "abaixo do limite" que passasse do
+limite seria seu próprio contraexemplo. O ruído não é fotografia, e o gerador
+diz isso: é volume de bytes com estrutura de imagem válida.
+
+**Determinismo.** Semente fixa (`--semente`, padrão `20260905`). Duas gerações
+dão o mesmo `sha256` — verificado. Sem isso, comparar duas medições de
+transporte é comparar dois arquivos diferentes e chamar a diferença de
+resultado.
+
+**O PDF nunca entra no Git.** Sai em `.fixtures-grandes/`, ignorado, e o
+gerador o reconstrói idêntico. Versionados: o gerador, o teste e esta
+documentação. A guarda de sobrescrita roda **antes** de gerar — descobrir que
+não se pode escrever depois de construir 100 MiB seria jogar fora o trabalho
+inteiro.
+
+**O CI não gera 100 MiB.** `src/lib/import/fixture-escala.test.ts` roda a
+escala **pequena** (40 páginas, ~1,4 MiB, em milissegundos): mesmos cinco tipos
+de página, mesmo índice de três níveis, mesmo caminho de código. Dez testes,
+todos verdes, dentro dos 505 da suíte.
+
+**Dois deles não olham o PDF, olham a divergência:** o gerador repete os dois
+tetos em Python porque não consegue importar o módulo TypeScript, e repetição
+sem guarda é divergência marcada para acontecer. Um teste confere
+`LIMITE_BYTES`/`LIMITE_PAGINAS` contra `limites.ts`; o outro confere que as
+composições da escala plena ainda somam 1.000. Sem eles, mudar `maxBytes` e
+esquecer o gerador produziria uma fixture "abaixo do limite" acima do limite,
+e a Fatia 1 mediria a coisa errada sem nada acusar.
+
+**A prova de que os testes reprovam.** Seis regressões foram injetadas uma a
+uma no gerador, e cada uma acendeu **exatamente um** teste — nenhum a mais,
+nenhum a menos:
+
+| Regressão injetada | Teste que ficou vermelho |
+|---|---|
+| escala pequena sem páginas mudas | a estrutura tem as cinco composições |
+| índice achatado para dois níveis | o índice declarado tem três níveis |
+| `LIMITE_BYTES` divergente de `limites.ts` | os limites espelhados são os de `limites.ts` |
+| plena deixando de somar 1.000 páginas | a escala plena declara as 1.000 do teto |
+| geração não determinística | duas gerações dão bytes idênticos |
+| guarda de sobrescrita removida | gerar por cima falha sem `--forcar` |
+
+O gerador foi restaurado **por cópia** do original, e conferido byte a byte —
+nunca por `git checkout`, que apagaria trabalho não commitado junto.
+
+**O que esta fixture não faz:** ela não escolhe transporte, não toca em
+interface nem em schema, e **não destrava o portão dos 100 MiB**. O upload real
+continua barrado pelo teto de 50 MB do plano Free (§20.2, item 6): medir a
+descida com um arquivo experimental não prova a subida.
+
+##### `verify` completo da branch — e um defeito que só o worktree revelou
+
+Rodado em 05/09 no worktree `fatia-1/transporte`, que é um **checkout limpo**.
+Foi essa limpeza que expôs o defeito.
+
+**Primeira execução: 12 testes de navegador vermelhos.** Todos em
+`e2e/importador-escala.spec.ts`, nos três motores, e todos pedindo
+`mil-paginas.pdf` ou `mil-e-uma-paginas.pdf` — as fixtures que **não** entram
+no Git.
+
+A causa não estava na fatia. Está no contrato:
+
+| | |
+|---|---|
+| `npm run verify` | `lint && typecheck && test:ci && build && test:e2e` |
+| O CI | roda **`npm run fixtures:pdf` como passo próprio**, antes do `test:e2e` |
+
+Ou seja: **o `verify` não gera as fixtures que a suíte de navegador exige.** O
+comentário no topo de `ci.yml` afirma que o CI "roda exatamente a mesma
+sequência que `npm run verify` executa na máquina do desenvolvedor" — e não
+roda: o CI tem um passo a mais, e é justamente o que torna a suíte executável.
+
+**Por que ninguém tinha visto:** no checkout principal as fixtures já existiam,
+sobrando de execuções anteriores. Elas são ignoradas pelo Git, então nunca
+foram embora — e nunca precisaram ser recriadas. Um worktree novo não herda
+arquivo ignorado, e a primeira coisa que a disciplina de "uma branch e um
+worktree por fatia" produziu foi este defeito aparecendo. **A regra de processo
+pagou o próprio custo na primeira aplicação.**
+
+**Depois de rodar `npm run fixtures:pdf`:**
+
+| Etapa | Resultado |
+|---|---|
+| `lint` | limpo |
+| `typecheck` | limpo |
+| `test:ci` | **505 testes, 505 passaram** |
+| `build` | concluído |
+| `test:e2e` | **250 passaram, 0 falharam**, 25 pulados, três motores |
+
+**✅ Corrigido em 05/09, com autorização de André**, que recusou deixar isso
+como dívida: o defeito quebra justamente a promessa de reprodutibilidade que o
+`verify` existe para dar.
+
+| Mudança | Onde |
+|---|---|
+| `"pretest:e2e": "npm run fixtures:pdf"` | `package.json` |
+| Passo `Fixtures de PDF` **removido** | `.github/workflows/ci.yml` |
+
+A escolha do `pre*` do npm, e não de acrescentar mais um `&&` ao `verify`, tem
+uma razão: o npm dispara `pretest:e2e` antes de `test:e2e` **venha ele do
+`verify` ou de um `npm run test:e2e` direto**. Quem rodar só a suíte de
+navegador também recebe as fixtures. Um `&&` no `verify` consertaria o caminho
+comprido e deixaria o curto quebrado.
+
+**A fixture de ~100 MiB não entra nessa preparação.** `fixtures:escala` é
+chamado à mão, para medição. Confirmado no registro da execução: nenhuma
+chamada a `gerar-fixture-escala.py`, e o maior arquivo produzido foram os 332
+KB de `mil-paginas.pdf`.
+
+**A prova, em ambiente limpo.** Os dois arquivos ignorados que a suíte exige
+foram apagados — é exatamente o que um checkout novo não tem, e o resto de
+`e2e/fixtures/` é versionado — junto de `.next`, `.tmp` e artefatos:
+
+| Verificação | Resultado |
+|---|---|
+| `pretest:e2e` disparou sozinho | sim, registrado no log |
+| Regeneração idêntica ao que foi apagado | **sim, `sha256` conferido antes e depois** |
+| `lint`, `typecheck`, `build` | limpos |
+| `test:ci` | **505 / 505** |
+| `test:e2e` | **250 passaram**, três motores |
+| **Código de saída real do `npm run verify`** | **0** |
+
+O código de saída foi capturado **sem pipe**, com a saída redirecionada a
+arquivo. Foi um pipe (`| tail`) que mascarou o `exit 1` da primeira tentativa e
+me fez relatar sucesso onde havia 12 falhas — o erro está registrado aqui
+porque a lição é do processo, não da fatia: **`comando | filtro` devolve o
+código do filtro.**
+
+**O comentário do `ci.yml` voltou a ser verdade**, e ganhou a história junto:
+quem for acrescentar um passo lá encontra o aviso de acrescentá-lo ao `verify`,
+não ao workflow. A sequência do CI agora é, na ordem: `npm ci`, `lint`,
+`typecheck`, `test:ci`, `build`, `test:e2e` — a mesma do desenvolvedor.
+
+**O que este `verify` NÃO substitui:** o CI remoto. O CI instala os navegadores
+com `npx playwright install --with-deps` e roda em Linux; aqui rodaram os
+navegadores que esta máquina já tinha, no macOS. Para a suíte do importador
+isso importa — o próprio `ci.yml` explica que o leitor de PDF é onde os três
+motores mais divergem.
+
+**✅ CI remoto verde**, em 05/09, no PR
+[#1](https://github.com/andreluizcoelho1961/brennimark/pull/1) — aberto em
+**draft**, com autorização de André e **apenas** para disparar o CI e permitir
+revisão. Não é pedido de merge.
+
+Foi o gatilho `pull_request` que resolveu a metade que faltava: uma branch
+publicada sozinha não dispara nada, porque o workflow só escuta `push` em
+`main` e `pull_request`.
+
+| Passo do CI | Resultado |
+|---|---|
+| `npm ci` · Lint · Tipos | success |
+| Testes (`test:ci`) | success |
+| Build de produção | success |
+| Navegadores do Playwright | success |
+| Testes de navegador | success |
+| Artefatos da falha | *skipped* — não houve falha |
+
+**Duas execuções, e a segunda é a que vale.** A primeira (`2f56087`) passou, mas
+um commit de documentação mudou o tip logo depois, e **verde de commit anterior
+não cobre commit posterior**. A execução do tip `9149ebc` foi acompanhada até o
+fim: `gh run watch --exit-status` devolveu **0**, conclusão `success`, os mesmos
+passos verdes. Registrado só depois disso — a precisão é de André, e ela é
+correta: uma branch não é verde pela execução de um commit que já não é o topo
+dela.
+
+**Isto é o que o `verify` local não conseguia dar:** Linux, navegadores
+instalados do zero com `--with-deps`, e a suíte do importador nos três motores
+onde o `ci.yml` avisa que eles mais divergem. E é a primeira execução em que a
+sequência do CI e a do desenvolvedor são de fato a mesma — antes da correção
+acima, o CI tinha um passo a mais.
+
+**O que continua valendo:** o PR está autorizado só para CI e revisão. Não há
+autorização para merge, para iniciar a A.2, para implementar visualizador ou
+transporte definitivo, nem para incluir os onze arquivos WIP. A branch só é
+integrável depois dos portões da §20.2.
+
+##### As duas classificações — aceitas com a fixture, em 05/09
+
+André aceitou a fixture como sujeito de teste **de escala e transporte**, com
+duas ressalvas que precisam viajar junto com qualquer número medido sobre ela.
+Estão escritas também no cabeçalho do gerador, onde quem for medir as lê antes
+de medir.
+
+**1. É fixture de volume, Range e limites — não simulação visual de um manual
+fotográfico.** As imagens são ruído sem compressão: é o que torna o tamanho
+previsível, e é exatamente o que a desqualifica para três perguntas.
+
+| Não se conclui daqui | Por quê |
+|---|---|
+| **Tempo de renderização** | ruído cru não passa por decodificador de imagem; um JPEG custa CPU que esta fixture não cobra |
+| **Memória de imagens comprimidas** | 500 KB de JPEG viram muito mais que 500 KB depois de decodificados; 500 KB de ruído cru, não. O pico de memória do visualizador é regido pelo primeiro caso, não pelo segundo |
+| **Qualidade visual** | não há o que avaliar em ruído. A comparação visual continua dependendo de material próprio ou autorizado (§18.3.3) |
+
+Os portões da §18.3.2 que ela **serve**: transporte, contagem de requisições de
+Range, duração, teto de bytes e teto de páginas. Os que ela **não** serve:
+memória de imagem real e desempenho de renderização em aparelho físico — esses
+continuam exigindo material com imagem comprimida de verdade.
+
+**2. Prova que ESTA estrutura de PDF funciona — não "qualquer versão de PDF".**
+O gerador emite uma variante só: PDF 1.4, xref clássico em tabela, objetos
+soltos, revisão única, sem linearização e sem criptografia. Um visualizador
+aprovado só contra ela está aprovado contra **um** PDF, não contra os PDFs que
+uma agência vai enviar.
+
+Fica pendente uma **matriz de compatibilidade** própria, cobrindo ao menos:
+
+| Dimensão | Por que importa para o visualizador |
+|---|---|
+| **Linearização** (web-optimized) | é justamente o formato desenhado para leitura progressiva por Range — se o produto vai depender de Range, precisa saber como se comporta com e sem ela |
+| **`xref` stream** (PDF 1.5+) | tabela de referências comprimida; caminho de parsing diferente do que esta fixture exercita |
+| **Object streams** | objetos empacotados dentro de fluxos, também PDF 1.5+ |
+| **Atualizações incrementais** | arquivo com várias revisões e `/Prev` encadeado — comum em manual que passou por revisão |
+| **Criptografia** | já existe a `protegido.pdf` para o erro, mas não para leitura autorizada |
+| **Versões antigas e novas** | o que uma agência tem em arquivo, e o que o InDesign de hoje exporta |
+
+Isso **não** é trabalho da Fatia 1 nem bloqueia A.1 ou A.2: é item próprio, a
+ser agendado, e entra na §20.2. Registrá-lo agora evita a armadilha de tratar
+"o visualizador abriu a fixture" como "o visualizador abre manuais".
+
 **A.2 — Avaliar a camada de borda (§19.2.1, item 2).** O Storage já está
 atrás do Cloudflare. Um worker de borda que só acrescente o cabeçalho e
 repasse o fluxo resolve o CORS **sem o PDF atravessar a aplicação** —
 sem teto de 4,5 MB, sem duração de função, sem custo de CPU da Vercel.
 Comparar contra a rota antes de escolher.
+
+**Requisitos da alternativa de borda — acrescentados por André em 04/09.**
+Eles não são recomendações a considerar depois: um worker que não os
+cumpra **não é candidato**, e a comparação com a rota da Vercel só é
+válida contra um worker que já os tenha. A borda é mais barata que a
+rota, mas é também o lugar onde é mais fácil, sem perceber, publicar um
+proxy anônimo para o mundo inteiro.
+
+| # | Requisito | Por quê |
+|---|---|---|
+| **B1** | **Nunca aceitar URL de origem enviada pelo cliente** | é o mesmo defeito que a §18.3.0 já proíbe na rota (`?u=` da sonda). Na borda ele é pior: não há sessão para barrar o abuso, e a origem seria escolhida por quem chama |
+| **B2** | **Não se transformar em proxy aberto** | um worker que repassa qualquer destino é infraestrutura de terceiros para exfiltração e para lavagem de tráfego, na conta e no domínio do Brennimark. O conjunto de destinos é fechado **no código do worker**, não no parâmetro |
+| **B3** | **Autorizar conta, marca e documento antes de transmitir** | mesma disciplina de `pertenceAMarca` (`caminhos.ts`), aplicada **antes do primeiro byte**. A borda não herda a sessão do Next automaticamente — como ela verifica identidade é uma pergunta em aberto desta etapa, não um detalhe de implementação |
+| **B4** | **Medir banda e custo da borda** | tirar o PDF da Vercel move o custo, não o elimina. A comparação de A.5 precisa dos dois números na mesma tabela, senão "mais barato" é opinião |
+| **B5** | **Tratar cancelamento e expiração da credencial** | abandono precisa cancelar o fluxo de origem (senão paga-se banda por bytes que ninguém lê); e a expiração da URL assinada devolve **400**, não 401/403 (§18.3.1) — a borda precisa reemitir ou propagar esse código de forma que o cliente reconheça |
+| **B6** | **Preservar integralmente a semântica HTTP de Range** | `206`, `Content-Range`, `Accept-Ranges`, `ETag`, `If-Range` (`206` com etag certo, `200` com etag errado), `416` além do fim, e o multi-range `multipart/byteranges` (§18.2.8). Preservar **é repassar**, não reimplementar: cada cabeçalho reescrito na borda é uma chance de divergir do que o PDF.js espera |
+
+**Consequência para A.5:** a decisão entre borda e rota passa a ser
+tomada com **duas colunas de custo** (Vercel e borda) e com o
+comportamento de Range verificado **através da borda**, não só na origem.
+Se A.1 resolver — Supabase expondo os cabeçalhos —, B1 a B6 deixam de
+existir junto com a borda.
 
 **A.3 — Rota mínima publicada**, só se A.1 e A.2 não resolverem. Requisitos
 que **nascem com ela**, não depois:
@@ -2044,6 +2684,87 @@ coerência com a exclusão; ou reter deliberadamente para a comparação da
 Fatia 1, e nesse caso preencher o registro de retenção (§18.2.0) com
 finalidade, prazo e responsável. **Não apago nem retenho por conta
 própria.**
+
+#### Recomendação de André, 04/09 — apagar as cópias locais
+
+Registrada aqui **antes de executada**, porque a execução depende de
+autorização expressa (mesma regra da §18.2.0).
+
+O argumento: a exclusão do objeto no Storage **expressou a intenção de
+remover o material da GE**, e `/tmp` não é armazenamento governado,
+auditável nem adequado para retenção. Reter ali é manter o material sem
+nenhuma das garantias que a §18.2.0 exige de uma retenção — e sem
+ninguém saber que existe. Uma cópia que sobrevive à exclusão por
+descuido é exatamente o incidente P0 outra vez, uma camada abaixo.
+
+**Com o que a Fatia 1 passa a trabalhar:**
+
+| Finalidade | Material | Por quê |
+|---|---|---|
+| **Escala e transporte** (A.4, portão dos ~100 MiB) | **PDF sintético próximo de 100 MiB**, gerado por nós | escala e transporte não precisam do conteúdo da GE: precisam de bytes e de contagem de páginas. A fixture sintética da §18.2.7 já provou que sabe expor defeito que o arquivo real esconde |
+| **Comparação visual** (§18.2.5) | **material próprio ou explicitamente autorizado** | comparar renderização exige um manual real, mas não exige *aquele* manual |
+
+**A comparação com a GE não fica impossível — fica condicionada.** Pode
+ser refeita depois, mediante **novo envio e autorização específica para
+essa finalidade**, com registro de retenção preenchido. O que não se faz
+é guardar em silêncio agora para não precisar pedir depois.
+
+#### ✅ RESOLVIDO — cópias locais apagadas em 04/09, com autorização expressa
+
+| Campo | Valor |
+|---|---|
+| Autorização | **expressa**, de André, em 04/09, após pergunta direta que descrevia a irreversibilidade e a consequência para a comparação visual |
+| Responsável | André (autorizou) · execução por mim |
+| Escopo autorizado | **exatamente** `/tmp/ge.pdf` e `/tmp/ge-cand/` — nada além disso foi tocado |
+| Método | `rm -f /private/tmp/ge.pdf` · `rm -rf /private/tmp/ge-cand` (saída 0) |
+
+**Identidades registradas ANTES de apagar** — sem elas a prova de
+ausência não teria sujeito:
+
+| Arquivo | Tamanho | `sha256` |
+|---|---|---|
+| `ge.pdf` | 11.844.340 bytes | `1a42778a9f9033e73f4a6b17bf82fe7ff57a3255360a2ec9536055955902c740` |
+| `ge-cand/p38-038.jpg` | 14.049 | `e57a64e2d7203e30524c410f48bc213475f4d1b612d29fd37e465e5f175d46d7` |
+| `ge-cand/p197-197.jpg` | 37.406 | `8fe2e15a787997c4860ecdf9d8e15b9fc372e4b4f20733becb460c9bc2caf8f6` |
+| `ge-cand/p215-215.jpg` | 39.416 | `b907f01e775d33bbc63985944810b43cbdab7ae28d37ffec030658d48a21ab78` |
+| `ge-cand/p372-372.jpg` | 20.788 | `ffe5e6b9ff10eddc76e670ce654a2e98822b4e7a344de3902fb93aec6f4afa27` |
+| `ge-cand/p584-584.jpg` | 19.317 | `1a89eea17483f55679f020efacf11677bc56ddeba27a733a2d49d12af0deb8ea` |
+| `ge-cand/p630-630.jpg` | 36.276 | `c4b1dd89521198be10b071f4892ddc2c1c211d998c7d2a1c68795cadc0ed3da2` |
+| `ge-cand/p713-713.jpg` | 44.719 | `3f7655d6d3746961be4fbd400284091a48d8968824d34cacc36335484131e917` |
+| `ge-cand/p730-730.jpg` | 13.871 | `cab43c2c193e7df62d598a215ff27da112077e0737bc663bdcb1217ed3baea97` |
+
+**Confirmação de identidade, registrada no ato:** o `sha256` de `ge.pdf`
+é **exatamente o nome do objeto excluído do Storage** em §18.2.0
+(`1a42778a…c740.pdf`). A cópia local era o mesmo arquivo, byte a byte —
+não um derivado. Isso fecha a dúvida de se a exclusão do Storage havia
+ou não deixado o material intacto em outro lugar: havia.
+
+**Provas de ausência, colhidas depois:**
+
+| Prova | Resultado |
+|---|---|
+| `stat` nos dois caminhos, por `/tmp` **e** por `/private/tmp` | **`No such file or directory`** nos quatro |
+| Leitura direta (`cat` do PDF, `ls` do diretório) | **`No such file or directory`** |
+| Varredura por **tamanho exato** (11.844.340 bytes) em `/tmp` e `/private/tmp` | **0 arquivos** |
+| Varredura por **nome** (`*ge*.pdf`, `*ge-cand*`) | **0 arquivos** |
+| Varredura por **padrão das páginas** (`p*-*.jpg`) | **0 arquivos** |
+| Varredura pelo **hash** no nome (`*1a42778a*`) | **0 arquivos** |
+
+**Sobre irmãos:** a varredura feita **antes** de apagar encontrou apenas
+esses dois caminhos. `/tmp` é link simbólico para `/private/tmp` no
+macOS — os dois endereços eram o mesmo par de arquivos, não duas
+cópias. Não havia terceira cópia em `/tmp`.
+
+**O que isto não prova:** a varredura cobriu `/tmp` e `/private/tmp`,
+que era o escopo autorizado e o único lugar onde as sobras eram
+conhecidas. Não varri o disco inteiro nem `/Volumes/Bunny 1T` — onde o
+original do cliente continua sendo dele, fora do produto, como sempre
+esteve. **Nenhum arquivo fora dos dois caminhos autorizados foi tocado.**
+
+**Consequência registrada:** a comparação visual da §18.2.5 agora
+depende, sem alternativa, de novo envio com autorização específica, ou
+de material próprio. Os sinais medidos das quatro páginas seguem na
+§18.2.5; o material, não.
 
 ---
 
@@ -2182,6 +2903,10 @@ manual.
 | 6 | **A correção do `comAlvo` pode ser commitada isolada**, com o módulo e o teste, após verificação | §18.1 |
 | 7 | **O PDF é documento-fonte durável e versionado** — desenho de `brand_source_documents` apresentado, não implementado | §5.3 |
 | 8 | **A Fatia 0 não implementa o manifesto** — contrato, sondagem e linha de base; nenhuma migração | §18.0 |
+| 9 | **A ordem da Etapa A está correta e é vinculante** — liberar Range no Supabase (A.1), depois avaliar a borda (A.2), rota na Vercel só se as duas falharem (A.3), e decidir **depois** da medição publicada (A.4/A.5) | §18.3.0 |
+| 10 | **A alternativa de borda nasce com seis requisitos (B1–B6)** — sem origem vinda do cliente, sem proxy aberto, autorização de conta/marca/documento antes do primeiro byte, banda e custo medidos, cancelamento e expiração tratados, semântica de Range preservada integralmente | §18.3.0 |
+| 11 | **A Fatia 1 usa PDF sintético (~100 MiB) para escala e transporte, e material próprio ou autorizado para comparação visual** — a comparação com a GE fica condicionada a novo envio com autorização específica | §18.3.3 |
+| 12 | **As cópias locais da GE em `/tmp` foram apagadas** — autorização expressa, provas de ausência colhidas; o material do cliente não sobrevive mais em nenhum lugar sob controle do projeto | §18.3.3 |
 
 **Ressalva registrada junto com a decisão 3:** não se promete proteção
 absoluta contra download (§19.2). A linguagem do produto é "download não
@@ -2199,15 +2924,102 @@ autorizado" ou "não oferecido" — nunca "impossível baixar".
    recomendo promover no lugar, sem cópia; confirmar com o número de
    custo na mão.
 
+**Pendências de plano, não de medição — abertas em 05/09:**
+
+6. **Planos pagos — portão de prontidão comercial E portão de aceite
+   integrado.** Os dois, e não é redundância: a Fatia 1 segue
+   experimentalmente sem contratação (A.1–A.5 não dependem de plano pago),
+   **mas o aceite integrado dos 100 MiB continua dependendo de um
+   armazenamento que aceite o upload real** — plano ou solução compatível.
+   Doutrina completa na §20.3.
+7. **Conta de borda para a A.2.** Sem `wrangler`, sem `cloudflared`, sem
+   configuração de Cloudflare na máquina. Obter a conta é passo seu; não
+   procuro credencial.
+7-b. **⚠️ Vercel Hobby restringe a uso não comercial.** Confirmado no painel em
+   05/09: *"restricts users to non-commercial, personal use only"*. Tratado
+   pela doutrina abaixo, junto do item 6.
+8. **Matriz de compatibilidade de PDF** — linearização, `xref` stream, object
+   streams, atualizações incrementais, criptografia, versões antigas e novas.
+   A fixture de escala prova **uma** estrutura de PDF, não todas (§18.3.0).
+   Item próprio, a agendar; não bloqueia A.1 nem A.2.
+9. **Medição de renderização e memória com imagem comprimida de verdade.** A
+   fixture de escala usa ruído sem compressão e, por construção, não sustenta
+   conclusão sobre decodificação, pico de memória de imagem ou qualidade
+   visual. Portão da §18.3.2 que continua sem sujeito de teste.
+10. ~~`fixtures:pdf` dentro do `verify`, ou não.~~ **Resolvido em 05/09**:
+    virou `pretest:e2e`, o passo redundante saiu do workflow, e o `verify`
+    passou verde em ambiente limpo (§18.3.0).
+11. ~~Como o CI remoto passa a rodar numa branch de fatia.~~ **Resolvido em
+    05/09**: PR #1 em draft, o gatilho `pull_request` disparou, e o CI passou
+    verde em todos os passos (§18.3.0). O PR é para CI e revisão — **merge
+    não está autorizado**.
+
+**Resolvido em 04/09, no mesmo dia em que entrou:**
+
+5. ~~Apagar as cópias locais em `/tmp` (`ge.pdf` e `ge-cand/`)~~ —
+   **feito**, com autorização expressa de André e provas de ausência
+   registradas (§18.3.3). Fecha o último exemplar do material da GE sob
+   controle do projeto.
+
 **Registrado como fora de escopo desta rodada:**
 
-10. **Assets "autorizados"** (§12.1) — "autorizado para consulta"
+12. **Assets "autorizados"** (§12.1) — "autorizado para consulta"
     pressupõe autorização por asset, que não existe: `brand_assets` tem
     `status`, não visibilidade. Continua em aberto.
-11. Curadoria destrutiva — unir seções publicadas decide o destino de
+13. Curadoria destrutiva — unir seções publicadas decide o destino de
     dois históricos e das citações emitidas.
-12. Reconstrução automática de layout em blocos — o editor visual
+14. Reconstrução automática de layout em blocos — o editor visual
     (Fatia 10) é a resposta, e ela é progressiva.
+
+### 20.3 Doutrina de plano — o ambiente provisório não define o produto
+
+Estabelecida por André em 05/09, depois de o painel confirmar Supabase **Free**
+e Vercel **Hobby**.
+
+**O princípio, e ele é o item mais importante desta seção:**
+
+> **O produto não deve ser desenhado segundo as limitações do Vercel Hobby ou
+> do Supabase Free. Esses limites restringem o ambiente provisório; não
+> reduzem os requisitos do Brennimark.**
+
+É a mesma regra que já valia para os 100 MiB (§18.3.0) e agora vale para tudo:
+um teto de infraestrutura é um fato do ambiente, não um requisito de produto.
+A tentação contrária é sutil e barata — "então por enquanto o produto aceita 50
+MB" — e o que ela faz é deixar a conta de hospedagem decidir o escopo.
+
+**Os três estágios**
+
+| Quando | O que vale |
+|---|---|
+| **Agora** | Planos gratuitos **apenas** para desenvolvimento, testes técnicos e demonstrações **internas** |
+| **Antes de demonstração comercial a agência** | Revisar os termos. **Se a apresentação tiver finalidade de venda, migrar a Vercel para Pro** — uma demonstração que existe para vender já pode ser uso comercial, e a linha não se cruza por engano |
+| **Antes do lançamento** | Infraestrutura paga **dimensionada para o contrato real**: arquivos ≥ 100 MiB, processamento de IA, segurança, observabilidade, suporte e escala |
+
+**O que isso destrava, e o que não destrava.** A Fatia 1 **pode continuar
+experimentalmente sem contratação imediata** — A.1 e A.2 não dependem de plano
+pago, e a fixture de escala mede transporte sem passar pelo upload do produto.
+O que continua verdadeiro é que **medir a descida não prova a subida**
+(§18.3.0): o portão dos 100 MiB só fecha quando o upload real funcionar, e isso
+depende de plano ou de outro armazenamento.
+
+**A reclassificação que importa:** migrar para planos pagos deixa de ser
+"pendência técnica" e passa a ser **portão de prontidão comercial**. Não é
+alteração arquitetural, não muda A.1–A.5 nem o desenho do visualizador.
+
+**Mas "não entra no caminho crítico da Fatia 1" era amplo demais** — correção
+apontada pela revisão de 05/09, e ela está certa. A formulação precisa separa
+duas condições que a frase misturava:
+
+> **A contratação pode esperar durante a investigação e as medições
+> experimentais de A.1–A.5. O aceite integrado do requisito de 100 MiB continua
+> dependendo de um armazenamento que permita o upload real desse tamanho — seja
+> por mudança de plano, seja por outra solução compatível.**
+
+Prontidão comercial e aceite técnico são condições diferentes, e podem depender
+da mesma decisão de infraestrutura sem serem a mesma coisa. O risco que a frase
+ampla criava era concreto: **declarar a Fatia 1 integrada com base numa fixture
+entregue por um caminho experimental que o usuário do produto não consegue
+usar.** É o mesmo erro de sempre — medir a descida e chamar de subida.
 
 ---
 
