@@ -51,7 +51,6 @@ test("aviso válido de membro vira uma linha no log do servidor", async () => {
   assert.equal(linhas[0].origem, "fila");
   assert.equal(linhas[0].sqlstate, "42P10");
   assert.equal(linhas[0].conta, CONTA);
-  assert.equal(linhas[0].conta_verificada, true);
   assert.deepEqual(linhas[0].caminhos, [`${CONTA}/import/abc.pdf`]);
 });
 
@@ -62,7 +61,7 @@ test("aviso válido de membro vira uma linha no log do servidor", async () => {
  */
 test("o ator da linha é o da sessão, e o corpo não influencia", async () => {
   const { p, linhas } = portas();
-  await receberRastro(evento({ ator: OUTRA, conta_verificada: true }), p);
+  await receberRastro(evento({ ator: OUTRA }), p);
   assert.equal(linhas[0].ator, ATOR);
 });
 
@@ -103,16 +102,32 @@ test("a conta consultada é a do caminho, e não uma declarada", async () => {
 });
 
 /**
- * Consulta de pertencimento que falhou: o rastro fica, marcado como não
- * verificado. Recusar perderia o aviso justamente quando o banco tropeça —
- * que é quando arquivos ficam sem destino.
+ * Consulta de pertencimento que falhou: FALHA FECHADA.
+ *
+ * A primeira versão registrava mesmo assim, marcada como não verificada — e
+ * com o banco instável, qualquer sessão válida escreveria no log a conta e os
+ * caminhos que quisesse. A marca não impede ninguém de ler a linha como fato.
+ * Agora a recusa leva só um evento interno, sem nada que o cliente controle.
  */
-test("falha ao conferir a conta registra mesmo assim, marcado como não verificado", async () => {
+test("falha ao conferir a conta NÃO registra conta nem caminhos", async () => {
   const { p, linhas } = portas({ membro: null });
-  const r = await receberRastro(evento(), p);
-  assert.equal(r.status, 202);
-  assert.equal(linhas.length, 1);
-  assert.equal(linhas[0].conta_verificada, false);
+  const forjado = `${OUTRA}/arquivo-que-nunca-existiu.pdf`;
+  const r = await receberRastro(evento({ caminhos: [forjado, `${OUTRA}/outro.pdf`] }), p);
+
+  assert.equal(r.status, 503);
+  assert.equal(r.codigo, "falha_de_leitura");
+  assert.equal(linhas.length, 1, "só o evento interno");
+  assert.equal(linhas[0].msg, "rastro_recusado_sem_verificacao");
+  assert.equal(linhas[0].ator, ATOR);
+  assert.equal(linhas[0].quantidade, 2);
+  assert.equal("conta" in linhas[0], false);
+  assert.equal("caminhos" in linhas[0], false);
+  // Nenhum dado controlado pelo cliente atravessa para o log, nem por dentro
+  // de outro campo.
+  const linha = JSON.stringify(linhas[0]);
+  assert.doesNotMatch(linha, new RegExp(OUTRA));
+  assert.doesNotMatch(linha, /arquivo-que-nunca-existiu/);
+  assert.doesNotMatch(linha, /importacao_deixou_objeto_sem_destino/);
 });
 
 // ─── A forma do aviso ──────────────────────────────────────────────────────

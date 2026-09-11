@@ -46,7 +46,9 @@ export interface EventoDeRastro {
  * uma linha de log de megabytes.
  */
 export const MAXIMO_DE_CAMINHOS = 200;
-const MAXIMO_DO_CAMINHO = 512;
+/** Teto de um caminho. O ajudante do cliente usa o mesmo número para não
+ *  mandar um caminho que derrubaria o lote inteiro. */
+export const MAXIMO_DO_CAMINHO = 512;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SQLSTATE = /^(?:[0-9A-Z]{5}|PGRST\d{3})$/;
@@ -113,7 +115,8 @@ export type RespostaDoRastro =
   | { status: 202; codigo: "registrado" }
   | { status: 400; codigo: "pedido_invalido" }
   | { status: 401; codigo: "nao_autenticado" }
-  | { status: 404; codigo: "nao_encontrado" };
+  | { status: 404; codigo: "nao_encontrado" }
+  | { status: 503; codigo: "falha_de_leitura" };
 
 export async function receberRastro(
   corpo: unknown,
@@ -136,17 +139,36 @@ export async function receberRastro(
   if (membro === false) return { status: 404, codigo: "nao_encontrado" };
 
   /*
-   * Consulta de pertencimento que FALHOU: o rastro é registrado mesmo assim,
-   * marcado como não verificado. Recusar aqui perderia o aviso exatamente
-   * quando o banco está tropeçando — que é quando arquivos ficam sem destino.
-   * A marca na linha diz a quem lê que a conta não foi conferida.
+   * Consulta de pertencimento que FALHOU: recusado, e conta e caminhos NÃO
+   * vão ao log.
+   *
+   * A versão anterior registrava mesmo assim, marcada como não verificada — e
+   * isso era autorização falhando ABERTA: com o banco instável, qualquer
+   * sessão válida escreveria no log caminhos e conta escolhidos por ela, e a
+   * marca "não verificada" não impede ninguém de ler a linha como fato. A
+   * revisão de 11/09 pegou isso.
+   *
+   * O que fica é um evento interno separado, sem nenhum dado que o cliente
+   * controle além da origem, que é vocabulário fechado: quem, de onde e
+   * quantos. Basta para saber que avisos estão sendo perdidos, e não permite
+   * forjar um aviso sobre a conta de ninguém.
    */
+  if (membro === null) {
+    portas.registrar({
+      level: "error",
+      msg: "rastro_recusado_sem_verificacao",
+      ator: ator.id,
+      origem: validacao.evento.origem,
+      quantidade: validacao.evento.caminhos.length,
+    });
+    return { status: 503, codigo: "falha_de_leitura" };
+  }
+
   portas.registrar({
     level: "error",
     msg: "importacao_deixou_objeto_sem_destino",
     origem: validacao.evento.origem,
     conta: validacao.conta,
-    conta_verificada: membro === true,
     ator: ator.id,
     caminhos: validacao.evento.caminhos,
     sqlstate: validacao.evento.sqlstate ?? null,

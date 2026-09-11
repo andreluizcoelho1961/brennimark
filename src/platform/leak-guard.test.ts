@@ -856,7 +856,11 @@ test("todo arquivo sem destino é relatado ao servidor, não só ao console", ()
 
   const ajudante = lerCodigo("src/lib/import/relatar-rastro.ts");
   assert.match(ajudante, /"\/api\/importacao\/rastro"/, "o ajudante avisa a rota do servidor");
-  assert.match(ajudante, /keepalive:\s*true/, "sem keepalive o aviso morre quando a aba fecha");
+  assert.match(ajudante, /keepalive/, "sem keepalive o aviso morre quando a aba fecha");
+  // O teto do keepalive é de 64 KiB em BYTES, somados entre os pedidos em voo:
+  // contar caminhos não mede isso.
+  assert.match(ajudante, /TextEncoder/, "os lotes são medidos em bytes UTF-8");
+  assert.match(ajudante, /ORCAMENTO_KEEPALIVE_BYTES/, "o keepalive tem orçamento para a soma dos lotes");
 
   const rota = lerCodigo("src/app/api/importacao/rastro/route.ts");
   assert.match(rota, /auth\.getUser\(\)/, "o ator do rastro vem da sessão validada");
