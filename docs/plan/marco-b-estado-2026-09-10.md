@@ -207,3 +207,39 @@ todas verdes no banco local.
 **O que a simulação não cobre:** a limitação de timers em si (o teste não
 reduz a frequência dos timers) e uma aba oculta de verdade. Falta uma
 publicação com o manual real e a aba em segundo plano, medindo o tempo.
+
+## 9. Banco local recriado do zero — 11/09
+
+Autorizado por André, com escopo explícito: só o stack Supabase **local**,
+nenhuma ação em produção, marcas não restauradas por SQL, nada do material do
+cliente versionado, sem merge do PR nesta etapa.
+
+**Antes:** este relatório conferido no Git, sem imagem ou PDF embutido; o PDF
+original do aceite conferido fora do Git, com o mesmo SHA-256 (`044392d3…`),
+para uma reimportação futura. O stack local é único (`project_id =
+"brennimark"`), compartilhado pelos worktrees; o reset rodou a partir deste,
+com as migrations desta branch integrada à `main` até o #24.
+
+**Replay:** `npx supabase db reset`, sem `--linked`.
+
+| Verificação | Resultado |
+|---|---|
+| Migrations aplicadas × arquivos da branch | **53 × 53**, nenhuma diferença |
+| Erros no log do reset | 0 |
+| Avisos | 1 `NOTICE` preexistente: `brand_assets_brand_idx` já existe, `if not exists` pula |
+| Diferença com o ledger local anterior | só o kill switch, agora `20260910215914` — o mesmo carimbo de produção |
+| Dados depois do reset | 0 marcas, 0 usuários, 0 documentos-fonte |
+| Prova do manifesto | **53/53** verdes |
+| Prova da fila de limpeza (#21) | **18/18** verdes |
+| Resíduo depois das provas | 0 marcas, 0 usuários |
+| `supabase db lint --level warning` | nenhum problema |
+| `npm run verify` em `2008ae1` | 758 unidade, build, 288 navegador |
+| CI do PR #19 em `2008ae1`, contra a `main` em `22cbf4a` (até o #24) | verde, 13 min 55 s — [run 34608240561](https://github.com/andreluizcoelho1961/brennimark/actions/runs/34608240561) |
+
+**Consequência:** as duas marcas locais, incluindo a do aceite com o manual do
+Bradesco, e a conta local deixaram de existir. O registro do aceite (§2–§3)
+continua válido como evidência daquela rodada; uma nova reimportação fica para
+o smoke test da versão integrada ou para a janela de produção.
+
+**Não coberto:** os advisors do Supabase só existem no projeto hospedado e não
+foram consultados — nenhuma ação em produção nesta etapa.
