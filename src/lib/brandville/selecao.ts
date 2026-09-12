@@ -109,11 +109,21 @@ export function resolverSemAlvo(estado: EstadoDaPessoa): Resolucao {
     return { tipo: "sem-marca", workspaceSlug: estado.disponiveis[0]?.slug ?? null };
   }
 
-  if (pares.length === 1) {
-    const { workspace, marca } = pares[0];
-    return { tipo: "ir-para", destino: { workspaceSlug: workspace.slug, brandKey: marca.key } };
-  }
-
+  /*
+   * A tela inicial aparece SEMPRE, mesmo com uma marca só.
+   *
+   * Decisão do André em 12/09/2026. Antes, uma marca só dispensava a pergunta e
+   * o login caía direto dentro dela — e, desde o ADR-0006, direto no PDF. O
+   * produto passava a existir sem porta: nenhuma tela dizia o que a plataforma
+   * é, e a conta com uma marca nunca via a lista das suas marcas.
+   *
+   * O custo é um clique a mais para quem tem uma marca. O que se ganha é um
+   * lugar onde a pessoa chega, entende onde está e escolhe — e onde cabem, no
+   * futuro, os cards de todas as marcas da conta.
+   *
+   * `resolverAlvo` não muda: quem chega com endereço de marca continua indo
+   * direto para ela, e é isso que mantém o link compartilhado valendo.
+   */
   return { tipo: "escolher", opcoes: estado.disponiveis };
 }
 
