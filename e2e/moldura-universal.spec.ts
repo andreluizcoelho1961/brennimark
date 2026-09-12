@@ -212,7 +212,9 @@ test("navegar fecha a gaveta", async ({ page }) => {
   await page.goto("/dev/marcas?marca=sobria");
   await abrirGaveta(page);
 
-  await page.getByRole("dialog").getByRole("link", { name: "Visão geral" }).click();
+  // "Manual" é o destino do PDF. Era "Visão geral", que levava à primeira
+  // seção remontada e saiu quando o PDF passou a ser o manual.
+  await page.getByRole("dialog").getByRole("link", { name: "Manual", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Navegação principal" })).toBeHidden();
 });
 
@@ -562,6 +564,6 @@ test("marca sem funcionalidades não mostra a seção Inteligência", async ({ p
   const coluna = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(coluna).toBeVisible();
   await expect(coluna.getByText("Inteligência")).toHaveCount(0);
-  // A navegação continua existindo: a marca tem guia e acervo.
-  await expect(coluna.getByRole("link", { name: "Visão geral" })).toBeVisible();
+  // A navegação continua existindo: a marca tem manual e acervo.
+  await expect(coluna.getByRole("link", { name: "Manual", exact: true })).toBeVisible();
 });

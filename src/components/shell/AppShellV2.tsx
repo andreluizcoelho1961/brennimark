@@ -211,11 +211,17 @@ export function AppShellV2({
   );
 
   const emModal = modal !== "none";
-  // O botão da gaveta só existe se houver para onde ir — e "para onde ir"
-  // passou a incluir as páginas do manual. Uma marca sem utilidades
-  // contratadas tem zero seções de moldura e cento e cinquenta páginas: contar
-  // só as seções esconderia a gaveta justamente de quem mais precisa dela.
-  const temDestinos = sections.length > 0 || docs.length > 0;
+  /*
+   * O botão da gaveta só existe se houver para onde ir.
+   *
+   * Contava também as páginas do manual, porque elas eram navegação: uma marca
+   * sem utilidades contratadas tinha zero seções de moldura e cento e cinquenta
+   * páginas, e contar só as seções esconderia a gaveta de quem mais precisava
+   * dela. Agora a gaveta oferece apenas destinos da moldura — as seções saíram
+   * dela, ver DesktopSidebar —, então contar páginas abriria uma gaveta que não
+   * leva a nada. `docs` continua chegando aqui para a busca.
+   */
+  const temDestinos = sections.length > 0;
 
   return (
     <div ref={raiz} className="flex h-dvh flex-col bg-platform-bg text-platform-text">
@@ -238,7 +244,7 @@ export function AppShellV2({
           {sessionControl}
         </PlatformTopBar>
         <div className="flex min-h-0 flex-1">
-          <DesktopSidebar sections={sections} basePath={basePath} docs={docs} />
+          <DesktopSidebar sections={sections} basePath={basePath} />
           {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
               390 é 8% da largura gasta em moldura. O canvas encosta e a borda
               some junto, porque filete em tela cheia não separa nada. */}
@@ -272,7 +278,6 @@ export function AppShellV2({
       </div>
 
       <NavigationDrawer
-        docs={docs}
         open={modal === "nav"}
         sections={sections}
         basePath={basePath}

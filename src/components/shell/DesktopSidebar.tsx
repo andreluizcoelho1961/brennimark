@@ -4,8 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIsEnglish } from "@/platform/locale-client";
 import { isDestinationActive, withBase, type ShellSection } from "./navigation";
-import { NavegacaoDeDocumentos } from "./NavegacaoDeDocumentos";
-import type { DocPageEntry } from "@/content/docs";
 
 /**
  * A lista de destinos, uma vez só.
@@ -80,26 +78,34 @@ export function NavigationSections({
  *
  * Escondida abaixo de 1024px: uma coluna fixa de 224px em uma tela de 390
  * deixava 166px para o conteúdo, o que transforma o manual em uma tira.
+ *
+ * ─── As seções extraídas saíram daqui ───────────────────────────────────────
+ *
+ * Até aqui esta coluna listava as páginas que a máquina remontou do PDF,
+ * agrupadas e paginadas por lote. Elas saíram junto com a decisão de o PDF ser
+ * o manual: navegar por uma lista de 122 seções propostas por heurística —
+ * entre elas nomes como `Páginas 9–16`, que é a recusa correta de nomear o que
+ * não tem nome no arquivo — competia com o sumário que o próprio documento já
+ * tem.
+ *
+ * O que NÃO mudou: as seções continuam roteáveis por URL e continuam na busca
+ * (⌘K), porque link compartilhado é promessa e a extração segue alimentando o
+ * assistente. `NavegacaoDeDocumentos` e `documentos.ts` continuam no
+ * repositório, com testes, para a superfície de curadoria do Studio — que é
+ * onde agrupar e recortar seções volta a ser o trabalho certo.
  */
 export function DesktopSidebar({
   sections,
   basePath,
-  docs = [],
 }: {
   sections: ShellSection[];
   basePath?: string;
-  /** As páginas do manual. Antes do Q1 elas não apareciam aqui, e um manual
-   *  de 152 seções só era alcançável pela busca. */
-  docs?: readonly DocPageEntry[];
 }) {
   const isEnglish = useIsEnglish();
 
-  // Sem destino E sem página não há navegação. Uma coluna vazia de 224px é
-  // área morta que sugere que algo falhou ao carregar.
-  if (sections.length === 0 && docs.length === 0) return null;
-
-  const primeira = sections.filter((s) => s.id === "manual");
-  const demais = sections.filter((s) => s.id !== "manual");
+  // Sem destino não há navegação. Uma coluna vazia de 224px é área morta que
+  // sugere que algo falhou ao carregar.
+  if (sections.length === 0) return null;
 
   return (
     <nav
@@ -109,18 +115,12 @@ export function DesktopSidebar({
       className="hidden w-[var(--shell-sidebar)] flex-none flex-col gap-[var(--space-shell-5)] overflow-y-auto border-r border-platform-border bg-platform-bg px-[var(--space-shell-3)] py-[var(--space-shell-5)] lg:flex"
     >
       {/*
-        As páginas do manual vêm logo abaixo da área "Manual", e ANTES das
-        outras áreas.
-        
-        Antes elas vinham depois de tudo, e isso empurrava o conteúdo para o fim
-        de uma lista de oito destinos de produto. A moldura continua sendo do
-        produto e o conteúdo continua sendo da marca — o que mudou é qual dos
-        dois a pessoa encontra primeiro, e quem abre um manual veio ler o
-        manual.
+        A ordem é a do array, e ela começa pelo manual — ver shellSections. A
+        moldura continua sendo do produto e o conteúdo continua sendo da marca;
+        o que importa é qual dos dois a pessoa encontra primeiro, e quem abre um
+        manual veio ler o manual.
       */}
-      <NavigationSections sections={primeira} basePath={basePath} />
-      {basePath && <NavegacaoDeDocumentos docs={docs} base={basePath} />}
-      <NavigationSections sections={demais} basePath={basePath} />
+      <NavigationSections sections={sections} basePath={basePath} />
     </nav>
   );
 }
