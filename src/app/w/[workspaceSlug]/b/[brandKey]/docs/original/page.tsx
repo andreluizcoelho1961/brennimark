@@ -9,6 +9,7 @@ import {
 import {
   classificarPublicacao, type EstadoDaPublicacao,
 } from "@/lib/documento-fonte/conclusao-da-publicacao";
+import type { SecaoExtraida } from "@/lib/documento-fonte/indice";
 
 /**
  * O manual original — a camada visual canônica.
@@ -86,6 +87,19 @@ export default async function ManualOriginal({
     );
   }
 
+  /**
+   * O plano B do índice: as seções extraídas, com a página em que começam.
+   *
+   * Medido em 30 manuais reais: só 7 trazem marcadores, então este é o caminho
+   * de 3 em cada 4. A primeira página de cada seção vem do MANIFESTO, que é
+   * quem liga página a seção desde a Fatia 2 — e não de `source_pages`, que é
+   * o campo antigo de faixas e descrevia o que as seções absorveram, não o que
+   * existia.
+   */
+  const secoes = registro?.sourceDocumentId
+    ? await lerSecoesDoIndice(auth.supabase, registro.sourceDocumentId)
+    : [];
+
   return (
     <div className="flex h-[calc(100dvh-var(--shell-topbar,56px))] flex-col">
       {registro?.estado === "anterior-ao-manifesto" && <AnteriorAoManifesto />}
@@ -111,6 +125,7 @@ export default async function ManualOriginal({
       )}
       <div className="min-h-0 flex-1">
         <VisualizadorDePdf
+          secoes={secoes}
           documentoId={documento.id}
           contaSlug={alvo.workspaceSlug}
           marcaChave={alvo.brandKey}
@@ -186,4 +201,46 @@ async function lerEstadoDoRegistro(
      */
     paginasSemSecao: erroDaContagem ? null : (count ?? null),
   };
+}
+
+/**
+ * Título e primeira página de cada seção, para o índice.
+ *
+ * Erro aqui é "não sei", e "não sei" é índice vazio — nunca página quebrada. O
+ * visualizador existe para servir o PDF; um aviso sobre o índice não pode
+ * impedir a leitura do manual. É a mesma disciplina de `lerEstadoDoRegistro`.
+ */
+async function lerSecoesDoIndice(
+  supabase: NonNullable<Awaited<ReturnType<typeof getBrandvilleAuthContext>>>["supabase"],
+  sourceDocumentId: string,
+): Promise<SecaoExtraida[]> {
+  const { data, error } = await supabase
+    .from("brand_source_pages")
+    .select("pagina, brand_documents(title)")
+    .eq("source_document_id", sourceDocumentId)
+    .not("document_id", "is", null)
+    .order("pagina", { ascending: true });
+
+  if (error || !data) return [];
+
+  /*
+   * Título repetido vira UMA entrada, apontando para a primeira ocorrência.
+   *
+   * Não é efeito colateral do `Map`: é a decisão, e ela veio da medição. No
+   * manual do Bradesco há 43 seções com página e apenas 21 títulos distintos —
+   * "Grid" aparece dez vezes, "Co-branding" três. Dez linhas iguais numa coluna
+   * de índice não ajudam ninguém a achar nada; uma linha "Grid" leva ao começo
+   * do capítulo, e a rolagem faz o resto.
+   *
+   * O que se perde: capítulos distintos que por acaso tenham o mesmo título
+   * ficam sob a mesma entrada. Vale menos que o ruído de dez repetições.
+   */
+  const primeira = new Map<string, number>();
+  for (const linha of data as unknown as { pagina: number; brand_documents: { title: string } | null }[]) {
+    const titulo = linha.brand_documents?.title?.trim();
+    if (!titulo || primeira.has(titulo)) continue;
+    primeira.set(titulo, linha.pagina);
+  }
+
+  return [...primeira.entries()].map(([titulo, pagina]) => ({ titulo, pagina }));
 }

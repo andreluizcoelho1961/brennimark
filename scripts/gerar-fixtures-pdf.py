@@ -41,8 +41,18 @@ def fluxo(linhas: list[str], tamanho: int = 14, x: int = 72, y: int = 720) -> by
 
 
 def documento(paginas: list[list[str]], com_outline: bool = False,
-              cabecalho_numerado: bool = False) -> bytes:
-    """Um PDF simples. `paginas` é uma lista de listas de linhas."""
+              cabecalho_numerado: bool = False,
+              marcadores: list[tuple[str, int]] | None = None) -> bytes:
+    """Um PDF simples. `paginas` é uma lista de listas de linhas.
+
+    `marcadores` sao pares (titulo, pagina 1-based) e viram o sumario embutido
+    do PDF. `com_outline=True` e o atalho historico para dois marcadores, e
+    continua produzindo exatamente o mesmo arquivo de antes: outras suites
+    dependem da `com-outline.pdf` como ela e hoje.
+    """
+    if marcadores is None and com_outline:
+        marcadores = [("Cor", 1), ("Tipografia", 2)]
+    com_outline = bool(marcadores)
     total = len(paginas)
     objetos: list[bytes] = []
     # 1 catalogo, 2 pages, depois pares (page, contents), depois fonte
@@ -88,20 +98,23 @@ def documento(paginas: list[list[str]], com_outline: bool = False,
     objetos.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
 
     if com_outline:
-        primeiro = outline_obj + 1
-        segundo = outline_obj + 2
+        assert marcadores
+        base = outline_obj + 1
+        ultimo = base + len(marcadores) - 1
         objetos.append(
-            f"<< /Type /Outlines /First {primeiro} 0 R /Last {segundo} 0 R /Count 2 >>".encode()
+            f"<< /Type /Outlines /First {base} 0 R /Last {ultimo} 0 R "
+            f"/Count {len(marcadores)} >>".encode()
         )
-        objetos.append(
-            f"<< /Title (Cor) /Parent {outline_obj} 0 R /Next {segundo} 0 R "
-            f"/Dest [{primeiro_page_obj} 0 R /Fit] >>".encode()
-        )
-        pagina_dois = primeiro_page_obj + 2
-        objetos.append(
-            f"<< /Title (Tipografia) /Parent {outline_obj} 0 R /Prev {primeiro} 0 R "
-            f"/Dest [{pagina_dois} 0 R /Fit] >>".encode()
-        )
+        for i, (titulo, pagina) in enumerate(marcadores):
+            meu = base + i
+            partes = [f"/Title ({titulo})", f"/Parent {outline_obj} 0 R"]
+            if i > 0:
+                partes.append(f"/Prev {meu - 1} 0 R")
+            if i < len(marcadores) - 1:
+                partes.append(f"/Next {meu + 1} 0 R")
+            alvo = primeiro_page_obj + (pagina - 1) * 2
+            partes.append(f"/Dest [{alvo} 0 R /Fit]")
+            objetos.append(("<< " + " ".join(partes) + " >>").encode())
 
     return montar(objetos)
 
@@ -165,6 +178,22 @@ def main() -> int:
             ["Cor", "A paleta."],
             ["Tipografia", "A familia."],
         ], com_outline=True),
+        # Para o INDICE do visualizador: quatro marcadores, e um deles
+        # deliberadamente generico. "SECTION 2" existe de verdade — e o manual
+        # da Shell, medido em 12/09/2026, tem quatro marcadores assim para 37
+        # paginas. O indice precisa descartar o generico e ainda entregar os
+        # tres uteis. Ver `src/lib/documento-fonte/indice.ts`.
+        "indice-com-generico.pdf": documento([
+            ["Cores", "O vermelho institucional."],
+            ["Miolo", "Uma pagina qualquer."],
+            ["Tipografia", "Uma familia, quatro pesos."],
+            ["Grid", "A malha de construcao."],
+        ], marcadores=[
+            ("Cores", 1),
+            ("SECTION 2", 2),
+            ("Tipografia", 3),
+            ("Grid", 4),
+        ]),
     }
 
     for nome, conteudo in arquivos.items():
