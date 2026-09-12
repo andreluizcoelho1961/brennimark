@@ -1,7 +1,11 @@
 # ADR-0004 — O produto age na criação, não só na consulta
 
-- **Status:** proposto, aguardando aprovação
+- **Status:** **aceito**
 - **Data:** 28/08/2026
+- **Aprovado em:** 12/09/2026, por André. O copiloto de prompts (§3.1) foi confirmado como parte do
+  projeto e necessário. Sobre a auditoria visual (§3.3), foi confirmado que **veredito em texto
+  basta na primeira versão**: marcar o erro sobre a imagem fica para depois, como o próprio §3.3 já
+  previa. Ver `docs/brainstorm/2026-09-11-o-pdf-como-manual.md` §12.
 - **Origem:** `documentacao_brennimark.md`, filtrado — ver §6
 - **Relaciona-se com:** ADR-0002 (modos e capacidades), ADR-0003 (produto hospedado)
 
