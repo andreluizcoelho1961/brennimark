@@ -107,13 +107,25 @@ export function shellSections({
     {
       id: "manual",
       label: t("Manual", "Manual"),
+      /*
+       * UM destino, e ele é o PDF.
+       *
+       * Eram dois: "Manual original", o PDF, e "Visão geral", que levava à
+       * primeira seção remontada pela máquina. Dois itens para a mesma coisa
+       * obrigavam a pessoa a escolher entre o manual e uma interpretação dele,
+       * sem que a barra pudesse explicar a diferença.
+       *
+       * Agora `/docs` redireciona para cá, então "Visão geral" levaria ao mesmo
+       * lugar que o vizinho de cima — e destino que repete o anterior é
+       * promessa quebrada. O rótulo perde o "original" junto: não há mais com o
+       * que contrastar, e o manual da marca é simplesmente o manual.
+       */
       destinations: [
         {
           href: "/docs/original",
-          label: t("Manual original", "Original manual"),
+          label: t("Manual", "Manual"),
           mobile: true,
         },
-        { href: "/docs", label: t("Visão geral", "Overview"), mobile: true },
       ],
     },
     {

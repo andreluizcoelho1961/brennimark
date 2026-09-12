@@ -3,13 +3,41 @@ import { expect, test, type Page } from "@playwright/test";
 /**
  * A experiência de ler o manual.
  *
- * Antes do Q1 a barra tinha "Visão geral" e as utilidades, e nada mais: um
- * manual de 152 seções só era alcançável pela busca ou pela página de entrada.
- * Quem não sabia o nome exato do que procurava não chegava a lugar nenhum.
+ * ─── O que mudou, e por que os casos mudaram com ele ────────────────────────
+ *
+ * Até aqui a barra listava as SEÇÕES EXTRAÍDAS do PDF, agrupadas e cortadas por
+ * lote, e metade destes casos media essa lista. Ela saiu da navegação quando o
+ * PDF passou a ser o manual: navegar por 122 seções propostas por heurística
+ * competia com o sumário que o próprio documento já tem.
+ *
+ * O que os casos medem agora é o que ficou de pé:
+ *
+ *   - a coluna e a gaveta oferecem os MESMOS destinos, e o manual vem primeiro;
+ *   - uma seção extraída que não está mais na barra continua ALCANÇÁVEL pela
+ *     busca — esta é a garantia nova, e é o contrapeso da remoção: sem ela, a
+ *     extração teria sido escondida em vez de reposicionada;
+ *   - teclado, foco e 404 continuam exatamente como eram.
+ *
+ * O agrupamento e o corte por lote continuam cobertos por teste de unidade
+ * (`documentos.test.ts`): o módulo segue no repositório para a curadoria do
+ * Studio, e é lá que ele volta a ter tela.
+ *
+ * Fora de cobertura aqui, e dito de propósito: `/docs` redirecionar para
+ * `/docs/original` exige marca resolvida, e a suíte roda sem banco. Essa
+ * passagem é verificada na bancada e em produção.
  *
  * A rota de fixtures é usada de propósito: ela monta a MESMA moldura, com os
- * mesmos componentes, sobre páginas que existem sem banco. As rotas reais
- * dependem de sessão, e o que se prova aqui é a navegação.
+ * mesmos componentes, sobre páginas que existem sem banco.
+ *
+ * ─── Armadilha da bancada: o endereço aqui NÃO é o de produção ──────────────
+ *
+ * A bancada passa `basePath="/dev/marcas"`, e `withBase` reescreve o prefixo
+ * `/docs` dos destinos canônicos. O destino do manual, que em produção é
+ * `/w/<conta>/b/<marca>/docs/original`, aqui é `/dev/marcas/original`.
+ *
+ * Por isso os seletores casam o FIM do href (`$='/original'`) e não o caminho
+ * inteiro: a primeira versão destes casos procurava `/docs/original` e falhou
+ * nove vezes — três casos nos três motores — apontando defeito onde não havia.
  */
 const LAB = "/dev/marcas";
 
@@ -42,26 +70,45 @@ async function abrirBuscaPeloAtalho(page: Page) {
   await expect(page.getByRole("dialog")).toBeVisible();
 }
 
-test("a barra lista as páginas do manual, agrupadas", async ({ page }) => {
+test("a barra leva ao manual, e o manual é o PDF", async ({ page }) => {
   await desktop(page);
-  const navegacao = page.getByRole("navigation", { name: /Páginas do manual|Manual pages/ });
+  const navegacao = page.getByRole("navigation", { name: /Navegação principal|Main navigation/ });
   await expect(navegacao).toBeVisible();
-  await expect(navegacao.getByRole("heading", { name: "Sistema" })).toBeVisible();
-  await expect(navegacao.getByRole("heading", { name: "Aplicações" })).toBeVisible();
+
+  // O destino do manual aponta para o documento-fonte, não para uma seção
+  // remontada. Se algum dia voltar a apontar para `/docs`, a pessoa volta a
+  // entrar pela interpretação da máquina sem nada avisar.
+  const manual = navegacao.locator("[data-nav-destination][href$='/original']");
+  await expect(manual).toHaveCount(1);
+  await expect(manual).toBeVisible();
 });
 
-test("um grupo grande é cortado, e diz quantos existem", async ({ page }) => {
+test("a barra não lista mais as seções extraídas", async ({ page }) => {
   await desktop(page);
-  const navegacao = page.getByRole("navigation", { name: /Páginas do manual|Manual pages/ });
-  // 15 páginas em "Aplicações", lote de 12: nem todas na tela de uma vez.
-  const antes = await navegacao.locator("[data-doc-destino]").count();
-  expect(antes).toBeLessThan(17);
-  // O total precisa estar dito: sem ele, lista cortada é indistinguível de
-  // lista completa.
-  await expect(navegacao.getByRole("heading", { name: /Aplicações \(15\)/ })).toBeVisible();
+  // Não é limpeza de teste: é a decisão. A lista de seções propostas pela
+  // máquina saiu da navegação, e o caso existe para que ela não volte por
+  // acidente junto com outra mudança.
+  await expect(page.locator("[data-doc-destino]")).toHaveCount(0);
+});
 
-  await navegacao.getByRole("button", { name: /Ver mais|Show/ }).click();
-  expect(await navegacao.locator("[data-doc-destino]").count()).toBeGreaterThan(antes);
+test("o manual é o primeiro destino da coluna", async ({ page }) => {
+  /*
+   * A ordem no DOM é a ordem que a pessoa lê. O teste mede posição vertical
+   * real, e não a ordem do array: um `order` de CSS ou um flex invertido
+   * mudaria a tela sem mudar a estrutura, e o teste continuaria verde.
+   */
+  await desktop(page);
+
+  const posicaoDe = (seletor: string) =>
+    page.evaluate(
+      (s) => document.querySelector(s)?.getBoundingClientRect().top ?? Infinity,
+      seletor,
+    );
+
+  const manual = await posicaoDe("[data-nav-destination][href$='/original']");
+  const biblioteca = await posicaoDe("[data-nav-destination][href*='biblioteca']");
+
+  expect(manual, "o manual está abaixo do acervo").toBeLessThan(biblioteca);
 });
 
 test("a navegação é alcançável só pelo teclado", async ({ page, browserName }) => {
@@ -81,16 +128,16 @@ test("a navegação é alcançável só pelo teclado", async ({ page, browserNam
   for (let i = 0; i < 40; i += 1) {
     await page.keyboard.press(tecla);
     const chegou = await page.evaluate(() =>
-      document.activeElement?.hasAttribute("data-doc-destino") ?? false,
+      document.activeElement?.hasAttribute("data-nav-destination") ?? false,
     );
     if (chegou) return;
   }
-  throw new Error(`nenhuma página do manual recebeu foco com ${tecla}`);
+  throw new Error(`nenhum destino da navegação recebeu foco com ${tecla}`);
 });
 
 test("o foco fica visível em cada destino", async ({ page }) => {
   await desktop(page);
-  const primeiro = page.locator("[data-doc-destino]").first();
+  const primeiro = page.locator("[data-nav-destination]").first();
   await primeiro.focus();
   // Contorno de foco não é decoração: sem ele, quem navega por teclado não
   // sabe onde está.
@@ -101,28 +148,38 @@ test("o foco fica visível em cada destino", async ({ page }) => {
   expect(contorno.estilo).not.toBe("none");
 });
 
-test("a gaveta mobile oferece a mesma navegação de páginas", async ({ page }) => {
+test("a gaveta mobile oferece os mesmos destinos da coluna", async ({ page }) => {
   await mobile(page);
   await page.getByRole("button", { name: /navega|navigation/i }).click();
   const gaveta = page.getByRole("dialog");
-  await expect(gaveta.getByRole("navigation", { name: /Páginas do manual|Manual pages/ })).toBeVisible();
-  await expect(gaveta.locator("[data-doc-destino]").first()).toBeVisible();
+  await expect(gaveta.locator("[data-nav-destination][href$='/original']")).toBeVisible();
+  // Duas navegações diferentes para o mesmo produto seriam dois produtos: o que
+  // saiu da coluna precisa ter saído da gaveta também. Foi assim que as páginas
+  // excluídas sumiram do mobile no patch 2, em sentido contrário.
+  await expect(gaveta.locator("[data-doc-destino]")).toHaveCount(0);
 });
 
-test("escolher uma página fecha a gaveta", async ({ page }) => {
+test("escolher um destino fecha a gaveta", async ({ page }) => {
   await mobile(page);
   await page.getByRole("button", { name: /navega|navigation/i }).click();
-  await page.getByRole("dialog").locator("[data-doc-destino]").first().click();
+  await page.getByRole("dialog").locator("[data-nav-destination]").first().click();
   // Gaveta aberta por cima do conteúdo que a pessoa acabou de pedir é o
   // defeito mais comum de menu mobile.
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
 
-test("a busca encontra uma página que não está na tela", async ({ page }) => {
+test("a busca ainda encontra uma seção que saiu da barra", async ({ page }) => {
   await desktop(page);
   await abrirBuscaPeloAtalho(page);
   const busca = page.getByRole("dialog");
-  // A página 15 está além do lote de 12: a busca precisa alcançá-la.
+  /*
+   * Esta é a garantia que sustenta a remoção.
+   *
+   * "Aplicação 15" não está mais em nenhuma lista da moldura. Se a busca também
+   * deixasse de encontrá-la, a extração teria sido ESCONDIDA — e o produto
+   * passaria a responder "não achei" sobre algo que existe, que é o pior dos
+   * dois erros, porque não avisa.
+   */
   await busca.getByRole("combobox").or(busca.getByRole("searchbox")).or(busca.locator("input")).first()
     .fill("Aplicação 15");
   await expect(busca.getByText("Aplicação 15").first()).toBeVisible();
@@ -144,34 +201,11 @@ for (const [largura, nome] of [[390, "mobile"], [1440, "desktop"]] as const) {
     const resposta = await page.goto("/w/conta/b/marca/docs/pagina-que-nao-existe");
     expect(resposta?.status()).toBe(404);
 
-    // A tela genérica do Next tira a pessoa do produto: sem barra, sem lista
-    // de páginas, e a única saída é o botão de voltar do navegador.
+    // A tela genérica do Next tira a pessoa do produto: sem barra, sem destino,
+    // e a única saída é o botão de voltar do navegador.
     await expect(page.getByText("This page could not be found")).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: /não está neste manual|não existe/i }),
     ).toBeVisible();
   });
 }
-
-test("o manual aparece acima das ferramentas na coluna", async ({ page }) => {
-  /*
-   * A ordem no DOM é a ordem que a pessoa lê. O teste mede posição vertical
-   * real, e não a ordem do array: um `order` de CSS ou um flex invertido
-   * mudaria a tela sem mudar a estrutura, e o teste continuaria verde.
-   */
-  await desktop(page);
-
-  const posicaoDe = (seletor: string) =>
-    page.evaluate(
-      (s) => document.querySelector(s)?.getBoundingClientRect().top ?? Infinity,
-      seletor,
-    );
-
-  const primeiraPagina = await posicaoDe("[data-doc-destino]");
-  const biblioteca = await posicaoDe("[data-nav-destination][href*='biblioteca']");
-
-  expect(
-    primeiraPagina,
-    "as páginas do manual estão abaixo do acervo",
-  ).toBeLessThan(biblioteca);
-});

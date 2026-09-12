@@ -68,5 +68,18 @@ test("com a aba oculta, as páginas visuais são desenhadas e a publicação che
 
   // Segundos, e não minutos: é a diferença que o defeito fazia.
   await expect.poll(() => rpc.length, { timeout: 20_000 }).toBeGreaterThan(0);
-  expect(imagens.length, "nenhuma página visual foi desenhada e enviada").toBeGreaterThan(0);
+
+  /*
+   * A afirmação sobre as imagens saiu com elas.
+   *
+   * Até 12/09 este caso também exigia `imagens.length > 0`: era o desenho das
+   * páginas que congelava, e a imagem enviada provava que ele tinha andado.
+   * O ADR-0006 tirou a renderização da importação, então não há mais o que
+   * contar — e uma asserção sobre zero imagens seria teatro.
+   *
+   * O que sobrou é a garantia que continua sendo do produto: **publicar não
+   * depende de a aba estar à vista**. Se a renderização voltar (WebP, ver
+   * ADR-0006 §5), a asserção volta junto, e esta é a nota que diz por quê.
+   */
+  expect(imagens, "imagens de página voltaram sem o teste voltar junto").toEqual([]);
 });
