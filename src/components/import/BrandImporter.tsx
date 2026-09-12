@@ -6,16 +6,16 @@ import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { slugify } from "@/lib/import/draft";
 import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
-import { lerPdf, FalhaDeLeitura, renderizarPaginasComoImagem, type ItemDeOutline } from "@/lib/import/pdf";
+import { lerPdf, FalhaDeLeitura, type ItemDeOutline } from "@/lib/import/pdf";
 import { rotuloDoProgresso, type ProgressoDaPublicacao } from "@/lib/import/progresso-da-publicacao";
 import { diagnosticar } from "@/lib/import/pdf-erros";
 import { detectarRepetidos, linhasUteis } from "@/lib/import/texto";
 import {
-  agrupar, ehVisualDominante, faixaLegivel, fimDe, inicioDe, type Agrupamento, type Secao,
+  agrupar, faixaLegivel, fimDe, inicioDe, type Agrupamento, type Secao,
 } from "@/lib/import/secoes";
 import { ListaDeSecoes } from "./ListaDeSecoes";
 import type { BrandvilleUtilityKey } from "@/brandville/types";
-import { caminhoDeAsset, caminhoDeImportacao } from "@/lib/storage/caminhos";
+import { caminhoDeImportacao } from "@/lib/storage/caminhos";
 import { enviarArquivosDaImportacao, garantirAusencia } from "@/lib/import/orfaos";
 import { portasDeEnvioSupabase } from "@/lib/import/portas-supabase";
 import {
@@ -223,23 +223,29 @@ export function BrandImporter({
     const supabase = createClient();
 
     /**
-     * Fase 1g: página visual-dominante vira imagem fiel da própria página.
+     * A importação NÃO renderiza mais as páginas visuais como imagem.
      *
-     * Uma seção não some do texto por ganhar imagem — as duas convivem no
-     * mesmo documento. O que muda é só quem manda visualmente: uma abertura
-     * de seção com quase nada de texto extraível ganha a imagem que o texto
-     * sozinho nunca reconstruiria.
+     * Elas existiam para a página remontada: uma abertura de seção com quase
+     * nada de texto extraível ganhava a imagem que o texto sozinho não
+     * reconstruiria. Com o PDF virando a superfície de leitura (ADR-0006), a
+     * página remontada saiu do caminho de leitura, e a imagem perdeu o
+     * destinatário.
+     *
+     * O que a remoção economiza, medido em 12/09/2026 no manual de 47 páginas
+     * (25 visuais): **45 s** de conversão do canvas em PNG, 23 s de envio e
+     * **33,9 MiB** por importação — oito vezes o próprio PDF, num plano cujo
+     * Storage inteiro é 1 GB.
+     *
+     * O que se perde, dito por inteiro: numa importação nova, a página de uma
+     * seção visual-dominante fica sem imagem. Ela continua roteável e na busca,
+     * mas quem abrir aquele endereço vê o pouco texto que a página tinha. As
+     * marcas importadas antes disto mantêm as imagens que já subiram.
+     *
+     * A capacidade fica guardada, não apagada: `renderizarPaginasComoImagem`
+     * continua em `lib/import/pdf.ts`, com teste, e a medição de 12/09 mostra o
+     * caminho se ela voltar — WebP em vez de PNG (11 s e 7,6 MiB no mesmo
+     * manual) e envio em paralelo.
      */
-    const paginasVisuais = secoes
-      .filter(ehVisualDominante)
-      .map((secao) => inicioDe(secao))
-      .filter((pagina): pagina is number => pagina !== null);
-    if (paginasVisuais.length > 0) {
-      setProgresso({ etapa: "renderizando", feito: 0, total: paginasVisuais.length });
-    }
-    const imagensRenderizadas = await renderizarPaginasComoImagem(arquivo, paginasVisuais, {
-      aoProgredir: (feito, total) => setProgresso({ etapa: "renderizando", feito, total }),
-    });
 
     /**
      * As imagens e o PDF sobem juntos, por `enviarArquivosDaImportacao`.
@@ -253,26 +259,17 @@ export function BrandImporter({
      * regra: por isso a decisão vive em `orfaos.ts`, com teste.
      */
     const portas = portasDeEnvioSupabase(supabase, workspaceId);
-    const planoDeImagens = secoes.flatMap((secao) => {
-      if (!ehVisualDominante(secao)) return [];
-      const pagina = inicioDe(secao);
-      const blob = pagina !== null ? imagensRenderizadas.get(pagina) : undefined;
-      if (!blob) return [];
-      return [{
-        secaoId: secao.id,
-        titulo: secao.titulo,
-        caminho: caminhoDeAsset(workspaceId, brandId, `pagina-${pagina}.png`, crypto.randomUUID()),
-        dados: blob as unknown,
-      }];
-    });
 
     const caminho = caminhoDeImportacao(workspaceId, importId, hash);
 
-    setProgresso({ etapa: "enviando", feito: 0, total: planoDeImagens.length });
+    // Um arquivo só, o PDF. O total continua explícito porque a barra mostra
+    // "x de y", e um total zero faria a etapa parecer vazia.
+    setProgresso({ etapa: "enviando", feito: 0, total: 1 });
     const envio = await enviarArquivosDaImportacao(
       portas,
       {
-        imagens: planoDeImagens.map(({ caminho: c, dados }) => ({ caminho: c, dados })),
+        // Só o PDF sobe. As imagens de página saíram — ver o comentário acima.
+        imagens: [],
         pdf: { caminho, dados: arquivo as unknown },
         bucketDeImagens: "brand-assets",
         bucketDoPdf: "brand-imports",
@@ -299,12 +296,12 @@ export function BrandImporter({
     }
 
     const objetoNovo = envio.objetoNovo;
-    const enviadas = new Set(envio.imagensEnviadas);
-    const imagensPorSecao = new Map<string, { src: string; alt: string }[]>();
-    for (const item of planoDeImagens) {
-      if (!enviadas.has(item.caminho)) continue;
-      imagensPorSecao.set(item.secaoId, [{ src: item.caminho, alt: item.titulo }]);
-    }
+    /*
+     * `imagensEnviadas` continua sendo lido, e vem vazio: é ele que a limpeza
+     * usa se a gravação falhar depois do envio. Manter o caminho de limpeza
+     * de pé, mesmo sem imagens, evita que a volta delas reabra o defeito que
+     * `orfaos.ts` fechou.
+     */
     const caminhosDeImagemEnviados = envio.imagensEnviadas;
 
     /*
@@ -327,7 +324,7 @@ export function BrandImporter({
         title: secao.titulo,
         status: "draft" as const,
         body: secao.linhas,
-        images: imagensPorSecao.get(secao.id) ?? [],
+        images: [],
         // A procedência vai no DOCUMENTO, não só no relatório. O relatório é
         // registro da importação; o documento é o que a recuperação consulta
         // depois, e sem a faixa aqui a citação diria apenas "está no manual".
