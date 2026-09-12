@@ -1,6 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  montarIndice, type FonteDoIndice, type ItemDeIndice, type MarcadorResolvido,
+  type SecaoExtraida,
+} from "@/lib/documento-fonte/indice";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import { useIsEnglish } from "@/platform/locale-client";
 import { prepararAmbienteDePdf } from "@/lib/import/stream-iteravel";
@@ -33,6 +37,7 @@ export function VisualizadorDePdf({
   contaSlug,
   marcaChave,
   origem,
+  secoes,
   className,
 }: {
   /** O identificador do DOCUMENTO. Nunca um caminho de Storage. */
@@ -50,6 +55,13 @@ export function VisualizadorDePdf({
    * Quem passa este valor são as telas `/dev/*`, fechadas em produção.
    */
   origem?: string;
+  /**
+   * As seções extraídas, para o índice quando o PDF não traz marcadores.
+   *
+   * Medido em 30 manuais reais: só 7 têm marcadores. Este é o caminho de 3 em
+   * cada 4 — ver `lib/documento-fonte/indice.ts`.
+   */
+  secoes?: readonly SecaoExtraida[];
   className?: string;
 }) {
   const [documento, setDocumento] = useState<PDFDocumentProxy | null>(null);
@@ -63,6 +75,11 @@ export function VisualizadorDePdf({
   const [termo, setTermo] = useState("");
   const [falha, setFalha] = useState<string | null>(null);
   const [miniaturasAbertas, setMiniaturasAbertas] = useState(false);
+  const [indiceAberto, setIndiceAberto] = useState(false);
+  const [indice, setIndice] = useState<{ fonte: FonteDoIndice; itens: ItemDeIndice[] }>({
+    fonte: "nenhuma",
+    itens: [],
+  });
 
   const isEnglish = useIsEnglish();
   const t = useCallback((pt: string, en: string) => (isEnglish ? en : pt), [isEnglish]);
@@ -543,6 +560,69 @@ export function VisualizadorDePdf({
   }, [paginaAtual]);
 
   /**
+   * O índice do manual: marcadores do PDF quando prestam, seções quando não.
+   *
+   * A decisão NÃO está aqui — está em `lib/documento-fonte/indice.ts`, com
+   * teste. Aqui fica só o que exige o PDF.js: ler a árvore e resolver o
+   * destino de cada nó em número de página.
+   *
+   * **Só os dois primeiros níveis são percorridos.** O módulo descarta o resto,
+   * e resolver destino custa uma ida ao documento por nó: o manual da GE tem
+   * 592 marcadores em 7 níveis, e descer tudo seria pagar centenas de
+   * resoluções para exibir algumas dezenas de linhas.
+   *
+   * Destino que não resolve vira `null`, e o módulo o descarta — a GE tem 5
+   * assim, e deixar a exceção subir tiraria o índice do manual inteiro.
+   */
+  const secoesRef = useRef(secoes);
+  useEffect(() => {
+    secoesRef.current = secoes;
+  }, [secoes]);
+  // A chave evita reabrir o efeito quando o pai recria o array a cada render.
+  const chaveDasSecoes = (secoes ?? []).map((s) => `${s.pagina}:${s.titulo}`).join("|");
+
+  useEffect(() => {
+    if (!documento) return;
+    let cancelado = false;
+
+    (async () => {
+      const marcadores: MarcadorResolvido[] = [];
+      try {
+        const raiz = await documento.getOutline();
+        type No = { title?: string; dest?: unknown; items?: No[] };
+        const andar = async (itens: No[] | undefined, nivel: number) => {
+          for (const item of itens ?? []) {
+            let pagina: number | null = null;
+            try {
+              const destino =
+                typeof item.dest === "string"
+                  ? await documento.getDestination(item.dest)
+                  : item.dest;
+              const referencia = Array.isArray(destino) ? destino[0] : null;
+              if (referencia && typeof referencia === "object") {
+                pagina = (await documento.getPageIndex(referencia as never)) + 1;
+              }
+            } catch {
+              pagina = null;
+            }
+            marcadores.push({ titulo: String(item.title ?? ""), pagina, nivel });
+            if (nivel < 2) await andar(item.items, nivel + 1);
+          }
+        };
+        await andar((raiz ?? undefined) as No[] | undefined, 1);
+      } catch {
+        // PDF sem marcadores, ou árvore ilegível: o plano B resolve.
+      }
+      if (cancelado) return;
+      setIndice(montarIndice(marcadores, secoesRef.current ?? []));
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [documento, chaveDasSecoes]);
+
+  /**
    * A retomada, quando o documento é trocado.
    *
    * `irPara` vive num ref para que este efeito dependa SÓ do documento. Sem
@@ -587,6 +667,9 @@ export function VisualizadorDePdf({
         ajuste={ajuste}
         termo={termo}
         miniaturasAbertas={miniaturasAbertas}
+        indiceAberto={indiceAberto}
+        temIndice={indice.itens.length > 0}
+        aoAlternarIndice={() => setIndiceAberto((v) => !v)}
         aoIrPara={irPara}
         aoZoom={zoom}
         aoAjustarLargura={() => setAjuste({ tipo: "largura" })}
@@ -596,6 +679,16 @@ export function VisualizadorDePdf({
       />
 
       <div className="flex min-h-0 flex-1">
+        {indiceAberto && indice.itens.length > 0 && (
+          <Indice
+            t={t}
+            itens={indice.itens}
+            fonte={indice.fonte}
+            paginaAtual={paginaAtual}
+            aoEscolher={irPara}
+          />
+        )}
+
         {miniaturasAbertas && documento && (
           <Miniaturas
             t={t}
@@ -666,6 +759,9 @@ function Barra({
   ajuste,
   termo,
   miniaturasAbertas,
+  indiceAberto,
+  temIndice,
+  aoAlternarIndice,
   aoIrPara,
   aoZoom,
   aoAjustarLargura,
@@ -679,6 +775,9 @@ function Barra({
   ajuste: Ajuste;
   termo: string;
   miniaturasAbertas: boolean;
+  indiceAberto: boolean;
+  temIndice: boolean;
+  aoAlternarIndice: () => void;
   aoIrPara: (n: number) => void;
   aoZoom: (d: 1 | -1) => void;
   aoAjustarLargura: () => void;
@@ -711,6 +810,23 @@ function Barra({
      * `leak-guard` verifica isso no código-fonte.
      */
     <div className="flex flex-wrap items-center gap-[var(--space-shell-3)] border-b border-platform-border bg-platform-panel px-[var(--space-shell-3)] py-[var(--space-shell-2)] text-platform-text">
+      {/*
+        O índice só aparece quando existe.
+        Um botão que abre uma coluna vazia é pior que a ausência do botão: ele
+        promete um sumário que o documento não tem. Ver `indice.ts` — em 30
+        manuais reais, 23 não trazem marcadores.
+      */}
+      {temIndice && (
+        <button
+          type="button"
+          onClick={aoAlternarIndice}
+          aria-pressed={indiceAberto}
+          className="rounded border border-platform-border px-2 py-1 text-[13px]"
+        >
+          {t("Índice", "Contents")}
+        </button>
+      )}
+
       <button
         type="button"
         onClick={aoAlternarMiniaturas}
@@ -838,6 +954,82 @@ function Miniaturas({
           </li>
         ))}
       </ol>
+    </nav>
+  );
+}
+
+/**
+ * O índice, numa coluna à esquerda do documento.
+ *
+ * É navegação, então é da PLATAFORMA: só tokens `--platform-*`. Um manual de
+ * fundo preto e um de fundo bege precisam da mesma coluna, e o `leak-guard`
+ * confere isso no código-fonte.
+ *
+ * ─── Por que ele diz de onde veio ───────────────────────────────────────────
+ *
+ * O rodapé distingue o sumário que o estúdio exportou do índice que a máquina
+ * propôs a partir da extração. São coisas diferentes: um é do documento, o
+ * outro é interpretação — a mesma distinção que o ADR-0006 usou para tirar as
+ * páginas remontadas do caminho de leitura. Apresentar os dois com o mesmo
+ * silêncio faria a proposta da máquina passar por documento aprovado.
+ */
+function Indice({
+  t,
+  itens,
+  fonte,
+  paginaAtual,
+  aoEscolher,
+}: {
+  t: (pt: string, en: string) => string;
+  itens: readonly ItemDeIndice[];
+  fonte: FonteDoIndice;
+  paginaAtual: number;
+  aoEscolher: (n: number) => void;
+}) {
+  /**
+   * O item ativo é o ÚLTIMO cujo início já passou.
+   *
+   * Comparar com a página exata falharia em todo item que cobre mais de uma
+   * página — que é a maioria: um capítulo que começa na 12 e vai até a 19
+   * precisa continuar marcado enquanto se lê a 15.
+   */
+  const ativo = itens.reduce(
+    (melhor, item, i) => (item.pagina <= paginaAtual ? i : melhor),
+    -1,
+  );
+
+  return (
+    <nav
+      aria-label={t("Índice do manual", "Manual contents")}
+      className="hidden w-[var(--shell-sidebar,224px)] flex-none flex-col overflow-y-auto border-r border-platform-border bg-platform-panel py-[var(--space-shell-3)] text-platform-text lg:flex"
+    >
+      <ul className="min-h-0 flex-1">
+        {itens.map((item, i) => (
+          <li key={`${item.pagina}-${item.titulo}-${i}`}>
+            <button
+              type="button"
+              data-indice-item
+              aria-current={i === ativo ? "true" : undefined}
+              onClick={() => aoEscolher(item.pagina)}
+              className={`flex w-full items-baseline gap-2 px-[var(--space-shell-3)] py-[6px] text-left text-[13px] hover:bg-platform-bg ${
+                i === ativo ? "text-platform-text" : "text-platform-text-muted"
+              } ${item.nivel === 2 ? "pl-[var(--space-shell-5)]" : ""}`}
+            >
+              <span className="min-w-0 flex-1 truncate">{item.titulo}</span>
+              <span className="shrink-0 tabular-nums text-platform-text-muted">{item.pagina}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <p
+        data-indice-fonte={fonte}
+        className="border-t border-platform-border px-[var(--space-shell-3)] pt-[var(--space-shell-2)] text-[11px] text-platform-text-muted"
+      >
+        {fonte === "marcadores"
+          ? t("Sumário do próprio documento.", "The document's own outline.")
+          : t("Índice proposto pela extração.", "Contents proposed by extraction.")}
+      </p>
     </nav>
   );
 }
