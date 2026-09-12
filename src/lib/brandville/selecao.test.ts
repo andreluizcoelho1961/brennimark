@@ -74,10 +74,16 @@ test("existir e não participar é indistinguível de não existir", () => {
   assert.deepEqual(naoParticipa, naoExiste);
 });
 
-test("uma única marca dispensa a pergunta e redireciona", () => {
+test("uma única marca TAMBÉM passa pela tela inicial", () => {
+  /*
+   * Mudou em 12/09/2026, por decisão do André, e o caso antigo afirmava o
+   * contrário: com uma marca só, o login redirecionava direto para dentro dela.
+   * A tela inicial passou a ser a porta do produto — é onde a pessoa entende
+   * onde está e vê as marcas da conta, mesmo que seja uma.
+   */
   const r = resolverSemAlvo(pessoa({ disponiveis: [clienteSolo] }));
-  assert.equal(r.tipo, "ir-para");
-  assert.deepEqual(r.tipo === "ir-para" && r.destino, { workspaceSlug: "sul", brandKey: "oficina" });
+  assert.equal(r.tipo, "escolher");
+  assert.deepEqual(r.tipo === "escolher" && r.opcoes.flatMap((o) => o.marcas.map((m) => m.key)), ["oficina"]);
 });
 
 test("duas marcas no mesmo workspace perguntam, não escolhem", () => {

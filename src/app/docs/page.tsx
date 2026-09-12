@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
-import { EscolhaDeContexto } from "@/components/shell/EscolhaDeContexto";
+import { TelaInicial } from "@/components/shell/TelaInicial";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
 import { LocaleProvider } from "@/platform/locale-client";
 
@@ -53,7 +53,7 @@ export default async function ResolvedorDeContexto() {
   return (
     <LocaleProvider locale={contexto.locale}>
       <main>
-        <EscolhaDeContexto opcoes={pares} />
+        <TelaInicial opcoes={pares} />
       </main>
     </LocaleProvider>
   );
