@@ -72,32 +72,15 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * Fecha o acesso por conta e abre o acesso POR MARCA (`brand_members`).
-   *
-   * Escrita em 13/09/2026, NÃO aplicada em produção. Reescreve 23 policies e
-   * cria a tabela que passa a decidir quem alcança o quê — aplicar isso ao
-   * banco hospedado é decisão do proprietário, e ela vale para as duas contas
-   * que já existem lá. A semeadura preserva o acesso de hoje (dona da conta
-   * recebe as quatro capacidades em cada marca; participante recebe
-   * `consultar`), então aplicar não tira acesso de ninguém — mas continua
-   * sendo escrita em produção, e escrita em produção se pede.
-   *
-   * A prova vive em `scripts/prova-acesso-por-marca.sh`.
-   */
-  "acesso_por_marca",
-  /**
-   * O registro de quem mexeu no acesso (passo A3).
-   *
-   * Escrita em 13/09/2026, NÃO aplicada em produção. Anda junto com
-   * `acesso_por_marca`: conceder sem registrar responde "quem tem acesso?",
-   * que o estado já responde, e não "quem concedeu, e quando?", que nenhuma
-   * tabela de estado responde. O ADR-0007 torna isso obrigação, não conforto:
-   * a fonte licenciada tem termo assinado.
-   *
-   * Provada junto, em `scripts/prova-acesso-por-marca.sh`.
-   */
-  "registro_de_acesso_por_marca",
+  // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
+  // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
+  // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram
+  // renomeados para esses carimbos, porque o repositório precisa bater com o
+  // ledger. Conferido depois de aplicar: a impressão digital das 30 policies e
+  // das 4 funções envolvidas é IDÊNTICA à do banco local
+  // (c9b962c8b959f06eb7b076e92349a56d), e a semeadura deixou as 2 marcas da
+  // única conta com as quatro capacidades para o dono. Nenhuma marca ficou sem
+  // ninguém.
   // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado

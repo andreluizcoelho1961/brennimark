@@ -511,7 +511,7 @@ begin
   end if;
 
   /*
-   * Quem pode editar passou a ser decidido POR MARCA (20260913185141).
+   * Quem pode editar passou a ser decidido POR MARCA (20260913223226).
    *
    * Antes, esta checagem exigia `owner` da conta — e, com o acesso por marca,
    * ela recusaria justamente quem recebeu `editar` naquela marca: a RLS
@@ -575,5 +575,4 @@ begin
   end if;
   return new;
 end;
-$function$
-
+$function$;

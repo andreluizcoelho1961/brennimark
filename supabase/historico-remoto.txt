@@ -50,3 +50,5 @@
 20260910213339 limpeza_de_importacao_enfileira_de_fato
 20260910215914 kill_switch_excecao_registrada
 20260911155633 documento_fonte_e_manifesto_por_pagina
+20260913223226 acesso_por_marca
+20260913223333 registro_de_acesso_por_marca
