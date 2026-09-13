@@ -211,15 +211,31 @@ autorização), e papéis fixos por marca (contraria a escolha de capacidades do
 
 ## 7. Banco
 
-**Verificado em 13/09, antes de modelar:** `brand_assets` **já existe** —
-`(id, workspace_id, brand_id, label, description, category, storage_path, file_name, mime_type,
-size_bytes, status, created_by, created_at, updated_at)` — com quatro policies (membro lê, owner
-escreve) e oito arquivos de código a usando, entre eles o importador.
+**Verificado em 13/09, antes de modelar — e o achado é maior que o esperado: uma biblioteca
+simples JÁ EXISTE e funciona.** Este ADR não descreve um recurso novo; descreve a evolução de um
+que está no ar.
 
-Ela é **uma linha por arquivo**, sem agrupamento item↔variante, sem os eixos, sem espaço de cor e sem
-pastas. **Decisão: estender, não substituir.** `brand_assets` continua sendo a tabela do arquivo, e
-os eixos e o vínculo com o item entram como colunas e como tabela nova por cima. Substituir exigiria
-migrar dado e mexer nos oito arquivos por nenhum ganho.
+O que existe hoje:
+
+| Peça | Onde | O que faz |
+|---|---|---|
+| Tabela | `brand_assets` | `(id, workspace_id, brand_id, label, description, category, storage_path, file_name, mime_type, size_bytes, status, created_by, created_at, updated_at)`, com quatro policies (membro lê, owner escreve) |
+| Tela | `/docs/biblioteca` + `components/assets/AssetLibrary` | grade com miniatura para imagem, categoria, rótulo, descrição, nome e tamanho do arquivo |
+| Leitura | `GET /api/assets` | lista da marca e devolve **URL assinada de 1 hora**, com `pertenceAMarca` conferindo o caminho antes de assinar |
+| Escrita | `POST/DELETE /api/admin/assets` | upload e remoção por quem administra |
+
+O que **falta**, e é o que este ADR acrescenta: item↔variante e os eixos (§2.2), espaço de cor,
+pastas para fotos (§2.3), ZIP em lote (item 11), **substituir sem apagar** — hoje o botão é "Remover"
+(item 10), regra colada ao download (item 14), registro de download (item 18), entrega governada
+(§2.5) e fonte hospedada (§3).
+
+**Decisão: estender, não substituir.** `brand_assets` continua sendo a tabela do arquivo; os eixos e
+o vínculo com o item entram como colunas e como tabela nova por cima. A tela e as duas rotas evoluem
+no lugar. Substituir exigiria migrar dado e refazer o que já funciona por nenhum ganho.
+
+⚠️ **Consequência para o planejamento:** o Passo B é evolução, não construção do zero — e a parte
+mais delicada dele é a que já está em produção. Trocar "Remover" por "descontinuar" muda o
+comportamento de um botão que hoje apaga.
 
 Exigências do projeto, sem exceção: migration versionada, RLS, índices e **teste de autorização
 negativo** — provar que a conta A não lê os assets da B, **e** que a marca X não lê os da Y.
