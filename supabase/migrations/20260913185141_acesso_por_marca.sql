@@ -194,18 +194,34 @@ declare
   criadora uuid := (select auth.uid());
 begin
   /*
-   * Sem sessão não há a quem conceder, e a criação NÃO pode falhar por isso.
+   * Sem sessão, o acesso vai para quem é dono da CONTA.
    *
-   * `auth.uid()` é nulo quando a marca nasce pela chave de serviço, por SQL de
-   * manutenção ou por uma prova. Inserir mesmo assim violaria o `not null` de
-   * `user_id` e quebraria a criação inteira — foi o que aconteceu ao escrever a
-   * primeira versão deste gatilho.
+   * `auth.uid()` é nulo quando a marca nasce pela chave de serviço ou por SQL
+   * de manutenção. O caminho real de criação — o RPC de importação — sempre
+   * tem sessão, então isto é a borda, não o caso comum.
    *
-   * Nesses caminhos o acesso é concedido por quem administra a conta, pela tela
-   * de permissões. O que este gatilho resolve é o caso comum: quem cria pela
-   * interface não pode ficar de fora do que acabou de criar.
+   * Duas saídas erradas foram descartadas aqui, cada uma por um motivo medido:
+   *
+   *   Inserir com `criadora` nula viola o `not null` de `user_id` e derruba a
+   *   criação inteira. Foi o defeito da primeira versão deste gatilho.
+   *
+   *   Voltar sem conceder nada deixa uma marca que EXISTE e que pessoa alguma
+   *   enxerga — nem quem administra a conta, porque a visibilidade agora vem
+   *   de `brand_members`. `scripts/prova-acesso-por-marca.sh` pegou isso: a
+   *   dona da conta via 3 marcas de 4. Marca órfã e silenciosa é exatamente o
+   *   estado que este projeto recusa.
+   *
+   * A regra abaixo é a mesma da semeadura desta migration — dona da conta
+   * administra as marcas da conta — aplicada a uma marca que nasce depois.
    */
   if criadora is null then
+    insert into public.brand_members (brand_id, workspace_id, user_id, capacidades)
+    select new.id, new.workspace_id, wm.user_id,
+           array['consultar', 'editar', 'aprovar', 'administrar']::text[]
+      from public.workspace_members wm
+     where wm.workspace_id = new.workspace_id
+       and wm.role = 'owner'
+    on conflict (brand_id, user_id) do nothing;
     return new;
   end if;
 

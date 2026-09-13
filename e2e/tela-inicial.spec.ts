@@ -45,3 +45,33 @@ test("a apresentação existe e não promete o que o produto não faz", async ({
    */
   await expect(page.getByText(/marcas da sua conta/i)).toBeVisible();
 });
+
+/**
+ * Os dois estados vazios, que o acesso por marca separou.
+ *
+ * Antes de 13/09/2026 "nenhuma marca" tinha uma causa só: conta nova. Agora
+ * tem duas, e a segunda é comum — o fornecedor que entrou na conta e ainda não
+ * recebeu marca alguma. Para ele a conta pode ter cinco marcas, escondidas pela
+ * RLS como devem estar; dizer "nenhuma marca por aqui" seria mentira, e o botão
+ * de importar o levaria à tela de importação, que o devolve para cá.
+ */
+test("sem acesso a marca alguma, a tela explica em vez de convidar a importar", async ({ page }) => {
+  await page.goto("/dev/inicio?marcas=0");
+
+  await expect(page.getByRole("heading", { name: /ainda não tem acesso a uma marca/i })).toBeVisible();
+  await expect(page.getByText(/peça a quem administra a conta/i)).toBeVisible();
+
+  // O botão que fecharia o laço não pode existir aqui.
+  await expect(page.getByRole("link", { name: /enviar o primeiro manual/i })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /como uma marca começa/i })).toHaveCount(0);
+});
+
+test("quem administra a conta vazia continua sendo convidado a importar", async ({ page }) => {
+  await page.goto("/dev/inicio?marcas=0&administra=1");
+
+  await expect(page.getByRole("heading", { name: /nenhuma marca por aqui ainda/i })).toBeVisible();
+  const botao = page.getByRole("link", { name: /enviar o primeiro manual/i });
+  await expect(botao).toBeVisible();
+  await expect(botao).toHaveAttribute("href", "/w/conta-de-teste/importar");
+  await expect(page.getByRole("heading", { name: /como uma marca começa/i })).toBeVisible();
+});

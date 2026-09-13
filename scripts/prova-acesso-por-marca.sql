@@ -82,7 +82,10 @@ begin
     (m2, w_a, u_dona, array['consultar','editar','aprovar','administrar']),
     (m1, w_a, u_x,    array['consultar']),
     (m2, w_a, u_y,    array['consultar','editar']),
-    (m3, w_b, u_outra, array['consultar','editar','aprovar','administrar']);
+    (m3, w_b, u_outra, array['consultar','editar','aprovar','administrar'])
+  -- O gatilho já concedeu às donas das contas (marca criada sem sessão aqui).
+  -- A prova DECLARA o acesso que quer, em vez de depender do que o gatilho fez.
+  on conflict (brand_id, user_id) do update set capacidades = excluded.capacidades;
 
   -- Conteúdo nas duas marcas. O gatilho de auditoria exige quem edita AQUELA
   -- marca, então a dona precisa estar autenticada para gravar documento.
@@ -260,6 +263,55 @@ begin
   insert into resultado (caso, esperado, obtido, passou) values
     ('quem cria a marca recebe acesso a ela', '1', acesso::text, acesso = 1),
     ('criar marca sem sessao nao quebra', 'CRIOU', estado, estado = 'CRIOU');
+
+  -- Marca criada por manutenção não pode ficar órfã: sem ninguém no
+  -- `brand_members` dela, ela existe e pessoa alguma a enxerga.
+  select count(*) into acesso from public.brand_members
+   where brand_id = sem_sessao and user_id = m.dona and 'administrar' = any (capacidades);
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('marca sem sessao vai para quem administra a conta', '1', acesso::text, acesso = 1);
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
+-- 5. O seletor da moldura — a consulta que lista o que a pessoa alcança
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Réplica do que `listarDisponiveis` faz em src/lib/brandville/server.ts:
+-- parte de `workspace_members` e traz as marcas por dentro. Se a RLS de
+-- `brands` não valesse nessa junção, o seletor listaria a marca que a pessoa
+-- não alcança — e o nome de um cliente apareceria para outro fornecedor,
+-- mesmo com o conteúdo protegido.
+do $$
+declare m record; contas integer; marcas_de_x integer; nomes text; marcas_da_dona integer;
+begin
+  select * into m from mundo;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', m.x, 'role', 'authenticated')::text, true);
+  select count(distinct w.id), count(b.id), coalesce(string_agg(b.key, ',' order by b.key), '')
+    into contas, marcas_de_x, nomes
+    from public.workspace_members wm
+    join public.workspaces w on w.id = wm.workspace_id
+    left join public.brands b on b.workspace_id = w.id
+   where wm.user_id = m.x;
+  reset role;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  select count(b.id) into marcas_da_dona
+    from public.workspace_members wm
+    join public.workspaces w on w.id = wm.workspace_id
+    left join public.brands b on b.workspace_id = w.id
+   where wm.user_id = m.dona;
+  reset role;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('o seletor de x mostra a conta', '1', contas::text, contas = 1),
+    ('o seletor de x mostra 1 marca, nao 2', '1', marcas_de_x::text, marcas_de_x = 1),
+    ('e a marca listada e a dele', 'marca-um', nomes, nomes = 'marca-um'),
+    ('o seletor da dona mostra as marcas dela', '4', marcas_da_dona::text, marcas_da_dona = 4);
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
