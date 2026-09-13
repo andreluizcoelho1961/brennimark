@@ -3,6 +3,7 @@ import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { parseBrandRow, parseDocumentRow, type ActiveBrand } from "./brand-row";
 import type { DocPageEntry, DocPageImage } from "@/content/docs";
 import { createClient } from "@/lib/supabase/server";
+import { BRAND_CAPABILITIES, type BrandCapability } from "@/platform/capabilities";
 import {
   resolverWorkspace,
   type ResolucaoDeWorkspace,
@@ -188,6 +189,36 @@ export async function carregarMarca(
     .maybeSingle();
   if (error) throw error;
   return parseBrandRow(data);
+}
+
+/**
+ * As capacidades da pessoa NESTA marca.
+ *
+ * Substitui `capabilitiesForRole(papel da conta)`, que dava as mesmas quatro
+ * capacidades em toda marca da conta a quem fosse `owner`. Desde a migration
+ * `20260913223226_acesso_por_marca`, quem decide é `brand_members` — e a
+ * decisão é por marca, que é como o André pediu em 13/09: "escolher se tem
+ * acesso a uma marca, a duas, a todas, e quais".
+ *
+ * A RLS já impede ler a linha de outra pessoa, então esta consulta não precisa
+ * filtrar por `user_id`: o banco filtra. Sem linha, sem capacidade — e a
+ * moldura simplesmente não oferece o que a pessoa não pode fazer. Continua
+ * valendo o ADR-0002 §4: isto decide o que APARECE; o que é PERMITIDO é a RLS.
+ */
+export async function capacidadesNaMarca(
+  auth: BrandvilleAuthContext,
+  brandId: string,
+): Promise<BrandCapability[]> {
+  const { data, error } = await auth.supabase
+    .from("brand_members")
+    .select("capacidades")
+    .eq("brand_id", brandId)
+    .maybeSingle();
+  if (error) throw error;
+  const cruas = (data?.capacidades ?? []) as string[];
+  // Filtra pelo vocabulário conhecido: uma capacidade futura gravada no banco
+  // por uma versão mais nova não pode virar `undefined` dentro da interface.
+  return BRAND_CAPABILITIES.filter((c) => cruas.includes(c));
 }
 
 /**

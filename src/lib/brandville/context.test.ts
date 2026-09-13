@@ -353,3 +353,52 @@ test("o contexto pronto carrega as opções, para o seletor achar o nome", async
   assert.equal(encontrada?.nome, MARCA.brand.name);
   assert.notEqual(encontrada?.nome, MARCA.key, "a moldura mostraria a chave");
 });
+
+// ─── Capacidade por marca, e não por conta ─────────────────────────────────
+
+test("a capacidade da marca vence o papel da conta", () => {
+  /*
+   * O furo que a migration `acesso_por_marca` fecha, visto pela interface:
+   * quem é `owner` da conta administrava TODA marca dela. Uma agência que
+   * cuida de duas marcas de clientes diferentes precisa poder dar edição em
+   * uma e só consulta na outra.
+   */
+  const ctx = montarContexto({
+    access: "ready",
+    auth: { role: "owner", email: "a@b.c" },
+    marca: MARCA,
+    docs: [],
+    capacidades: ["consultar"],
+  });
+  assert.deepEqual(ctx.capabilities, ["consultar"], "o papel da conta sobrepôs a marca");
+});
+
+test("sem linha na marca, nenhuma capacidade — nem para a dona da conta", () => {
+  const ctx = montarContexto({
+    access: "ready", auth: { role: "owner", email: "a@b.c" }, marca: MARCA, docs: [],
+    capacidades: [],
+  });
+  assert.deepEqual(ctx.capabilities, []);
+});
+
+test("sem marca aberta, o papel da conta continua respondendo", () => {
+  // Onboarding e visitante não têm marca, então não há o que consultar em
+  // `brand_members`. A regra antiga segue valendo AQUI, e só aqui.
+  const ctx = montarContexto({ access: "onboarding", auth: null, marca: null, docs: [] });
+  assert.deepEqual(ctx.capabilities, []);
+});
+
+test("o carregador consulta as capacidades UMA vez, e junto dos documentos", async () => {
+  let chamadas = 0;
+  const espiao = espionar({ auth: { role: "owner", email: "a@b.c" } });
+  const ctx = await carregarWorkspaceContext({
+    ...espiao.deps,
+    getCapacidades: async (_auth, brandId) => {
+      chamadas += 1;
+      assert.equal(brandId, MARCA.id, "consultou capacidade de outra marca");
+      return ["consultar", "editar"];
+    },
+  });
+  assert.deepEqual(ctx.capabilities, ["consultar", "editar"]);
+  assert.equal(chamadas, 1);
+});

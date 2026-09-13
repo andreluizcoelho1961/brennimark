@@ -33,6 +33,28 @@ export default async function ResolvedorDeContexto() {
   );
 
   if (pares.length === 0) {
+    /*
+     * Quem administra a conta pode importar; quem não administra, não.
+     *
+     * `podeImportar` estava fixo em `true`, e até 13/09/2026 isso era quase
+     * inofensivo: só chegava aqui quem tinha conta sem marca nenhuma. Com o
+     * acesso por marca, chega também quem participa de uma conta com marcas e
+     * ainda não recebeu acesso a nenhuma — e para essa pessoa o botão levava à
+     * tela de importação, que a devolvia para cá por não ser quem administra.
+     * Laço, sem explicação.
+     *
+     * O papel vem das opções, que já foram resolvidas: uma consulta a menos, e
+     * a mesma fonte que a moldura usa.
+     *
+     * A lista VAZIA não é o caso de "sem acesso": ela é o preview local, onde
+     * não existe conta nenhuma e portanto não há administrador a quem pedir.
+     * Ali vale o primeiro texto — foi o que a suíte de navegador cobrou quando
+     * a regra era só "administra alguma conta".
+     */
+    const participaDeAlgumaConta = contexto.opcoes.length > 0;
+    const administraAlgumaConta = contexto.opcoes.some((w) => w.papel === "owner");
+    const esperandoAcesso = participaDeAlgumaConta && !administraAlgumaConta;
+
     return (
       <LocaleProvider locale={contexto.locale}>
         {/* Fora da moldura não há AppShell para prover o marco principal, e
@@ -40,7 +62,7 @@ export default async function ResolvedorDeContexto() {
             para o conteúdo. */}
         <main className="min-h-dvh bg-platform-bg">
         <EmptyBrandState
-          podeImportar
+          podeImportar={!esperandoAcesso}
           contaImportar={
             contexto.workspaceSlug ? `/w/${contexto.workspaceSlug}/importar` : "/onboarding"
           }

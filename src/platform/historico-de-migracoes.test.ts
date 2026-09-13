@@ -72,6 +72,15 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
+  // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
+  // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram
+  // renomeados para esses carimbos, porque o repositório precisa bater com o
+  // ledger. Conferido depois de aplicar: a impressão digital das 30 policies e
+  // das 4 funções envolvidas é IDÊNTICA à do banco local
+  // (c9b962c8b959f06eb7b076e92349a56d), e a semeadura deixou as 2 marcas da
+  // única conta com as quatro capacidades para o dono. Nenhuma marca ficou sem
+  // ninguém.
   // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
