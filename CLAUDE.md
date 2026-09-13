@@ -28,6 +28,10 @@ Os ADRs vigentes, em ordem:
 - [`docs/adr/0004`](./docs/adr/0004-o-produto-age-na-criacao.md) — o produto age na criação
 - [`docs/adr/0005`](./docs/adr/0005-a-curadoria-editorial-e-do-produto.md) — a curadoria editorial
   é do produto
+- [`docs/adr/0006`](./docs/adr/0006-o-pdf-e-a-superficie-de-leitura.md) — o PDF é a superfície de
+  leitura; as páginas remontadas saem da navegação
+- [`docs/adr/0007`](./docs/adr/0007-biblioteca-de-assets-da-marca.md) — a biblioteca de assets da
+  marca, a entrega governada por link com prazo, e a hospedagem de fonte
 
 `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRANDVILLE_MATRIX.md` são
 **históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
@@ -60,8 +64,19 @@ o que **aparece**. RLS e verificação de papel decidem o que é **permitido**. 
 fronteira de segurança.
 
 **Tipografia.** A interface tem fonte própria (`--font-ui`). A fonte da marca (`--font-brand`) só
-aparece onde demonstra a marca: títulos do manual e blocos de espécime. A plataforma **não hospeda
-fonte licenciada de cliente algum**.
+aparece onde demonstra a marca: títulos do manual e blocos de espécime.
+
+**A plataforma HOSPEDA a fonte da marca — mudou em 13/09/2026, ver ADR-0007 §3.** A regra anterior
+dizia o contrário ("não hospeda fonte licenciada de cliente algum"), e caiu por um argumento de
+produto: quem trabalha na marca baixa o logo e tudo mais, e sem a fonte o texto renderiza errado no
+primeiro arquivo aberto. O que a hospedagem OBRIGA, e sem o que ela não se sustenta:
+
+- **termo assinado pelo assinante ANTES de ligar a hospedagem** — a responsabilidade pela licença é
+  dele, e sem texto assinado ela continua com quem serve o arquivo;
+- **aceite registrado no upload**, com autor e data;
+- **servida só para download, a membro autenticado daquela marca** — nunca URL pública, nunca
+  webfont, sem hotlink e sem CDN;
+- **procedimento de retirada**, se uma foundry notificar.
 
 ## Honestidade editorial — não negociável
 

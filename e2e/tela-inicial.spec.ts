@@ -36,14 +36,19 @@ test("o card leva ao endereço da marca", async ({ page }) => {
   await expect(primeiro).toHaveAttribute("href", /\/w\/conta-de-teste\/b\/marca-1/);
 });
 
-test("a apresentação existe e não promete o que o produto não faz", async ({ page }) => {
+test("a apresentação diz as quatro frentes do produto", async ({ page }) => {
   await page.goto("/dev/inicio?marcas=2");
   /*
-   * O texto é provisório — o André ainda vai escrevê-lo. O que este caso
-   * tranca não é a redação, é a existência: a tela sem apresentação nenhuma
-   * seria só uma lista, que é o que ela era antes.
+   * O texto descreve o produto PRONTO, por decisão do André em 13/09 — três
+   * das quatro frentes ainda não estão inteiras. O que este caso tranca não é
+   * a redação, é que a tela não volte a ser só uma lista de cards: sem
+   * apresentação, ninguém que chega pela primeira vez sabe onde está.
    */
-  await expect(page.getByText(/marcas da sua conta/i)).toBeVisible();
+  const apresentacao = page.getByRole("list").first();
+  await expect(apresentacao.getByText(/Ler/)).toBeVisible();
+  await expect(apresentacao.getByText(/Baixar/)).toBeVisible();
+  await expect(apresentacao.getByText(/citando a página/)).toBeVisible();
+  await expect(apresentacao.getByText(/DNA da marca/)).toBeVisible();
 });
 
 /**
