@@ -98,6 +98,17 @@ const PENDENTES_ESPERADAS: string[] = [
    * Provada junto, em `scripts/prova-acesso-por-marca.sh`.
    */
   "registro_de_acesso_por_marca",
+  /**
+   * Substituir deixa de apagar (ADR-0007 §2.4, item 10).
+   *
+   * Escrita em 13/09/2026, NÃO aplicada em produção. Acrescenta colunas a
+   * `brand_assets`, que é tabela EM USO no banco hospedado — a biblioteca já
+   * está no ar. As colunas nascem nulas e nenhuma linha existente muda de
+   * comportamento ao aplicar; o que muda é o que a rota passa a fazer.
+   *
+   * Provada em `scripts/prova-asset-descontinuado.sh`.
+   */
+  "asset_descontinuado_em_vez_de_apagado",
   // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado

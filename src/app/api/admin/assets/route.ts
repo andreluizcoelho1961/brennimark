@@ -3,6 +3,7 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
 import { BUCKETS, caminhoDeAsset } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
+import { decidirRemocao } from "@/lib/assets/remocao";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
   const label = String(form.get("label") ?? "").trim();
   const description = String(form.get("description") ?? "").trim();
   const category = String(form.get("category") ?? (isEnglish ? "Other" : "Outros")).trim();
+  // Opcional: o asset que este arquivo vem substituir. Vazio é o caso comum —
+  // nem todo upload troca alguma coisa.
+  const substitui = String(form.get("substitui") ?? "").trim();
   if (!(file instanceof File) || !label || label.length > 120 || description.length > 500 || category.length > 80 || file.size < 1 || file.size > MAX_SIZE || !ALLOWED_TYPES.has(file.type)) {
     return NextResponse.json({ message: isEnglish ? "Check the file and its details. The limit is 25 MB." : "Revise o arquivo e seus dados. O limite é 25 MB." }, { status: 400 });
   }
@@ -92,9 +96,48 @@ export async function POST(request: Request) {
     await context.auth.supabase.storage.from(BUCKETS.assets).remove([path]);
     return NextResponse.json({ message: isEnglish ? "The file uploaded, but couldn't be registered." : "O arquivo chegou, mas não foi possível registrá-lo." }, { status: 500 });
   }
-  return NextResponse.json({ ok: true }, { status: 201 });
+
+  /*
+   * A substituição, quando pedida — e o que acontece se ela falhar.
+   *
+   * Marcar o antigo ANTES de o novo existir deixaria, numa falha do upload, um
+   * asset descontinuado apontando para nada: a marca perde o logo em uso sem
+   * ter ganhado o substituto. Nesta ordem o pior caso é os dois ficarem em uso,
+   * que é visível na tela e desfazível num clique.
+   *
+   * Por isso a falha aqui não é 500: o arquivo entrou, e mandar tentar de novo
+   * subiria o mesmo arquivo duas vezes. A resposta diz o que ficou por fazer.
+   */
+  let substituicao: "feita" | "nao-pedida" | "falhou" = "nao-pedida";
+  if (substitui) {
+    const { data: novo } = await context.auth.supabase.from("brand_assets")
+      .select("id").eq("storage_path", path).maybeSingle();
+    const { error: erroDaTroca } = await context.auth.supabase.from("brand_assets")
+      .update({
+        descontinuado_em: new Date().toISOString(),
+        descontinuado_por: context.auth.user.id,
+        substituido_por: novo?.id ?? null,
+      })
+      .eq("id", substitui).eq("brand_id", context.brandId);
+    substituicao = erroDaTroca ? "falhou" : "feita";
+  }
+
+  return NextResponse.json({ ok: true, substituicao }, { status: 201 });
 }
 
+/**
+ * Descontinuar — o que o botão da biblioteca faz agora.
+ *
+ * Até 13/09/2026 este método apagava: a linha saía e o arquivo ia para a fila
+ * de exclusão. Isso contradizia o CLAUDE.md ("nunca apagar asset em silêncio")
+ * e o que o produto vende — uma plataforma de governança que perde a versão
+ * anterior do logo não governa, esquece.
+ *
+ * Agora o asset é marcado, continua visível e continua baixável. O apagamento
+ * definitivo não sumiu: virou `?definitivo=1`, e só alcança o que JÁ está
+ * descontinuado. Dois passos deliberados em vez de um clique — é a diferença
+ * entre apagar de propósito e apagar sem querer.
+ */
 export async function DELETE(request: Request) {
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
@@ -102,21 +145,34 @@ export async function DELETE(request: Request) {
   if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can remove assets." : "Apenas o proprietário pode remover assets." }, { status: 403 });
   const input = await request.json().catch(() => null);
   const id = typeof input?.id === "string" ? input.id : "";
+  const definitivo = new URL(request.url).searchParams.get("definitivo") === "1";
 
-  /*
-   * Uma transação: a linha sai e o arquivo entra na fila, juntos.
-   *
-   * As duas ordens ingênuas são piores. Apagar o arquivo primeiro e a linha
-   * depois deixa, se a segunda falhar, um registro apontando para arquivo que
-   * não existe — a biblioteca lista um asset que não abre. Apagar a linha
-   * primeiro e o arquivo depois deixa, se a segunda falhar, um arquivo sem
-   * nenhum registro: invisível para sempre, e ninguém sabe que está pagando
-   * por ele. Era esta a ordem daqui.
-   *
-   * Agora o Storage é tentado DEPOIS, e falhando ele a linha da fila continua
-   * lá para a drenagem tentar de novo. Em nenhum instante existe arquivo sem
-   * registro.
-   */
+  // O estado atual do asset, e só dele: os dois filtros garantem que ele é
+  // desta marca antes de qualquer decisão.
+  const { data: alvo } = await context.auth.supabase.from("brand_assets")
+    .select("id, descontinuado_em").eq("id", id).eq("brand_id", context.brandId).maybeSingle();
+  if (!alvo) return NextResponse.json({ message: isEnglish ? "Asset not found." : "Asset não encontrado." }, { status: 404 });
+
+  // A decisão vive em `lib/assets/remocao.ts`, onde a suíte de unidade
+  // alcança. Aqui ficam só os efeitos.
+  const decisao = decidirRemocao({ definitivo, descontinuadoEm: alvo.descontinuado_em });
+
+  if (decisao.acao === "recusar") {
+    return NextResponse.json({
+      message: decisao.motivo === "precisa-descontinuar-antes"
+        ? (isEnglish ? "Discontinue the asset before deleting it for good." : "Descontinue o asset antes de removê-lo em definitivo.")
+        : (isEnglish ? "This asset is already discontinued." : "Este asset já está descontinuado."),
+    }, { status: 409 });
+  }
+
+  if (decisao.acao === "descontinuar") {
+    const { error } = await context.auth.supabase.from("brand_assets")
+      .update({ descontinuado_em: new Date().toISOString(), descontinuado_por: context.auth.user.id })
+      .eq("id", id).eq("brand_id", context.brandId);
+    if (error) return NextResponse.json({ message: isEnglish ? "Couldn't discontinue." : "Não foi possível descontinuar." }, { status: 500 });
+    return NextResponse.json({ ok: true, descontinuado: true });
+  }
+
   const { error } = await context.auth.supabase.rpc("delete_asset_with_file", { p_asset_id: id });
   if (error) return NextResponse.json({ message: isEnglish ? "Asset not found." : "Asset não encontrado." }, { status: 404 });
 
@@ -125,4 +181,30 @@ export async function DELETE(request: Request) {
   // arquivo está enfileirado. Dizer 500 aqui faria quem apagou tentar de novo
   // uma operação que já funcionou.
   return NextResponse.json({ ok: true, arquivosPendentes: fila.pendentes });
+}
+
+/**
+ * Reativar um asset descontinuado — desfazer, que é o par de descontinuar.
+ *
+ * Sem isto, "descontinuar" seria irreversível pela interface, e a pessoa que
+ * errou o card teria de subir o arquivo de novo — criando uma segunda cópia da
+ * mesma coisa, que é como um acervo vira uma pasta bagunçada.
+ */
+export async function PATCH(request: Request) {
+  const resolvido = await ownerContext(request);
+  if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
+  const context = resolvido.ok ? resolvido.contexto : null;
+  if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can change assets." : "Apenas o proprietário pode alterar assets." }, { status: 403 });
+  const input = await request.json().catch(() => null);
+  const id = typeof input?.id === "string" ? input.id : "";
+
+  const { data, error } = await context.auth.supabase.from("brand_assets")
+    // `substituido_por` sai junto: um asset em uso que ainda apontasse para o
+    // sucessor diria "fui trocado e continuo valendo". A trava do banco recusa
+    // esse estado, e limpar aqui é o que faz a reativação passar.
+    .update({ descontinuado_em: null, descontinuado_por: null, substituido_por: null })
+    .eq("id", id).eq("brand_id", context.brandId).not("descontinuado_em", "is", null)
+    .select("id").maybeSingle();
+  if (error || !data) return NextResponse.json({ message: isEnglish ? "Asset not found." : "Asset não encontrado." }, { status: 404 });
+  return NextResponse.json({ ok: true, reativado: true });
 }

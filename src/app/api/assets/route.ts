@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   // deixar o workspace de fora tornaria a consulta dependente de uma garantia
   // que vive em outro arquivo — e consultas viajam para outros arquivos.
   const { data, error } = await context.supabase.from("brand_assets")
-    .select("id, label, description, category, storage_path, file_name, mime_type, size_bytes, status, created_at")
+    .select("id, label, description, category, storage_path, file_name, mime_type, size_bytes, status, created_at, descontinuado_em, substituido_por")
     .eq("workspace_id", workspaceId).eq("brand_id", brandId).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ message: isEnglish ? "Couldn't load assets." : "Não foi possível carregar os assets." }, { status: 500 });
   const assets = await Promise.all((data ?? []).map(async (asset) => {
@@ -35,6 +35,17 @@ export async function GET(request: Request) {
       id: asset.id, label: asset.label, description: asset.description, category: asset.category,
       file_name: asset.file_name, mime_type: asset.mime_type, size_bytes: asset.size_bytes,
       status: asset.status, created_at: asset.created_at, downloadUrl: signed?.signedUrl ?? null,
+      /*
+       * Descontinuado vai junto, e não some da lista.
+       *
+       * O item 10 do ADR-0007 pede a versão anterior "visível e
+       * identificada": quem baixou aquele logo ontem precisa poder chegar
+       * nele e ver que foi trocado — e por qual. Filtrar aqui devolveria o
+       * esquecimento que a coluna existe para evitar; quem separa as duas
+       * listas é a tela.
+       */
+      descontinuadoEm: asset.descontinuado_em ?? null,
+      substituidoPor: asset.substituido_por ?? null,
     };
   }));
   return NextResponse.json({ assets });
