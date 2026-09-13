@@ -86,6 +86,18 @@ const PENDENTES_ESPERADAS: string[] = [
    * A prova vive em `scripts/prova-acesso-por-marca.sh`.
    */
   "acesso_por_marca",
+  /**
+   * O registro de quem mexeu no acesso (passo A3).
+   *
+   * Escrita em 13/09/2026, NÃO aplicada em produção. Anda junto com
+   * `acesso_por_marca`: conceder sem registrar responde "quem tem acesso?",
+   * que o estado já responde, e não "quem concedeu, e quando?", que nenhuma
+   * tabela de estado responde. O ADR-0007 torna isso obrigação, não conforto:
+   * a fonte licenciada tem termo assinado.
+   *
+   * Provada junto, em `scripts/prova-acesso-por-marca.sh`.
+   */
+  "registro_de_acesso_por_marca",
   // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado

@@ -315,6 +315,79 @@ begin
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
+-- 6. O registro de acesso — quem concedeu, quando, e o que ninguém apaga
+-- ════════════════════════════════════════════════════════════════════════
+do $$
+declare m record; eventos integer; ultima text; autor text; apagado text;
+        estado text; le_x integer; le_dona integer;
+begin
+  select * into m from mundo;
+
+  -- Uma concessão de verdade, feita por quem administra a conta.
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  insert into public.brand_members (brand_id, workspace_id, user_id, capacidades, created_by)
+  values (m.marca_dois, m.conta_a, m.x, array['consultar'], m.dona);
+  update public.brand_members set capacidades = array['consultar','editar']
+   where brand_id = m.marca_dois and user_id = m.x;
+  -- Alteração que não mexe nas capacidades não pode virar evento.
+  update public.brand_members set created_by = m.dona
+   where brand_id = m.marca_dois and user_id = m.x;
+  delete from public.brand_members where brand_id = m.marca_dois and user_id = m.x;
+  reset role;
+
+  select count(*) into eventos from public.brand_access_log
+   where brand_id = m.marca_dois and pessoa = m.x;
+  select acao, autor_email into ultima, autor from public.brand_access_log
+   where brand_id = m.marca_dois and pessoa = m.x order by created_at desc limit 1;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('conceder, alterar e revogar deixam 3 eventos', '3', eventos::text, eventos = 3),
+    ('o toque que nao muda capacidade nao vira evento', '3', eventos::text, eventos = 3),
+    ('o ultimo evento e a revogacao', 'revogado', coalesce(ultima,'(nenhum)'), ultima = 'revogado'),
+    ('o registro guarda quem concedeu', 'prova-marca-dona@local.test',
+     coalesce(autor,'(nenhum)'), autor = 'prova-marca-dona@local.test');
+
+  -- Ninguém reescreve o próprio rastro: não há policy de update nem de delete.
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  -- Barrado no GRANT, antes mesmo da RLS: `authenticated` só recebeu `select`.
+  -- É uma trava mais forte do que "a policy não encontra linha".
+  begin
+    delete from public.brand_access_log where brand_id = m.marca_dois;
+    apagado := 'APAGOU';
+  exception when others then
+    apagado := sqlstate;
+  end;
+  begin
+    insert into public.brand_access_log (brand_id, workspace_id, pessoa_email, autor_email, acao)
+    values (m.marca_dois, m.conta_a, 'forjado@local.test', 'forjado@local.test', 'concedido');
+    estado := 'INSERIU';
+  exception when others then
+    estado := sqlstate;
+  end;
+  -- Quem administra a marca lê; quem só consulta, não.
+  select count(*) into le_dona from public.brand_access_log where brand_id = m.marca_dois;
+  reset role;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', m.x, 'role', 'authenticated')::text, true);
+  select count(*) into le_x from public.brand_access_log where brand_id = m.marca_dois;
+  reset role;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('nem quem administra apaga o registro', '42501', apagado, apagado = '42501'),
+    ('ninguem forja evento pela API', '42501', estado, estado = '42501'),
+    -- Cinco, e não três: a semeadura do mundo também passou pelo gatilho, o
+    -- que é o comportamento correto — acesso concedido é acesso registrado.
+    ('quem administra a marca le o registro', '5', le_dona::text, le_dona = 5),
+    ('quem so consulta NAO le o registro', '0', le_x::text, le_x = 0);
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
 -- Relatório
 -- ════════════════════════════════════════════════════════════════════════
 select case when passou then 'ok   ' else 'FALHA' end as st,
