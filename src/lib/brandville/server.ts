@@ -196,7 +196,7 @@ export async function carregarMarca(
  *
  * Substitui `capabilitiesForRole(papel da conta)`, que dava as mesmas quatro
  * capacidades em toda marca da conta a quem fosse `owner`. Desde a migration
- * `20260913185141_acesso_por_marca`, quem decide é `brand_members` — e a
+ * `20260913223226_acesso_por_marca`, quem decide é `brand_members` — e a
  * decisão é por marca, que é como o André pediu em 13/09: "escolher se tem
  * acesso a uma marca, a duas, a todas, e quais".
  *
