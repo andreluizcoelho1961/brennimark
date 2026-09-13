@@ -10,6 +10,7 @@ import {
   carregarMarca,
   getBrandDocs,
   getBrandvilleAuthContext,
+  capacidadesNaMarca,
   getProfileSummary,
   listarDisponiveis,
   temPerfilCompleto,
@@ -119,5 +120,6 @@ async function carregarPronto(
       return encontrada ? carregarMarca(auth, encontrada.id) : null;
     },
     getDocsByBrandId: getBrandDocs,
+    getCapacidades: capacidadesNaMarca,
   });
 }

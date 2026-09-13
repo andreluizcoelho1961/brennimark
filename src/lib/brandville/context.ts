@@ -86,6 +86,7 @@ export function montarContexto({
   docs,
   workspaceSlug = null,
   opcoes = [],
+  capacidades,
 }: {
   access: AccessState;
   auth: AuthShape | null;
@@ -93,6 +94,13 @@ export function montarContexto({
   docs: readonly DocPageEntry[];
   workspaceSlug?: string | null;
   opcoes?: readonly WorkspaceDisponivel[];
+  /**
+   * As capacidades NESTA marca, lidas de `brand_members`. Quando ausentes —
+   * onboarding, visitante, preview local, nenhum dos quais tem marca aberta —
+   * a derivação pelo papel da conta continua valendo, e devolve vazio sem
+   * papel.
+   */
+  capacidades?: readonly BrandCapability[];
 }): WorkspaceContext {
   const slug = marca?.navigation.defaultDocSlug;
   return {
@@ -101,9 +109,19 @@ export function montarContexto({
     opcoes,
     brand: marca,
     docs,
-    // Sem papel, sem capacidade. Um `?? "member"` aqui daria `consultar` a
-    // quem não tem sessão, contradizendo o contrato de capabilitiesForRole.
-    capabilities: capabilitiesForRole(auth?.role),
+    /*
+     * Por marca, quando há marca.
+     *
+     * Até 13/09/2026 esta linha era só `capabilitiesForRole(auth?.role)` — o
+     * papel na CONTA. Quem fosse `owner` administrava toda marca da conta, e
+     * quem fosse `member` só consultava, mesmo sendo a pessoa responsável por
+     * editar uma delas. Agora quem responde é `brand_members`, por marca.
+     *
+     * O caminho sem marca mantém a regra antiga, e o contrato dela: sem papel,
+     * sem capacidade — um `?? "member"` aqui daria `consultar` a quem não tem
+     * sessão.
+     */
+    capabilities: capacidades ?? capabilitiesForRole(auth?.role),
     userEmail: auth?.email || undefined,
     // Slug vazio redirecionaria para /docs/ e produziria laço.
     defaultDocSlug: slug ? slug : null,
@@ -134,6 +152,12 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
   getProfile: (auth: A) => Promise<{ fullName: string } | null>;
   getActiveBrand: (auth: A) => Promise<ActiveBrand | null>;
   getDocsByBrandId: (auth: A, brandId: string) => Promise<readonly DocPageEntry[]>;
+  /**
+   * As capacidades desta pessoa na marca aberta. Opcional para os chamadores
+   * que não têm banco (testes, preview local): sem ela, a derivação pelo papel
+   * da conta continua respondendo.
+   */
+  getCapacidades?: (auth: A, brandId: string) => Promise<readonly BrandCapability[]>;
   /** Verdadeiro apenas no preview local. Decisão da camada de servidor. */
   devPreview?: boolean;
   /** Já resolvido pelo adaptador; entra no contexto para quem monta URL. */
@@ -173,9 +197,17 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
     return montarContexto({ access: "onboarding", auth, marca: null, docs: [] });
   }
 
-  const docs = marca ? await deps.getDocsByBrandId(auth, marca.id) : [];
+  // Documentos e capacidades dependem os dois só do id da marca, e nenhum do
+  // outro: vão juntos, não em fila.
+  const [docs, capacidades] = marca
+    ? await Promise.all([
+        deps.getDocsByBrandId(auth, marca.id),
+        deps.getCapacidades?.(auth, marca.id),
+      ])
+    : [[] as readonly DocPageEntry[], undefined];
+
   return montarContexto({
-    access: "ready", auth, marca, docs,
+    access: "ready", auth, marca, docs, capacidades,
     workspaceSlug: deps.workspaceSlug ?? null,
     opcoes: deps.opcoes ?? [],
   });
