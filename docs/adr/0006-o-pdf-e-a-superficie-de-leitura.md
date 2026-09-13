@@ -77,9 +77,18 @@ dos pedidos sequenciais.
 
 ## 6. Como fica a leitura, na prática
 
-O índice lateral passa a vir do próprio PDF: os **marcadores** que o estúdio exportou do InDesign
-(`getOutline()` do PDF.js), com as seções extraídas como plano B quando o arquivo não tiver
-marcadores. Essa é a entrega seguinte, e o visualizador já sabe navegar por página.
+O índice lateral usa os **marcadores** que o estúdio exportou do InDesign (`getOutline()` do
+PDF.js) quando eles prestam, e as seções extraídas quando não.
+
+**Correção de 13/09/2026 — a ordem aqui estava invertida.** Este parágrafo dizia que os marcadores
+seriam a fonte primária e as seções o plano B. O censo de **30 manuais de marca reais** mostrou o
+contrário: **só 7 trazem marcadores**, então em 3 de cada 4 o índice vem da extração. E ter marcador
+não é ter índice bom — um dos manuais tem quatro, chamados "SECTION 1" a "SECTION 4", para 37
+páginas; outro tem 592 marcadores em 7 níveis, com 5 destinos que não resolvem.
+
+O que foi construído (entrega 1b) descarta título genérico, destino que não resolve e o terceiro
+nível em diante, exige três itens úteis para preferir os marcadores, e **diz na tela de onde o
+índice veio**. O texto acima descrevia o plano; este parágrafo descreve o que existe.
 
 ## 7. Verificação
 
