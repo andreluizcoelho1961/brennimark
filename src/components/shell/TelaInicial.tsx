@@ -19,9 +19,18 @@ import { destinoAoTrocarDeMarca } from "@/lib/brandville/selecao";
  * Quem chega por endereço de marca continua indo direto para ela: o atalho de
  * link compartilhado não passa por aqui (ver `resolverAlvo` em `selecao.ts`).
  *
- * ⚠️ O TEXTO DE APRESENTAÇÃO É PROVISÓRIO. O André ainda vai escrevê-lo; o que
- * está aqui é um lugar reservado, deliberadamente sóbrio e sem promessa que o
- * produto não cumpra. Trocar a redação não exige tocar em mais nada.
+ * ─── O texto descreve o produto PRONTO, e isso é deliberado ─────────────────
+ *
+ * Decisão do André em 13/09/2026. As quatro linhas abaixo são as quatro frentes
+ * do roteiro, e três delas ainda não estão inteiras: o acervo existe em versão
+ * simples (ADR-0007 §7), a conferência de peça devolve veredito em texto sem
+ * marcar sobre a imagem (ADR-0004 §3.3), e o copiloto de prompts foi aceito e
+ * ainda não foi construído (ADR-0004 §3.1).
+ *
+ * Quem vier depois: isto NÃO é descrição do estado atual do código. É a
+ * promessa do produto, escrita uma vez, para não ser reescrita a cada frente
+ * que fica pronta. Se alguma frente for abandonada, a linha correspondente sai
+ * daqui no mesmo commit.
  */
 export function TelaInicial({
   opcoes,
@@ -41,9 +50,38 @@ export function TelaInicial({
           Bem-vindo ao {platformIdentity.displayName}
         </h1>
         <p className="mt-[var(--space-shell-3)] max-w-[42rem] text-[15px] leading-relaxed text-platform-text-muted">
-          Aqui ficam as marcas da sua conta: o manual de cada uma, os arquivos
-          para baixar e o assistente que responde com base no que está
-          documentado. Escolha uma marca para começar.
+          O manual da marca, os arquivos e a inteligência que entende os dois — no
+          mesmo lugar.
+        </p>
+
+        {/*
+          Quatro verbos, porque é assim que uma agência lê em cinco segundos.
+          "Responde citando a página" não é modéstia: é o argumento. Todo
+          concorrente diz que o assistente responde sobre o seu conteúdo; dizer
+          que ele MOSTRA onde está escrito é o que nenhum promete, e é a
+          honestidade editorial do projeto virada para fora.
+        */}
+        <ul className="mt-[var(--space-shell-4)] flex max-w-[42rem] flex-col gap-[var(--space-shell-2)] text-[15px] leading-relaxed text-platform-text-muted">
+          <li>
+            <strong className="font-medium text-platform-text">Ler</strong> o manual como o
+            estúdio diagramou, com índice e busca
+          </li>
+          <li>
+            <strong className="font-medium text-platform-text">Baixar</strong> logo, ícones,
+            paleta, fontes e fotos, com a regra que governa cada arquivo
+          </li>
+          <li>
+            <strong className="font-medium text-platform-text">Perguntar</strong> ao assistente,
+            que responde citando a página do manual
+          </li>
+          <li>
+            <strong className="font-medium text-platform-text">Conferir</strong> a sua peça e
+            gerar prompts com o DNA da marca
+          </li>
+        </ul>
+
+        <p className="mt-[var(--space-shell-4)] text-[15px] text-platform-text-muted">
+          Escolha uma marca para começar.
         </p>
 
         <h2 className="mt-[var(--space-shell-7,3rem)] text-[13px] font-medium uppercase tracking-[0.08em] text-platform-text-muted">
