@@ -195,3 +195,58 @@ porque aba em segundo plano tem o mesmo comportamento de uma bancada oculta.
 vezes com o CI vermelho em seguida: uma por não rodar o navegador, uma por
 mexer no `testMatch` sem prever o efeito, e uma por aumentar a carga do CI e
 expor uma corrida latente.
+
+---
+
+## 8. O Marco A fechou — 10/09, medido pelo relógio do André
+
+**Tempo até a primeira página, em produção, com o manual do Bradesco:**
+
+| Rodada | Hipótese | Veredito | Tempo |
+|---|---|---|---|
+| 1 | região da função | **errada** — Vercel e Supabase já estavam ambos em `gru1`/`sa-east-1` | 60 s |
+| 2 | teto de fatia recusando com 413 | certa, e insuficiente | 45 s |
+| 3 | requisição sem `Range` puxando 4 MiB pela função | certa, e insuficiente | 45 s |
+| 4 | **nenhuma — instrumentei** | autorização a ~350 ms por pedido | **5 s** |
+
+### 8.1 A lição, e ela é a mais transferível do projeto
+
+As três primeiras rodadas foram hipótese. A quarta foi medição, e resolveu em
+uma tentativa.
+
+**Quando o sintoma é lentidão, instrumentar vem antes de teorizar.** O
+`Server-Timing` custou dez linhas e respondeu na primeira leitura o que três
+rodadas de raciocínio não acertaram — inclusive derrubando uma hipótese minha
+que estava simplesmente errada.
+
+Ele fica na resposta de propósito: `autorizacao`, `documento`, `sessao`,
+`storage`. A próxima vez que alguém disser "está lento", a etapa cara tem
+nome.
+
+### 8.2 A causa raiz, dita sem rodeio
+
+A rota de transporte fazia **trabalho de tela para entregar bytes**: usava a
+mesma autorização das páginas de interface, que resolve workspaces, marcas,
+perfil, documentos e capacidades, e valida o token contra a Auth API pela
+rede. Por pedido de intervalo.
+
+A substituta é uma consulta autorizada pela RLS — se a linha vem, o banco
+provou. Prova negativa colhida: dono legítimo 1 linha, estranho 0, anônimo
+`permission denied`.
+
+### 8.3 O que o Marco A NÃO cobre, e continua registrado
+
+| Portão | Estado |
+|---|---|
+| Ver o manual fiel, em produção, em 5 s | **fechado** |
+| Comparação visual lado a lado | **fechado** (aprovado por André) |
+| Chromium, WebKit, Firefox | **fechado** (coberto por teste) |
+| iPhone e Android físicos | aberto — **prioridade 2**, decisão de 09/09 |
+| Manual de ~100 MiB | aberto — depende de plano pago |
+| Bucket alinhado ao plano | migration escrita, não aplicada, sem efeito prático |
+
+**Próximo na ordem de prioridade do plano de 09/09:** Etapa 2 — documento-fonte
+durável e manifesto por página. O desenho está em
+`desenho-documento-fonte-e-manifesto.md`, e a Etapa 1 deixou uma dívida
+explícita para ela: o identificador do documento é `brand_imports.id`, e passa
+a ser `brand_source_documents` quando ela existir.
