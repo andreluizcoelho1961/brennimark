@@ -81,6 +81,12 @@ const PENDENTES_ESPERADAS: string[] = [
   // (c9b962c8b959f06eb7b076e92349a56d), e a semeadura deixou as 2 marcas da
   // única conta com as quatro capacidades para o dono. Nenhuma marca ficou sem
   // ninguém.
+  // `asset_descontinuado_em_vez_de_apagado` saiu daqui em 13/09/2026: aplicada
+  // ao banco hospedado junto com as duas de acesso, carimbada
+  // `20260913224905`, e o arquivo renomeado para esse carimbo. Só acrescenta
+  // colunas nulas, constraints e um gatilho a `brand_assets`; nenhuma das 0
+  // linhas existentes mudou. Impressão digital das constraints, dos índices e
+  // da função IDÊNTICA à do banco local (7fb93f3ea844db1a8c802d286ac73c29).
   // `documento_fonte_e_manifesto_por_pagina` saiu daqui em 11/09/2026:
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
