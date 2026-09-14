@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
-type Asset = { id: string; label: string; description: string; category: string; file_name: string; mime_type: string; size_bytes: number; status: string; created_at: string; downloadUrl: string | null; descontinuadoEm: string | null; substituidoPor: string | null };
+type Asset = { id: string; label: string; description: string; category: string; file_name: string; mime_type: string; size_bytes: number; status: string; created_at: string; baixavel: boolean; descontinuadoEm: string | null; substituidoPor: string | null };
+type Download = { id: string; assetId: string | null; pessoa: string; rotulo: string; arquivo: string; quando: string };
 function formatSize(bytes: number) { if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 
 export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
@@ -19,6 +19,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [downloads, setDownloads] = useState<Download[] | null>(null);
 
   const load = useCallback(async () => {
     const response = await fetch(comAlvo("/api/assets", alvo), { cache: "no-store" });
@@ -38,6 +39,20 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     void loadInitial();
     return () => { cancelled = true; };
   }, [isEnglish, alvo]);
+
+  /*
+   * O registro de quem baixou, só para quem gerencia.
+   *
+   * Carregado sob demanda, e não junto com o acervo: é a pergunta de quem
+   * administra, feita de vez em quando, e não deve pesar na abertura da
+   * biblioteca para quem só veio buscar o logo.
+   */
+  async function verDownloads() {
+    const response = await fetch(comAlvo("/api/assets/downloads", alvo), { cache: "no-store" });
+    const data = await response.json().catch(() => ({}));
+    if (response.ok) setDownloads(data.downloads ?? []);
+    else setMessage(data.message ?? (isEnglish ? "Couldn't load the download record." : "Não foi possível carregar o registro de downloads."));
+  }
 
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setUploading(true); setMessage("");
@@ -127,11 +142,16 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
         data-asset-descontinuado={fora ? "sim" : undefined}
         className={`flex min-h-48 flex-col overflow-hidden border border-platform-border bg-platform-panel${fora ? " opacity-70" : ""}`}
       >
-        {asset.downloadUrl?.startsWith("/") && asset.mime_type.startsWith("image/") && (
-          <div className="relative aspect-[16/9] bg-platform-panel-muted">
-            <Image src={asset.downloadUrl} alt="" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 40vw, 90vw" className="object-contain p-6" />
-          </div>
-        )}
+        {/*
+          A prévia que existia aqui saiu com o download registrado.
+
+          Ela só aparecia para caminho estático começando com "/" — nunca para
+          arquivo do Storage, que é todo asset enviado pela tela. Mantê-la
+          apontando para a rota de download faria cada abertura da página
+          REGISTRAR um download por imagem, sujando o registro com downloads
+          que ninguém fez. A miniatura de verdade é gerada no navegador de quem
+          sobe, junto com o upload — ADR-0007 §4, uma fatia própria.
+        */}
         <div className="flex flex-1 flex-col p-5">
           <p className="font-display text-[10px] font-black uppercase tracking-widest text-platform-text">{asset.category}</p>
           <h3 className="mt-3 font-display text-lg font-black uppercase text-platform-text">{asset.label}</h3>
@@ -152,7 +172,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
           <div className="mt-4 flex flex-wrap gap-2">
             {/* Descontinuado continua baixável: quem precisa da versão anterior
                 de um logo é justamente quem tem material antigo para conferir. */}
-            {asset.downloadUrl && <a href={asset.downloadUrl} download className="bg-platform-signal px-4 py-2 font-display text-[10px] font-black uppercase text-platform-bg">{isEnglish ? "Download" : "Baixar"}</a>}
+            {asset.baixavel && <a href={comAlvo(`/api/assets/${asset.id}/download`, alvo)} download={asset.file_name} className="bg-platform-signal px-4 py-2 font-display text-[10px] font-black uppercase text-platform-bg">{isEnglish ? "Download" : "Baixar"}</a>}
             {canManage && !fora && (
               <button type="button" onClick={() => descontinuar(asset.id, asset.label)} className="border border-platform-border px-4 py-2 font-display text-[10px] font-bold uppercase text-platform-text-muted">
                 {isEnglish ? "Discontinue" : "Descontinuar"}
@@ -210,5 +230,44 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
             <div className={grade}>{descontinuados.map(cartao)}</div>
           </section>}
         </>}
+
+    {canManage && <section className="mt-12 border-t border-platform-border pt-8">
+      <h2 className="font-display text-xs font-black uppercase tracking-widest text-platform-text-muted">{isEnglish ? "Who downloaded" : "Quem baixou"}</h2>
+      <p className="mt-2 max-w-[42rem] text-sm leading-relaxed text-platform-text-muted">
+        {isEnglish
+          ? "Every download is recorded before the file leaves: who, which file, and when. Nobody can erase this record."
+          : "Todo download é registrado antes de o arquivo sair: quem, qual arquivo e quando. Ninguém apaga este registro."}
+      </p>
+      {downloads === null
+        ? <button type="button" onClick={verDownloads} className="mt-4 border border-platform-border px-4 py-2 font-display text-[10px] font-bold uppercase text-platform-text-muted">{isEnglish ? "Show the record" : "Ver o registro"}</button>
+        : downloads.length === 0
+          ? <p className="mt-4 text-sm text-platform-text-muted">{isEnglish ? "No downloads yet." : "Nenhum download ainda."}</p>
+          : <div className="mt-4 overflow-x-auto">
+              <table data-registro-de-downloads className="w-full min-w-[36rem] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-platform-border text-[11px] uppercase tracking-wider text-platform-text-muted">
+                    <th className="py-2 pr-4 font-medium">{isEnglish ? "When" : "Quando"}</th>
+                    <th className="py-2 pr-4 font-medium">{isEnglish ? "Who" : "Quem"}</th>
+                    <th className="py-2 font-medium">{isEnglish ? "File" : "Arquivo"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {downloads.map((d) => (
+                    <tr key={d.id} className="border-b border-platform-border/60">
+                      <td className="py-2 pr-4 font-mono text-[12px] text-platform-text-muted">{new Date(d.quando).toLocaleString(isEnglish ? "en" : "pt-BR")}</td>
+                      <td className="py-2 pr-4 text-platform-text">{d.pessoa}</td>
+                      <td className="py-2 text-platform-text">
+                        {d.rotulo} <span className="font-mono text-[11px] text-platform-text-muted">{d.arquivo}</span>
+                        {/* O arquivo pode ter sido apagado em definitivo depois.
+                            O registro continua dizendo o que era — é para isso
+                            que ele guarda o nome em texto. */}
+                        {d.assetId === null && <span className="ml-2 text-[11px] text-platform-text-muted">{isEnglish ? "(file since deleted)" : "(arquivo apagado depois)"}</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>}
+    </section>}
   </div>;
 }
