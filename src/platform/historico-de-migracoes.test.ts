@@ -72,6 +72,20 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * Correção: a pessoa e a marca de uma concessão de acesso não mudam.
+   *
+   * Escrita em 14/09/2026 depois de revisão externa, NÃO aplicada em produção.
+   * Corrige um defeito que JÁ ESTÁ em produção desde 13/09: `update set
+   * user_id` movia um acesso de uma pessoa para outra sem entrar no registro.
+   * Só acrescenta um gatilho que recusa a troca; nenhuma linha muda ao aplicar,
+   * e nenhum código do aplicativo faz esse update. Pode ir antes ou depois de
+   * qualquer merge.
+   *
+   * Provada em `scripts/prova-acesso-por-marca.sh`, seção 7 — conferida por
+   * mutação: sem o gatilho, 6 dos 37 casos reprovam.
+   */
+  "identidade_do_acesso_imutavel",
   // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
   // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
   // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram
