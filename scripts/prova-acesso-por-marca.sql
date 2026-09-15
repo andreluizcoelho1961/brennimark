@@ -388,6 +388,72 @@ begin
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════
+-- 7. A identidade de uma concessão não muda — revisão externa de 14/09
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- O defeito: `update set user_id = outra` com as mesmas capacidades movia o
+-- acesso de uma pessoa para outra e o registro não via — o gatilho só olhava
+-- `capacidades`. Estes casos não existiam, e era justamente onde o defeito
+-- estava.
+do $$
+declare m record; estado text; nome text; eventos_antes integer; eventos_depois integer;
+        alterou text; ultimo text;
+begin
+  select * into m from mundo;
+  select count(*) into eventos_antes from public.brand_access_log where brand_id = m.marca_um;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims',
+    json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+
+  -- Mover a concessão de x para y, sem mexer nas capacidades.
+  begin
+    update public.brand_members set user_id = m.y
+     where brand_id = m.marca_um and user_id = m.x;
+    estado := 'MOVEU'; nome := '';
+  exception when others then
+    estado := sqlstate;
+    get stacked diagnostics nome = constraint_name;
+  end;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('mover acesso para outra pessoa e recusado', '23514', estado, estado = '23514'),
+    ('e a trava e a nomeada', 'brand_members_identidade_imutavel', nome, nome = 'brand_members_identidade_imutavel');
+
+  -- Mover a concessão para outra marca.
+  begin
+    update public.brand_members set brand_id = m.marca_dois
+     where brand_id = m.marca_um and user_id = m.x;
+    estado := 'MOVEU'; nome := '';
+  exception when others then
+    estado := sqlstate;
+    get stacked diagnostics nome = constraint_name;
+  end;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('mover acesso para outra marca e recusado', '23514', estado, estado = '23514'),
+    ('e a trava e a nomeada (marca)', 'brand_members_identidade_imutavel', nome, nome = 'brand_members_identidade_imutavel');
+
+  -- O caminho legítimo continua aberto, e continua registrado.
+  begin
+    update public.brand_members set capacidades = array['consultar','editar']
+     where brand_id = m.marca_um and user_id = m.x;
+    alterou := 'ALTEROU';
+  exception when others then
+    alterou := sqlstate;
+  end;
+  reset role;
+
+  select count(*) into eventos_depois from public.brand_access_log where brand_id = m.marca_um;
+  select acao into ultimo from public.brand_access_log
+   where brand_id = m.marca_um and pessoa = m.x order by created_at desc limit 1;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('mudar capacidades continua permitido', 'ALTEROU', alterou, alterou = 'ALTEROU'),
+    ('e continua entrando no registro', 'alterado', coalesce(ultimo,'(nada)'), ultimo = 'alterado'),
+    ('as recusas nao deixaram evento', '1 a mais',
+     (eventos_depois - eventos_antes)::text || ' a mais', eventos_depois - eventos_antes = 1);
+end $$;
+
+-- ════════════════════════════════════════════════════════════════════════
 -- Relatório
 -- ════════════════════════════════════════════════════════════════════════
 select case when passou then 'ok   ' else 'FALHA' end as st,
