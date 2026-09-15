@@ -72,18 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * O registro de download (ADR-0007 §2.4, item 18).
-   *
-   * Escrita em 14/09/2026, NÃO aplicada em produção. ATENÇÃO À ORDEM: a rota
-   * `/api/assets/[id]/download` grava nesta tabela ANTES de liberar o arquivo,
-   * e recusa o download se não conseguir gravar. Mergear o código antes de
-   * aplicar a migration faria TODO download da biblioteca falhar em produção.
-   * Aplicar primeiro, conferir, e só então mergear.
-   *
-   * Provada em `scripts/prova-registro-de-download.sh`.
-   */
-  "registro_de_download",
+  // `registro_de_download` saiu daqui em 15/09/2026: aplicada ao banco
+  // hospedado por autorização nominal do André, junto com `storage_por_marca`
+  // (PR #39), carimbada `20260915222109`, e o arquivo renomeado para esse
+  // carimbo. Conferido depois: impressão das policies e da função IDÊNTICA à
+  // local (1f60d4f3f86942975c639a19666e5aba), e `authenticated` só com
+  // INSERT e SELECT na tabela.
   // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
   // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
   // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram
