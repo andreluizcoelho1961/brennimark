@@ -53,4 +53,5 @@
 20260913223226 acesso_por_marca
 20260913223333 registro_de_acesso_por_marca
 20260913224905 asset_descontinuado_em_vez_de_apagado
+20260915215809 identidade_do_acesso_imutavel
 20260915222109 registro_de_download
