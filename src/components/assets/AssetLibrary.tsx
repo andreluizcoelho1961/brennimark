@@ -41,7 +41,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   }, [isEnglish, alvo]);
 
   /*
-   * O registro de quem baixou, só para quem gerencia.
+   * O registro dos downloads iniciados, só para quem gerencia.
+   *
+   * "Iniciados", e não "quem baixou": o registro prova que a pessoa recebeu um
+   * endereço válido para o arquivo, não que os bytes chegaram. Ver
+   * `lib/assets/download.ts`.
    *
    * Carregado sob demanda, e não junto com o acervo: é a pergunta de quem
    * administra, feita de vez em quando, e não deve pesar na abertura da
@@ -232,11 +236,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
         </>}
 
     {canManage && <section className="mt-12 border-t border-platform-border pt-8">
-      <h2 className="font-display text-xs font-black uppercase tracking-widest text-platform-text-muted">{isEnglish ? "Who downloaded" : "Quem baixou"}</h2>
+      <h2 className="font-display text-xs font-black uppercase tracking-widest text-platform-text-muted">{isEnglish ? "Downloads started" : "Downloads iniciados"}</h2>
       <p className="mt-2 max-w-[42rem] text-sm leading-relaxed text-platform-text-muted">
         {isEnglish
-          ? "Every download is recorded before the file leaves: who, which file, and when. Nobody can erase this record."
-          : "Todo download é registrado antes de o arquivo sair: quem, qual arquivo e quando. Ninguém apaga este registro."}
+          ? "Every download is recorded before its link is released: who, which file, and when. It shows the download was started — not that the whole file arrived. Nobody can erase this record."
+          : "Todo download é registrado antes de o link ser liberado: quem, qual arquivo e quando. Ele mostra que o download foi iniciado — não que o arquivo chegou inteiro. Ninguém apaga este registro."}
       </p>
       {downloads === null
         ? <button type="button" onClick={verDownloads} className="mt-4 border border-platform-border px-4 py-2 font-display text-[10px] font-bold uppercase text-platform-text-muted">{isEnglish ? "Show the record" : "Ver o registro"}</button>

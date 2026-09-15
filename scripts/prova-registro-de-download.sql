@@ -3,8 +3,9 @@
 -- Mesmo método das outras provas: mundo próprio, SQLSTATE conferido, caso cuja
 -- preparação falha é reprovado, `rollback` no fim.
 --
--- O que ela precisa sustentar é o que a foundry vai perguntar: quem recebeu o
--- arquivo. Por isso os casos centrais são os de FALSIFICAÇÃO — registrar em
+-- O que ela precisa sustentar é a pergunta de uma foundry — a quem o arquivo
+-- foi liberado. (Liberado, não entregue: o registro prova que o download foi
+-- autorizado e iniciado, não que os bytes chegaram.) Por isso os casos centrais são os de FALSIFICAÇÃO — registrar em
 -- nome de outra pessoa, atribuir o arquivo a outra marca, apagar o rastro — e o
 -- de SOBREVIVÊNCIA: o registro continua dizendo o que foi baixado depois de o
 -- arquivo ser apagado.

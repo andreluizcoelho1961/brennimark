@@ -44,7 +44,7 @@ test("abrir a biblioteca não registra download nenhum", async ({ page }) => {
    * A armadilha que este teste tranca: a prévia de imagem usava o endereço de
    * download como `src`. Apontada para a rota nova, cada abertura da página
    * registraria um download por imagem — o registro encheria de downloads que
-   * ninguém fez, e deixaria de responder "quem recebeu?".
+   * ninguém fez, e deixaria de responder quem iniciou o download de quê.
    */
   const imagem = { ...ASSET, id: "asset-imagem", label: "Foto", file_name: "foto.png", mime_type: "image/png" };
   await comAcervo(page, [ASSET, imagem]);
@@ -68,7 +68,7 @@ test("asset com caminho fora da marca não oferece botão", async ({ page }) => 
   await expect(page.getByRole("link", { name: "Baixar" })).toHaveCount(0);
 });
 
-test("quem gerencia vê quem baixou — inclusive arquivo apagado depois", async ({ page }) => {
+test("quem gerencia vê os downloads iniciados — inclusive de arquivo apagado depois", async ({ page }) => {
   await comAcervo(page, [ASSET]);
   await page.route("**/api/assets/downloads**", (rota) =>
     rota.fulfill({
@@ -100,5 +100,5 @@ test("quem só consulta não vê o registro", async ({ page }) => {
   await comAcervo(page, [ASSET]);
   await page.goto("/dev/biblioteca?gerencia=0");
   await expect(page.getByRole("link", { name: "Baixar" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Quem baixou" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Downloads iniciados" })).toHaveCount(0);
 });

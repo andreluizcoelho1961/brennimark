@@ -7,6 +7,12 @@
 -- arquivo". E o link com prazo (§2.5): "cada acesso registrado". Sem esta
 -- tabela, as duas nasceriam sem a garantia que as justifica.
 --
+-- Ressalva de precisão (revisão externa de 14/09): o registro prova que o
+-- download foi AUTORIZADO e INICIADO — a pessoa recebeu um endereço válido
+-- para o arquivo —, não que os bytes chegaram. Se a exigência de uma foundry
+-- for recebimento completo, será preciso transmitir o arquivo pelo servidor e
+-- registrar só no fim, com outro custo.
+--
 -- ─── O que estava errado no fluxo, e por que o registro exige mudá-lo ─────
 --
 -- Até aqui, abrir a biblioteca fazia o servidor assinar um endereço de 1 hora
@@ -28,7 +34,7 @@
 -- `asset_id` vira nulo se o asset for apagado em definitivo; `pessoa` vira nulo
 -- se a conta sair. O rótulo, o nome do arquivo e o e-mail ficam copiados. Um
 -- registro que perde o sentido quando o arquivo ou a pessoa somem não responde
--- justamente a pergunta difícil — "quem recebeu aquela fonte que retiramos?".
+-- justamente a pergunta difícil — "a quem liberamos aquela fonte que retiramos?".
 
 create table public.brand_asset_downloads (
   id           uuid primary key default gen_random_uuid(),
@@ -44,8 +50,8 @@ create table public.brand_asset_downloads (
   created_at   timestamptz not null default clock_timestamp()
 );
 
--- "Quem baixou desta marca, do mais recente para trás" e "quem recebeu ESTE
--- arquivo" — as duas perguntas que o registro precisa responder depressa.
+-- "Downloads desta marca, do mais recente para trás" e "a quem ESTE arquivo
+-- foi liberado" — as duas perguntas que o registro precisa responder depressa.
 create index brand_asset_downloads_marca_idx
   on public.brand_asset_downloads (brand_id, created_at desc);
 create index brand_asset_downloads_asset_idx

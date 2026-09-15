@@ -5,7 +5,10 @@ import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
- * Quem baixou o quê desta marca — "visível ao assinante", item 18 do ADR-0007.
+ * Os downloads iniciados desta marca — "visível ao assinante", item 18 do ADR-0007.
+ *
+ * Iniciados: cada linha diz que a pessoa recebeu um endereço válido para o
+ * arquivo naquele instante, não que a transferência terminou.
  *
  * Quem decide quem vê é a RLS de `brand_asset_downloads`: só quem tem
  * `administrar` naquela marca. Para qualquer outra pessoa esta consulta volta
