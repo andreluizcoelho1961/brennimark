@@ -84,6 +84,23 @@ const PENDENTES_ESPERADAS: string[] = [
    * Provada em `scripts/prova-registro-de-download.sh`.
    */
   "registro_de_download",
+  /**
+   * Os ARQUIVOS também por marca — achados 1 e 2 do Codex Security, 15/09/2026.
+   *
+   * Escrita em 15/09, NÃO aplicada em produção. Corrige um defeito que está em
+   * produção desde 13/09: as policies de `storage.objects` continuavam por
+   * conta. ORDEM: esta migration e `registro_de_download` vão juntas, antes do
+   * merge conjunto — a rota de download assina com a chave de serviço porque
+   * nenhuma sessão lê arquivo da biblioteca direto depois desta.
+   *
+   * Conferido que o arquivo sozinho, partindo das 11 policies antigas, chega a
+   * 13 policies com impressão digital 1b8dba31cf8cadd12a14425f4a61f2a5 — a
+   * mesma que produção precisa mostrar depois de aplicar.
+   *
+   * Provada em `scripts/prova-storage-por-marca.sh` — reprovou 11 de 18 contra
+   * as policies antigas antes da correção.
+   */
+  "storage_por_marca",
   // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
   // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
   // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram

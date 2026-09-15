@@ -2,10 +2,19 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * O cliente que só existe para as três mutações financeiras do ledger de
- * IA (`reservar_execucao_de_ia_server`, `consolidar_execucao_de_ia_server`,
- * `liberar_reserva_de_ia_server`) — as únicas que exigem uma chave capaz de
- * chamar função `service_role`-only.
+ * O cliente com a chave que ignora a RLS. Cada uso é uma exceção deliberada,
+ * e a autorização de quem pede vem SEMPRE de antes, pela sessão:
+ *
+ * - as três mutações financeiras do ledger de IA
+ *   (`reservar_execucao_de_ia_server`, `consolidar_execucao_de_ia_server`,
+ *   `liberar_reserva_de_ia_server`), função `service_role`-only;
+ * - `registrar_documento_fonte`, função `service_role`-only;
+ * - a assinatura do download da biblioteca (`/api/assets/[id]/download`),
+ *   porque desde 15/09/2026 nenhuma sessão lê arquivo da biblioteca direto no
+ *   Storage — é o que torna o registro de download incontornável.
+ *
+ * Comentário corrigido em 15/09: ele dizia que o cliente existia SÓ para o
+ * ledger de IA, e já não era verdade antes desta data.
  *
  * `import "server-only"` faz o build FALHAR se este módulo acabar
  * importado por engano num Client Component — a chave nunca deveria nem
