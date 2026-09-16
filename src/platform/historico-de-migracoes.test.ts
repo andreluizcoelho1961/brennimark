@@ -78,6 +78,12 @@ const PENDENTES_ESPERADAS: string[] = [
   // depois: impressão digital da função IDÊNTICA à local
   // (c210330bf6f372421c45213ccb6cb35e), e tentar mover um acesso real em
   // produção devolveu 23514 com a trava nomeada, sem mudar nenhuma linha.
+  // `registro_de_download` saiu daqui em 15/09/2026: aplicada ao banco
+  // hospedado por autorização nominal do André, junto com `storage_por_marca`
+  // (PR #39), carimbada `20260915222109`, e o arquivo renomeado para esse
+  // carimbo. Conferido depois: impressão das policies e da função IDÊNTICA à
+  // local (1f60d4f3f86942975c639a19666e5aba), e `authenticated` só com
+  // INSERT e SELECT na tabela.
   // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
   // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
   // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram

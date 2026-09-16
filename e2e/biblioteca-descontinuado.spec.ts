@@ -15,13 +15,12 @@ import { expect, test } from "@playwright/test";
 const EM_USO = {
   id: "asset-novo", label: "Logo v2", description: "", category: "Logotipos",
   file_name: "logo-v2.svg", mime_type: "image/svg+xml", size_bytes: 2048,
-  status: "ready", created_at: "2026-09-13T10:00:00Z", downloadUrl: "https://exemplo.test/v2",
+  status: "ready", created_at: "2026-09-13T10:00:00Z", baixavel: true,
   descontinuadoEm: null, substituidoPor: null,
 };
 const FORA_DE_USO = {
   ...EM_USO,
   id: "asset-velho", label: "Logo v1", file_name: "logo-v1.svg",
-  downloadUrl: "https://exemplo.test/v1",
   descontinuadoEm: "2026-09-13T11:00:00Z", substituidoPor: "asset-novo",
 };
 
