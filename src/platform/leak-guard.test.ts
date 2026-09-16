@@ -129,14 +129,30 @@ test("a V2 não veste a marca nem ramifica por instância", () => {
  * fica lá, alcançável por quem souber a URL, mostrando dado de cliente numa
  * tela que nunca passou por revisão de produto.
  */
-const BANCADAS = [
-  "src/app/dev/shell-v2/[[...slug]]/page.tsx",
-  "src/app/dev/visualizador/page.tsx",
-];
+/**
+ * TODAS as bancadas, e não uma lista escrita à mão.
+ *
+ * Até 13/09/2026 esta guarda listava duas rotas. Existiam oito, todas com a
+ * trava — mas por hábito, não por garantia: a lista não conhecia as seis
+ * restantes, e a nona nasceria descoberta. Uma guarda que só olha onde alguém
+ * lembrou de apontar não é guarda; é um comentário que roda.
+ *
+ * O gatilho foi concreto: ao acrescentar `/dev/biblioteca` na mesma sessão,
+ * nenhum teste teria reclamado se eu tivesse esquecido a trava.
+ */
+function bancadas(): string[] {
+  return listarArquivos("src/app/dev").filter(
+    (arquivo) => arquivo.endsWith("page.tsx") || arquivo.endsWith("route.ts"),
+  );
+}
 
 test("as rotas de laboratório são fechadas em produção", () => {
-  for (const arquivo of BANCADAS) {
-    const rota = ler(arquivo);
+  const rotas = bancadas();
+  // Sem isto, apagar a pasta faria o laço não rodar e o teste passar vazio.
+  assert.ok(rotas.length >= 8, `só ${rotas.length} bancadas encontradas — a varredura quebrou?`);
+
+  for (const arquivo of rotas) {
+    const rota = lerCodigo(arquivo);
     assert.match(rota, /NODE_ENV === "production"/, `${arquivo} não fecha em produção`);
     assert.match(rota, /notFound\(\)/, `${arquivo} não chama notFound`);
   }
@@ -331,10 +347,10 @@ test("as rotas de laboratório continuam fechadas em produção", () => {
   // Elas servem dados fixos e existem para o teste de navegador. Uma delas
   // aberta em produção seria conteúdo falso servido como se fosse da marca.
   for (const rota of [
-    "src/app/dev/shell-v2/[[...slug]]/page.tsx",
-    "src/app/dev/admin-panel/page.tsx",
+    ...bancadas(),
     // A rota que falha de propósito para exercitar a fronteira de erro. Aberta
     // em produção, ela seria um jeito de derrubar a tela de qualquer marca.
+    // Ela NÃO vive em `src/app/dev`, então continua nomeada aqui.
     "src/app/w/[workspaceSlug]/b/[brandKey]/docs/dev-falha/page.tsx",
   ]) {
     const codigo = lerCodigo(rota);

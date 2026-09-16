@@ -72,6 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `identidade_do_acesso_imutavel` saiu daqui em 15/09/2026: aplicada ao
+  // banco hospedado por autorização nominal do André, carimbada
+  // `20260915215809`, e o arquivo renomeado para esse carimbo. Conferido
+  // depois: impressão digital da função IDÊNTICA à local
+  // (c210330bf6f372421c45213ccb6cb35e), e tentar mover um acesso real em
+  // produção devolveu 23514 com a trava nomeada, sem mudar nenhuma linha.
   // `registro_de_download` saiu daqui em 15/09/2026: aplicada ao banco
   // hospedado por autorização nominal do André, junto com `storage_por_marca`
   // (PR #39), carimbada `20260915222109`, e o arquivo renomeado para esse
