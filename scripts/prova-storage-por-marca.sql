@@ -281,6 +281,96 @@ begin
     ('quem nao administra a conta NAO ve arquivo de marca apagada', '0', n::text, n = 0);
 end $$;
 
+-- ════════════════════════════════════════════════════════════════════════
+-- 7. Apagar asset e apagar marca decidem por marca (16/09/2026)
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- `delete_asset_with_file` e `delete_brand_with_files` são INVOKER e pediam
+-- `owner` da conta. Não vazavam — a RLS valia por baixo —, mas recusavam quem
+-- tem a capacidade na marca, e na primeira havia algo pior: o dono de conta
+-- sem capacidade passava na verificação, o arquivo ia para a FILA, e só depois
+-- o `delete` esbarrava na RLS e apagava 0 linhas. O asset ficava na biblioteca
+-- com o arquivo marcado para sumir.
+do $$
+declare m record; estado text; enfileirado_antes integer; enfileirado_depois integer;
+        sobrou integer; enfileirados integer; marcas_depois integer;
+begin
+  select * into m from mundo;
+  select count(*) into enfileirado_antes from public.brand_deletions
+   where storage_path = m.biblioteca_um;
+
+  -- Quem só consulta não apaga asset.
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.x, 'role', 'authenticated')::text, true);
+  begin
+    perform public.delete_asset_with_file((select id from public.brand_assets where storage_path = m.biblioteca_um));
+    estado := 'APAGOU';
+  exception when others then estado := sqlstate;
+  end;
+  reset role;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('quem so consulta NAO apaga asset', '42501', estado, estado = '42501');
+
+  -- Dono da CONTA sem capacidade na marca também não — e não enfileira.
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  begin
+    perform public.delete_asset_with_file((select id from public.brand_assets where storage_path = m.biblioteca_um));
+    estado := 'APAGOU';
+  exception when others then estado := sqlstate;
+  end;
+  reset role;
+  select count(*) into enfileirado_depois from public.brand_deletions
+   where storage_path = m.biblioteca_um;
+  select count(*) into sobrou from public.brand_assets where storage_path = m.biblioteca_um;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('dono da conta restrito na marca NAO apaga asset', '42501', estado, estado = '42501'),
+    ('e NAO enfileirou o arquivo para exclusao', enfileirado_antes::text,
+     enfileirado_depois::text, enfileirado_depois = enfileirado_antes),
+    ('e o asset continua na biblioteca', '1', sobrou::text, sobrou = 1);
+
+  -- Quem edita a marca apaga, e o arquivo entra na fila.
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  begin
+    perform public.delete_asset_with_file((select id from public.brand_assets where storage_path = m.biblioteca_um));
+    estado := 'APAGOU';
+  exception when others then estado := sqlstate;
+  end;
+  reset role;
+  select count(*) into sobrou from public.brand_assets where storage_path = m.biblioteca_um;
+  select count(*) into enfileirado_depois from public.brand_deletions where storage_path = m.biblioteca_um;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('quem edita a marca apaga o asset', 'APAGOU', estado, estado = 'APAGOU'),
+    ('o asset saiu da biblioteca', '0', sobrou::text, sobrou = 0),
+    ('e o arquivo foi enfileirado', '1', enfileirado_depois::text, enfileirado_depois = 1);
+
+  -- Apagar a MARCA: `administrar` nela.
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  begin
+    perform public.delete_brand_with_files(m.um);
+    estado := 'APAGOU';
+  exception when others then estado := sqlstate;
+  end;
+  reset role;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('dono da conta restrito na marca NAO apaga a marca', '42501', estado, estado = '42501');
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  begin
+    select public.delete_brand_with_files(m.um) into enfileirados;
+    estado := 'APAGOU';
+  exception when others then estado := sqlstate; enfileirados := -1;
+  end;
+  reset role;
+  select count(*) into marcas_depois from public.brands where id = m.um;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('quem administra a marca apaga a marca', 'APAGOU', estado, estado = 'APAGOU'),
+    ('e a marca sumiu', '0', marcas_depois::text, marcas_depois = 0);
+end $$;
+
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;
 
 select case when count(*) filter (where not passou) = 0
