@@ -371,6 +371,75 @@ begin
     ('e a marca sumiu', '0', marcas_depois::text, marcas_depois = 0);
 end $$;
 
+-- ════════════════════════════════════════════════════════════════════════
+-- 8. Apagar a marca leva as IMAGENS DE PÁGINA (16/09/2026)
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Elas não são linha de tabela: vivem em `brand_documents.images`, em JSON.
+-- Medido em produção: os 28 objetos do bucket são imagens de página, e nenhum
+-- deles era enfileirado ao apagar a marca — ficariam ocupando espaço pago sem
+-- nenhuma linha que os mencionasse.
+--
+-- Mundo próprio, como as outras seções: as marcas anteriores já foram apagadas.
+do $$
+declare
+  m record; marca_img uuid; doc uuid;
+  caminho_imagem text; caminho_estatico text := '/estatico/logo.png';
+  fila_imagem integer; fila_estatico integer; devolvidos integer;
+begin
+  select * into m from mundo;
+
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language,
+                             metadata, navigation, theme, ai, legal)
+  values (m.conta, 'st-img', 'ST Img', 'I', 'imagens', 'pt-BR', '{}','{}','{}','{}','{}')
+  returning id into marca_img;
+  caminho_imagem := m.conta::text || '/' || marca_img::text || '/pagina-7.png';
+
+  insert into storage.objects (bucket_id, name, owner_id)
+  values ('brand-assets', caminho_imagem, m.dona::text);
+
+  -- Um documento com DUAS imagens: uma do Storage e uma estática de `public/`.
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  insert into public.brand_documents (workspace_id, brand_id, instance_key, slug, group_name,
+                                      title, status, body, images, updated_by)
+  values (m.conta, marca_img, 'prova', 'pagina-7', 'Manual', 'Página 7', 'ready', '[]',
+          jsonb_build_array(
+            jsonb_build_object('src', caminho_imagem, 'alt', 'do storage'),
+            jsonb_build_object('src', caminho_estatico, 'alt', 'estatica')),
+          m.dona)
+  returning id into doc;
+  perform set_config('request.jwt.claims', '', true);
+
+  if doc is null then
+    raise exception 'premissa falhou: o documento com imagens nao foi criado';
+  end if;
+
+  -- Apagar a marca pelo caminho do produto.
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select public.delete_brand_with_files(marca_img) into devolvidos;
+  reset role;
+
+  select count(*) into fila_imagem from public.brand_deletions
+   where bucket_id = 'brand-assets' and storage_path = caminho_imagem;
+  select count(*) into fila_estatico from public.brand_deletions
+   where storage_path = caminho_estatico;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('apagar a marca enfileira a imagem de pagina', '1', fila_imagem::text, fila_imagem = 1),
+    ('caminho estatico de public/ NAO e enfileirado', '0', fila_estatico::text, fila_estatico = 0),
+    ('a funcao contou a imagem no total devolvido', 'ao menos 1', devolvidos::text, devolvidos >= 1);
+
+  -- E o dono da conta consegue de fato apagar o objeto pela regra de limpeza.
+  perform set_config('storage.allow_delete_query', 'true', true);
+  set local role authenticated;
+  delete from storage.objects where bucket_id = 'brand-assets' and name = caminho_imagem;
+  get diagnostics fila_imagem = row_count;
+  reset role;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('e a drenagem consegue apagar o objeto', '1 linha', fila_imagem || ' linha', fila_imagem = 1);
+end $$;
+
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;
 
 select case when count(*) filter (where not passou) = 0
