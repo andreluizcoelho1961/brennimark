@@ -920,6 +920,115 @@ end $$;
 -- ════════════════════════════════════════════════════════════════════════
 -- Relatório
 -- ════════════════════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════════════════
+-- Autorização POR MARCA nas duas funções definer (16/09/2026)
+-- ════════════════════════════════════════════════════════════════════════
+--
+-- Achado 3 do Codex Security, mais `editar_documento_fonte`, que a varredura
+-- achou depois. As duas perguntavam "é dona da CONTA?", o que errava nos dois
+-- sentidos: deixava passar quem administra a conta com acesso restrito à marca,
+-- e barrava quem recebeu a capacidade NA MARCA sem ser dona da conta.
+--
+-- Estes casos não existiam — era exatamente onde o defeito estava.
+do $$
+declare
+  m record;
+  dono_restrito uuid := '99999999-9999-4999-8999-99999999aaaa';
+  fornecedor    uuid := '99999999-9999-4999-8999-99999999bbbb';
+  so_consulta   uuid := '99999999-9999-4999-8999-99999999cccc';
+  d uuid; estado text; doc uuid; titulo_agora text; marca_df uuid;
+begin
+  select * into m from mundo;
+
+  /*
+   * Marca própria para esta seção.
+   *
+   * As marcas do mundo já têm documento-fonte ativo em vários tipos, e o índice
+   * "uma ativa por tipo" recusaria o registro por um motivo que nada tem a ver
+   * com autorização — foi o que aconteceu na primeira versão desta seção, e um
+   * caso que falha por preparação não prova o que diz provar.
+   */
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language,
+                             metadata, navigation, theme, ai, legal)
+  values (m.conta_a, 'df-marca', 'DF Marca', 'DF', 'marca da secao', 'pt-BR',
+          '{}','{}','{}','{}','{}')
+  returning id into marca_df;
+
+  insert into auth.users (id, email, aud, role) values
+    (dono_restrito, 'df-dono-restrito@local.test', 'authenticated', 'authenticated'),
+    (fornecedor,    'df-fornecedor@local.test',    'authenticated', 'authenticated'),
+    (so_consulta,   'df-so-consulta@local.test',   'authenticated', 'authenticated');
+
+  -- Dono da CONTA, mas só `consultar` na marca.
+  insert into public.workspace_members (workspace_id, user_id, role)
+  values (m.conta_a, dono_restrito, 'owner'), (m.conta_a, fornecedor, 'member'),
+         (m.conta_a, so_consulta, 'member');
+  -- O gatilho de criação já semeou as donas da conta com as quatro
+  -- capacidades; aqui as capacidades viram exatamente as do caso.
+  insert into public.brand_members (brand_id, workspace_id, user_id, capacidades) values
+    (marca_df, m.conta_a, dono_restrito, array['consultar']),
+    (marca_df, m.conta_a, fornecedor,    array['consultar','administrar']),
+    (marca_df, m.conta_a, so_consulta,   array['consultar'])
+  on conflict (brand_id, user_id) do update set capacidades = excluded.capacidades;
+
+  -- 1. Dono da conta restrito na marca NÃO registra.
+  begin
+    select public.registrar_documento_fonte(m.conta_a, marca_df, 'dr', repeat('a',64), 1, 1,
+      'guia', null, '',
+      jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
+      dono_restrito) into d;
+    estado := 'REGISTROU';
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate;
+  end;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('dono da conta restrito na marca NAO registra documento-fonte', '42501', estado, estado = '42501');
+
+  -- 2. Quem administra a MARCA registra, mesmo sem ser dono da conta.
+  begin
+    select public.registrar_documento_fonte(m.conta_a, marca_df, 'forn', repeat('b',64), 1, 1,
+      'guia', null, '',
+      jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
+      fornecedor) into doc;
+    estado := case when doc is null then 'null' else 'REGISTROU' end;
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate;
+  end;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('quem administra a MARCA registra sem ser dono da conta', 'REGISTROU', estado, estado = 'REGISTROU');
+
+  -- Premissa: sem documento criado, os casos de edição abaixo mentiriam.
+  if doc is null then
+    raise exception 'premissa falhou: o registro pela capacidade de marca nao criou documento (%)', estado;
+  end if;
+
+  -- 3. Editar: `consultar` não basta.
+  begin
+    perform public.editar_documento_fonte(doc, 'Título forjado', null, null, so_consulta);
+    estado := 'EDITOU';
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate;
+  end;
+  select titulo into titulo_agora from public.brand_source_documents where id = doc;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('quem so consulta NAO edita o documento-fonte', '42501', estado, estado = '42501'),
+    ('e o titulo nao mudou', 'vazio', coalesce(nullif(titulo_agora,''),'vazio'), coalesce(titulo_agora,'') = '');
+
+  -- 4. Editar: quem tem `editar` na marca edita.
+  update public.brand_members set capacidades = array['consultar','editar']
+   where brand_id = marca_df and user_id = so_consulta;
+  begin
+    perform public.editar_documento_fonte(doc, 'Título legítimo', null, null, so_consulta);
+    estado := 'EDITOU';
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate;
+  end;
+  select titulo into titulo_agora from public.brand_source_documents where id = doc;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('quem edita a marca edita o documento-fonte', 'EDITOU', estado, estado = 'EDITOU'),
+    ('e o titulo mudou', 'Título legítimo', coalesce(titulo_agora,'(nulo)'), titulo_agora = 'Título legítimo');
+end $$;
+
 select case when passou then 'ok   ' else 'FALHA' end as st,
        caso, esperado, obtido
 from resultado order by ordem;

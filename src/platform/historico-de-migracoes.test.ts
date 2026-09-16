@@ -72,6 +72,21 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * O documento-fonte decide por marca — achado 3 do Codex e a função que a
+   * varredura achou depois (`editar_documento_fonte`).
+   *
+   * Escrita em 16/09/2026, NÃO aplicada em produção. Só troca a verificação de
+   * autorização dentro de duas funções `SECURITY DEFINER`; nenhuma linha muda
+   * ao aplicar. A rota de registro não ganha portão próprio de propósito: a
+   * função é definer e contorna a RLS, então a verificação dentro dela é a
+   * fronteira — a rota só repassa o erro.
+   *
+   * Provada em `scripts/prova-manifesto-por-pagina.sh` (6 casos novos, 59 no
+   * total). Conferida por mutação: com a regra antiga, quem tem `administrar`
+   * na marca é recusado com 42501.
+   */
+  "documento_fonte_por_marca",
   // `identidade_do_acesso_imutavel` saiu daqui em 15/09/2026: aplicada ao
   // banco hospedado por autorização nominal do André, carimbada
   // `20260915215809`, e o arquivo renomeado para esse carimbo. Conferido
