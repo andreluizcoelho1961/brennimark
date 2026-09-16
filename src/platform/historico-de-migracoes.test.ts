@@ -72,21 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * Apagar asset e apagar marca decidem por marca.
-   *
-   * Escrita em 16/09/2026, NÃO aplicada em produção. Fecha as duas últimas
-   * funções que a varredura do dia anterior apontou — as outras quatro foram
-   * medidas e estão certas por conta (duas de sistema, `publish_brand_import`
-   * porque CRIA a marca, e `enqueue_import_cleanup` porque só age sobre PDF
-   * que ainda não virou importação).
-   *
-   * Provada em `scripts/prova-storage-por-marca.sh` (9 casos novos, 32 no
-   * total). Conferida por mutação: com a regra antiga, o dono de conta
-   * restrito na marca "apaga" o asset sem erro E enfileira o arquivo, embora a
-   * RLS não apague a linha — o asset ficaria na biblioteca sem arquivo.
-   */
-  "apagar_por_marca",
+  // `apagar_por_marca` saiu daqui em 16/09/2026: aplicada ao banco hospedado
+  // por autorização nominal do André, carimbada `20260916165048`, e o arquivo
+  // renomeado. Conferido depois: impressão das duas funções IDÊNTICA à local
+  // (6abf4385bb5b6a115ddf3447c2c66a2e), e restam 4 funções decidindo por conta
+  // — as quatro legítimas (sistema, cadastro, criar marca, limpar PDF sem
+  // marca).
   // `documento_fonte_por_marca` saiu daqui em 16/09/2026: aplicada ao banco
   // hospedado por autorização nominal do André, carimbada `20260916143418`, e
   // o arquivo renomeado. Conferido depois: impressão das duas funções IDÊNTICA
