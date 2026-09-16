@@ -3,6 +3,7 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { liberarDownload } from "@/lib/assets/download";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
@@ -52,8 +53,23 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     // A RLS protege a LINHA; ela não protege o objeto do Storage. Um caminho
     // gravado errado assinaria o arquivo de outra marca com esta sessão.
     pertenceAMarca: (caminho) => pertenceAMarca(caminho, workspaceId, brandId),
+    /*
+     * Assinada com a chave de SERVIÇO, e não com a sessão da pessoa.
+     *
+     * Desde a migration `storage_por_marca` (15/09/2026), ninguém lê arquivo da
+     * biblioteca direto no Storage — nem quem administra a marca. É o que torna
+     * o registro de download impossível de contornar: se a sessão pudesse
+     * assinar, qualquer pessoa com acesso à marca geraria o link pelo Supabase
+     * sem passar por aqui. Decisão do André em 15/09.
+     *
+     * A chave ignora a RLS, então a AUTORIZAÇÃO não pode vir dela. Ela vem de
+     * antes: `buscar` leu a linha do asset com a sessão da pessoa (a RLS só a
+     * devolve a quem tem `consultar` na marca), e `pertenceAMarca` conferiu que
+     * o caminho é daquela marca. A chave só assina o caminho que essas duas
+     * checagens já aprovaram — nunca um caminho vindo do pedido.
+     */
     assinar: async (asset) => {
-      const { data } = await auth.supabase.storage
+      const { data } = await createServiceClient().storage
         .from(BUCKETS.assets)
         .createSignedUrl(asset.storagePath, VALIDADE_DO_ENDERECO_S, { download: asset.fileName });
       return data?.signedUrl ?? null;

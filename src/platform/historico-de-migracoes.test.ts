@@ -84,6 +84,14 @@ const PENDENTES_ESPERADAS: string[] = [
   // carimbo. Conferido depois: impressão das policies e da função IDÊNTICA à
   // local (1f60d4f3f86942975c639a19666e5aba), e `authenticated` só com
   // INSERT e SELECT na tabela.
+  // `storage_por_marca` saiu daqui em 15/09/2026: aplicada ao banco hospedado
+  // por autorização nominal do André, carimbada `20260915222216`, e o arquivo
+  // renomeado para esse carimbo. Conferido depois: `storage.objects` com 13
+  // policies e impressão 1b8dba31cf8cadd12a14425f4a61f2a5 — a mesma que o
+  // teste do arquivo previu partindo das 11 antigas, cuja impressão em
+  // produção (7e6931fb987263fdeb464ae8d91c173f) também foi conferida contra a
+  // reconstrução local antes de aplicar. Com a sessão do dono: 28 imagens de
+  // página e 2 PDFs visíveis, como antes.
   // `acesso_por_marca` e `registro_de_acesso_por_marca` saíram daqui em
   // 13/09/2026: aplicadas ao banco hospedado por decisão do proprietário,
   // carimbadas `20260913223226` e `20260913223333` — e os arquivos foram
