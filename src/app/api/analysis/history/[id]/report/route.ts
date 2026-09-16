@@ -1,7 +1,7 @@
 import { platformIdentity } from "@/platform/identity";
 import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
+import { contextoDoHistorico } from "@/lib/analysis/server";
 import { nomeSeguro } from "@/lib/storage/caminhos";
 import { ANALYSIS_EVIDENCE_BUCKET, ANALYSIS_RUN_SELECT, type AnalysisRow } from "@/lib/analysis/history";
 import { sanitizeStructuredAnalysis } from "@/lib/ai/analysis-result";
@@ -91,10 +91,10 @@ function drawHeader(
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const resolvido = await marcaDaRota(request);
-  if (!resolvido.ok) return resolvido.resposta;
-  const context = { supabase: resolvido.auth.supabase, workspaceId: resolvido.workspaceId, brandId: resolvido.brandId };
-  const marca = resolvido.brand;
+  const portao = await contextoDoHistorico(request);
+  if (!portao.ok) return portao.resposta;
+  const { context } = portao;
+  const marca = portao.brand;
   const paleta = paletaDoRelatorio(marca.theme);
   const { id } = await params;
 
