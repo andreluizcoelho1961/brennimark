@@ -20,9 +20,30 @@
 # aqui porque tambem e hermetica: ela sobe o proprio servidor sem banco.
 name: CI
 
+# So em pull request — medido, nao suposto.
+#
+# Em setembro de 2026 o CI consumiu 2.034 minutos e estourou a franquia de
+# 2.000 da conta gratuita (o repositorio e privado; em publico Actions e
+# ilimitado). Dos 2.034, **955 foram execucoes de push na main**: 92 execucoes
+# de pull request custaram 1.079 minutos, e 105 de push custaram 955.
+#
+# Essas 955 eram repeticao. O CI de um PR roda `refs/pull/N/merge`, que e a
+# branch JA COMBINADA com a main atual — o resultado do merge, nao a branch
+# isolada. Quando o merge acontece, a main fica identica ao que acabou de
+# passar, e a execucao de push refazia os mesmos 14 minutos para confirmar o
+# que ja se sabia.
+#
+# O que se perde, e como fica coberto: se dois PRs sao aprovados contra a
+# mesma main e mesclados em seguida, o segundo entra sem ter sido testado
+# contra o primeiro. A cobertura e de processo, e ja era a pratica —
+# **antes de mesclar, a main entra na branch e o CI roda de novo** (foi o que
+# aconteceu com o #37 em 15/09). Se isso for esquecido alguma vez, o defeito
+# aparece no PR seguinte, e nao em producao: o deploy da Vercel tem o proprio
+# gate.
+#
+# Se um dia a main puder receber commit direto, esta decisao precisa voltar a
+# ser discutida — hoje o AGENTS.md proibe, e toda mudanca passa por PR.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 # Sem segredos e sem escrita: o pipeline so precisa ler o repositorio.
