@@ -72,6 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `documento_fonte_por_marca` saiu daqui em 16/09/2026: aplicada ao banco
+  // hospedado por autorização nominal do André, carimbada `20260916143418`, e
+  // o arquivo renomeado. Conferido depois: impressão das duas funções IDÊNTICA
+  // à local (ecffa360198aaeb8fb94f6635ced735a).
   // `identidade_do_acesso_imutavel` saiu daqui em 15/09/2026: aplicada ao
   // banco hospedado por autorização nominal do André, carimbada
   // `20260915215809`, e o arquivo renomeado para esse carimbo. Conferido
