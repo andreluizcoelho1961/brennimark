@@ -24,6 +24,23 @@ export default async function ResolvedorDeContexto() {
   if (contexto.access === "anonymous") redirect("/login");
   if (contexto.access === "onboarding") redirect("/onboarding");
 
+  /*
+   * Entrou e não tem acesso a nada (17/09/2026, conta de time).
+   *
+   * Não é o vazio de quem administra e ainda não importou: é o vazio de quem
+   * está esperando alguém liberar. O texto diz a quem pedir, e não há botão —
+   * o de importação devolveria a pessoa para cá.
+   */
+  if (contexto.access === "sem-acesso") {
+    return (
+      <LocaleProvider locale={contexto.locale}>
+        <main className="min-h-dvh bg-platform-bg">
+          <EmptyBrandState podeImportar={false} />
+        </main>
+      </LocaleProvider>
+    );
+  }
+
   if (contexto.access === "ready" && contexto.workspaceSlug && contexto.brand) {
     redirect(`/w/${contexto.workspaceSlug}/b/${contexto.brand.key}/docs`);
   }

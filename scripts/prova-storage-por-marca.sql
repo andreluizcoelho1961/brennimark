@@ -44,7 +44,7 @@ declare
   u_y     uuid := '88888888-8888-4888-8888-88888888cccc';  -- edita a marca DOIS
   u_autor uuid := '88888888-8888-4888-8888-88888888dddd';  -- consulta UM e fez uma análise nela
   u_outro uuid := '88888888-8888-4888-8888-88888888eeee';  -- consulta UM, não é autor
-  u_dono2 uuid := '88888888-8888-4888-8888-88888888ffff';  -- DONO da conta, mas só consulta a UM
+  u_dono2 uuid := '88888888-8888-4888-8888-88888888ffff';  -- ADMINISTRA a conta, sem linha em marca
   w uuid; um uuid; dois uuid; run_um uuid; run_dois uuid;
   imp_um uuid := gen_random_uuid(); imp_dois uuid := gen_random_uuid(); imp_sem uuid := gen_random_uuid();
   sha text := repeat('ab', 32);
@@ -73,8 +73,10 @@ begin
     (um,   w, u_x,     array['consultar']),
     (dois, w, u_y,     array['consultar','editar']),
     (um,   w, u_autor, array['consultar']),
-    (um,   w, u_outro, array['consultar']),
-    (um,   w, u_dono2, array['consultar'])
+    (um,   w, u_outro, array['consultar'])
+    -- u_dono2 NÃO tem linha em `brand_members` desde 17/09/2026: ele administra
+    -- a CONTA, e a capacidade dele na marca DERIVA disso. É o que estes casos
+    -- provam — antes ele era "dono restrito", figura que deixou de existir.
   on conflict (brand_id, user_id) do update set capacidades = excluded.capacidades;
 
   -- brand-assets: imagem de página em cada marca, e um arquivo DA BIBLIOTECA na UM.
@@ -275,18 +277,22 @@ begin
   insert into resultado (caso, esperado, obtido, passou) values
     ('a dona apaga de fato a evidencia da marca apagada', '1 linha', n || ' linha', n = 1);
 
-  -- A porta de limpeza NÃO serve a marca viva: dono de conta com acesso restrito
-  -- na UM enfileira a imagem de página dela e tenta apagar.
+  -- A porta de limpeza NÃO serve a marca viva: um MEMBRO sem concessão na UM
+  -- enfileira a imagem de página dela e tenta apagar.
+  --
+  -- O ator mudou em 17/09/2026: era o "dono restrito", figura que a decisão de
+  -- administrar-a-conta-é-administrar-as-marcas eliminou. Quem não alcança a
+  -- marca hoje é quem pertence à conta sem concessão nela.
   insert into public.brand_deletions (workspace_id, bucket_id, storage_path, requested_by)
-  values (m.conta, 'brand-assets', m.pagina_um, m.dono2);
-  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  values (m.conta, 'brand-assets', m.pagina_um, m.y);
+  perform set_config('request.jwt.claims', json_build_object('sub', m.y, 'role', 'authenticated')::text, true);
   perform set_config('storage.allow_delete_query', 'true', true);
   set local role authenticated;
   delete from storage.objects where bucket_id = 'brand-assets' and name = m.pagina_um;
   get diagnostics n = row_count;
   reset role;
   insert into resultado (caso, esperado, obtido, passou) values
-    ('dono restrito NAO apaga arquivo de marca VIVA pela fila', '0 linhas', n || ' linhas', n = 0);
+    ('membro sem concessao NAO apaga arquivo de marca VIVA pela fila', '0 linhas', n || ' linhas', n = 0);
 
   -- E quem não administra a conta não usa a porta nem para marca apagada.
   perform set_config('request.jwt.claims', json_build_object('sub', m.y, 'role', 'authenticated')::text, true);
@@ -327,9 +333,9 @@ begin
   insert into resultado (caso, esperado, obtido, passou) values
     ('quem so consulta NAO apaga asset', '42501', estado, estado = '42501');
 
-  -- Dono da CONTA sem capacidade na marca também não — e não enfileira.
+  -- Membro da conta SEM concessão nesta marca também não — e não enfileira.
   set local role authenticated;
-  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', m.y, 'role', 'authenticated')::text, true);
   begin
     perform public.delete_asset_with_file((select id from public.brand_assets where storage_path = m.biblioteca_um));
     estado := 'APAGOU';
@@ -340,7 +346,10 @@ begin
    where storage_path = m.biblioteca_um;
   select count(*) into sobrou from public.brand_assets where storage_path = m.biblioteca_um;
   insert into resultado (caso, esperado, obtido, passou) values
-    ('dono da conta restrito na marca NAO apaga asset', '42501', estado, estado = '42501'),
+    -- `P0002` (não encontrado), e não `42501`: quem não alcança a marca não
+    -- enxerga o asset, então a função recusa antes de falar em permissão. É a
+    -- recusa melhor — não confirma que o asset existe.
+    ('membro sem concessao na marca NAO apaga asset', 'P0002', estado, estado = 'P0002'),
     ('e NAO enfileirou o arquivo para exclusao', enfileirado_antes::text,
      enfileirado_depois::text, enfileirado_depois = enfileirado_antes),
     ('e o asset continua na biblioteca', '1', sobrou::text, sobrou = 1);
@@ -363,7 +372,7 @@ begin
 
   -- Apagar a MARCA: `administrar` nela.
   set local role authenticated;
-  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', m.y, 'role', 'authenticated')::text, true);
   begin
     perform public.delete_brand_with_files(m.um);
     estado := 'APAGOU';
@@ -371,7 +380,7 @@ begin
   end;
   reset role;
   insert into resultado (caso, esperado, obtido, passou) values
-    ('dono da conta restrito na marca NAO apaga a marca', '42501', estado, estado = '42501');
+    ('membro sem concessao na marca NAO apaga a marca', 'P0002', estado, estado = 'P0002');
 
   set local role authenticated;
   perform set_config('request.jwt.claims', json_build_object('sub', m.dona, 'role', 'authenticated')::text, true);
@@ -454,6 +463,69 @@ begin
   reset role;
   insert into resultado (caso, esperado, obtido, passou) values
     ('e a drenagem consegue apagar o objeto', '1 linha', fila_imagem || ' linha', fila_imagem = 1);
+end $$;
+
+-- ─── Administrar a conta é administrar as marcas dela (17/09/2026) ──────────
+--
+-- Mundo próprio: uma marca NOVA, criada depois de tudo, sem nenhuma linha em
+-- `brand_members` para o administrador. Se a derivação não existisse, ele não
+-- enxergaria nada aqui — e era exatamente esse o defeito com dois
+-- administradores: a marca criada por um ficava invisível para o outro.
+do $$
+declare
+  m record; nova uuid; caminho text; estado text; n integer;
+begin
+  select * into m from mundo;
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language,
+                             metadata, navigation, theme, ai, legal)
+  values (m.conta, 'st-nova', 'ST Nova', 'N', 'nova', 'pt-BR', '{}','{}','{}','{}','{}')
+  returning id into nova;
+  caminho := m.conta::text || '/' || nova::text || '/logo-novo.svg';
+
+  if exists (select 1 from public.brand_members where brand_id = nova and user_id = m.dono2) then
+    raise exception 'premissa falhou: o administrador ganhou linha na marca, e a prova nao testa a derivacao';
+  end if;
+
+  -- Enxerga a marca nova sem nenhuma linha de acesso nela.
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from public.brands where id = nova;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('administrador enxerga marca nova sem linha em brand_members', '1', n::text, n = 1);
+
+  -- E sobe arquivo dela no Storage, que é onde a regra era repetida à mão.
+  begin
+    insert into storage.objects (bucket_id, name, owner_id) values ('brand-assets', caminho, m.dono2::text);
+    estado := 'ACEITOU';
+  exception when others then estado := sqlstate;
+  end;
+  reset role;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('administrador sobe arquivo da marca nova', 'ACEITOU', estado, estado = 'ACEITOU');
+
+  -- O membro sem concessão continua fora, que é a fronteira que NÃO caiu.
+  perform set_config('request.jwt.claims', json_build_object('sub', m.y, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  select count(*) into n from public.brands where id = nova;
+  reset role;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('membro sem concessao NAO enxerga a marca nova', '0', n::text, n = 0);
+
+  -- A porta de limpeza continua sem servir marca VIVA, agora pelo fato direto
+  -- ("esta marca não existe mais") e não por "não há ninguém nela" — sinal que
+  -- a derivação tornou falso: marca viva de administrador não tem linha alguma.
+  insert into public.brand_deletions (workspace_id, bucket_id, storage_path, requested_by)
+  values (m.conta, 'analysis-evidence', m.conta::text||'/'||nova::text||'/falsa-evidencia.png', m.dono2);
+  insert into storage.objects (bucket_id, name, owner_id)
+  values ('analysis-evidence', m.conta::text||'/'||nova::text||'/falsa-evidencia.png', m.dono2::text);
+  perform set_config('request.jwt.claims', json_build_object('sub', m.dono2, 'role', 'authenticated')::text, true);
+  perform set_config('storage.allow_delete_query', 'true', true);
+  set local role authenticated;
+  delete from storage.objects where name = m.conta::text||'/'||nova::text||'/falsa-evidencia.png';
+  get diagnostics n = row_count;
+  reset role;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('a limpeza NAO alcanca arquivo de marca viva, nem para o administrador', '0 linhas', n || ' linhas', n = 0);
 end $$;
 
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;

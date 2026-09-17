@@ -959,30 +959,47 @@ begin
     (fornecedor,    'df-fornecedor@local.test',    'authenticated', 'authenticated'),
     (so_consulta,   'df-so-consulta@local.test',   'authenticated', 'authenticated');
 
-  -- Dono da CONTA, mas só `consultar` na marca.
+  /*
+   * Os três papéis desta seção — reescritos em 17/09/2026.
+   *
+   * O "dono da conta restrito na marca" deixou de existir: quem administra a
+   * conta administra todas as marcas dela. Quem NÃO alcança a marca hoje é
+   * `so_consulta`, que pertence à conta e recebeu `consultar` só aqui, e o
+   * `fornecedor`, que administra ESTA marca sem administrar a conta.
+   */
   insert into public.workspace_members (workspace_id, user_id, role)
   values (m.conta_a, dono_restrito, 'owner'), (m.conta_a, fornecedor, 'member'),
          (m.conta_a, so_consulta, 'member');
-  -- O gatilho de criação já semeou as donas da conta com as quatro
-  -- capacidades; aqui as capacidades viram exatamente as do caso.
   insert into public.brand_members (brand_id, workspace_id, user_id, capacidades) values
-    (marca_df, m.conta_a, dono_restrito, array['consultar']),
     (marca_df, m.conta_a, fornecedor,    array['consultar','administrar']),
     (marca_df, m.conta_a, so_consulta,   array['consultar'])
   on conflict (brand_id, user_id) do update set capacidades = excluded.capacidades;
 
-  -- 1. Dono da conta restrito na marca NÃO registra.
+  -- 1. Quem só consulta NÃO registra documento-fonte.
   begin
-    select public.registrar_documento_fonte(m.conta_a, marca_df, 'dr', repeat('a',64), 1, 1,
+    select public.registrar_documento_fonte(m.conta_a, marca_df, 'sc', repeat('a',64), 1, 1,
       'guia', null, '',
       jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
-      dono_restrito) into d;
+      so_consulta) into d;
     estado := 'REGISTROU';
   exception when others then
     get stacked diagnostics estado = returned_sqlstate;
   end;
   insert into resultado (caso, esperado, obtido, passou) values
-    ('dono da conta restrito na marca NAO registra documento-fonte', '42501', estado, estado = '42501');
+    ('quem so consulta NAO registra documento-fonte', '42501', estado, estado = '42501');
+
+  -- 1.1. Quem administra a CONTA registra, sem ter linha nesta marca.
+  begin
+    select public.registrar_documento_fonte(m.conta_a, marca_df, 'adm', repeat('d',64), 1, 1,
+      'manual', null, '',
+      jsonb_build_array(jsonb_build_object('pagina',1,'largura_pt',1,'altura_pt',1,'tem_texto',true)),
+      dono_restrito) into d;
+    estado := case when d is null then 'null' else 'REGISTROU' end;
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate;
+  end;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('administrador da conta registra sem linha na marca', 'REGISTROU', estado, estado = 'REGISTROU');
 
   -- 2. Quem administra a MARCA registra, mesmo sem ser dono da conta.
   begin

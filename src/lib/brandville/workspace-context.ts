@@ -55,12 +55,18 @@ export const resolveWorkspaceContext = cache(
       return montarContexto({ access: "anonymous", auth: null, marca: null, docs: [] });
     }
 
-    // Cadastro completo exige as duas coisas que o onboarding produz: nome no
-    // perfil E workspace. Faltando qualquer uma, a pessoa vai para o cadastro —
-    // e não para um 404 que a deixaria sem saída.
+    /*
+     * Cadastro completo é o PERFIL, e só ele — mudou em 17/09/2026.
+     *
+     * Antes exigia também ter workspace, porque o cadastro criava um. Agora a
+     * conta nasce da assinatura: exigir workspace aqui mandaria quem ainda não
+     * recebeu acesso para um cadastro que não cria conta nenhuma, e o
+     * resolvedor o traria de volta — laço fechado. Sem conta, a resposta é
+     * `sem-acesso`, que diz a quem pedir.
+     */
     const estado = {
       temSessao: true,
-      cadastroCompleto: (await temPerfilCompleto()) && disponiveis.length > 0,
+      cadastroCompleto: await temPerfilCompleto(),
       disponiveis,
     };
 
@@ -71,6 +77,8 @@ export const resolveWorkspaceContext = cache(
         return montarContexto({ access: "anonymous", auth: null, marca: null, docs: [] });
       case "onboarding":
         return montarContexto({ access: "onboarding", auth: null, marca: null, docs: [] });
+      case "sem-acesso":
+        return montarContexto({ access: "sem-acesso", auth: null, marca: null, docs: [] });
       case "nao-encontrado":
         return montarContexto({ access: "not-found", auth: null, marca: null, docs: [] });
       case "sem-marca":

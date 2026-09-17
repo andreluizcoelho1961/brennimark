@@ -106,10 +106,24 @@ test("conta sem marca nenhuma leva à importação, sabendo em qual conta", () =
   assert.equal(r.tipo === "sem-marca" && r.workspaceSlug, "agencia-norte");
 });
 
-test("sem workspace nenhum não inventa conta de destino", () => {
+test("sem conta nenhuma a resposta é SEM ACESSO, e não importação", () => {
+  /*
+   * Mudou em 17/09/2026, com a conta de time. Antes, quem não tinha conta era
+   * alguém que acabara de se cadastrar, e a saída era importar o primeiro
+   * manual. Agora entrar não cria conta: quem chega sem nada está ESPERANDO
+   * alguém liberar, e mandá-lo importar seria oferecer uma porta fechada.
+   *
+   * O caso anterior afirmava `sem-marca` com conta nula — um destino inventado.
+   */
   const r = resolverSemAlvo(pessoa({ disponiveis: [] }));
-  assert.equal(r.tipo, "sem-marca");
-  assert.equal(r.tipo === "sem-marca" && r.workspaceSlug, null);
+  assert.equal(r.tipo, "sem-acesso");
+});
+
+test("sem conta nenhuma, pedir uma marca específica também dá sem-acesso", () => {
+  // E não "não encontrado": a marca pode até existir; quem não tem acesso é a
+  // pessoa, e o texto que ela precisa é a quem pedir.
+  const r = resolverAlvo(pessoa({ disponiveis: [] }), { workspaceSlug: "sul", brandKey: "oficina" });
+  assert.equal(r.tipo, "sem-acesso");
 });
 
 test("nenhuma resolução depende da ordem das listas", () => {
