@@ -72,22 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * Apagar a marca leva também as imagens de página.
-   *
-   * Escrita em 16/09/2026, NÃO aplicada em produção. Só acrescenta duas
-   * inserções na fila dentro de `delete_brand_with_files`; nenhuma linha muda
-   * ao aplicar, e ela não apaga nada por conta própria — quem apaga é a
-   * drenagem, sobre o que a fila listar de agora em diante.
-   *
-   * ⚠️ Não é retroativa: marca apagada ANTES desta migration já deixou imagens
-   * órfãs no Storage. Em produção isso ainda não aconteceu (nenhuma marca foi
-   * apagada), então não há resíduo a limpar — conferido em 16/09.
-   *
-   * Provada em `scripts/prova-storage-por-marca.sh` (4 casos novos, 36 no
-   * total). Conferida por mutação: sem ela, 3 reprovam.
-   */
-  "apagar_marca_leva_imagens",
+  // `apagar_marca_leva_imagens` saiu daqui em 17/09/2026: aplicada ao banco
+  // hospedado por autorização do André, carimbada `20260917111737`, e o
+  // arquivo renomeado. Conferido depois: impressão da função IDÊNTICA à local
+  // (2b19c11ad89a7ac3a0ee8bb650cb26be).
   // `apagar_por_marca` saiu daqui em 16/09/2026: aplicada ao banco hospedado
   // por autorização nominal do André, carimbada `20260916165048`, e o arquivo
   // renomeado. Conferido depois: impressão das duas funções IDÊNTICA à local
