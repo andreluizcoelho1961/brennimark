@@ -59,5 +59,6 @@
 20260916143418 documento_fonte_por_marca
 20260916165048 apagar_por_marca
 20260917111737 apagar_marca_leva_imagens
+20260917170413 item_e_variante
 20260917170445 consumo_de_armazenamento
 20260917170551 consumo_de_armazenamento_so_leitura

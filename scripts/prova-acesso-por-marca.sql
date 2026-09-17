@@ -20,6 +20,22 @@
 
 begin;
 
+-- Desde 17/09/2026 todo arquivo pertence a um ITEM (ADR-0007 §2.2). Esta prova
+-- não é sobre itens, então usa um só por marca, do tipo `foto`, que não exige
+-- eixo nenhum. A prova dos eixos é `prova-item-e-variante.sql`.
+create function pg_temp.item_de_prova(p_workspace uuid, p_marca uuid, p_autor uuid)
+returns uuid language plpgsql as $f$
+declare achado uuid;
+begin
+  select id into achado from public.brand_asset_items
+   where brand_id = p_marca and nome = 'Item de prova';
+  if achado is null then
+    insert into public.brand_asset_items (workspace_id, brand_id, tipo, nome, created_by)
+    values (p_workspace, p_marca, 'foto', 'Item de prova', p_autor) returning id into achado;
+  end if;
+  return achado;
+end $f$;
+
 create temp table resultado (
   ordem    serial,
   caso     text,
@@ -98,11 +114,11 @@ begin
 
   perform set_config('request.jwt.claims', null, true);
 
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category,
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
                                    storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w_a, m1, 'Logo da Um', '', 'logo', w_a::text || '/' || m1::text || '/logo-um.svg',
+  values (w_a, m1, 'Logo da Um', '', pg_temp.item_de_prova(w_a, m1, u_dona), w_a::text || '/' || m1::text || '/logo-um.svg',
           'logo-um.svg', 'image/svg+xml', 100, 'ready', u_dona),
-         (w_a, m2, 'Logo da Dois', '', 'logo', w_a::text || '/' || m2::text || '/logo-dois.svg',
+         (w_a, m2, 'Logo da Dois', '', pg_temp.item_de_prova(w_a, m2, u_dona), w_a::text || '/' || m2::text || '/logo-dois.svg',
           'logo-dois.svg', 'image/svg+xml', 100, 'ready', u_dona);
 
   insert into public.brand_source_documents (workspace_id, brand_id, storage_path, pdf_sha256,

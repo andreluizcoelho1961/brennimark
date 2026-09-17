@@ -17,6 +17,22 @@
 
 begin;
 
+-- Desde 17/09/2026 todo arquivo pertence a um ITEM (ADR-0007 §2.2). Esta prova
+-- não é sobre itens, então usa um só por marca, do tipo `foto`, que não exige
+-- eixo nenhum. A prova dos eixos é `prova-item-e-variante.sql`.
+create function pg_temp.item_de_prova(p_workspace uuid, p_marca uuid, p_autor uuid)
+returns uuid language plpgsql as $f$
+declare achado uuid;
+begin
+  select id into achado from public.brand_asset_items
+   where brand_id = p_marca and nome = 'Item de prova';
+  if achado is null then
+    insert into public.brand_asset_items (workspace_id, brand_id, tipo, nome, created_by)
+    values (p_workspace, p_marca, 'foto', 'Item de prova', p_autor) returning id into achado;
+  end if;
+  return achado;
+end $f$;
+
 create temp table resultado (ordem serial, caso text, esperado text, obtido text, passou boolean);
 grant select, insert on resultado to authenticated, anon;
 grant usage, select on sequence resultado_ordem_seq to authenticated, anon;
@@ -66,8 +82,8 @@ begin
     ('brand-assets', w::text||'/'||um::text||'/pagina-1.png', u_dona::text),
     ('brand-assets', w::text||'/'||dois::text||'/pagina-1.png', u_dona::text),
     ('brand-assets', w::text||'/'||um::text||'/logo-oficial.svg', u_dona::text);
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category, storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w, um, 'Logo oficial', '', 'Logotipos', w::text||'/'||um::text||'/logo-oficial.svg', 'logo-oficial.svg', 'image/svg+xml', 100, 'ready', u_dona);
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id, storage_path, file_name, mime_type, size_bytes, status, created_by)
+  values (w, um, 'Logo oficial', '', pg_temp.item_de_prova(w, um, u_dona), w::text||'/'||um::text||'/logo-oficial.svg', 'logo-oficial.svg', 'image/svg+xml', 100, 'ready', u_dona);
 
   -- brand-imports: PDF ligado à UM, ligado à DOIS, e um ainda sem marca.
   insert into storage.objects (bucket_id, name, owner_id) values
