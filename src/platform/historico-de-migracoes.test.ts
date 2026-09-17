@@ -77,6 +77,12 @@ const PENDENTES_ESPERADAS: string[] = [
   // renomeado. Conferido antes: zero assets em produção. Conferido depois:
   // impressão de políticas, colunas, travas, gatilhos, índices e grants IDÊNTICA
   // à local (a5cddaa64dc4eef7008bb31184de8517, 88 peças).
+  // `consumo_de_armazenamento` saiu daqui em 17/09/2026: aplicada ao banco
+  // hospedado por autorização nominal do André, carimbada `20260917170445`,
+  // seguida de `consumo_de_armazenamento_so_leitura` (`20260917170551`), que
+  // revoga os privilégios de escrita que o padrão do Supabase hospedado dá a
+  // toda tabela nova. Conferido depois das duas: impressão IDÊNTICA à local
+  // (534292e233d43a7a452989a2a3e3497d, 19 peças).
   // `apagar_marca_leva_imagens` saiu daqui em 17/09/2026: aplicada ao banco
   // hospedado por autorização do André, carimbada `20260917111737`, e o
   // arquivo renomeado. Conferido depois: impressão da função IDÊNTICA à local
