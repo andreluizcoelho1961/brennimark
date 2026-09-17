@@ -196,6 +196,22 @@ test("as rotas de histórico exigem a utilidade contratada", () => {
   }
 });
 
+/**
+ * Não existe cadastro público — decisão do André, 17/09/2026.
+ *
+ * A guarda é no código-fonte porque o caminho de volta é fácil: basta alguém
+ * reintroduzir uma aba "criar conta". O portão de verdade é a configuração do
+ * projeto no Supabase; esta guarda impede que o produto volte a OFERECER o
+ * cadastro, que é o que fazia qualquer visitante virar administrador de uma
+ * conta nova (o gatilho `handle_new_profile` cria conta para todo perfil novo).
+ */
+test("a tela de entrada não oferece cadastro", () => {
+  const login = lerCodigo("src/app/login/page.tsx");
+  assert.doesNotMatch(login, /auth\.signUp\(/, "a tela de entrada voltou a criar conta");
+  assert.doesNotMatch(login, /Criar conta|Create account/, "a tela de entrada voltou a oferecer cadastro");
+  assert.match(login, /administrador|administrator/, "a tela precisa dizer a quem pedir acesso");
+});
+
 test("as rotas de laboratório são fechadas em produção", () => {
   const rotas = bancadas();
   // Sem isto, apagar a pasta faria o laço não rodar e o teste passar vazio.

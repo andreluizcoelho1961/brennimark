@@ -7,8 +7,21 @@ import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 
-type Mode = "signin" | "signup";
-type Status = "idle" | "submitting" | "check-email" | "error";
+/*
+ * Conta de TIME, fechada — decisão do André, 17/09/2026.
+ *
+ * Esta tela só ENTRA. Não existe cadastro público: quem assina recebe a conta, e
+ * o administrador libera as outras pessoas. Antes de hoje havia uma aba "Criar
+ * conta" que chamava `signUp`, e o gatilho `handle_new_profile` criava uma conta
+ * NOVA com a pessoa como dona — qualquer visitante virava administrador de uma
+ * conta própria dentro do produto.
+ *
+ * ⚠️ Tirar a aba NÃO fecha o portão. O endereço de cadastro do Supabase continua
+ * respondendo a quem chamar direto, e quem fecha de verdade é a configuração do
+ * projeto ("Allow new users to sign up", desligada no painel). Esta tela deixa
+ * de oferecer o caminho; a configuração é o que o impede.
+ */
+type Status = "idle" | "submitting" | "error";
 
 const AUTH_FAILED_MESSAGE_POR_IDIOMA = {
   en: "Something went wrong signing in. Please try again.",
@@ -23,17 +36,10 @@ function LoginForm() {
   const hadAuthError = searchParams.get("error") === "auth_failed";
   const next = destinoDeRetorno(searchParams.get("next"));
 
-  const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<Status>(hadAuthError ? "error" : "idle");
   const [errorMessage, setErrorMessage] = useState(hadAuthError ? AUTH_FAILED_MESSAGE : "");
-
-  function switchMode(next: Mode) {
-    setMode(next);
-    setStatus("idle");
-    setErrorMessage("");
-  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -46,40 +52,14 @@ function LoginForm() {
     // autoCapitalize="none" on the input.
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (mode === "signin") {
-      const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-      if (error) {
-        setStatus("error");
-        setErrorMessage(error.message);
-        return;
-      }
-      router.push(next);
-      router.refresh();
-      return;
-    }
-
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-    const { data, error } = await supabase.auth.signUp({
-      email: normalizedEmail,
-      password,
-      options: { emailRedirectTo: redirectTo },
-    });
-
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
     if (error) {
       setStatus("error");
       setErrorMessage(error.message);
       return;
     }
-
-    if (data.session) {
-      // Email confirmation is disabled on this project — signed in immediately.
-      router.push(`/onboarding?next=${encodeURIComponent(next)}`);
-      router.refresh();
-      return;
-    }
-
-    // Email confirmation is enabled — a confirmation link was sent.
-    setStatus("check-email");
+    router.push(next);
+    router.refresh();
   }
 
   return (
@@ -88,47 +68,9 @@ function LoginForm() {
         {platformIdentity.displayName}
       </p>
       <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-platform-text">
-        {mode === "signin"
-          ? isEnglish
-            ? "Sign in to access the brand guide"
-            : "Entre para acessar o guia da marca"
-          : isEnglish
-            ? "Create your account"
-            : "Crie sua conta"}
+        {isEnglish ? "Sign in to access the brand guide" : "Entre para acessar o guia da marca"}
       </h1>
 
-      <div className="mt-6 flex gap-6 border-b border-platform-border">
-        <button
-          type="button"
-          onClick={() => switchMode("signin")}
-          className={`pb-3 font-display text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
-            mode === "signin"
-              ? "border-b-2 border-platform-signal text-platform-text"
-              : "text-platform-text-muted hover:text-platform-text"
-          }`}
-        >
-          {isEnglish ? "Sign in" : "Entrar"}
-        </button>
-        <button
-          type="button"
-          onClick={() => switchMode("signup")}
-          className={`pb-3 font-display text-xs font-bold uppercase tracking-wide transition-colors duration-150 ${
-            mode === "signup"
-              ? "border-b-2 border-platform-signal text-platform-text"
-              : "text-platform-text-muted hover:text-platform-text"
-          }`}
-        >
-          {isEnglish ? "Create account" : "Criar conta"}
-        </button>
-      </div>
-
-      {status === "check-email" ? (
-        <p role="status" className="mt-8 border border-platform-border px-4 py-3 text-sm text-platform-text">
-          {isEnglish
-            ? <>Confirm your email at <strong>{email}</strong> to activate your account, then come back here and sign in.</>
-            : <>Confirme seu e-mail em <strong>{email}</strong> pra ativar a conta, depois volte aqui e entre.</>}
-        </p>
-      ) : (
         <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="sr-only">
@@ -161,7 +103,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={isEnglish ? "Password" : "Senha"}
-              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              autoComplete="current-password"
               aria-describedby={status === "error" ? "login-error" : undefined}
               className="w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal"
             />
@@ -172,7 +114,7 @@ function LoginForm() {
             disabled={status === "submitting"}
             className="border border-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-text transition-colors duration-150 hover:bg-platform-text hover:text-platform-bg disabled:opacity-50"
           >
-            {status === "submitting" ? "…" : mode === "signin" ? (isEnglish ? "Sign in" : "Entrar") : (isEnglish ? "Create account" : "Criar conta")}
+            {status === "submitting" ? "…" : isEnglish ? "Sign in" : "Entrar"}
           </button>
 
           {status === "error" && (
@@ -182,7 +124,14 @@ function LoginForm() {
             </p>
           )}
         </form>
-      )}
+
+        {/* Quem chegou aqui sem conta precisa saber a quem pedir — e que o
+            caminho é uma pessoa, não um formulário. */}
+        <p className="mt-8 border-t border-platform-border pt-6 text-xs leading-relaxed text-platform-text-muted">
+          {isEnglish
+            ? "Access is granted by your team's administrator. There is no public sign-up."
+            : "O acesso é liberado pelo administrador da sua equipe. Não há cadastro público."}
+        </p>
     </div>
   );
 }
