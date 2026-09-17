@@ -12,8 +12,10 @@ import { expect, test } from "@playwright/test";
  * de banco e exercita o caminho de produção do componente, do clique à
  * requisição.
  */
+const ITEM = { id: "item-logo", tipo: "logo", nome: "Logo", descricao: "", ordem: 0 };
 const EM_USO = {
-  id: "asset-novo", label: "Logo v2", description: "", category: "Logotipos",
+  id: "asset-novo", itemId: "item-logo", label: "Logo v2", description: "",
+  eixos: { hierarquia: "principal", lockup: "horizontal", cor: "colorido", polaridade: "positivo", espaco_de_cor: "rgb" },
   file_name: "logo-v2.svg", mime_type: "image/svg+xml", size_bytes: 2048,
   status: "ready", created_at: "2026-09-13T10:00:00Z", baixavel: true,
   descontinuadoEm: null, substituidoPor: null,
@@ -26,7 +28,7 @@ const FORA_DE_USO = {
 
 async function comAcervo(page: import("@playwright/test").Page, assets: unknown[]) {
   await page.route("**/api/assets**", (rota) =>
-    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ assets }) }),
+    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ itens: [ITEM], assets }) }),
   );
 }
 
@@ -34,8 +36,9 @@ test("o descontinuado continua visível, identificado e baixável", async ({ pag
   await comAcervo(page, [EM_USO, FORA_DE_USO]);
   await page.goto("/dev/biblioteca");
 
-  // Duas listas, não uma grade misturada: o acervo e o histórico.
-  await expect(page.getByRole("heading", { name: "Descontinuados" })).toBeVisible();
+  // Duas tabelas, não uma misturada: o acervo e o histórico, dentro do item.
+  await expect(page.getByText("Descontinuados — guardados de propósito")).toBeVisible();
+  await expect(page.locator('[data-matriz-do-item="item-logo"]')).toHaveCount(2);
 
   const velho = page.locator('[data-asset-descontinuado="sim"]');
   await expect(velho).toHaveCount(1);
@@ -45,13 +48,13 @@ test("o descontinuado continua visível, identificado e baixável", async ({ pag
   await expect(velho.getByRole("link", { name: "Baixar" })).toBeVisible();
 });
 
-test("o card em uso oferece descontinuar, e não apagar", async ({ page }) => {
+test("a variante em uso oferece descontinuar, e não apagar", async ({ page }) => {
   await comAcervo(page, [EM_USO, FORA_DE_USO]);
   await page.goto("/dev/biblioteca");
 
-  const emUso = page.locator("article").filter({ hasText: "Logo v2" }).first();
+  const emUso = page.locator("[data-variante='asset-novo']");
   await expect(emUso.getByRole("button", { name: "Descontinuar" })).toBeVisible();
-  // O caminho sem volta não pode estar a um clique do card em uso.
+  // O caminho sem volta não pode estar a um clique da variante em uso.
   await expect(emUso.getByRole("button", { name: /apagar em definitivo/i })).toHaveCount(0);
 });
 
