@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAnalysisAuthContext } from "@/lib/analysis/server";
-import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { contextoDoHistorico } from "@/lib/analysis/server";
 import {
   ANALYSIS_RUN_SELECT,
   createSignedEvidenceUrls,
@@ -9,8 +8,11 @@ import {
 } from "@/lib/analysis/history";
 
 export async function GET(request: Request) {
-  const context = await getAnalysisAuthContext(alvoDaRota(request));
-  if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // O portão da utilidade junto com a autorização: sem `history` contratada na
+  // marca, a rota responde 404 antes de tocar no banco (achado 4, 15/09/2026).
+  const portao = await contextoDoHistorico(request);
+  if (!portao.ok) return portao.resposta;
+  const { context } = portao;
 
   const url = new URL(request.url);
   const requestedLimit = Number(url.searchParams.get("limit") ?? 100);
