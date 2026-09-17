@@ -72,6 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `apagar_marca_leva_imagens` saiu daqui em 17/09/2026: aplicada ao banco
+  // hospedado por autorização do André, carimbada `20260917111737`, e o
+  // arquivo renomeado. Conferido depois: impressão da função IDÊNTICA à local
+  // (2b19c11ad89a7ac3a0ee8bb650cb26be).
   // `apagar_por_marca` saiu daqui em 16/09/2026: aplicada ao banco hospedado
   // por autorização nominal do André, carimbada `20260916165048`, e o arquivo
   // renomeado. Conferido depois: impressão das duas funções IDÊNTICA à local
