@@ -18,15 +18,27 @@ export async function GET(request: Request) {
   // Os dois filtros, sempre. `brand_id` sozinho bastaria pela FK composta, mas
   // deixar o workspace de fora tornaria a consulta dependente de uma garantia
   // que vive em outro arquivo — e consultas viajam para outros arquivos.
-  const { data, error } = await context.supabase.from("brand_assets")
-    .select("id, label, description, category, storage_path, file_name, mime_type, size_bytes, status, created_at, descontinuado_em, substituido_por")
-    .eq("workspace_id", workspaceId).eq("brand_id", brandId).order("created_at", { ascending: false });
-  if (error) return NextResponse.json({ message: isEnglish ? "Couldn't load assets." : "Não foi possível carregar os assets." }, { status: 500 });
-  const assets = (data ?? []).map((asset) => {
+  const [itensLidos, arquivosLidos] = await Promise.all([
+    context.supabase.from("brand_asset_items")
+      .select("id, tipo, nome, descricao, ordem")
+      .eq("workspace_id", workspaceId).eq("brand_id", brandId)
+      .order("ordem", { ascending: true }).order("created_at", { ascending: true }),
+    context.supabase.from("brand_assets")
+      .select("id, item_id, label, description, storage_path, file_name, mime_type, size_bytes, status, created_at, descontinuado_em, substituido_por, hierarquia, lockup, cor, polaridade, espaco_de_cor")
+      .eq("workspace_id", workspaceId).eq("brand_id", brandId).order("created_at", { ascending: false }),
+  ]);
+  if (itensLidos.error || arquivosLidos.error) return NextResponse.json({ message: isEnglish ? "Couldn't load assets." : "Não foi possível carregar os assets." }, { status: 500 });
+  const assets = (arquivosLidos.data ?? []).map((asset) => {
     return {
-      id: asset.id, label: asset.label, description: asset.description, category: asset.category,
+      id: asset.id, itemId: asset.item_id, label: asset.label, description: asset.description,
       file_name: asset.file_name, mime_type: asset.mime_type, size_bytes: asset.size_bytes,
       status: asset.status, created_at: asset.created_at,
+      // Os eixos da variante (ADR-0007 §2.2). Nulo é "não se aplica a este
+      // tipo" — o banco garante que não é "esqueceram de preencher".
+      eixos: {
+        hierarquia: asset.hierarquia, lockup: asset.lockup, cor: asset.cor,
+        polaridade: asset.polaridade, espaco_de_cor: asset.espaco_de_cor,
+      },
       /*
        * A listagem não entrega mais endereço de arquivo nenhum.
        *
@@ -54,5 +66,15 @@ export async function GET(request: Request) {
       substituidoPor: asset.substituido_por ?? null,
     };
   });
-  return NextResponse.json({ assets });
+  /*
+   * Item sem arquivo vai junto.
+   *
+   * Cadastrar o item e subir as variantes são dois atos, às vezes de pessoas
+   * diferentes. Esconder o item vazio faria quem o criou achar que falhou e
+   * criar outro igual.
+   */
+  const itens = (itensLidos.data ?? []).map((item) => ({
+    id: item.id, tipo: item.tipo, nome: item.nome, descricao: item.descricao, ordem: item.ordem,
+  }));
+  return NextResponse.json({ itens, assets });
 }

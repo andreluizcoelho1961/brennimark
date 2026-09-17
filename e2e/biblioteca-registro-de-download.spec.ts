@@ -12,8 +12,12 @@ import { expect, test, type Page } from "@playwright/test";
  * que o BANCO garante — ninguém registra em nome de outro, ninguém apaga — está
  * em `scripts/prova-registro-de-download.sh`.
  */
+// Item de foto, e não de fonte: desde 17/09 fonte não aceita arquivo antes do
+// termo de licença (ADR-0007 §3). O registro de download não depende do tipo.
+const ITEM = { id: "item-kit", tipo: "foto", nome: "Kit", descricao: "", ordem: 0 };
 const ASSET = {
-  id: "asset-fonte", label: "Fonte da marca", description: "", category: "Fontes",
+  id: "asset-fonte", itemId: "item-kit", label: "Fonte da marca", description: "",
+  eixos: { hierarquia: null, lockup: null, cor: null, polaridade: null, espaco_de_cor: null },
   file_name: "marca-regular.otf", mime_type: "font/otf", size_bytes: 40960,
   status: "ready", created_at: "2026-09-14T10:00:00Z", baixavel: true,
   descontinuadoEm: null, substituidoPor: null,
@@ -21,10 +25,10 @@ const ASSET = {
 
 async function comAcervo(page: Page, assets: unknown[]) {
   await page.route("**/api/assets?**", (rota) =>
-    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ assets }) }),
+    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ itens: [ITEM], assets }) }),
   );
   await page.route("**/api/assets", (rota) =>
-    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ assets }) }),
+    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ itens: [ITEM], assets }) }),
   );
 }
 
@@ -64,7 +68,7 @@ test("abrir a biblioteca não registra download nenhum", async ({ page }) => {
 test("asset com caminho fora da marca não oferece botão", async ({ page }) => {
   await comAcervo(page, [{ ...ASSET, baixavel: false }]);
   await page.goto("/dev/biblioteca");
-  await expect(page.getByRole("heading", { name: "Fonte da marca" })).toBeVisible();
+  await expect(page.getByText("Fonte da marca", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Baixar" })).toHaveCount(0);
 });
 

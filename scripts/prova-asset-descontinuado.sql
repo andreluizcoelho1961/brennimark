@@ -12,6 +12,22 @@
 
 begin;
 
+-- Desde 17/09/2026 todo arquivo pertence a um ITEM (ADR-0007 §2.2). Esta prova
+-- não é sobre itens, então usa um só por marca, do tipo `foto`, que não exige
+-- eixo nenhum. A prova dos eixos é `prova-item-e-variante.sql`.
+create function pg_temp.item_de_prova(p_workspace uuid, p_marca uuid, p_autor uuid)
+returns uuid language plpgsql as $f$
+declare achado uuid;
+begin
+  select id into achado from public.brand_asset_items
+   where brand_id = p_marca and nome = 'Item de prova';
+  if achado is null then
+    insert into public.brand_asset_items (workspace_id, brand_id, tipo, nome, created_by)
+    values (p_workspace, p_marca, 'foto', 'Item de prova', p_autor) returning id into achado;
+  end if;
+  return achado;
+end $f$;
+
 create temp table resultado (
   ordem serial, caso text, esperado text, obtido text, passou boolean
 );
@@ -47,17 +63,17 @@ begin
     (m1, w, u_le,   array['consultar'])
   on conflict (brand_id, user_id) do update set capacidades = excluded.capacidades;
 
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category,
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
                                    storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w, m1, 'Logo v1', '', 'Logotipos', w::text||'/'||m1::text||'/logo-v1.svg',
+  values (w, m1, 'Logo v1', '', pg_temp.item_de_prova(w, m1, u_dona), w::text||'/'||m1::text||'/logo-v1.svg',
           'logo-v1.svg', 'image/svg+xml', 100, 'ready', u_dona) returning id into a_velho;
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category,
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
                                    storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w, m1, 'Logo v2', '', 'Logotipos', w::text||'/'||m1::text||'/logo-v2.svg',
+  values (w, m1, 'Logo v2', '', pg_temp.item_de_prova(w, m1, u_dona), w::text||'/'||m1::text||'/logo-v2.svg',
           'logo-v2.svg', 'image/svg+xml', 100, 'ready', u_dona) returning id into a_novo;
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category,
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
                                    storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w, m2, 'Logo da B', '', 'Logotipos', w::text||'/'||m2::text||'/logo-b.svg',
+  values (w, m2, 'Logo da B', '', pg_temp.item_de_prova(w, m2, u_dona), w::text||'/'||m2::text||'/logo-b.svg',
           'logo-b.svg', 'image/svg+xml', 100, 'ready', u_dona) returning id into a_outra;
 
   create temp table mundo as

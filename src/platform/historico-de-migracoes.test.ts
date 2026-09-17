@@ -72,6 +72,15 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * Item e variante da biblioteca (ADR-0007 §2.2).
+   *
+   * Escrita em 17/09/2026, NÃO aplicada em produção. Cria `brand_asset_items`,
+   * dá a `brand_assets` o vínculo com o item e os cinco eixos, e remove a
+   * `category` livre — medido: zero assets em produção, nada a migrar.
+   * Provada em `scripts/prova-item-e-variante.sh` (38 casos).
+   */
+  "item_e_variante",
   // `apagar_marca_leva_imagens` saiu daqui em 17/09/2026: aplicada ao banco
   // hospedado por autorização do André, carimbada `20260917111737`, e o
   // arquivo renomeado. Conferido depois: impressão da função IDÊNTICA à local

@@ -4,6 +4,7 @@ import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
 import { BUCKETS, caminhoDeAsset } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { decidirRemocao } from "@/lib/assets/remocao";
+import { conferirEixos, ehTipoDeItem, lerEixos, motivoDaRecusa, rotulo } from "@/lib/assets/eixos";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
@@ -71,12 +72,39 @@ export async function POST(request: Request) {
   const file = form.get("file");
   const label = String(form.get("label") ?? "").trim();
   const description = String(form.get("description") ?? "").trim();
-  const category = String(form.get("category") ?? (isEnglish ? "Other" : "Outros")).trim();
+  const itemId = String(form.get("item") ?? "").trim();
   // Opcional: o asset que este arquivo vem substituir. Vazio é o caso comum —
   // nem todo upload troca alguma coisa.
   const substitui = String(form.get("substitui") ?? "").trim();
-  if (!(file instanceof File) || !label || label.length > 120 || description.length > 500 || category.length > 80 || file.size < 1 || file.size > MAX_SIZE || !ALLOWED_TYPES.has(file.type)) {
+  if (!(file instanceof File) || !label || label.length > 120 || description.length > 500 || !itemId || file.size < 1 || file.size > MAX_SIZE || !ALLOWED_TYPES.has(file.type)) {
     return NextResponse.json({ message: isEnglish ? "Check the file and its details. The limit is 25 MB." : "Revise o arquivo e seus dados. O limite é 25 MB." }, { status: 400 });
+  }
+
+  /*
+   * O item e os eixos, conferidos ANTES de o arquivo subir.
+   *
+   * O banco recusaria de qualquer jeito — mas depois de 25 MB irem para o
+   * Storage e voltarem apagados. Conferir aqui é o que deixa a recusa custar
+   * uma requisição curta, e dizer QUAL eixo falta em vez de "não foi possível".
+   * A autoridade continua sendo o gatilho do banco (ver `lib/assets/eixos.ts`).
+   */
+  const { data: item } = await context.auth.supabase.from("brand_asset_items")
+    .select("id, tipo").eq("id", itemId).eq("brand_id", context.brandId).maybeSingle();
+  if (!item || !ehTipoDeItem(item.tipo)) {
+    return NextResponse.json({ message: isEnglish ? "Choose an item of this brand." : "Escolha um item desta marca." }, { status: 400 });
+  }
+  const lidos = lerEixos((nome) => form.get(nome));
+  if ("invalido" in lidos) {
+    return NextResponse.json({ message: isEnglish ? `Invalid value for ${rotulo(lidos.invalido, true)}.` : `Valor inválido para ${rotulo(lidos.invalido, false)}.` }, { status: 400 });
+  }
+  const conferencia = conferirEixos(item.tipo, lidos.eixos);
+  if (!conferencia.ok) {
+    const message = conferencia.motivo === "exige-termo"
+      ? (isEnglish ? "Fonts can only be uploaded after the license term is signed." : "Fonte só pode ser enviada depois de assinado o termo de licença.")
+      : conferencia.motivo === "falta"
+        ? (isEnglish ? `${rotulo(item.tipo, true)} needs ${rotulo(conferencia.eixo, true).toLowerCase()}.` : `${rotulo(item.tipo, false)} precisa de ${rotulo(conferencia.eixo, false).toLowerCase()}.`)
+        : (isEnglish ? `${rotulo(conferencia.eixo, true)} doesn't apply to ${rotulo(item.tipo, true).toLowerCase()}.` : `${rotulo(conferencia.eixo, false)} não se aplica a ${rotulo(item.tipo, false).toLowerCase()}.`);
+    return NextResponse.json({ message }, { status: 400 });
   }
   if (!(await contentMatchesType(file, file.type))) {
     return NextResponse.json({ message: isEnglish ? "The file content doesn't match its declared type." : "O conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
@@ -88,12 +116,17 @@ export async function POST(request: Request) {
   const { error: uploadError } = await context.auth.supabase.storage.from(BUCKETS.assets).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
   if (uploadError) return NextResponse.json({ message: isEnglish ? "Couldn't upload the file." : "Não foi possível enviar o arquivo." }, { status: 500 });
   const { error } = await context.auth.supabase.from("brand_assets").insert({
-    workspace_id: context.workspaceId, brand_id: context.brandId, label, description, category,
+    workspace_id: context.workspaceId, brand_id: context.brandId, item_id: item.id, label, description,
+    ...lidos.eixos,
     storage_path: path, file_name: file.name.slice(0, 240), mime_type: file.type,
     size_bytes: file.size, status: "ready", created_by: context.auth.user.id,
   });
   if (error) {
     await context.auth.supabase.storage.from(BUCKETS.assets).remove([path]);
+    // A recusa do banco com nome conhecido é erro de quem enviou, e diz o quê.
+    // Só o que não se reconhece continua sendo "não foi possível".
+    const motivo = motivoDaRecusa(`${error.message} ${error.details ?? ""}`);
+    if (motivo) return NextResponse.json({ message: isEnglish ? "The library refused this file's details. Review the item and its fields." : "A biblioteca recusou os dados deste arquivo. Revise o item e os campos." , motivo }, { status: 400 });
     return NextResponse.json({ message: isEnglish ? "The file uploaded, but couldn't be registered." : "O arquivo chegou, mas não foi possível registrá-lo." }, { status: 500 });
   }
 

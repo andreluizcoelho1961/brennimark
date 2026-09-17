@@ -15,6 +15,22 @@
 
 begin;
 
+-- Desde 17/09/2026 todo arquivo pertence a um ITEM (ADR-0007 §2.2). Esta prova
+-- não é sobre itens, então usa um só por marca, do tipo `foto`, que não exige
+-- eixo nenhum. A prova dos eixos é `prova-item-e-variante.sql`.
+create function pg_temp.item_de_prova(p_workspace uuid, p_marca uuid, p_autor uuid)
+returns uuid language plpgsql as $f$
+declare achado uuid;
+begin
+  select id into achado from public.brand_asset_items
+   where brand_id = p_marca and nome = 'Item de prova';
+  if achado is null then
+    insert into public.brand_asset_items (workspace_id, brand_id, tipo, nome, created_by)
+    values (p_workspace, p_marca, 'foto', 'Item de prova', p_autor) returning id into achado;
+  end if;
+  return achado;
+end $f$;
+
 create temp table resultado (ordem serial, caso text, esperado text, obtido text, passou boolean);
 grant select, insert on resultado to authenticated, anon;
 grant usage, select on sequence resultado_ordem_seq to authenticated, anon;
@@ -50,13 +66,13 @@ begin
     (m2, w, u_fora, array['consultar'])
   on conflict (brand_id, user_id) do update set capacidades = excluded.capacidades;
 
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category,
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
                                    storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w, m1, 'Fonte da Um', '', 'Fontes', w::text||'/'||m1::text||'/fonte.otf',
+  values (w, m1, 'Fonte da Um', '', pg_temp.item_de_prova(w, m1, u_dona), w::text||'/'||m1::text||'/fonte.otf',
           'fonte-um.otf', 'font/otf', 100, 'ready', u_dona) returning id into a1;
-  insert into public.brand_assets (workspace_id, brand_id, label, description, category,
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
                                    storage_path, file_name, mime_type, size_bytes, status, created_by)
-  values (w, m2, 'Logo da Dois', '', 'Logotipos', w::text||'/'||m2::text||'/logo.svg',
+  values (w, m2, 'Logo da Dois', '', pg_temp.item_de_prova(w, m2, u_dona), w::text||'/'||m2::text||'/logo.svg',
           'logo-dois.svg', 'image/svg+xml', 100, 'ready', u_dona) returning id into a2;
 
   create temp table mundo as
