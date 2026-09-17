@@ -72,6 +72,14 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * Consumo de armazenamento por conta e por marca (ADR-0007 §8.1).
+   *
+   * Escrita em 17/09/2026, NÃO aplicada em produção. Liga o `pg_cron`, cria a
+   * tabela da fotografia diária e agenda às 03:17 UTC. Só mede: nenhum limite.
+   * Provada em `scripts/prova-consumo-de-armazenamento.sh` (22 casos).
+   */
+  "consumo_de_armazenamento",
   // `apagar_marca_leva_imagens` saiu daqui em 17/09/2026: aplicada ao banco
   // hospedado por autorização do André, carimbada `20260917111737`, e o
   // arquivo renomeado. Conferido depois: impressão da função IDÊNTICA à local
