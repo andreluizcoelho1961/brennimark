@@ -82,6 +82,15 @@ const PENDENTES_ESPERADAS: string[] = [
    * as provas de acesso, Storage e manifesto foram reescritas para a regra nova.
    */
   "acesso_concedido",
+  /**
+   * Conceder e revogar acesso — metade 1 de "Pessoas e acesso".
+   *
+   * Escrita em 17/09/2026, NÃO aplicada em produção. Três funções: conceder
+   * (aplica na hora para quem já tem login, deixa pendente para quem não tem),
+   * revogar (pessoa inteira ou uma marca, com trava do último administrador) e
+   * a lista para a tela. Provada em `scripts/prova-conceder-e-revogar.sh` (35).
+   */
+  "conceder_e_revogar_acesso",
   // `item_e_variante` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
   // autorização nominal do André, carimbada `20260917170413`, e o arquivo
   // renomeado. Conferido antes: zero assets em produção. Conferido depois:
