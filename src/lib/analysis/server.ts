@@ -1,4 +1,7 @@
+import { NextResponse } from "next/server";
 import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
+import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
+import type { ActiveBrand } from "@/lib/brandville/brand-row";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -47,6 +50,43 @@ export async function getAnalysisAuthContext(
   if (!marca) return null;
 
   return { supabase, user, workspaceId: r.workspace.id, brandId: marca.id };
+}
+
+/**
+ * O contexto do HISTÓRICO, com o portão da utilidade aplicado.
+ *
+ * `getAnalysisAuthContext` resolve sessão, conta e marca — e só isso. A tela do
+ * histórico já exigia `podeUsar(..., "history")` no layout, mas as rotas não:
+ * quem chamasse `/api/analysis/history*` direto recebia JSON, URLs assinadas e
+ * PDF numa marca que não contratou a utilidade. Achado 4 do Codex Security
+ * (15/09/2026).
+ *
+ * O portão vive em `portaoDeIA`, que é o mesmo que a rota de análise usa — um
+ * lugar só decide, e a ordem "não contratada antes de sem papel" (que evita
+ * revelar o que a marca contratou pela diferença entre 403 e 404) vem junto.
+ *
+ * Devolve o mesmo formato que o resto das rotas de histórico já esperava, para
+ * o corpo delas não mudar.
+ */
+export async function contextoDoHistorico(
+  request: Request,
+): Promise<
+  | { ok: true; context: AnalysisAuthContext; brand: ActiveBrand }
+  | { ok: false; resposta: NextResponse }
+> {
+  const portao = await portaoDeIA(request, "history");
+  if (!portao.ok) return { ok: false, resposta: portao.resposta };
+
+  return {
+    ok: true,
+    brand: portao.brand,
+    context: {
+      supabase: portao.auth.supabase,
+      user: portao.auth.user,
+      workspaceId: portao.auth.workspaceId,
+      brandId: portao.brand.id,
+    },
+  };
 }
 
 export async function persistAnalysisRun(input: {

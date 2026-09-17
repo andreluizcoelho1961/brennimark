@@ -146,6 +146,56 @@ function bancadas(): string[] {
   );
 }
 
+/**
+ * O relatório de conformidade não desenha evidência sem conferir.
+ *
+ * A função `conferirEvidencia` tem teste próprio; o que esta guarda protege é a
+ * LIGAÇÃO dela com o relatório. Sem isso, alguém remove a chamada numa
+ * refatoração e os testes de unidade continuam verdes sobre uma função que
+ * ninguém chama — e o PDF volta a afirmar que a imagem é a analisada.
+ */
+test("o relatório confere a evidência antes de desenhá-la", () => {
+  const rota = lerCodigo("src/app/api/analysis/history/[id]/report/route.ts");
+  assert.match(rota, /conferirEvidencia\(/, "o relatório desenha a evidência sem conferir");
+  assert.match(
+    rota,
+    /image_fingerprint/,
+    "a conferência precisa do campo gravado na análise",
+  );
+});
+
+/**
+ * Toda rota de histórico passa pelo portão da utilidade.
+ *
+ * A tela do histórico já exigia `podeUsar(..., "history")` no layout; as rotas
+ * não exigiam nada além de alcançar a marca, e quem chamasse
+ * `/api/analysis/history*` direto recebia JSON, URL assinada e PDF numa marca
+ * que não contratou a utilidade (achado 4 do Codex Security, 15/09/2026).
+ *
+ * Varredura, e não lista: a rota do relatório foi acrescentada depois da de
+ * lista, e uma lista escrita à mão não a teria conhecido — o mesmo defeito que
+ * a guarda das bancadas tinha.
+ */
+test("as rotas de histórico exigem a utilidade contratada", () => {
+  const rotas = listarArquivos("src/app/api/analysis").filter((a) => a.endsWith("route.ts"));
+  assert.ok(rotas.length >= 3, `só ${rotas.length} rotas de histórico — a varredura quebrou?`);
+
+  for (const rota of rotas) {
+    const codigo = lerCodigo(rota);
+    assert.match(
+      codigo,
+      /contextoDoHistorico|portaoDeIA/,
+      `${rota} resolve a marca sem passar pelo portão da utilidade`,
+    );
+    // O atalho que a correção removeu: resolver só sessão/conta/marca.
+    assert.doesNotMatch(
+      codigo,
+      /getAnalysisAuthContext\(/,
+      `${rota} voltou a usar o contexto sem portão`,
+    );
+  }
+});
+
 test("as rotas de laboratório são fechadas em produção", () => {
   const rotas = bancadas();
   // Sem isto, apagar a pasta faria o laço não rodar e o teste passar vazio.

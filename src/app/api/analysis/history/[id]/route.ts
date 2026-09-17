@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAnalysisAuthContext } from "@/lib/analysis/server";
-import { alvoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { contextoDoHistorico } from "@/lib/analysis/server";
 import {
   ANALYSIS_EVIDENCE_BUCKET,
   ANALYSIS_RUN_SELECT,
@@ -14,8 +13,9 @@ const FEEDBACK_VALUES: AnalysisFeedback[] = ["correct", "partial", "incorrect"];
 const EXPECTED_VERDICTS = ["aligned", "partially_aligned", "misaligned"] as const;
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const context = await getAnalysisAuthContext(alvoDaRota(request));
-  if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const portao = await contextoDoHistorico(request);
+  if (!portao.ok) return portao.resposta;
+  const { context } = portao;
   const { id } = await params;
 
   const { data, error } = await context.supabase
@@ -35,8 +35,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const context = await getAnalysisAuthContext(alvoDaRota(request));
-  if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const portao = await contextoDoHistorico(request);
+  if (!portao.ok) return portao.resposta;
+  const { context } = portao;
   const { id } = await params;
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return NextResponse.json({ error: "invalid_input" }, { status: 400 });
@@ -98,8 +99,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const context = await getAnalysisAuthContext(alvoDaRota(request));
-  if (!context) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const portao = await contextoDoHistorico(request);
+  if (!portao.ok) return portao.resposta;
+  const { context } = portao;
   const { id } = await params;
 
   const { data } = await context.supabase
