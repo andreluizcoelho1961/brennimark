@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { contextoDoHistorico } from "@/lib/analysis/server";
 import { nomeSeguro } from "@/lib/storage/caminhos";
-import { ANALYSIS_EVIDENCE_BUCKET, ANALYSIS_RUN_SELECT, type AnalysisRow } from "@/lib/analysis/history";
+import { ANALYSIS_EVIDENCE_BUCKET, ANALYSIS_RUN_SELECT, conferirEvidencia, type AnalysisRow } from "@/lib/analysis/history";
 import { sanitizeStructuredAnalysis } from "@/lib/ai/analysis-result";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
@@ -160,12 +160,40 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     const { data: imageBlob } = await context.supabase.storage.from(ANALYSIS_EVIDENCE_BUCKET).download(row.image_path);
     if (imageBlob) {
       const bytes = new Uint8Array(await imageBlob.arrayBuffer());
+
+      /*
+       * A peça desenhada precisa ser a peça analisada.
+       *
+       * O relatório é documento de conformidade: mostrar uma imagem ao lado de
+       * um veredito afirma que aquele veredito é sobre aquela imagem. Se os
+       * bytes mudaram depois da análise, desenhar assim mesmo seria afirmar o
+       * falso — e com aparência de prova.
+       *
+       * Decisão, e ela é de produto: o relatório DIZ o que houve e segue com o
+       * resto. Omitir em silêncio deixaria o leitor achar que a análise nunca
+       * teve peça; recusar o relatório inteiro tiraria dele o que continua
+       * verdadeiro — o veredito, a data e as regras citadas.
+       */
+      const conferencia = conferirEvidencia(row.image_fingerprint, Buffer.from(bytes));
+      if (conferencia !== "confere") {
+        const aviso = conferencia === "diverge"
+          ? (isEnglish
+              ? "The stored evidence no longer matches the image that was analyzed, so it is not shown here."
+              : "A evidência guardada não confere mais com a imagem analisada, e por isso não é mostrada aqui.")
+          : (isEnglish
+              ? "This analysis predates evidence fingerprinting, so the image cannot be confirmed as the one analyzed."
+              : "Esta análise é anterior à impressão digital da evidência, então não dá para confirmar que a imagem é a analisada.");
+        ensure(30);
+        page.drawText(aviso, { x: PAGE.margin, y, size: 8, font: regular, color: paleta.cinza, maxWidth: contentWidth });
+        y -= 26;
+      } else {
       const embedded = row.image_media_type === "image/png" ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
       const fit = embedded.scaleToFit(contentWidth, 235);
       ensure(fit.height + 24);
       page.drawRectangle({ x: PAGE.margin - 1, y: y - fit.height - 1, width: contentWidth + 2, height: fit.height + 2, borderColor: rgb(0.83, 0.85, 0.87), borderWidth: 1 });
       page.drawImage(embedded, { x: PAGE.margin + (contentWidth - fit.width) / 2, y: y - fit.height, width: fit.width, height: fit.height });
       y -= fit.height + 26;
+      }
     }
   }
 

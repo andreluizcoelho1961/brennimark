@@ -1,5 +1,4 @@
 import { caminhoDeEvidencia } from "@/lib/storage/caminhos";
-import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { StructuredAnalysis, AnalysisVerdict } from "@/lib/ai/analysis-result";
 import { sanitizeStructuredAnalysis } from "@/lib/ai/analysis-result";
@@ -51,6 +50,9 @@ type AnalysisRow = {
   image_media_type: string;
   image_size_bytes: number;
   image_path: string | null;
+  /** Impressão dos bytes que foram ao modelo. Nula nas análises anteriores
+   *  ao campo — e isso é dito no relatório, não tratado como conferido. */
+  image_fingerprint: string | null;
   question: string;
   verdict: AnalysisVerdict;
   analysis: StructuredAnalysis;
@@ -77,6 +79,9 @@ export const ANALYSIS_RUN_SELECT = [
   "image_media_type",
   "image_size_bytes",
   "image_path",
+  // Sem esta coluna a conferência da evidência no relatório receberia sempre
+  // nulo e responderia "sem impressão" para toda análise, inclusive as que têm.
+  "image_fingerprint",
   "question",
   "verdict",
   "analysis",
@@ -99,9 +104,9 @@ export function imageDataToBuffer(data: string) {
   return Buffer.from(data, "base64");
 }
 
-export function fingerprintImage(buffer: Buffer) {
-  return createHash("sha256").update(buffer).digest("hex");
-}
+// A impressão e a conferência vivem em `evidencia.ts`, sem dependência de
+// alias, porque a suíte de unidade compila com um tsconfig que não os resolve.
+export { fingerprintImage, conferirEvidencia, type ConferenciaDaEvidencia } from "./evidencia";
 
 function extensionFor(mediaType: string) {
   const extensions: Record<string, string> = {

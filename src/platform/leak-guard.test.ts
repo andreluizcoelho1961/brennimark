@@ -147,6 +147,24 @@ function bancadas(): string[] {
 }
 
 /**
+ * O relatório de conformidade não desenha evidência sem conferir.
+ *
+ * A função `conferirEvidencia` tem teste próprio; o que esta guarda protege é a
+ * LIGAÇÃO dela com o relatório. Sem isso, alguém remove a chamada numa
+ * refatoração e os testes de unidade continuam verdes sobre uma função que
+ * ninguém chama — e o PDF volta a afirmar que a imagem é a analisada.
+ */
+test("o relatório confere a evidência antes de desenhá-la", () => {
+  const rota = lerCodigo("src/app/api/analysis/history/[id]/report/route.ts");
+  assert.match(rota, /conferirEvidencia\(/, "o relatório desenha a evidência sem conferir");
+  assert.match(
+    rota,
+    /image_fingerprint/,
+    "a conferência precisa do campo gravado na análise",
+  );
+});
+
+/**
  * Toda rota de histórico passa pelo portão da utilidade.
  *
  * A tela do histórico já exigia `podeUsar(..., "history")` no layout; as rotas
