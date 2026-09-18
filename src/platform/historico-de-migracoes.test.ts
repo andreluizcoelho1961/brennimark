@@ -57,11 +57,6 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Escrita em 18/09/2026, a aplicar em produção por autorização do André:
-  // a busca de trechos tolera grafia americana/britânica e, sem trecho com
-  // todas as palavras, aceita qualquer uma. Sai daqui quando o carimbo remoto
-  // for alinhado.
-  "busca_tolerante",
   // `kill_switch_excecao_registrada` saiu daqui em 10/09/2026: aplicada ao
   // banco hospedado por decisão do proprietário, carimbada `20260910215914`.
   // Medido depois: só o comentário mudou — corpo, grants, SECURITY DEFINER e

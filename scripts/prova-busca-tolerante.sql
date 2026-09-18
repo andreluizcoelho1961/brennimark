@@ -2,7 +2,7 @@
 --
 -- Nasce do ensaio: "what is the primary color?" num manual que escreve
 -- "colour" e nunca diz "primary" voltava zero trechos, e a IA afirmava que a
--- marca não documentava cor. Ver a migration 20260918193759_busca_tolerante.
+-- marca não documentava cor. Ver a migration 20260918194819_busca_tolerante.
 --
 -- Mesmo método das outras provas: mundo próprio, a busca chamada COMO USUÁRIO
 -- (superusuário passa por cima da RLS e provaria nada), preparação que falha
