@@ -3,6 +3,7 @@ import { getBrandvilleAuthContext } from "@/lib/brandville/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { BrandImporter } from "@/components/import/BrandImporter";
 import { capabilitiesForRole } from "@/platform/capabilities";
+import { MolduraDaConta } from "@/components/shell/MolduraDaConta";
 
 /**
  * A porta de entrada do produto.
@@ -38,5 +39,11 @@ export default async function ImportarPage({
   const capabilities = capabilitiesForRole(auth?.role);
   if (!auth || !capabilities.includes("administrar")) redirect("/docs");
 
-  return <BrandImporter workspaceId={auth.workspaceId} workspaceSlug={auth.workspaceSlug} />;
+  // Dentro da moldura desde 18/09: importar é um gesto da tela Marcas, e não
+  // uma página solta sem caminho de volta.
+  return (
+    <MolduraDaConta contexto={contexto} contaSlug={workspaceSlug}>
+      <BrandImporter workspaceId={auth.workspaceId} workspaceSlug={auth.workspaceSlug} />
+    </MolduraDaConta>
+  );
 }

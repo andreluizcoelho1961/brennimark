@@ -72,13 +72,15 @@ async function abrirBuscaPeloAtalho(page: Page) {
 
 test("a barra leva ao manual, e o manual é o PDF", async ({ page }) => {
   await desktop(page);
-  const navegacao = page.getByRole("navigation", { name: /Navegação principal|Main navigation/ });
+  // Desde 18/09 o manual mora no segmentado da barra de cima — a barra do
+  // CONTEÚDO da marca (plano da interface §2) —, e não mais na coluna.
+  const navegacao = page.getByRole("navigation", { name: /Conteúdo da marca|Brand content/ });
   await expect(navegacao).toBeVisible();
 
   // O destino do manual aponta para o documento-fonte, não para uma seção
   // remontada. Se algum dia voltar a apontar para `/docs`, a pessoa volta a
   // entrar pela interpretação da máquina sem nada avisar.
-  const manual = navegacao.locator("[data-nav-destination][href$='/original']");
+  const manual = navegacao.locator("[data-parte-do-segmentado='manual'][href$='/original']");
   await expect(manual).toHaveCount(1);
   await expect(manual).toBeVisible();
 });
@@ -91,24 +93,28 @@ test("a barra não lista mais as seções extraídas", async ({ page }) => {
   await expect(page.locator("[data-doc-destino]")).toHaveCount(0);
 });
 
-test("o manual é o primeiro destino da coluna", async ({ page }) => {
+test("o manual vem antes dos materiais no segmentado", async ({ page }) => {
   /*
-   * A ordem no DOM é a ordem que a pessoa lê. O teste mede posição vertical
-   * real, e não a ordem do array: um `order` de CSS ou um flex invertido
-   * mudaria a tela sem mudar a estrutura, e o teste continuaria verde.
+   * A ordem na tela é a ordem que a pessoa lê. O teste mede posição real, e
+   * não a ordem do array: um `order` de CSS ou um flex invertido mudaria a
+   * tela sem mudar a estrutura, e o teste continuaria verde.
+   *
+   * Até 18/09 media a posição VERTICAL na coluna; o manual e os materiais
+   * passaram para o segmentado da barra de cima, então a medida é horizontal.
    */
   await desktop(page);
 
   const posicaoDe = (seletor: string) =>
     page.evaluate(
-      (s) => document.querySelector(s)?.getBoundingClientRect().top ?? Infinity,
+      (s) => document.querySelector(s)?.getBoundingClientRect().left ?? Infinity,
       seletor,
     );
 
-  const manual = await posicaoDe("[data-nav-destination][href$='/original']");
-  const biblioteca = await posicaoDe("[data-nav-destination][href*='biblioteca']");
+  const manual = await posicaoDe("[data-parte-do-segmentado='manual']");
+  const materiais = await posicaoDe("[data-parte-do-segmentado='materiais']");
 
-  expect(manual, "o manual está abaixo do acervo").toBeLessThan(biblioteca);
+  expect(manual, "o manual precisa existir no segmentado").toBeLessThan(Infinity);
+  expect(manual, "o manual está depois dos materiais").toBeLessThan(materiais);
 });
 
 test("a navegação é alcançável só pelo teclado", async ({ page, browserName }) => {

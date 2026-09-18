@@ -137,7 +137,10 @@ export function shellSections({
       id: "library",
       label: t("Acervo", "Library"),
       destinations: [
-        { href: "/docs/biblioteca", label: t("Biblioteca de assets", "Asset library"), mobile: true },
+        // "Materiais da marca" desde 17/09 (spec-menus §8.7): é a palavra que
+        // agência, gráfica e produtora já usam. "Biblioteca de assets" continua
+        // só na linguagem interna — ADR-0007, tabelas, rotas.
+        { href: "/docs/biblioteca", label: t("Materiais da marca", "Brand materials"), mobile: true },
         ...porChave("history"),
       ],
     },

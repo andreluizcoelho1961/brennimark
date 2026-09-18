@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { DocPageEntry } from "@/content/docs";
 import type { StatusLabels } from "@/components/docs/status";
+import { useIsEnglish } from "@/platform/locale-client";
 import { CommandPalette } from "./CommandPalette";
 import type { OpcaoDeContexto } from "./SeletorDeContexto";
-import { DesktopSidebar } from "./DesktopSidebar";
+import { ColunaDaPlataforma } from "./ColunaDaPlataforma";
+import { gruposDaGaveta, type GrupoDaColuna } from "./coluna";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { PlatformTopBar } from "./PlatformTopBar";
 import type { ShellSection } from "./navigation";
@@ -47,6 +49,8 @@ function podeReceberFoco(el: HTMLElement | null): boolean {
 }
 
 export function AppShellV2({
+  coluna,
+  segmentado,
   sections,
   docs,
   userEmail,
@@ -59,6 +63,14 @@ export function AppShellV2({
   contextoAtivo,
   children,
 }: {
+  /**
+   * A coluna da PLATAFORMA, já decidida no servidor (`colunaDaPlataforma`).
+   * Existe em toda tela depois do login — com ou sem marca aberta.
+   */
+  coluna: GrupoDaColuna[];
+  /** Endereços do segmentado da barra de cima; vazios sem marca aberta. */
+  segmentado?: { manual?: string; materiais?: string };
+  /** Destinos da marca, para a busca (⌘K). Vazio sem marca aberta. */
   sections: ShellSection[];
   docs: readonly DocPageEntry[];
   userEmail?: string;
@@ -97,6 +109,7 @@ export function AppShellV2({
    * existir; um estado com três valores não a descreve.
    */
   const [modal, setModal] = useState<"none" | "nav" | "search">("none");
+  const isEnglish = useIsEnglish();
 
   const origemDoFoco = useRef<HTMLElement | null>(null);
 
@@ -218,10 +231,12 @@ export function AppShellV2({
    * sem utilidades contratadas tinha zero seções de moldura e cento e cinquenta
    * páginas, e contar só as seções esconderia a gaveta de quem mais precisava
    * dela. Agora a gaveta oferece apenas destinos da moldura — as seções saíram
-   * dela, ver DesktopSidebar —, então contar páginas abriria uma gaveta que não
+   * dela —, então contar páginas abriria uma gaveta que não
    * leva a nada. `docs` continua chegando aqui para a busca.
    */
-  const temDestinos = sections.length > 0;
+  // A coluna tem sempre ao menos "Marcas": a gaveta do celular sempre leva a
+  // algum lugar.
+  const temDestinos = coluna.some((grupo) => grupo.itens.length > 0);
 
   return (
     <div ref={raiz} className="flex h-dvh flex-col bg-platform-bg text-platform-text">
@@ -240,11 +255,12 @@ export function AppShellV2({
           navigationOpen={modal === "nav"}
           onOpenSearch={abrirBusca}
           onOpenNavigation={temDestinos ? () => abrir("nav") : undefined}
+          segmentado={segmentado}
         >
           {sessionControl}
         </PlatformTopBar>
         <div className="flex min-h-0 flex-1">
-          <DesktopSidebar sections={sections} basePath={basePath} />
+          <ColunaDaPlataforma grupos={coluna} />
           {/* No mobile o vão estrutural some: 16px de cada lado de uma tela de
               390 é 8% da largura gasta em moldura. O canvas encosta e a borda
               some junto, porque filete em tela cheia não separa nada. */}
@@ -279,8 +295,7 @@ export function AppShellV2({
 
       <NavigationDrawer
         open={modal === "nav"}
-        sections={sections}
-        basePath={basePath}
+        grupos={gruposDaGaveta(coluna, segmentado, isEnglish)}
         onClose={fechar}
       />
 

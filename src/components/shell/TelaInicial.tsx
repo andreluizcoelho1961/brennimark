@@ -34,13 +34,21 @@ import { destinoAoTrocarDeMarca } from "@/lib/brandville/selecao";
  */
 export function TelaInicial({
   opcoes,
+  novaMarca,
 }: {
   opcoes: readonly { workspaceSlug: string; brandKey: string; conta: string; marca: string }[];
+  /**
+   * Endereço da importação, só para quem administra a conta em exibição.
+   * "+ Nova marca" é o gesto de criar marca (spec-menus §3): mora aqui, na
+   * tela Marcas, e não na coluna. Quem só consulta não recebe o endereço, e o
+   * cartão não existe para ele.
+   */
+  novaMarca?: string;
 }) {
   const uma = opcoes.length === 1;
 
   return (
-    <div className="min-h-dvh bg-platform-bg px-[var(--space-shell-5)] py-[var(--space-shell-8,4rem)]">
+    <div className="px-[var(--space-shell-5)] py-[var(--space-shell-7,3rem)]">
       <div className="mx-auto w-full max-w-[60rem]">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-platform-text-muted">
           {platformIdentity.displayName}
@@ -115,6 +123,18 @@ export function TelaInicial({
               </Link>
             </li>
           ))}
+          {novaMarca && (
+            <li>
+              <Link
+                href={novaMarca}
+                data-card-nova-marca
+                className="flex min-h-[7rem] flex-col items-start justify-between rounded-[var(--radius-control)] border border-dashed border-platform-border p-[var(--space-shell-4)] text-platform-text-muted hover:border-platform-signal-soft hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
+              >
+                <span className="text-[17px] font-medium leading-tight">+ Nova marca</span>
+                <span className="text-[12px]">Enviar o manual em PDF</span>
+              </Link>
+            </li>
+          )}
         </ul>
       </div>
     </div>

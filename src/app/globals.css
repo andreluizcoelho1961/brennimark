@@ -62,7 +62,10 @@
   /* Medidas fixas da moldura. */
   --shell-topbar: 56px;
   --shell-sidebar: 224px;
-  --shell-rail: 72px;
+  /* A faixa recolhida da coluna da plataforma (plano da interface §2). A
+     versão expandida é desenhada POR CIMA do conteúdo, então só esta largura
+     conta no layout — ver ColunaDaPlataforma. Era 72px e não tinha uso. */
+  --shell-rail: 56px;
 
   /* Movimento contido: controle, menu, painel. */
   --motion-control: 120ms;

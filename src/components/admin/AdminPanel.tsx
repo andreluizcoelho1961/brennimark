@@ -191,8 +191,8 @@ export function AdminPanel({
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-platform-text-muted">{isEnglish ? "This brand has no published pages. Pages arrive when a brand manual is imported." : "Esta marca ainda não tem páginas publicadas. As páginas chegam quando um manual é importado."}</p>
         <ThemeEditor theme={theme} />
         <div className="mt-16 border-t border-platform-border pt-12">
-          <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Library" : "Biblioteca"}</p>
-          <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Official assets" : "Assets oficiais"}</h2>
+          <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>
+          <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Brand materials" : "Materiais da marca"}</h2>
           <div className="mt-8"><AssetLibrary canManage /></div>
         </div>
       </div>
@@ -251,8 +251,8 @@ export function AdminPanel({
       <ThemeEditor theme={theme} />
 
       <section className="mt-16 border-t border-platform-border pt-12">
-        <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Library" : "Biblioteca"}</p>
-        <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Official assets" : "Assets oficiais"}</h2>
+        <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>
+        <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Brand materials" : "Materiais da marca"}</h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-platform-text-muted">{isEnglish ? "Upload logos, images, PDFs, fonts, and ZIP packages. Files stay private and download links expire automatically." : "Envie logos, imagens, PDFs, fontes e pacotes ZIP. Os arquivos ficam privados e os links de download expiram automaticamente."}</p>
         <div className="mt-8"><AssetLibrary canManage /></div>
       </section>

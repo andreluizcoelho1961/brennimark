@@ -79,7 +79,10 @@ test("o selo de status pinta o próprio fundo de plataforma", () => {
 const V2 = [
   "src/components/shell/AppShellV2.tsx",
   "src/components/shell/PlatformTopBar.tsx",
-  "src/components/shell/DesktopSidebar.tsx",
+  "src/components/shell/ColunaDaPlataforma.tsx",
+  "src/components/shell/SegmentadoDaMarca.tsx",
+  "src/components/shell/IconeDaColuna.tsx",
+  "src/components/shell/coluna.ts",
   "src/components/shell/NavigationDrawer.tsx",
   "src/components/shell/WorkspaceIdentity.tsx",
   "src/components/shell/navigation.ts",
@@ -682,7 +685,9 @@ test("só a moldura devolve o foco", () => {
 
 test("os destinos são localizados por marcador, não por texto", () => {
   // Texto de destino é traduzido; um seletor por rótulo quebraria em inglês.
-  assert.match(lerCodigo("src/components/shell/DesktopSidebar.tsx"), /data-nav-destination/);
+  // A coluna da plataforma substituiu a DesktopSidebar em 18/09; o marcador
+  // continua sendo o jeito de achar um destino sem depender do idioma.
+  assert.match(lerCodigo("src/components/shell/ColunaDaPlataforma.tsx"), /data-nav-destination/);
 });
 
 /**
@@ -724,7 +729,10 @@ test("não existe uma segunda navegação de documentos", () => {
 const MOLDURA_SEM_MARCA_GLOBAL = [
   "src/components/shell/navigation.ts",
   "src/components/shell/AppShellV2.tsx",
-  "src/components/shell/DesktopSidebar.tsx",
+  "src/components/shell/ColunaDaPlataforma.tsx",
+  "src/components/shell/SegmentadoDaMarca.tsx",
+  "src/components/shell/IconeDaColuna.tsx",
+  "src/components/shell/coluna.ts",
   "src/components/shell/NavigationDrawer.tsx",
   "src/components/shell/PlatformTopBar.tsx",
   "src/components/shell/WorkspaceIdentity.tsx",
