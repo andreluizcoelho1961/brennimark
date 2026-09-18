@@ -1,4 +1,4 @@
-import { colunaDaPlataforma, segmentadoDaMarca, type GrupoDaColuna } from "./coluna";
+import { colunaDaPlataforma, destinosDoVini, segmentadoDaMarca, type DestinoDaMarca, type GrupoDaColuna } from "./coluna";
 import { withBase, type ShellSection } from "./navigation";
 
 /**
@@ -21,18 +21,17 @@ export function molduraDaMarcaAberta({
   contaSlug?: string;
   administraConta: boolean;
   ingles: boolean;
-}): { coluna: GrupoDaColuna[]; segmentado: { manual?: string; materiais?: string } } {
+}): {
+  coluna: GrupoDaColuna[];
+  segmentado: { manual?: string; materiais?: string };
+  vini: DestinoDaMarca[];
+} {
+  const destinos = sections.flatMap((secao) =>
+    secao.destinations.map((d) => ({ href: withBase(d.href, basePath, d.foraDaMarca), label: d.label })),
+  );
   return {
-    coluna: colunaDaPlataforma({
-      contaSlug,
-      administraConta,
-      ingles,
-      marca: {
-        destinos: sections.flatMap((secao) =>
-          secao.destinations.map((d) => ({ href: withBase(d.href, basePath, d.foraDaMarca), label: d.label })),
-        ),
-      },
-    }),
+    coluna: colunaDaPlataforma({ contaSlug, administraConta, ingles, marca: { destinos } }),
     segmentado: segmentadoDaMarca(basePath),
+    vini: destinosDoVini(destinos),
   };
 }

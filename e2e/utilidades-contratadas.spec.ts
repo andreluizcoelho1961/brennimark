@@ -29,6 +29,10 @@ test("marca sem utilidades não mostra nenhuma na navegação", async ({ page })
   for (const u of ["chat", "analise", "historico", "configuracoes"]) {
     expect(destinos.some((d) => d.includes(u)), `${u} apareceu no menu`).toBe(false);
   }
+  // Desde 18/09 chat, análise e histórico são do Vini. Sem nenhum contratado,
+  // o Vini não aparece — sem isto, o laço acima passaria no vazio, porque o
+  // chat nunca mais aparece na coluna.
+  await expect(page.locator("[data-botao-do-vini]")).toHaveCount(0);
 
   // E a seção não aparece VAZIA: cabeçalho sem nada embaixo é ruído que ocupa
   // a altura de um item útil.
@@ -40,8 +44,10 @@ test("marca com utilidades mostra as que contratou", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(COM_UTILIDADES);
   await expect(page.locator("[data-shell-ready]")).toHaveCount(1);
+  // Desde 18/09 o chat é do Vini, no canto inferior direito — não da coluna.
+  await page.locator("[data-botao-do-vini]").click();
   const destinos = await page.evaluate(() =>
-    [...document.querySelectorAll("[data-nav-destination]")].map((a) => a.getAttribute("href") ?? ""),
+    [...document.querySelectorAll("[data-destino-do-vini]")].map((a) => a.getAttribute("href") ?? ""),
   );
   expect(destinos.some((d) => d.includes("chat"))).toBe(true);
 });

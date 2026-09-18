@@ -529,34 +529,61 @@ for (const [largura, nome] of [
  * vazia para qualquer marca.
  */
 test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ page }) => {
+  /*
+   * Desde 18/09 as funcionalidades de IA moram no Vini, no canto inferior
+   * direito — não na coluna. A regra que este caso protege continua a mesma:
+   * cada marca oferece o que declarou, e nada herdado da anterior.
+   */
   await page.setViewportSize({ width: 1440, height: 900 });
+  const vini = async () => {
+    await page.locator("[data-botao-do-vini]").click();
+    return page.locator("[data-vini-lista]");
+  };
 
   await page.goto("/dev/marcas?marca=institucional"); // só chat
-  const coluna = page.getByRole("navigation", { name: "Navegação principal" });
-  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toBeVisible();
-  await expect(coluna.getByRole("link", { name: "Análise de aplicações" })).toHaveCount(0);
+  let lista = await vini();
+  await expect(lista.getByRole("link", { name: "Perguntar" })).toBeVisible();
+  await expect(lista.getByRole("link", { name: "Analisar peça" })).toHaveCount(0);
 
   await page.goto("/dev/marcas?marca=mercado"); // análise e histórico, sem chat
-  await expect(coluna.getByRole("link", { name: "Análise de aplicações" })).toBeVisible();
-  await expect(coluna.getByRole("link", { name: "Histórico e calibração" })).toBeVisible();
-  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toHaveCount(0);
+  lista = await vini();
+  await expect(lista.getByRole("link", { name: "Analisar peça" })).toBeVisible();
+  await expect(lista.getByRole("link", { name: "Histórico" })).toBeVisible();
+  await expect(lista.getByRole("link", { name: "Perguntar" })).toHaveCount(0);
 
   await page.goto("/dev/marcas?marca=festival"); // todas
-  for (const destino of [
-    "Chat da marca",
-    "Análise de aplicações",
-    "Histórico e calibração",
-    // Encurtado na reorganização: o rótulo anterior era cortado pela largura
-    // da coluna, e destino cujo nome não se lê não é destino.
-    "Provedores de IA",
-  ]) {
-    await expect(coluna.getByRole("link", { name: destino })).toBeVisible();
+  lista = await vini();
+  for (const destino of ["Perguntar", "Analisar peça", "Histórico"]) {
+    await expect(lista.getByRole("link", { name: destino })).toBeVisible();
   }
+  // Provedores de IA é configuração, não conversa: fica na coluna até
+  // Configurações existir.
+  const coluna = page.getByRole("navigation", { name: "Navegação principal" });
+  await expect(coluna.getByRole("link", { name: "Provedores de IA" })).toBeVisible();
+  // E nada de IA sobrou na coluna.
+  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toHaveCount(0);
+  await expect(coluna.getByRole("link", { name: "Análise de aplicações" })).toHaveCount(0);
 
   // E a volta: a marca só com chat não herdou nada das anteriores.
   await page.goto("/dev/marcas?marca=institucional");
-  await expect(coluna.getByRole("link", { name: "Chat da marca" })).toBeVisible();
-  await expect(coluna.getByRole("link", { name: "Histórico e calibração" })).toHaveCount(0);
+  lista = await vini();
+  await expect(lista.getByRole("link", { name: "Histórico" })).toHaveCount(0);
+});
+
+test("o Vini fecha com Esc e devolve o foco ao botão", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/dev/marcas?marca=festival");
+  await page.locator("[data-botao-do-vini]").click();
+  await expect(page.locator("[data-vini-lista]")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator("[data-vini-lista]")).toHaveCount(0);
+  await expect(page.locator("[data-botao-do-vini]")).toBeFocused();
+});
+
+test("sem marca aberta não há Vini: não há sobre o que perguntar", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/dev/moldura");
+  await expect(page.locator("[data-botao-do-vini]")).toHaveCount(0);
 });
 
 test("marca sem funcionalidades não mostra a seção Inteligência", async ({ page }) => {

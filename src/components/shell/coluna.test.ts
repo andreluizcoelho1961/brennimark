@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { colunaDaPlataforma, gruposDaGaveta, itemAtivo, segmentadoDaMarca } from "./coluna";
+import { colunaDaPlataforma, destinosDoVini, gruposDaGaveta, itemAtivo, segmentadoDaMarca } from "./coluna";
 
 /**
  * A coluna da plataforma — plano da interface §2.
@@ -44,12 +44,12 @@ test("Manual e Materiais saem da coluna: moram na barra de cima", () => {
     marca: { destinos: [
       { href: "/w/agencia/b/solara/docs/original", label: "Manual" },
       { href: "/w/agencia/b/solara/docs/biblioteca", label: "Materiais" },
-      { href: "/w/agencia/b/solara/docs/chat", label: "Chat da marca" },
+      { href: "/w/agencia/b/solara/docs/admin", label: "Administração" },
       { href: "/w/agencia/importar", label: "Importar manual" },
     ] },
   });
   const marca = grupos.find((g) => g.id === "marca")!;
-  assert.deepEqual(marca.itens.map((i) => i.rotulo), ["Chat da marca"]);
+  assert.deepEqual(marca.itens.map((i) => i.rotulo), ["Administração"]);
 });
 
 test("o reconhecimento independe do prefixo do endereço", () => {
@@ -67,8 +67,9 @@ test("o reconhecimento independe do prefixo do endereço", () => {
     ] },
   });
   const marca = grupos.find((g) => g.id === "marca")!;
-  assert.deepEqual(marca.itens.map((i) => i.rotulo), ["Chat", "Análise", "IA"]);
-  assert.deepEqual(marca.itens.map((i) => i.icone), ["assistente", "analise", "ia"]);
+  // Chat e análise são do Vini; na coluna sobra o que é de configuração.
+  assert.deepEqual(marca.itens.map((i) => i.rotulo), ["IA"]);
+  assert.deepEqual(marca.itens.map((i) => i.icone), ["ia"]);
 });
 
 test("sem destinos da marca, o grupo da marca não aparece vazio", () => {
@@ -110,4 +111,21 @@ test("no celular, a gaveta traz o manual da marca aberta — senão ele é inalc
   assert.deepEqual(gaveta[0].itens.map((i) => i.href), ["/w/a/b/solara/docs/original", "/w/a/b/solara/docs/biblioteca"]);
   // Sem marca aberta, nada é inventado: a gaveta é a própria coluna.
   assert.deepEqual(gruposDaGaveta(coluna, {}), coluna);
+});
+
+test("todo contato com a marca por IA é o Vini, e sai da coluna", () => {
+  // Decisão do André, reafirmada em 18/09: o Vini, no canto inferior direito,
+  // é onde se pergunta, analisa peça e (depois) gera prompt.
+  const destinos = [
+    { href: "/w/a/b/s/docs/historico", label: "Histórico e calibração" },
+    { href: "/w/a/b/s/docs/chat", label: "Chat da marca" },
+    { href: "/w/a/b/s/docs/analise", label: "Análise de aplicações" },
+    { href: "/w/a/b/s/docs/configuracoes/ia", label: "Provedores de IA" },
+  ];
+  const marca = colunaDaPlataforma({ contaSlug: "a", administraConta: true, marca: { destinos } })
+    .find((g) => g.id === "marca")!;
+  assert.deepEqual(marca.itens.map((i) => i.rotulo), ["Provedores de IA"]);
+  // E o Vini os recebe na ordem da janela: perguntar, analisar, histórico.
+  assert.deepEqual(destinosDoVini(destinos).map((d) => d.label),
+    ["Chat da marca", "Análise de aplicações", "Histórico e calibração"]);
 });
