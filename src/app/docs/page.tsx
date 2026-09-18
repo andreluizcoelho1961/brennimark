@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { TelaInicial } from "@/components/shell/TelaInicial";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
-import { LocaleProvider } from "@/platform/locale-client";
+import { MolduraDaConta } from "@/components/shell/MolduraDaConta";
 
 /**
  * `/docs` deixou de ser uma página e virou um resolvedor.
@@ -25,19 +25,24 @@ export default async function ResolvedorDeContexto() {
   if (contexto.access === "onboarding") redirect("/onboarding");
 
   /*
-   * Entrou e não tem acesso a nada (17/09/2026, conta de time).
+   * Todos os estados abaixo desenham DENTRO da moldura (plano da interface §2,
+   * 18/09): entrar é cair dentro da plataforma, e nenhum estado é página solta.
    *
-   * Não é o vazio de quem administra e ainda não importou: é o vazio de quem
-   * está esperando alguém liberar. O texto diz a quem pedir, e não há botão —
-   * o de importação devolveria a pessoa para cá.
+   * A conta em exibição é a única, quando a pessoa está em uma só — o caso de
+   * toda agência. Em várias, nenhuma é escolhida por ela: a coluna mostra só
+   * Marcas, e a gestão aparece ao entrar numa conta.
+   */
+  const contaUnica = contexto.opcoes.length === 1 ? contexto.opcoes[0] : undefined;
+
+  /*
+   * Entrou e não tem acesso a nada (17/09/2026, conta de time). O vazio de
+   * quem espera alguém liberar — sem botão de importar, que o devolveria aqui.
    */
   if (contexto.access === "sem-acesso") {
     return (
-      <LocaleProvider locale={contexto.locale}>
-        <main className="min-h-dvh bg-platform-bg">
-          <EmptyBrandState podeImportar={false} />
-        </main>
-      </LocaleProvider>
+      <MolduraDaConta contexto={contexto}>
+        <EmptyBrandState podeImportar={false} />
+      </MolduraDaConta>
     );
   }
 
@@ -51,49 +56,33 @@ export default async function ResolvedorDeContexto() {
 
   if (pares.length === 0) {
     /*
-     * Quem administra a conta pode importar; quem não administra, não.
-     *
-     * `podeImportar` estava fixo em `true`, e até 13/09/2026 isso era quase
-     * inofensivo: só chegava aqui quem tinha conta sem marca nenhuma. Com o
-     * acesso por marca, chega também quem participa de uma conta com marcas e
-     * ainda não recebeu acesso a nenhuma — e para essa pessoa o botão levava à
-     * tela de importação, que a devolvia para cá por não ser quem administra.
-     * Laço, sem explicação.
-     *
-     * O papel vem das opções, que já foram resolvidas: uma consulta a menos, e
-     * a mesma fonte que a moldura usa.
-     *
-     * A lista VAZIA não é o caso de "sem acesso": ela é o preview local, onde
-     * não existe conta nenhuma e portanto não há administrador a quem pedir.
-     * Ali vale o primeiro texto — foi o que a suíte de navegador cobrou quando
-     * a regra era só "administra alguma conta".
+     * Quem administra a conta pode importar; quem não administra, não — e
+     * para quem espera acesso, o botão levaria à importação, que o devolveria
+     * aqui. A lista VAZIA de contas é o preview local, onde não há a quem
+     * pedir: ali vale o convite de importar.
      */
     const participaDeAlgumaConta = contexto.opcoes.length > 0;
     const administraAlgumaConta = contexto.opcoes.some((w) => w.papel === "owner");
     const esperandoAcesso = participaDeAlgumaConta && !administraAlgumaConta;
 
     return (
-      <LocaleProvider locale={contexto.locale}>
-        {/* Fora da moldura não há AppShell para prover o marco principal, e
-            uma página sem <main> deixa quem usa leitor de tela sem o atalho
-            para o conteúdo. */}
-        <main className="min-h-dvh bg-platform-bg">
+      <MolduraDaConta contexto={contexto} contaSlug={contaUnica?.slug}>
         <EmptyBrandState
           podeImportar={!esperandoAcesso}
           contaImportar={
             contexto.workspaceSlug ? `/w/${contexto.workspaceSlug}/importar` : "/onboarding"
           }
         />
-        </main>
-      </LocaleProvider>
+      </MolduraDaConta>
     );
   }
 
   return (
-    <LocaleProvider locale={contexto.locale}>
-      <main>
-        <TelaInicial opcoes={pares} />
-      </main>
-    </LocaleProvider>
+    <MolduraDaConta contexto={contexto} contaSlug={contaUnica?.slug}>
+      <TelaInicial
+        opcoes={pares}
+        novaMarca={contaUnica?.papel === "owner" ? `/w/${contaUnica.slug}/importar` : undefined}
+      />
+    </MolduraDaConta>
   );
 }

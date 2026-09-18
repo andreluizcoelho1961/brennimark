@@ -87,9 +87,9 @@ export function EmptyBrandState({
             </ol>
           </div>
 
-          <p className="mt-[var(--space-shell-5)] text-[12px] leading-relaxed text-platform-text-muted">
-            Só quem administra a conta pode importar um manual.
-          </p>
+          {/* Saiu em 18/09: "Só quem administra a conta pode importar um
+              manual" aparecia justamente para quem administra — soava como
+              bloqueio para a pessoa que tem a permissão. Achado no ensaio. */}
           </>
         )}
       </div>

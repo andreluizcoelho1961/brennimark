@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
+import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { LocaleProvider } from "@/platform/locale-client";
 import { shellSections } from "@/components/shell/navigation";
 import { BrandCanvas } from "@/components/BrandCanvas";
@@ -28,11 +29,13 @@ export default async function ShellV2Preview({
   const { brand, docs, capabilities, userEmail, defaultDocSlug, locale } = await resolveWorkspaceContext();
   const caminho = slug?.join("/") || defaultDocSlug;
   const entry = docs.find((doc) => doc.slug === caminho) ?? docs[0];
+  const sections = shellSections({ capabilities, locale, utilityLinks: brand?.navigation.utilityLinks });
 
   return (
     <LocaleProvider locale={locale}>
     <AppShellV2
-      sections={shellSections({ capabilities, locale, utilityLinks: brand?.navigation.utilityLinks })}
+      {...molduraDaMarcaAberta({ sections, basePath: "/dev/shell-v2", contaSlug: "dev", administraConta: capabilities.includes("administrar"), ingles: locale === "en" })}
+      sections={sections}
       docs={docs}
       userEmail={userEmail}
       brandName={brand?.brand.name}

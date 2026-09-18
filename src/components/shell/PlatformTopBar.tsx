@@ -4,6 +4,7 @@ import { SeletorDeContexto, type OpcaoDeContexto } from "./SeletorDeContexto";
 import { platformIdentity } from "@/platform/identity";
 import { useIsEnglish } from "@/platform/locale-client";
 import { WorkspaceIdentity } from "./WorkspaceIdentity";
+import { SegmentadoDaMarca } from "./SegmentadoDaMarca";
 
 /**
  * Barra da plataforma: identidade provisória do produto, contexto da marca,
@@ -20,6 +21,7 @@ export function PlatformTopBar({
   onOpenSearch,
   onOpenNavigation,
   navigationOpen = false,
+  segmentado,
   children,
 }: {
   userEmail?: string;
@@ -34,6 +36,11 @@ export function PlatformTopBar({
   onOpenSearch?: () => void;
   /** Ausente no desktop, onde a navegação é uma coluna permanente. */
   onOpenNavigation?: () => void;
+  /**
+   * Os endereços do segmentado `Manual │ Materiais │ Complementos`. Sem marca
+   * aberta, vêm vazios e o segmentado aparece apagado (plano da interface §2).
+   */
+  segmentado?: { manual?: string; materiais?: string };
   children?: React.ReactNode;
 }) {
   const isEnglish = useIsEnglish();
@@ -70,6 +77,12 @@ export function PlatformTopBar({
           <WorkspaceIdentity name={brandName} descriptor={brandDescriptor} />
         )}
       </span>
+
+      {/* A barra de cima é do CONTEÚDO da marca. Sempre presente, como os
+          menus de um aplicativo de desenho: sem marca aberta, apagada. */}
+      <div className="hidden md:block">
+        <SegmentadoDaMarca manual={segmentado?.manual} materiais={segmentado?.materiais} />
+      </div>
 
       <div className="ml-auto flex items-center gap-[var(--space-shell-3)]">
         <button

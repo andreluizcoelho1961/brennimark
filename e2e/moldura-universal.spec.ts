@@ -440,9 +440,11 @@ test("a navegação do desktop continua clicável depois de destravar", async ({
   await page.setViewportSize({ width: 1024, height: 800 });
   await page.keyboard.press("Escape");
 
+  // A moldura inteira destrava — coluna e barra de cima. Os materiais moram
+  // no segmentado da barra desde 18/09 (plano da interface §2).
   const coluna = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(coluna).toBeVisible();
-  await coluna.getByRole("link", { name: "Biblioteca de assets" }).click();
+  await page.getByRole("navigation", { name: "Conteúdo da marca" }).getByRole("link", { name: "Materiais" }).click();
   await expect(page).toHaveURL(/biblioteca/);
 });
 
@@ -564,6 +566,9 @@ test("marca sem funcionalidades não mostra a seção Inteligência", async ({ p
   const coluna = page.getByRole("navigation", { name: "Navegação principal" });
   await expect(coluna).toBeVisible();
   await expect(coluna.getByText("Inteligência")).toHaveCount(0);
-  // A navegação continua existindo: a marca tem manual e acervo.
-  await expect(coluna.getByRole("link", { name: "Manual", exact: true })).toBeVisible();
+  // A navegação continua existindo: a marca tem manual e acervo — que moram
+  // no segmentado da barra de cima desde 18/09, e não mais na coluna.
+  const conteudo = page.getByRole("navigation", { name: "Conteúdo da marca" });
+  await expect(conteudo.getByRole("link", { name: "Manual", exact: true })).toBeVisible();
+  await expect(conteudo.getByRole("link", { name: "Materiais" })).toBeVisible();
 });

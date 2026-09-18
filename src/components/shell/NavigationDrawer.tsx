@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
-import { NavigationSections } from "./DesktopSidebar";
-import type { ShellSection } from "./navigation";
+import { ListaDaColuna } from "./ColunaDaPlataforma";
+import type { GrupoDaColuna } from "./coluna";
 
 const FOCAVEIS =
   'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -23,18 +23,18 @@ const FOCAVEIS =
  * pessoa perde o lugar onde estava.
  *
  * As seções extraídas saíram daqui junto com a coluna do desktop, e pelo mesmo
- * motivo — ver DesktopSidebar. Duas navegações diferentes para o mesmo produto
+ * motivo. Desde 18/09 a gaveta desenha a coluna da plataforma — ver
+ * ColunaDaPlataforma. Duas navegações diferentes para o mesmo produto
  * seriam dois produtos.
  */
 export function NavigationDrawer({
   open,
-  sections,
-  basePath,
+  grupos,
   onClose,
 }: {
   open: boolean;
-  sections: ShellSection[];
-  basePath?: string;
+  /** Os mesmos grupos da coluna da plataforma — ver ListaDaColuna. */
+  grupos: GrupoDaColuna[];
   onClose: () => void;
 }) {
   const isEnglish = useIsEnglish();
@@ -125,7 +125,7 @@ export function NavigationDrawer({
         </div>
         {/* Mesma ordem da barra: o manual antes das outras áreas. Duas ordens
             para a mesma navegação seriam dois produtos. */}
-        <NavigationSections sections={sections} basePath={basePath} onNavigate={onClose} />
+        <ListaDaColuna grupos={grupos} onNavigate={onClose} />
       </div>
     </div>
   );

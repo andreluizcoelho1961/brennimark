@@ -75,11 +75,16 @@ test("sem capacidade não há destino nenhum, e isso é a regra funcionando", as
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${CONTEXTO}/docs`);
 
-  // O preview local não concede papel — nem `consultar`. Um destino aqui
-  // seria link que termina em 403. A afirmação é mais forte que "o
-  // administrativo está escondido": NADA aparece sem capacidade.
-  await expect(page.locator("[data-nav-destination]")).toHaveCount(0);
+  // O preview local não concede papel — nem `consultar`. Um destino DA MARCA
+  // aqui seria link que termina em 403, e nenhum aparece.
+  //
+  // Mudou em 18/09 (plano da interface §2): a moldura existe sempre, e
+  // "Marcas" é da PLATAFORMA — o lugar de onde se escolhe a marca. Ele não
+  // depende de capacidade em marca nenhuma, então é o único destino aqui.
+  await expect(page.locator("[data-nav-destination]")).toHaveCount(1);
+  await expect(page.locator('[data-item-da-coluna="marcas"]')).toHaveCount(1);
   await expect(page.getByRole("link", { name: "Administração" })).toHaveCount(0);
+  await expect(page.locator('[data-grupo-da-coluna="gestao"]'), "gestão sem ser administrador da conta").toHaveCount(0);
 });
 
 test("a sessão vive na barra, não numa faixa própria", async ({ page }) => {
@@ -92,16 +97,21 @@ test("a sessão vive na barra, não numa faixa própria", async ({ page }) => {
 
 // ─── Promoção × gaveta × rota filha × largura ──────────────────────────────
 
-test("sem destinos, a moldura não oferece navegação", async ({ page }) => {
+test("sem capacidade na marca, a moldura ainda leva de volta a Marcas", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`${CONTEXTO}/docs/chat`);
   await molduraV2(page);
 
-  // Coerência com a regra de capacidades: se nenhum destino existe, mostrar o
-  // botão que abriria uma gaveta vazia — ou uma coluna de 224px em branco —
-  // sugere que algo falhou ao carregar.
-  await expect(page.getByRole("button", { name: "Abrir navegação" })).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(0);
+  /*
+   * Até 18/09 esta regra era o contrário: sem destino, sem gaveta, porque uma
+   * gaveta vazia sugere que algo falhou. Ela continua valendo — mas a gaveta
+   * não está mais vazia. "Marcas" é da plataforma e existe sempre: é a saída
+   * de qualquer tela, e foi a falta dela que deixou o ensaio de 18/09 "sem
+   * saída" dentro de um manual.
+   */
+  await expect(page.getByRole("button", { name: "Abrir navegação" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Abrir navegação" }).click();
+  await expect(page.getByRole("dialog").getByRole("link", { name: "Marcas" })).toBeVisible();
 });
 
 /**
@@ -135,9 +145,15 @@ for (const [largura, nome] of [
       expect(medida.documento).toBeLessThanOrEqual(medida.janela);
       expect(medida.focoNoCorpo, "a moldura roubou o foco no carregamento").toBe(true);
 
-      // Sem capacidade não há coluna em largura nenhuma. A regra de breakpoint
-      // está coberta em moldura-universal.spec, onde há destinos.
-      await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(0);
+      // A coluna existe sempre desde 18/09 (plano da interface §2) — no
+      // desktop visível, no celular escondida atrás do botão da gaveta. Sem
+      // capacidade, ela só oferece "Marcas". A regra de breakpoint está em
+      // moldura-universal.spec.
+      if (nome === "desktop") {
+        await expect(page.getByRole("navigation", { name: "Navegação principal" })).toHaveCount(1);
+      } else {
+        await expect(page.getByRole("button", { name: "Abrir navegação" })).toHaveCount(1);
+      }
     });
   }
 }

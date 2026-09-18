@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
+import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { shellSections } from "@/components/shell/navigation";
 import { BrandCanvas } from "@/components/BrandCanvas";
 import { DocPage } from "@/components/docs/DocPage";
@@ -70,17 +71,20 @@ export default async function MarcasOpostas({
       : pagina,
   );
 
+  // Pelo caminho real: as chaves saem da marca que parseBrandRow traduziu, não
+  // de uma lista escrita nesta rota.
+  const sections = shellSections({
+    capabilities: capabilitiesForRole("owner"),
+    locale: PRODUCT_LOCALE,
+    utilityLinks: marca.navigation.utilityLinks,
+  });
+
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
       <BrandVocabularyProvider language={marca.metadata.language} statusLabels={marca.statusLabels}>
         <AppShellV2
-          sections={shellSections({
-            capabilities: capabilitiesForRole("owner"),
-            locale: PRODUCT_LOCALE,
-            // Pelo caminho real: as chaves saem da marca que parseBrandRow
-            // traduziu, não de uma lista escrita nesta rota.
-            utilityLinks: marca.navigation.utilityLinks,
-          })}
+          {...molduraDaMarcaAberta({ sections, basePath: "/dev/marcas", contaSlug: "dev", administraConta: true, ingles: PRODUCT_LOCALE === "en" })}
+          sections={sections}
           docs={paginas}
           userEmail="pessoa@exemplo.invalid"
           brandName={marca.brand.name}

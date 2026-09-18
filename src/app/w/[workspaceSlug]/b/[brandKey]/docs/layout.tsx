@@ -6,6 +6,7 @@ import { LocaleProvider } from "@/platform/locale-client";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { shellSections } from "@/components/shell/navigation";
+import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { SignOutButton } from "@/components/SignOutButton";
 
 /**
@@ -43,6 +44,22 @@ export default async function DocsLayout({
   if (access === "ambiguous") redirect("/docs");
 
   const basePath = caminhoDaMarca(alvo);
+  const sections = shellSections({
+    capabilities,
+    locale,
+    utilityLinks: brand?.navigation.utilityLinks,
+  });
+
+  /*
+   * A mesma coluna das telas da conta, mais o grupo da marca aberta (plano da
+   * interface §2). A gestão aparece para quem administra a CONTA desta marca —
+   * é da conta, não da marca, e por isso não depende da capacidade aqui.
+   */
+  const conta = opcoes.find((w) => w.slug === alvo.workspaceSlug);
+  const { coluna, segmentado } = molduraDaMarcaAberta({
+    sections, basePath, contaSlug: alvo.workspaceSlug,
+    administraConta: conta?.papel === "owner", ingles: locale === "en",
+  });
 
   return (
     <LocaleProvider locale={locale}>
@@ -61,11 +78,9 @@ export default async function DocsLayout({
               marcas: w.marcas.map((m) => ({ key: m.key, nome: m.nome })),
             })),
           }}
-          sections={shellSections({
-            capabilities,
-            locale,
-            utilityLinks: brand?.navigation.utilityLinks,
-          })}
+          coluna={coluna}
+          segmentado={segmentado}
+          sections={sections}
           docs={documentosVisiveis(docs, capabilities)}
           userEmail={userEmail}
           brandName={brand?.brand.name}

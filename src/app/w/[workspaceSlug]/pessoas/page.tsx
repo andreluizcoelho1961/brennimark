@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { PessoasEAcesso } from "@/components/pessoas/PessoasEAcesso";
-import { LocaleProvider } from "@/platform/locale-client";
+import { MolduraDaConta } from "@/components/shell/MolduraDaConta";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 
 /**
@@ -32,8 +32,8 @@ export default async function PessoasPage({
   if (!conta || conta.papel !== "owner") redirect("/docs");
 
   return (
-    <LocaleProvider locale={contexto.locale}>
-      <main className="min-h-dvh bg-platform-bg px-[var(--space-shell-5,2rem)] py-[var(--space-shell-8,4rem)]">
+    <MolduraDaConta contexto={contexto} contaSlug={conta.slug}>
+      <div className="px-[var(--space-shell-5)] py-[var(--space-shell-6)]">
         <div className="mx-auto max-w-[68rem]">
           <h1 className="font-display text-2xl font-black uppercase text-platform-text">
             Pessoas e acesso
@@ -46,7 +46,7 @@ export default async function PessoasPage({
             <PessoasEAcesso />
           </div>
         </div>
-      </main>
-    </LocaleProvider>
+      </div>
+    </MolduraDaConta>
   );
 }
