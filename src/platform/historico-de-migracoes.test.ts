@@ -80,6 +80,11 @@ const PENDENTES_ESPERADAS: string[] = [
   // Conferido depois das duas: funções, policies, colunas, travas e índices
   // IDÊNTICOS ao local (58 peças); só `service_role` difere, que é o padrão do
   // Supabase hospedado.
+  // `conceder_e_revogar_acesso` saiu daqui em 17/09/2026: aplicada ao banco
+  // hospedado por autorização do André, carimbada `20260918022249`, e o arquivo
+  // renomeado. Conferido depois: o corpo das três funções IDÊNTICO ao local
+  // (conceder af8e9e8e…, pessoas 698fcc79…, revogar 93ba8657…); só
+  // `service_role` difere, que é o padrão do Supabase hospedado.
   // `item_e_variante` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
   // autorização nominal do André, carimbada `20260917170413`, e o arquivo
   // renomeado. Conferido antes: zero assets em produção. Conferido depois:
