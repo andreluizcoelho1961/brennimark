@@ -12,9 +12,10 @@
  *               existe aparece apagado, com "em breve" (decisão de 18/09):
  *               a pessoa vê o que o produto vai ter, sem clicar numa tela vazia.
  *   marca       só com marca aberta, e só o que a capacidade dela permite.
- *               É provisório: chat, análise e histórico vão para a janela do
- *               Vini (fatia 4); provedores de IA para Configurações. Até lá,
- *               ficam aqui — nada some antes de ter para onde ir.
+ *               Chat, análise e histórico NÃO estão aqui: todo contato com a
+ *               marca por IA é o Vini, no canto inferior direito (decisão do
+ *               André, reafirmada em 18/09 — ver `destinosDoVini`). Provedores
+ *               de IA e administração ficam até ganharem casa em Configurações.
  *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
@@ -57,6 +58,12 @@ export interface DestinoDaMarca {
  * a captura da bancada mostrou o manual repetido na coluna (18/09).
  */
 const NA_BARRA_DE_CIMA = ["original", "biblioteca"];
+
+/**
+ * O que é do Vini, e por isso sai da coluna: perguntar, analisar peça e o
+ * histórico das conversas. "Gerar prompt" entra junto quando existir.
+ */
+const DO_VINI = ["chat", "analise", "historico"];
 
 const ICONE_POR_SEGMENTO: [string, IconeDaColuna][] = [
   ["chat", "assistente"],
@@ -124,6 +131,7 @@ export function colunaDaPlataforma({
       // Importar é criar marca: o gesto mora na tela Marcas ("+ Nova marca"),
       // não dentro de uma marca já aberta.
       .filter((d) => !temSegmento(d.href, "importar"))
+      .filter((d) => !DO_VINI.some((segmento) => temSegmento(d.href, segmento)))
       .map((d) => ({ id: d.href, rotulo: d.label, icone: iconeDoDestino(d.href), href: d.href }));
     if (itens.length > 0) grupos.push({ id: "marca", rotulo: t("Nesta marca", "In this brand"), itens });
   }
@@ -172,4 +180,18 @@ export function gruposDaGaveta(
     itens.push({ id: "materiais", rotulo: ingles ? "Materials" : "Materiais", icone: "materiais", href: segmentado.materiais });
   }
   return [{ id: "conteudo", rotulo: ingles ? "Brand content" : "Conteúdo da marca", itens }, ...coluna];
+}
+
+/**
+ * Os destinos do Vini na marca aberta — o que a janela do canto oferece.
+ *
+ * Na fatia 1 a janela é um lançador: uma lista curta que leva às telas que já
+ * existem. Na fatia 4 ela vira a janela de três estados, e estes destinos
+ * passam a acontecer dentro dela (plano da interface §3).
+ */
+export function destinosDoVini(destinos: readonly DestinoDaMarca[]): DestinoDaMarca[] {
+  const ordem = (href: string) => DO_VINI.findIndex((segmento) => temSegmento(href, segmento));
+  return destinos
+    .filter((d) => ordem(d.href) >= 0)
+    .sort((a, b) => ordem(a.href) - ordem(b.href));
 }

@@ -56,7 +56,7 @@ export default async function DocsLayout({
    * é da conta, não da marca, e por isso não depende da capacidade aqui.
    */
   const conta = opcoes.find((w) => w.slug === alvo.workspaceSlug);
-  const { coluna, segmentado } = molduraDaMarcaAberta({
+  const { coluna, segmentado, vini } = molduraDaMarcaAberta({
     sections, basePath, contaSlug: alvo.workspaceSlug,
     administraConta: conta?.papel === "owner", ingles: locale === "en",
   });
@@ -80,6 +80,7 @@ export default async function DocsLayout({
           }}
           coluna={coluna}
           segmentado={segmentado}
+          vini={vini}
           sections={sections}
           docs={documentosVisiveis(docs, capabilities)}
           userEmail={userEmail}

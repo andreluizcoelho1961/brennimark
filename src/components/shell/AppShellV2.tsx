@@ -7,7 +7,8 @@ import { useIsEnglish } from "@/platform/locale-client";
 import { CommandPalette } from "./CommandPalette";
 import type { OpcaoDeContexto } from "./SeletorDeContexto";
 import { ColunaDaPlataforma } from "./ColunaDaPlataforma";
-import { gruposDaGaveta, type GrupoDaColuna } from "./coluna";
+import { gruposDaGaveta, type DestinoDaMarca, type GrupoDaColuna } from "./coluna";
+import { LancadorDoVini } from "./LancadorDoVini";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { PlatformTopBar } from "./PlatformTopBar";
 import type { ShellSection } from "./navigation";
@@ -51,6 +52,7 @@ function podeReceberFoco(el: HTMLElement | null): boolean {
 export function AppShellV2({
   coluna,
   segmentado,
+  vini = [],
   sections,
   docs,
   userEmail,
@@ -70,6 +72,9 @@ export function AppShellV2({
   coluna: GrupoDaColuna[];
   /** Endereços do segmentado da barra de cima; vazios sem marca aberta. */
   segmentado?: { manual?: string; materiais?: string };
+  /** O que o Vini oferece na marca aberta. Vazio sem marca: sem marca, não
+   *  há sobre o que perguntar, e o botão não aparece. */
+  vini?: readonly DestinoDaMarca[];
   /** Destinos da marca, para a busca (⌘K). Vazio sem marca aberta. */
   sections: ShellSection[];
   docs: readonly DocPageEntry[];
@@ -292,6 +297,10 @@ export function AppShellV2({
           </main>
         </div>
       </div>
+
+      {/* Fora do trecho `inert`: o Vini é da página inteira, e fica no canto
+          como a janela definitiva vai ficar (plano da interface §2). */}
+      {modal === "none" && <LancadorDoVini destinos={vini} />}
 
       <NavigationDrawer
         open={modal === "nav"}

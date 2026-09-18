@@ -53,7 +53,7 @@ o primeiro segundo, e o trabalho acontece no centro. **Não existem telas soltas
 | **Tira de miniaturas** | à esquerda do PDF, recolhível | virtualizada, como hoje |
 | **Fólio** | no pé: página, zoom, arquivo e versão | a página é o campo onde se digita |
 | **Aba de capítulo** | borda direita, gerada pelo índice | nunca número inventado |
-| **Vini** | janela flutuante no canto: recolhida, conversa, análise | não é modal; a citação `[P. 12]` leva o PDF à página |
+| **Vini** | janela flutuante no canto: recolhida, conversa, análise. **Todo contato com a marca por IA é aqui** — perguntar, analisar peça, gerar prompt; nada disso fica na coluna | não é modal; a citação `[P. 12]` leva o PDF à página |
 
 **Referências de usabilidade** (princípios, não aparência): Adobe (o aplicativo com a mesa em volta
 do canvas), Apple (deferência, uma ação principal por tela, lugar × ação, teclado), Supabase (coluna
@@ -108,3 +108,4 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | Data | Mudança | Decidido por |
 |---|---|---|
 | 18/09/2026 | Criação, consolidando as decisões de 17 e 18/09 e o esboço da moldura | André |
+| 18/09/2026 | Chat, análise e histórico **saem da coluna já na fatia 1**. O botão do Vini entra no canto inferior direito como **lançador** (lista que leva às telas existentes); a janela de três estados continua sendo a fatia 4 | André |
