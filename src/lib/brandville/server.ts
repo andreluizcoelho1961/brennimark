@@ -209,16 +209,27 @@ export async function capacidadesNaMarca(
   auth: BrandvilleAuthContext,
   brandId: string,
 ): Promise<BrandCapability[]> {
-  const { data, error } = await auth.supabase
-    .from("brand_members")
-    .select("capacidades")
-    .eq("brand_id", brandId)
-    .maybeSingle();
-  if (error) throw error;
-  const cruas = (data?.capacidades ?? []) as string[];
-  // Filtra pelo vocabulário conhecido: uma capacidade futura gravada no banco
-  // por uma versão mais nova não pode virar `undefined` dentro da interface.
-  return BRAND_CAPABILITIES.filter((c) => cruas.includes(c));
+  /*
+   * Pergunta ao BANCO, e não à tabela — mudou em 18/09/2026.
+   *
+   * Até aqui esta função lia `brand_members` direto. Desde o PR #4, quem
+   * administra a conta alcança toda marca dela por DERIVAÇÃO, sem linha em
+   * `brand_members`. A leitura à mão devolvia lista vazia para o administrador:
+   * o banco deixava fazer tudo, e a interface escondia o menu inteiro. O ensaio
+   * de 18/09 caiu exatamente aí — o manual abria, e nada levava a lugar algum.
+   *
+   * A regra vive num lugar só, `tem_capacidade_na_marca`, e é ela que as 23
+   * policies usam. Uma pergunta por capacidade, em paralelo: são quatro, e
+   * cada uma responde sobre quem pergunta.
+   */
+  const respostas = await Promise.all(
+    BRAND_CAPABILITIES.map((capacidade) =>
+      auth.supabase.rpc("tem_capacidade_na_marca", { p_brand_id: brandId, p_capacidade: capacidade }),
+    ),
+  );
+  const falha = respostas.find((r) => r.error);
+  if (falha?.error) throw falha.error;
+  return BRAND_CAPABILITIES.filter((_, i) => respostas[i].data === true);
 }
 
 /**
