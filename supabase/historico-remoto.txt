@@ -65,3 +65,5 @@
 20260918004726 acesso_concedido
 20260918004845 capacidade_na_marca_so_com_sessao
 20260918022249 conceder_e_revogar_acesso
+20260918122014 capacidade_na_marca_permissao_explicita
+20260918122018 importacao_sem_recursao
