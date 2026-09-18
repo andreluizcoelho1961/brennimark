@@ -229,3 +229,21 @@ test("custoDeReservaMicros soma entrada (+imagem) e saída, nos preços certos",
   assert.equal(comImagem, custoMicros(0.14, 3000 + 1120) + custoMicros(0.40, 500));
   assert.ok(comImagem > semImagem);
 });
+
+test("Gemini 2.5 Flash tem preço verificado para texto, e análise de imagem continua bloqueada", () => {
+  /*
+   * 18/09/2026: o ensaio usa a camada gratuita do Google. Sem preço no
+   * catálogo, a trava de orçamento recusava até o chat. O preço registrado é o
+   * da camada paga, com fonte e data — o custo que este uso TERIA.
+   *
+   * Imagem continua bloqueada: o Google não publica teto de tokens por imagem
+   * (imagem grande é cortada em blocos sem limite), e o produto ainda não reduz
+   * a imagem antes de enviar. Reservar sem teto seria reservar um chute.
+   */
+  const flash = capacidadesDe("google", "gemini-2.5-flash");
+  assert.ok(flash?.pricing, "o Flash precisa ter preço verificado");
+  assert.equal(flash!.pricing!.inputPerMillionTokensUsd, 0.30);
+  assert.equal(flash!.pricing!.outputPerMillionTokensUsd, 2.50);
+  assert.match(flash!.pricing!.source, /ai\.google\.dev/);
+  assert.equal(podeAnalisarImagem(flash!), false, "sem teto de tokens por imagem, a análise não pode reservar");
+});

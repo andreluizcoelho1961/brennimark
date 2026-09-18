@@ -80,7 +80,7 @@ export interface ModelCapabilities {
  * execução antiga continua lendo o preço que valia quando ela aconteceu, em
  * vez de ser reescrita silenciosamente pela mudança.
  */
-export const CATALOGO_VERSION = "2026-09-03";
+export const CATALOGO_VERSION = "2026-09-18";
 
 export interface ModeloDoCatalogo {
   provider: AIProvider;
@@ -176,6 +176,32 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     capabilities: {
       text: true, vision: true, streaming: true,
       maxContextTokens: 1_000_000, maxImageBytes: 20 * MB, supportsStructuredOutput: true,
+      /*
+       * Preço da camada PAGA, conferido em https://ai.google.dev/gemini-api/docs/pricing
+       * em 2026-09-18, USD por milhão de tokens.
+       *
+       * Na fase de testes o uso é pela camada GRATUITA (decisão do André,
+       * 18/09) — o custo real é zero. O ledger reserva e registra mesmo assim,
+       * com o preço pago: é o custo que ESTE uso teria, e é o número que falta
+       * para formar o preço da assinatura quando a IA for da plataforma.
+       *
+       * ⚖️ A mesma página diz que o conteúdo da camada gratuita é usado para
+       * melhorar os produtos do Google, e o da paga não. Aceitável com manuais
+       * públicos no ensaio; INACEITÁVEL com manual ou peça de cliente — ver o
+       * plano da interface.
+       *
+       * SEM `maxImageTokens` de propósito: a documentação de tokens
+       * (https://ai.google.dev/gemini-api/docs/tokens) diz que imagem até 384px
+       * vale 258 tokens e maior é cortada em blocos de 768×768, 258 cada — sem
+       * teto. O produto não reduz a imagem antes de enviar, então o custo de uma
+       * análise não é limitável hoje, e `podeAnalisarImagem` bloqueia. O chat
+       * funciona; a análise de peça espera o produto limitar a imagem.
+       */
+      pricing: {
+        inputPerMillionTokensUsd: 0.30, cachedInputPerMillionTokensUsd: 0.03,
+        outputPerMillionTokensUsd: 2.50, currency: "USD",
+        source: "https://ai.google.dev/gemini-api/docs/pricing", asOf: "2026-09-18",
+      },
     },
   },
 
