@@ -1,0 +1,15 @@
+-- `tem_capacidade_na_marca` deixa de ser executável por anônimo.
+--
+-- Medido em 17/09/2026, comparando produção e local depois de aplicar
+-- `acesso_concedido`: em produção a função carregava `=X/postgres` (PUBLIC) e
+-- `anon=X`, herdados de quando ela nasceu INVOKER — `create or replace` não
+-- mexe em privilégio. Ela agora é SECURITY DEFINER, e função definer aberta a
+-- anônimo é exatamente o que o CLAUDE.md manda não deixar existir.
+--
+-- Não havia vazamento: sem sessão, `auth.uid()` é nulo e a resposta é sempre
+-- "não". Mas a permissão em si é a fronteira errada, e nenhuma policy do
+-- produto é concedida a `anon` — conferido na mesma medição.
+--
+-- `authenticated` e `service_role` seguem podendo executar: a função é chamada
+-- DENTRO de 23 policies, que rodam com o papel de quem consulta.
+revoke execute on function public.tem_capacidade_na_marca(uuid, text) from public, anon;

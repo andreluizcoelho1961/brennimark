@@ -72,16 +72,14 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * A conta nasce da assinatura, e todo acesso é concedido.
-   *
-   * Escrita em 17/09/2026, NÃO aplicada em produção. Entrar deixa de criar
-   * conta; administrar a conta passa a implicar administrar as marcas dela (sem
-   * cópia em `brand_members`); nasce a concessão pendente por e-mail, colhida no
-   * primeiro login. Provada em `scripts/prova-acesso-concedido.sh` (30 casos), e
-   * as provas de acesso, Storage e manifesto foram reescritas para a regra nova.
-   */
-  "acesso_concedido",
+  // `acesso_concedido` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
+  // autorização do André, carimbada `20260918004726`, seguida de
+  // `capacidade_na_marca_so_com_sessao` (`20260918004845`), que revoga de `anon`
+  // e de PUBLIC a execução da função que virou DEFINER — privilégio herdado de
+  // quando ela era INVOKER, porque `create or replace` não mexe em permissão.
+  // Conferido depois das duas: funções, policies, colunas, travas e índices
+  // IDÊNTICOS ao local (58 peças); só `service_role` difere, que é o padrão do
+  // Supabase hospedado.
   // `item_e_variante` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
   // autorização nominal do André, carimbada `20260917170413`, e o arquivo
   // renomeado. Conferido antes: zero assets em produção. Conferido depois:
