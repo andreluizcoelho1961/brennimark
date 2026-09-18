@@ -30,7 +30,11 @@ export function PessoasEAcesso() {
   const [mensagem, setMensagem] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [papel, setPapel] = useState<Papel>("consulta");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  // A senha provisória fica só na memória desta tela, e só até sair dela ou
+  // fechar o aviso. Nunca vai para armazenamento do navegador.
+  const [senhaNova, setSenhaNova] = useState<{ email: string; senha: string; validaAte: string } | null>(null);
   const [escolhidas, setEscolhidas] = useState<string[]>([]);
 
   const carregar = useCallback(async () => {
@@ -77,10 +81,11 @@ export function PessoasEAcesso() {
 
     // A mesma forma que o banco exige, conferida antes de sair — a pessoa lê o
     // que corrigir, em vez de um erro de banco.
-    const conferido = conferirConcessao({ email, papel, marcas: escolhidas });
+    const conferido = conferirConcessao({ nome, email, papel, marcas: escolhidas });
     if (!conferido.ok) {
       setMensagem(
-        conferido.motivo === "email" ? (isEnglish ? "Check the email address." : "Confira o e-mail.")
+        conferido.motivo === "nome" ? (isEnglish ? "Write the person's name." : "Escreva o nome da pessoa.")
+        : conferido.motivo === "email" ? (isEnglish ? "Check the email address." : "Confira o e-mail.")
         : conferido.motivo === "consulta-sem-marca" ? (isEnglish ? "Choose at least one brand." : "Escolha ao menos uma marca.")
         : conferido.motivo === "administrador-com-marca"
           ? (isEnglish ? "An administrator reaches every brand." : "Quem administra alcança todas as marcas.")
@@ -99,7 +104,36 @@ export function PessoasEAcesso() {
     setMensagem(resposta.ok
       ? textoDoResultado(String(dados.resultado ?? ""), isEnglish)
       : (dados.message ?? (isEnglish ? "Couldn't grant access." : "Não foi possível conceder o acesso.")));
-    if (resposta.ok) { setEmail(""); setEscolhidas([]); await carregar(); }
+    if (resposta.ok && typeof dados.senha === "string") {
+      setSenhaNova({ email: conferido.concessao.email, senha: dados.senha, validaAte: String(dados.validaAte ?? "") });
+    }
+    if (resposta.ok) { setNome(""); setEmail(""); setEscolhidas([]); await carregar(); }
+  }
+
+  async function gerarNovaSenha(pessoa: Pessoa) {
+    const aviso = isEnglish
+      ? `Generate a new temporary password for ${pessoa.email}? The current one stops working.`
+      : `Gerar nova senha provisória para ${pessoa.email}? A atual deixa de valer.`;
+    if (!window.confirm(aviso)) return;
+    setMensagem("");
+    const resposta = await fetch(comAlvo("/api/admin/pessoas", alvo), {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: pessoa.email }),
+    });
+    const dados = await resposta.json().catch(() => ({}));
+    setMensagem(resposta.ok
+      ? textoDoResultado(String(dados.resultado ?? ""), isEnglish)
+      : (dados.message ?? (isEnglish ? "Couldn't generate a new password." : "Não foi possível gerar outra senha.")));
+    if (resposta.ok && typeof dados.senha === "string") {
+      setSenhaNova({ email: pessoa.email, senha: dados.senha, validaAte: String(dados.validaAte ?? "") });
+      await carregar();
+    }
+  }
+
+  function quando(iso: string) {
+    return new Date(iso).toLocaleString(isEnglish ? "en-GB" : "pt-BR", {
+      day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+    });
   }
 
   async function revogar(pessoa: Pessoa, marca?: Marca) {
@@ -133,6 +167,11 @@ export function PessoasEAcesso() {
         <h2 className="font-display text-xs font-black uppercase tracking-widest text-platform-text-muted md:col-span-2">
           {isEnglish ? "Grant access" : "Conceder acesso"}
         </h2>
+
+        <label><span className={rotulo}>{isEnglish ? "Name" : "Nome"}</span>
+          <input name="nome" type="text" required maxLength={120} value={nome} autoComplete="off"
+            onChange={(e) => setNome(e.target.value)} className={campo} />
+        </label>
 
         <label><span className={rotulo}>{isEnglish ? "Email" : "E-mail"}</span>
           <input name="email" type="email" required value={email} autoCapitalize="none" autoCorrect="off"
@@ -180,17 +219,41 @@ export function PessoasEAcesso() {
           <button disabled={enviando} className="bg-platform-signal px-5 py-3 font-display text-xs font-black uppercase text-platform-bg disabled:opacity-50">
             {enviando ? (isEnglish ? "Granting…" : "Concedendo…") : (isEnglish ? "Grant access" : "Conceder acesso")}
           </button>
-          {/* Dito desde já: ninguém recebe mensagem nossa ainda. Prometer um
-              convite que não sai seria pior do que não prometer nada. */}
+          {/* Dito desde já: ninguém recebe mensagem nossa. Quem entrega a
+              senha é o administrador, pelo canal dele. */}
           <p className="mt-3 text-[12px] leading-relaxed text-platform-text-muted">
             {isEnglish
-              ? "No invitation email is sent yet. The person signs in with this address and the access is already there."
-              : "Nenhum e-mail de convite é enviado ainda. A pessoa entra com este endereço e o acesso já está lá."}
+              ? "No email is sent. A temporary password appears here once — hand it to the person yourself. They choose their own at first sign-in, and only then does access start."
+              : "Nenhum e-mail é enviado. Uma senha provisória aparece aqui uma vez — entregue-a você à pessoa. Ela escolhe a própria senha no primeiro acesso, e só então o acesso começa."}
           </p>
         </div>
       </form>
 
       {mensagem && <p role="status" className="mt-4 text-sm text-platform-text-muted">{mensagem}</p>}
+
+      {senhaNova && (
+        <div data-senha-provisoria role="region" aria-label={isEnglish ? "Temporary password" : "Senha provisória"}
+          className="mt-4 border border-platform-signal bg-platform-panel p-5">
+          <p className="text-xs font-bold uppercase text-platform-text-muted">
+            {isEnglish ? "Temporary password for" : "Senha provisória de"} {senhaNova.email}
+          </p>
+          <p data-senha className="mt-3 select-all font-mono text-2xl tracking-wider text-platform-text">{senhaNova.senha}</p>
+          <p className="mt-3 text-[12px] leading-relaxed text-platform-text-muted">
+            {isEnglish
+              ? `Shown only now — it isn't stored anywhere readable. Valid until ${quando(senhaNova.validaAte)}.`
+              : `Mostrada só agora — não fica guardada em lugar legível. Vale até ${quando(senhaNova.validaAte)}.`}
+          </p>
+          <div className="mt-4 flex gap-3">
+            <button type="button" className={botaoSecundario}
+              onClick={() => { void navigator.clipboard?.writeText(senhaNova.senha); }}>
+              {isEnglish ? "Copy" : "Copiar"}
+            </button>
+            <button type="button" className={botaoSecundario} onClick={() => setSenhaNova(null)}>
+              {isEnglish ? "I've handed it over" : "Já entreguei"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {carregando
         ? <p className="mt-8 text-sm text-platform-text-muted">{isEnglish ? "Loading…" : "Carregando…"}</p>
@@ -209,11 +272,16 @@ export function PessoasEAcesso() {
                   <tr key={pessoa.email} data-pessoa={pessoa.email}
                     className="border-b border-platform-border/60 align-top">
                     <td className="py-3 pr-4 text-platform-text">
-                      {pessoa.email}
+                      {pessoa.nome && <span className="block">{pessoa.nome}</span>}
+                      <span className={pessoa.nome ? "block text-[12px] text-platform-text-muted" : undefined}>{pessoa.email}</span>
                       {/* "Esperando" e não "convidado": nenhuma mensagem saiu. */}
                       {pessoa.pendente && (
-                        <span data-pendente className="ml-2 border border-platform-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-platform-text-muted">
-                          {isEnglish ? "Waiting for first sign-in" : "Esperando o primeiro acesso"}
+                        <span data-pendente className="mt-1 inline-block border border-platform-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-platform-text-muted">
+                          {!pessoa.senhaProvisoriaAte
+                            ? (isEnglish ? "Waiting for first sign-in" : "Esperando o primeiro acesso")
+                            : new Date(pessoa.senhaProvisoriaAte) <= new Date()
+                              ? (isEnglish ? "Temporary password expired" : "Senha provisória vencida")
+                              : (isEnglish ? `Temporary password until ${quando(pessoa.senhaProvisoriaAte)}` : `Senha provisória até ${quando(pessoa.senhaProvisoriaAte)}`)}
                         </span>
                       )}
                     </td>
@@ -235,7 +303,12 @@ export function PessoasEAcesso() {
                         </span>
                       )}
                     </td>
-                    <td className="py-3">
+                    <td className="flex flex-wrap gap-2 py-3">
+                      {pessoa.pendente && pessoa.senhaProvisoriaAte && (
+                        <button type="button" onClick={() => gerarNovaSenha(pessoa)} className={botaoSecundario}>
+                          {isEnglish ? "New password" : "Gerar nova senha"}
+                        </button>
+                      )}
                       <button type="button" onClick={() => revogar(pessoa)} className={botaoSecundario}>
                         {isEnglish ? "Remove access" : "Remover acesso"}
                       </button>

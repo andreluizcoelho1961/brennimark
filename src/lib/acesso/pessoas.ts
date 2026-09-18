@@ -36,8 +36,15 @@ export function emailPlausivel(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 320;
 }
 
-export type Concessao = { email: string; papel: Papel; marcas: string[] };
+export type Concessao = { nome: string; email: string; papel: Papel; marcas: string[] };
+
+/** O nome que o administrador digita. Vai para a concessão e, na ativação, para
+ *  o perfil — a pessoa não cai no "diga quem você é" depois de trocar a senha. */
+export function normalizarNome(valor: unknown): string {
+  return typeof valor === "string" ? valor.trim().replace(/\s+/g, " ") : "";
+}
 export type Recusa =
+  | { motivo: "nome" }
   | { motivo: "email" }
   | { motivo: "papel" }
   | { motivo: "administrador-com-marca" }
@@ -52,9 +59,11 @@ export type Recusa =
  * ou todas: quem escolhe é quem administra.
  */
 export function conferirConcessao(entrada: {
-  email: unknown; papel: unknown; marcas?: unknown;
+  nome: unknown; email: unknown; papel: unknown; marcas?: unknown;
 }): { ok: true; concessao: Concessao } | { ok: false } & Recusa {
   const email = normalizarEmail(entrada.email);
+  const nome = normalizarNome(entrada.nome);
+  if (nome.length === 0 || nome.length > 120) return { ok: false, motivo: "nome" };
   if (!emailPlausivel(email)) return { ok: false, motivo: "email" };
   if (!ehPapel(entrada.papel)) return { ok: false, motivo: "papel" };
 
@@ -70,7 +79,7 @@ export function conferirConcessao(entrada: {
   }
 
   // Marca repetida na seleção não é erro de quem clicou: é ruído. Sai aqui.
-  return { ok: true, concessao: { email, papel: entrada.papel, marcas: [...new Set(marcas)] } };
+  return { ok: true, concessao: { nome, email, papel: entrada.papel, marcas: [...new Set(marcas)] } };
 }
 
 export type Pessoa = {
@@ -79,6 +88,10 @@ export type Pessoa = {
   marcas: { id: string; nome: string }[];
   pendente: boolean;
   desde: string | null;
+  /** Nome digitado na concessão, ou o do perfil de quem já entrou. */
+  nome?: string | null;
+  /** Só para login com senha provisória criado por ESTA conta. */
+  senhaProvisoriaAte?: string | null;
 };
 
 /**
@@ -116,9 +129,19 @@ export function alcanceDaPessoa(pessoa: Pessoa, totalDeMarcas: number, ingles = 
 export function textoDoResultado(resultado: string, ingles = false): string {
   const frases: Record<string, [string, string]> = {
     aplicada: ["Acesso concedido.", "Access granted."],
+    // Sem senha na resposta: o login já existia (senha provisória ainda não
+    // trocada, ou criado em outro lugar). O acesso espera a ativação.
     pendente: [
-      "Convite registrado. O acesso vale no primeiro login desta pessoa.",
-      "Invitation recorded. Access starts at this person's first sign-in.",
+      "Concessão registrada. O acesso vale quando esta pessoa ativar o login.",
+      "Grant recorded. Access starts once this person activates the sign-in.",
+    ],
+    "senha-provisoria": [
+      "Login criado. Entregue a senha provisória à pessoa — ela troca a senha no primeiro acesso.",
+      "Sign-in created. Hand the temporary password to the person — they change it at first sign-in.",
+    ],
+    "nova-senha": [
+      "Nova senha provisória gerada. A anterior deixou de valer.",
+      "New temporary password generated. The previous one no longer works.",
     ],
     revogada: ["Acesso removido.", "Access removed."],
     "marca-revogada": ["Marca removida do acesso desta pessoa.", "Brand removed from this person's access."],

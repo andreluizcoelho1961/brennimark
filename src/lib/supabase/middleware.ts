@@ -1,4 +1,5 @@
 import { destinoDeRetorno } from "@/platform/destino-de-retorno";
+import { CAMINHO_DA_TROCA, desvioDaSenhaProvisoria } from "@/lib/acesso/senha-provisoria";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -47,6 +48,21 @@ export async function updateSession(request: NextRequest) {
     // regra continua sendo uma só.
     url.searchParams.set("next", destinoDeRetorno(request.nextUrl.pathname));
     return NextResponse.redirect(url);
+  }
+
+  // Senha provisória: só a troca. O banco já não dá acesso a ela; o desvio é
+  // para a pessoa não ver telas vazias sem entender por quê.
+  if (user) {
+    const desvio = desvioDaSenhaProvisoria(request.nextUrl.pathname, user.app_metadata);
+    if (desvio === "recusar") {
+      return NextResponse.json({ message: "Troque a senha provisória antes." }, { status: 403 });
+    }
+    if (desvio === "trocar") {
+      const url = request.nextUrl.clone();
+      url.pathname = CAMINHO_DA_TROCA;
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   if (user && request.nextUrl.pathname === "/login") {

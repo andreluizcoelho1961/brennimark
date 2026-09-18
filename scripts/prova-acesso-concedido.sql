@@ -55,6 +55,20 @@ begin
   return n;
 end $f$;
 
+-- O que só o SISTEMA pode fazer: desde 18/09/2026 ninguém com sessão escreve
+-- em `concessoes_de_acesso` direto. As constraints continuam sendo a última
+-- barreira, e são provadas aqui, como sistema.
+create function pg_temp.como_sistema(p_sql text, out estado text, out nome text)
+language plpgsql as $f$
+begin
+  begin
+    execute p_sql;
+    estado := 'ACEITOU'; nome := '';
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate, nome = constraint_name;
+  end;
+end $f$;
+
 -- Entrar é criar o usuário e o perfil: o gatilho do perfil é o que colhe as
 -- concessões. Esta função é "a pessoa entrou pela primeira vez".
 create function pg_temp.entrar(p_id uuid, p_email text) returns void
@@ -125,8 +139,8 @@ begin
 
   -- 2.1 Consulta numa marca só.
   t := pg_temp.tentar(m.admin1, format(
-    'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
-    || 'values (%L, %L, ''ac-consulta@local.test'', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
+    'select public.conceder_acesso(%L, ''ac-consulta@local.test'', ''consulta'', array[%L]::uuid[], ''AC Consulta'')',
+    m.conta, m.marca_um));
   perform pg_temp.registrar('o administrador concede consulta numa marca', 'ACEITOU', t.estado);
 
   perform pg_temp.entrar(m.consulta, 'ac-consulta@local.test');
@@ -151,8 +165,7 @@ begin
   -- 2.2 Administrador: entra na conta e alcança TODA marca dela, inclusive as
   -- que nascerem depois. É o que a derivação garante sem copiar nada.
   t := pg_temp.tentar(m.admin1, format(
-    'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
-    || 'values (%L, null, ''ac-admin2@local.test'', ''administrador'', %L)', m.conta, m.admin1));
+    'select public.conceder_acesso(%L, ''ac-admin2@local.test'', ''administrador'')', m.conta));
   perform pg_temp.registrar('o administrador concede administracao a outro e-mail', 'ACEITOU', t.estado);
 
   perform pg_temp.entrar(m.admin2, 'ac-admin2@local.test');
@@ -206,49 +219,73 @@ begin
   n := pg_temp.contar(m.admin1, format('select count(*) from public.concessoes_de_acesso where workspace_id = %L', m.conta));
   perform pg_temp.registrar('o administrador le as da conta dele', '3', n::text);
 
-  -- Sem UPDATE de propósito: mudar papel é revogar e conceder de novo.
+  -- Sem escrita direta: desde 18/09/2026 só as funções escrevem. Uma linha
+  -- "ativa" inserida à mão seria histórico falso; uma apagada, histórico perdido.
   t := pg_temp.tentar(m.admin1, 'update public.concessoes_de_acesso set papel = ''administrador''');
   perform pg_temp.registrar('ninguem ALTERA concessao pela API', '42501', t.estado);
-
-  -- Revogar só alcança o que ainda não virou acesso: o histórico fica.
-  t := pg_temp.tentar(m.admin1, 'delete from public.concessoes_de_acesso where convertida_em is not null');
-  perform pg_temp.registrar('concessao ja convertida NAO e apagada', '0 linhas', t.linhas || ' linhas');
-
   t := pg_temp.tentar(m.admin1, format(
     'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
-    || 'values (%L, %L, ''ac-pendente@local.test'', ''consulta'', %L)', m.conta, m.marca_dois, m.admin1));
+    || 'values (%L, %L, ''ac-direto@local.test'', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
+  perform pg_temp.registrar('nem o administrador INSERE concessao direto', '42501', t.estado);
+  t := pg_temp.tentar(m.admin1, 'delete from public.concessoes_de_acesso');
+  perform pg_temp.registrar('nem o administrador APAGA concessao', '42501', t.estado);
+
+  -- Revogar enquanto pendente MARCA a linha; ela fica como histórico.
+  t := pg_temp.tentar(m.admin1, format(
+    'select public.conceder_acesso(%L, ''ac-pendente@local.test'', ''consulta'', array[%L]::uuid[], ''Pendente'')',
+    m.conta, m.marca_dois));
   perform pg_temp.registrar('concede a quem ainda nao entrou', 'ACEITOU', t.estado);
-  t := pg_temp.tentar(m.admin1, 'delete from public.concessoes_de_acesso where email = ''ac-pendente@local.test''');
-  perform pg_temp.registrar('e revoga enquanto esta pendente', '1 linhas', t.linhas || ' linhas');
+  t := pg_temp.tentar(m.admin1, format(
+    'select public.revogar_acesso(%L, ''ac-pendente@local.test'')', m.conta));
+  perform pg_temp.registrar('e revoga enquanto esta pendente', 'ACEITOU', t.estado);
+  select count(*) into n from public.concessoes_de_acesso
+   where email = 'ac-pendente@local.test' and situacao = 'revogada'
+     and revogada_por = m.admin1 and revogada_em is not null;
+  perform pg_temp.registrar('a linha revogada FICA, com autor e data', '1', n::text);
 
   -- E-mail entra normalizado: sem isto "Maria@x" e "maria@x" seriam duas
-  -- concessões, e a pessoa colheria só uma.
-  t := pg_temp.tentar(m.admin1, format(
+  -- concessões, e a pessoa colheria só uma. A constraint é a última barreira.
+  t := pg_temp.como_sistema(format(
     'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
     || 'values (%L, %L, '' AC-Maiuscula@Local.Test '', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
   perform pg_temp.registrar('e-mail fora do padrao e recusado', 'concessoes_de_acesso_email_check', t.nome);
 
   -- Administrador é da conta inteira; consulta é sempre de uma marca.
-  t := pg_temp.tentar(m.admin1, format(
+  t := pg_temp.como_sistema(format(
     'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
     || 'values (%L, %L, ''ac-forma@local.test'', ''administrador'', %L)', m.conta, m.marca_um, m.admin1));
   perform pg_temp.registrar('administrador com marca e recusado', 'concessoes_de_acesso_alcance_check', t.nome);
 
-  t := pg_temp.tentar(m.admin1, format(
+  t := pg_temp.como_sistema(format(
     'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
     || 'values (%L, null, ''ac-forma@local.test'', ''consulta'', %L)', m.conta, m.admin1));
   perform pg_temp.registrar('consulta sem marca e recusada', 'concessoes_de_acesso_alcance_check', t.nome);
 
-  -- Duas pendentes iguais não convivem; depois de convertida, conceder de novo
-  -- é legítimo (a pessoa pode ter sido removida e chamada de volta).
+  -- Depois de convertida, conceder de novo é legítimo (a pessoa pode ter sido
+  -- removida e chamada de volta).
   t := pg_temp.tentar(m.admin1, format(
-    'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
-    || 'values (%L, %L, ''ac-consulta@local.test'', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
+    'select public.conceder_acesso(%L, ''ac-consulta@local.test'', ''consulta'', array[%L]::uuid[])',
+    m.conta, m.marca_um));
   perform pg_temp.registrar('conceder de novo depois de convertida e aceito', 'ACEITOU', t.estado);
-  t := pg_temp.tentar(m.admin1, format(
+
+  -- Duas pendentes iguais não convivem; uma revogada e uma pendente, sim.
+  t := pg_temp.como_sistema(format(
     'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
-    || 'values (%L, %L, ''ac-consulta@local.test'', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
-  perform pg_temp.registrar('duas PENDENTES iguais nao convivem', '23505', t.estado);
+    || 'values (%L, %L, ''ac-dup@local.test'', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
+  if t.estado <> 'ACEITOU' then raise exception 'premissa falhou: a primeira pendencia nao entrou (%)', t.estado; end if;
+  t := pg_temp.como_sistema(format(
+    'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
+    || 'values (%L, %L, ''ac-dup@local.test'', ''consulta'', %L)', m.conta, m.marca_um, m.admin1));
+  perform pg_temp.registrar('duas PENDENTES iguais nao convivem', 'concessoes_de_acesso_pendente_idx', t.nome);
+  t := pg_temp.como_sistema(format(
+    'insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por) '
+    || 'values (%L, %L, ''ac-pendente@local.test'', ''consulta'', %L)', m.conta, m.marca_dois, m.admin1));
+  perform pg_temp.registrar('mas a revogada nao impede uma pendente nova', 'ACEITOU', t.estado);
+
+  -- A situação é derivada: não se escreve, não discorda dos fatos.
+  t := pg_temp.como_sistema(format(
+    'update public.concessoes_de_acesso set situacao = ''ativa'' where email = ''ac-dup@local.test'''));
+  perform pg_temp.registrar('situacao nao se escreve a mao', '428C9', t.estado);
 
   -- As funções de sistema não são alcançáveis por quem tem sessão.
   t := pg_temp.tentar(m.admin1, 'select private.converter_concessoes(''00000000-0000-0000-0000-000000000000''::uuid, ''x@y.z'')');

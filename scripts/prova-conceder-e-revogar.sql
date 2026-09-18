@@ -123,8 +123,12 @@ begin
     'select public.conceder_acesso(%L, ''pa-grafica@local.test'', ''consulta'', array[%L]::uuid[])',
     m.conta, m.marca_dois));
   select count(*) into n from public.concessoes_de_acesso
-   where email = 'pa-grafica@local.test' and convertida_em is null;
+   where email = 'pa-grafica@local.test' and situacao = 'pendente';
   perform pg_temp.registrar('conceder de novo substitui a pendencia', '1', n::text);
+  -- Substituir não apaga: as duas anteriores ficam revogadas, por quem substituiu.
+  select count(*) into n from public.concessoes_de_acesso
+   where email = 'pa-grafica@local.test' and situacao = 'revogada' and revogada_por = m.admin;
+  perform pg_temp.registrar('e a substituida fica como revogada', '2', n::text);
 
   -- 1.4 Administrador: sem marca, porque alcança todas.
   r := pg_temp.como(m.admin, format(
@@ -227,8 +231,11 @@ begin
   r := pg_temp.como(m.admin, format('select public.revogar_acesso(%L, ''pa-grafica@local.test'')', m.conta));
   perform pg_temp.registrar('revogar quem so tinha pendencia', 'pendencia-revogada', r.saida);
   select count(*) into n from public.concessoes_de_acesso
-   where email = 'pa-grafica@local.test' and convertida_em is null;
-  perform pg_temp.registrar('e a pendencia some', '0', n::text);
+   where email = 'pa-grafica@local.test' and situacao = 'pendente';
+  perform pg_temp.registrar('e nao resta pendencia', '0', n::text);
+  select count(*) into n from public.concessoes_de_acesso
+   where email = 'pa-grafica@local.test' and situacao = 'revogada';
+  perform pg_temp.registrar('mas nenhuma linha some: todas ficam revogadas', '3', n::text);
 
   -- 3.5 A conta não pode ficar sem administrador.
   r := pg_temp.como(m.admin, format('select public.revogar_acesso(%L, ''pa-admin2@local.test'')', m.conta));
