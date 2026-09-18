@@ -72,6 +72,17 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * Dois defeitos achados no ensaio de 18/09/2026.
+   *
+   * `capacidade_na_marca_permissao_explicita`: a revogação de PUBLIC tirou a
+   * execução de `authenticated` em todo banco reconstruído das migrations (em
+   * produção havia permissão explícita e nada mudou). `importacao_sem_recursao`:
+   * registrar importação recursava entre `brand_imports` e o Storage desde 15/09.
+   * NÃO aplicadas em produção. Provadas em `prova-importacao-como-usuario.sh`.
+   */
+  "capacidade_na_marca_permissao_explicita",
+  "importacao_sem_recursao",
   // `acesso_concedido` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
   // autorização do André, carimbada `20260918004726`, seguida de
   // `capacidade_na_marca_so_com_sessao` (`20260918004845`), que revoga de `anon`

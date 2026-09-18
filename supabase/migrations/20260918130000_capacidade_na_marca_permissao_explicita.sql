@@ -1,0 +1,15 @@
+-- A permissão de executar `tem_capacidade_na_marca`, dita explicitamente.
+--
+-- Achado no ensaio de 18/09/2026, reproduzindo outro defeito no banco local:
+-- usuário comum recebeu "permission denied for function tem_capacidade_na_marca".
+--
+-- A migration `capacidade_na_marca_so_com_sessao` revogou de PUBLIC e de `anon`.
+-- Em produção isso bastou, porque lá `authenticated` tinha uma permissão
+-- EXPLÍCITA — conferida no mesmo dia. No banco local, e em qualquer banco
+-- reconstruído a partir das migrations, `authenticated` só executava via
+-- PUBLIC: a revogação tirou dele também, e o produto inteiro passaria a recusar
+-- tudo, porque a função é chamada dentro de 23 policies.
+--
+-- A lição é a de sempre com privilégio: dizer o que se quer, e não depender do
+-- que o ambiente já tinha. Em produção esta linha não muda nada.
+grant execute on function public.tem_capacidade_na_marca(uuid, text) to authenticated, service_role;
