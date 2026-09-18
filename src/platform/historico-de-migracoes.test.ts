@@ -57,6 +57,10 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // Fatia 2 (18/09/2026): nome e situação na concessão, senha provisória sem
+  // acesso até a troca. A aplicar em produção por autorização do André; sai
+  // daqui quando o carimbo remoto for alinhado.
+  "senha_provisoria",
   // `kill_switch_excecao_registrada` saiu daqui em 10/09/2026: aplicada ao
   // banco hospedado por decisão do proprietário, carimbada `20260910215914`.
   // Medido depois: só o comentário mudou — corpo, grants, SECURITY DEFINER e

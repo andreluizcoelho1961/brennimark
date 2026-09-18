@@ -102,6 +102,8 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 18/09 | A importação sugeriu Português para manual em inglês — detectar o idioma do PDF | ensaio |
 | 18/09 | "Só quem administra a conta pode importar" aparece para quem administra | ensaio |
 | 18/09 | Tema claro e escuro da moldura (a página do manual nunca inverte) | spec-menus §8.9 |
+| 18/09 | O chat mostra Markdown cru (`###`, `**`): resolver na janela do Vini (fatia 4), não na tela que ela substitui | ensaio |
+| 18/09 | Login criado por uma conta não recebe acesso de outra até existir confirmação de e-mail (convite): um fornecedor de duas agências precisa esperar o convite | fatia 2 |
 | 18/09 | Busca por significado ("primary color" achar "cluster colours" sem palavra em comum). Exige escolher provedor de *embeddings* — decisão de provedor e de custo, do André | ensaio |
 
 ## 6. Registro de mudanças deste plano

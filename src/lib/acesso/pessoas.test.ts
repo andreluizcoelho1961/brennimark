@@ -17,25 +17,36 @@ test("e-mail entra normalizado, como o banco exige", () => {
 
 test("administrador não se concede marca a marca", () => {
   // Ele alcança todas as marcas da conta, inclusive as que nascerem depois.
-  const r = conferirConcessao({ email: "a@b.co", papel: "administrador", marcas: ["m1"] });
+  const r = conferirConcessao({ nome: "Ana", email: "a@b.co", papel: "administrador", marcas: ["m1"] });
   assert.deepEqual(r, { ok: false, motivo: "administrador-com-marca" });
 });
 
 test("consulta sem marca nenhuma é recusada", () => {
-  const r = conferirConcessao({ email: "a@b.co", papel: "consulta", marcas: [] });
+  const r = conferirConcessao({ nome: "Ana", email: "a@b.co", papel: "consulta", marcas: [] });
   assert.deepEqual(r, { ok: false, motivo: "consulta-sem-marca" });
 });
 
 test("consulta pode receber uma, várias ou todas — quem escolhe é quem administra", () => {
-  const r = conferirConcessao({ email: "a@b.co", papel: "consulta", marcas: ["m1", "m2", "m1"] });
+  const r = conferirConcessao({ nome: "Ana", email: "a@b.co", papel: "consulta", marcas: ["m1", "m2", "m1"] });
   assert.equal(r.ok, true);
   // Marca repetida no clique é ruído, não erro: sai em silêncio.
   assert.deepEqual(r.ok && r.concessao.marcas, ["m1", "m2"]);
 });
 
+test("sem nome não há cadastro, e o nome sai limpo", () => {
+  // O nome vai para o perfil na ativação: a pessoa não é recebida por um
+  // "diga quem você é" depois de trocar a senha.
+  assert.deepEqual(conferirConcessao({ nome: "   ", email: "a@b.co", papel: "consulta", marcas: ["m"] }),
+    { ok: false, motivo: "nome" });
+  assert.deepEqual(conferirConcessao({ nome: "x".repeat(121), email: "a@b.co", papel: "consulta", marcas: ["m"] }),
+    { ok: false, motivo: "nome" });
+  const r = conferirConcessao({ nome: "  Gráfica   Aurora ", email: "a@b.co", papel: "consulta", marcas: ["m"] });
+  assert.equal(r.ok && r.concessao.nome, "Gráfica Aurora");
+});
+
 test("e-mail obviamente errado e papel fora do vocabulário são recusados", () => {
-  assert.deepEqual(conferirConcessao({ email: "naoeemail", papel: "consulta", marcas: ["m"] }), { ok: false, motivo: "email" });
-  assert.deepEqual(conferirConcessao({ email: "a@b.co", papel: "dono", marcas: ["m"] }), { ok: false, motivo: "papel" });
+  assert.deepEqual(conferirConcessao({ nome: "Ana", email: "naoeemail", papel: "consulta", marcas: ["m"] }), { ok: false, motivo: "email" });
+  assert.deepEqual(conferirConcessao({ nome: "Ana", email: "a@b.co", papel: "dono", marcas: ["m"] }), { ok: false, motivo: "papel" });
 });
 
 const pessoa = (over: Partial<Pessoa>): Pessoa => ({
@@ -65,7 +76,8 @@ test("quem consulta mostra as marcas que recebeu, e diz quando são todas", () =
 });
 
 test("o texto do resultado vem do mapa, e o desconhecido não vira frase inventada", () => {
-  assert.match(textoDoResultado("pendente"), /primeiro login/);
+  assert.match(textoDoResultado("pendente"), /ativar o login/);
+  assert.match(textoDoResultado("senha-provisoria"), /senha provisória/);
   assert.equal(textoDoResultado("coisa-nova"), "Pronto.");
   assert.equal(textoDoResultado("aplicada", true), "Access granted.");
 });
