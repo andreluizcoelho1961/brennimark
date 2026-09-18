@@ -80,15 +80,11 @@ const PENDENTES_ESPERADAS: string[] = [
   // Conferido depois das duas: funções, policies, colunas, travas e índices
   // IDÊNTICOS ao local (58 peças); só `service_role` difere, que é o padrão do
   // Supabase hospedado.
-  /**
-   * Conceder e revogar acesso — metade 1 de "Pessoas e acesso".
-   *
-   * Escrita em 17/09/2026, NÃO aplicada em produção. Três funções: conceder
-   * (aplica na hora para quem já tem login, deixa pendente para quem não tem),
-   * revogar (pessoa inteira ou uma marca, com trava do último administrador) e
-   * a lista para a tela. Provada em `scripts/prova-conceder-e-revogar.sh` (35).
-   */
-  "conceder_e_revogar_acesso",
+  // `conceder_e_revogar_acesso` saiu daqui em 17/09/2026: aplicada ao banco
+  // hospedado por autorização do André, carimbada `20260918022249`, e o arquivo
+  // renomeado. Conferido depois: o corpo das três funções IDÊNTICO ao local
+  // (conceder af8e9e8e…, pessoas 698fcc79…, revogar 93ba8657…); só
+  // `service_role` difere, que é o padrão do Supabase hospedado.
   // `item_e_variante` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
   // autorização nominal do André, carimbada `20260917170413`, e o arquivo
   // renomeado. Conferido antes: zero assets em produção. Conferido depois:
