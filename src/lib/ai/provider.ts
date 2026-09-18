@@ -102,7 +102,7 @@ export const PROVIDER_MODELS: Record<AIProvider, string[]> = {
   groq: ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.6-27b"],
   anthropic: ["claude-sonnet-5", "claude-haiku-4-5-20251001", "claude-opus-4-8"],
   openai: ["gpt-5.1", "gpt-5.1-mini", "gpt-4o"],
-  google: ["gemini-2.5-pro", "gemini-2.5-flash"],
+  google: ["gemini-3.6-flash", "gemini-2.5-pro", "gemini-2.5-flash"],
   openrouter: [
     "openrouter/free",
     "google/gemma-4-26b-a4b-it:free",
