@@ -156,7 +156,7 @@ test("modelo sem visão nenhuma não recebe imagem, mesmo com maxImageTokens", (
   );
 });
 
-test("gemma4:31b-cloud é o único modelo do catálogo com imagem computável hoje", () => {
+test("os modelos do catálogo com imagem computável hoje", () => {
   /*
    * Este teste é sobre o ESTADO ATUAL, não sobre uma regra permanente — o
    * dia em que outro modelo ganhar um `maxImageTokens` com fonte oficial,
@@ -167,7 +167,10 @@ test("gemma4:31b-cloud é o único modelo do catálogo com imagem computável ho
   const comImagemComputavel = CATALOGO
     .filter((m) => podeAnalisarImagem(m.capabilities))
     .map((m) => `${m.provider}:${m.model}`);
-  assert.deepEqual(comImagemComputavel, ["ollama-cloud:gemma4:31b-cloud"]);
+  // 18/09/2026: entrou o Gemini 3.6 Flash, com a fonte oficial do teto de
+  // imagem (https://ai.google.dev/gemini-api/docs/media-resolution, 2240
+  // tokens no nível mais alto) — no mesmo commit, como este teste exige.
+  assert.deepEqual(comImagemComputavel, ["google:gemini-3.6-flash", "ollama-cloud:gemma4:31b-cloud"]);
 });
 
 test("todo modelo com preço verificado cita fonte, data e moeda", () => {
@@ -246,4 +249,20 @@ test("Gemini 2.5 Flash tem preço verificado para texto, e análise de imagem co
   assert.equal(flash!.pricing!.outputPerMillionTokensUsd, 2.50);
   assert.match(flash!.pricing!.source, /ai\.google\.dev/);
   assert.equal(podeAnalisarImagem(flash!), false, "sem teto de tokens por imagem, a análise não pode reservar");
+});
+
+test("Gemini 3.6 Flash: preço verificado e custo de imagem com teto documentado", () => {
+  /*
+   * 18/09/2026: o Google fechou o 2.5 Flash para contas novas e indicou o 3.6.
+   * No Gemini 3 a imagem tem custo fixo por nível de resolução, com teto
+   * documentado de 2240 tokens — então, ao contrário do 2.5, a análise de
+   * peça pode reservar o custo e é liberada.
+   */
+  const flash = capacidadesDe("google", "gemini-3.6-flash");
+  assert.ok(flash?.pricing, "o 3.6 Flash precisa ter preço verificado");
+  assert.equal(flash!.pricing!.inputPerMillionTokensUsd, 0.75);
+  assert.equal(flash!.pricing!.outputPerMillionTokensUsd, 3.75);
+  assert.equal(flash!.pricing!.maxImageTokens, 2240);
+  assert.equal(podeAnalisarImagem(flash!), true);
+  assert.ok(modeloAutorizado("google", "gemini-3.6-flash"));
 });

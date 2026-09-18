@@ -172,7 +172,43 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     },
   },
   {
-    provider: "google", model: "gemini-2.5-flash", label: "Gemini 2.5 Flash",
+    provider: "google", model: "gemini-3.6-flash", label: "Gemini 3.6 Flash",
+    capabilities: {
+      text: true, vision: true, streaming: true, supportsStructuredOutput: true,
+      maxImageBytes: 20 * MB,
+      /*
+       * Entrou em 18/09/2026, no ensaio: o Google respondeu 404 ao 2.5 Flash —
+       * "no longer available to new users. Please update your code to use
+       * models/gemini-3.6-flash". Conta nova do AI Studio não alcança o 2.5.
+       *
+       * Preço conferido em https://ai.google.dev/gemini-api/docs/pricing em
+       * 2026-09-18. Camada gratuita: "Free of charge". Camada paga, USD por
+       * milhão de tokens, válida ATÉ 31/12/2026: entrada 0,75, cache 0,075,
+       * saída 3,75. ⚠️ A partir de 01/01/2027 dobra (1,50 / 0,15 / 7,50) — este
+       * registro precisa ser revisto nessa data, com `asOf` novo.
+       *
+       * ⚖️ Camada gratuita: o conteúdo é usado para melhorar os produtos do
+       * Google. Ensaio com manual público, sim; material de cliente, não.
+       *
+       * Imagem: no Gemini 3 o custo é FIXO por nível de resolução
+       * (https://ai.google.dev/gemini-api/docs/media-resolution): 280, 560,
+       * 1120 ou 2240 tokens; o padrão, que é o que o produto usa por não
+       * escolher resolução, vale 1120. Reservo o TETO documentado, 2240 —
+       * superestimar a reserva é seguro, subestimar deixaria a execução gastar
+       * além do reservado.
+       */
+      pricing: {
+        inputPerMillionTokensUsd: 0.75, cachedInputPerMillionTokensUsd: 0.075,
+        outputPerMillionTokensUsd: 3.75, currency: "USD",
+        source: "https://ai.google.dev/gemini-api/docs/pricing", asOf: "2026-09-18",
+        maxImageTokens: 2240,
+      },
+    },
+  },
+  {
+    // ⚠️ Indisponível para contas NOVAS do Google desde antes de 18/09/2026 —
+    // ver o 3.6 Flash acima. Continua aqui para contas antigas que o usem.
+    provider: "google", model: "gemini-2.5-flash", label: "Gemini 2.5 Flash (contas antigas)",
     capabilities: {
       text: true, vision: true, streaming: true,
       maxContextTokens: 1_000_000, maxImageBytes: 20 * MB, supportsStructuredOutput: true,
