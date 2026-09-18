@@ -67,3 +67,4 @@
 20260918022249 conceder_e_revogar_acesso
 20260918122014 capacidade_na_marca_permissao_explicita
 20260918122018 importacao_sem_recursao
+20260918194819 busca_tolerante

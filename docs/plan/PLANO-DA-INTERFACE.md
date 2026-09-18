@@ -102,6 +102,7 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 18/09 | A importação sugeriu Português para manual em inglês — detectar o idioma do PDF | ensaio |
 | 18/09 | "Só quem administra a conta pode importar" aparece para quem administra | ensaio |
 | 18/09 | Tema claro e escuro da moldura (a página do manual nunca inverte) | spec-menus §8.9 |
+| 18/09 | Busca por significado ("primary color" achar "cluster colours" sem palavra em comum). Exige escolher provedor de *embeddings* — decisão de provedor e de custo, do André | ensaio |
 
 ## 6. Registro de mudanças deste plano
 
@@ -109,3 +110,4 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 |---|---|---|
 | 18/09/2026 | Criação, consolidando as decisões de 17 e 18/09 e o esboço da moldura | André |
 | 18/09/2026 | Chat, análise e histórico **saem da coluna já na fatia 1**. O botão do Vini entra no canto inferior direito como **lançador** (lista que leva às telas existentes); a janela de três estados continua sendo a fatia 4 | André |
+| 18/09/2026 | Correção fora da ordem: a busca de trechos passa a aceitar grafia americana/britânica e, sem trecho com todas as palavras, qualquer uma delas. O chat afirmava "não documentado" sobre manual que documenta | André |
