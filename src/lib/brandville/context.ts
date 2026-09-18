@@ -44,6 +44,14 @@ import type { WorkspaceDisponivel } from "./selecao";
  */
 export type AccessState =
   | "anonymous"
+  /**
+   * Entrou, e não tem acesso a nada — estado que nasceu em 17/09/2026, com a
+   * conta de time. Antes era impossível: todo perfil novo ganhava uma conta.
+   * É diferente de `onboarding` (falta preencher o perfil) e de `anonymous`
+   * (não entrou). Confundi-lo com `onboarding` fecha um laço: o cadastro não
+   * cria mais conta, então a pessoa voltaria para o cadastro para sempre.
+   */
+  | "sem-acesso"
   | "onboarding"
   | "ready"
   | "development-preview"

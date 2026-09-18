@@ -72,6 +72,14 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `acesso_concedido` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
+  // autorização do André, carimbada `20260918004726`, seguida de
+  // `capacidade_na_marca_so_com_sessao` (`20260918004845`), que revoga de `anon`
+  // e de PUBLIC a execução da função que virou DEFINER — privilégio herdado de
+  // quando ela era INVOKER, porque `create or replace` não mexe em permissão.
+  // Conferido depois das duas: funções, policies, colunas, travas e índices
+  // IDÊNTICOS ao local (58 peças); só `service_role` difere, que é o padrão do
+  // Supabase hospedado.
   // `item_e_variante` saiu daqui em 17/09/2026: aplicada ao banco hospedado por
   // autorização nominal do André, carimbada `20260917170413`, e o arquivo
   // renomeado. Conferido antes: zero assets em produção. Conferido depois:

@@ -36,8 +36,16 @@ export interface MarcaDisponivel {
 export type Resolucao =
   /** Sem sessão. Vai para o login. */
   | { tipo: "anonimo" }
-  /** Tem sessão, falta conta ou perfil. Vai para o cadastro. */
+  /** Tem sessão, falta preencher o perfil. Vai para o cadastro. */
   | { tipo: "onboarding" }
+  /**
+   * Entrou, perfil pronto, e não participa de conta nenhuma.
+   *
+   * Desde 17/09/2026 entrar não cria conta: a conta nasce da assinatura, e o
+   * acesso é concedido. Sem este estado, a pessoa cairia no cadastro — que não
+   * cria mais conta — e voltaria para cá, em laço.
+   */
+  | { tipo: "sem-acesso" }
   /**
    * O alvo pedido não serve. Um único resultado para três causas — slug que
    * não existe, workspace do qual a pessoa não participa, marca que não
@@ -63,7 +71,7 @@ export interface EstadoDaPessoa {
   temSessao: boolean;
   /** Falso quando há sessão mas falta workspace ou nome no perfil. */
   cadastroCompleto: boolean;
-  /** Já filtrados por associação. Uma lista vazia significa nenhum acesso. */
+  /** Já filtrados por associação. Lista vazia é `sem-acesso`, não cadastro. */
   disponiveis: readonly WorkspaceDisponivel[];
 }
 
@@ -78,6 +86,7 @@ export interface EstadoDaPessoa {
 export function resolverAlvo(estado: EstadoDaPessoa, alvo: Alvo): Resolucao {
   if (!estado.temSessao) return { tipo: "anonimo" };
   if (!estado.cadastroCompleto) return { tipo: "onboarding" };
+  if (estado.disponiveis.length === 0) return { tipo: "sem-acesso" };
 
   const workspace = estado.disponiveis.find((w) => w.slug === alvo.workspaceSlug);
   if (!workspace) return { tipo: "nao-encontrado" };
@@ -98,6 +107,7 @@ export function resolverAlvo(estado: EstadoDaPessoa, alvo: Alvo): Resolucao {
 export function resolverSemAlvo(estado: EstadoDaPessoa): Resolucao {
   if (!estado.temSessao) return { tipo: "anonimo" };
   if (!estado.cadastroCompleto) return { tipo: "onboarding" };
+  if (estado.disponiveis.length === 0) return { tipo: "sem-acesso" };
 
   const pares = estado.disponiveis.flatMap((workspace) =>
     workspace.marcas.map((marca) => ({ workspace, marca })),

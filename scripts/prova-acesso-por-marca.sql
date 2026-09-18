@@ -261,8 +261,11 @@ begin
                              metadata, navigation, theme, ai, legal)
   values (m.conta_a, 'marca-nova', 'Marca Nova', 'Nova', 'Criada na prova', 'pt-BR',
           '{}', '{}', '{}', '{}', '{}') returning id into nova;
-  select count(*) into acesso from public.brand_members
-   where brand_id = nova and user_id = m.dona and 'administrar' = any (capacidades);
+  -- Desde 17/09/2026 a capacidade de quem administra a conta DERIVA, e não é
+  -- copiada para `brand_members`. Contar linha aqui provaria a cópia, que é
+  -- justamente o que deixava a marca criada por um administrador invisível para
+  -- o outro. O que se pergunta é o que importa: ela ADMINISTRA esta marca?
+  select case when private.capacidade_de(m.dona, nova, 'administrar') then 1 else 0 end into acesso;
   perform set_config('request.jwt.claims', null, true);
 
   -- Sem sessão (chave de serviço, SQL de manutenção): a criação não pode falhar.
@@ -277,15 +280,19 @@ begin
   end;
 
   insert into resultado (caso, esperado, obtido, passou) values
-    ('quem cria a marca recebe acesso a ela', '1', acesso::text, acesso = 1),
+    ('quem cria a marca administra a marca', '1', acesso::text, acesso = 1),
     ('criar marca sem sessao nao quebra', 'CRIOU', estado, estado = 'CRIOU');
 
   -- Marca criada por manutenção não pode ficar órfã: sem ninguém no
   -- `brand_members` dela, ela existe e pessoa alguma a enxerga.
-  select count(*) into acesso from public.brand_members
-   where brand_id = sem_sessao and user_id = m.dona and 'administrar' = any (capacidades);
+  select case when private.capacidade_de(m.dona, sem_sessao, 'administrar') then 1 else 0 end into acesso;
   insert into resultado (caso, esperado, obtido, passou) values
-    ('marca sem sessao vai para quem administra a conta', '1', acesso::text, acesso = 1);
+    ('marca sem sessao e alcancada por quem administra a conta', '1', acesso::text, acesso = 1);
+
+  -- E a fronteira que NÃO caiu: pertencer à conta não concede marca nenhuma.
+  select case when private.capacidade_de(m.x, nova, 'consultar') then 1 else 0 end into acesso;
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('membro sem concessao NAO alcanca a marca nova', '0', acesso::text, acesso = 0);
 end $$;
 
 -- ════════════════════════════════════════════════════════════════════════

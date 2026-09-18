@@ -62,3 +62,5 @@
 20260917170413 item_e_variante
 20260917170445 consumo_de_armazenamento
 20260917170551 consumo_de_armazenamento_so_leitura
+20260918004726 acesso_concedido
+20260918004845 capacidade_na_marca_so_com_sessao
