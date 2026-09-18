@@ -212,6 +212,31 @@ test("a tela de entrada não oferece cadastro", () => {
   assert.match(login, /administrador|administrator/, "a tela precisa dizer a quem pedir acesso");
 });
 
+/**
+ * Capacidade se pergunta ao banco — nunca se lê `brand_members` à mão.
+ *
+ * Desde 17/09/2026 quem administra a conta alcança toda marca dela por
+ * DERIVAÇÃO, sem linha em `brand_members`. Quem lê a tabela direto erra para o
+ * administrador — e o erro apareceu dez vezes: seis policies do Storage, três
+ * funções do banco e, no ensaio de 18/09, a interface, que escondia o menu
+ * inteiro de quem podia tudo. A regra vive em `tem_capacidade_na_marca`.
+ */
+test("nenhum código de produto decide capacidade lendo brand_members", () => {
+  const arquivos = [...listarArquivos("src/lib"), ...listarArquivos("src/app"), ...listarArquivos("src/components")]
+    .filter((a) => /\.(ts|tsx)$/.test(a) && !a.endsWith(".test.ts") && !a.endsWith(".test.tsx"));
+  assert.ok(arquivos.length > 50, `só ${arquivos.length} arquivos — a varredura quebrou?`);
+  for (const arquivo of arquivos) {
+    const codigo = lerCodigo(arquivo);
+    assert.doesNotMatch(
+      codigo,
+      /from\(["']brand_members["']\)[\s\S]{0,200}capacidades/,
+      `${arquivo} lê capacidades de brand_members à mão — use tem_capacidade_na_marca`,
+    );
+  }
+  assert.match(lerCodigo("src/lib/brandville/server.ts"), /rpc\(["']tem_capacidade_na_marca["']/,
+    "capacidadesNaMarca precisa perguntar à regra do banco");
+});
+
 test("as rotas de laboratório são fechadas em produção", () => {
   const rotas = bancadas();
   // Sem isto, apagar a pasta faria o laço não rodar e o teste passar vazio.
