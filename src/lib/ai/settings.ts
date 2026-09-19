@@ -1,5 +1,7 @@
 import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { decryptApiKey } from "@/lib/ai/crypto";
 import {
   type AIProvider,
@@ -117,8 +119,11 @@ export async function listRoutingPolicies(workspaceId: string): Promise<AIRoutin
 }
 
 /** The workspace's active saved config for a role, decrypted — or null if none is set. */
-export async function getActiveConfig(workspaceId: string, role: "chat" | "analysis"): Promise<AIProviderConfig | null> {
-  const supabase = await createClient();
+export async function getActiveConfig(
+  workspaceId: string,
+  role: "chat" | "analysis",
+  supabase: SupabaseClient,
+): Promise<AIProviderConfig | null> {
   const { data, error } = await supabase
     .from("ai_settings")
     .select("provider, model, api_key_ciphertext, api_key_iv")
@@ -192,10 +197,10 @@ export type ResolvedAIRouting = {
 async function getSettingConfig(
   workspaceId: string,
   settingId: string | null,
-  feature: AIRoutingFeature
+  feature: AIRoutingFeature,
+  supabase: SupabaseClient,
 ): Promise<ResolvedChatAttempt | null> {
   if (!settingId) return null;
-  const supabase = await createClient();
   const { data, error } = await supabase
     .from("ai_settings")
     .select("id, provider, model, role, api_key_ciphertext, api_key_iv, is_active")
@@ -228,8 +233,12 @@ async function getSettingConfig(
  * rotas, que tratam `attempts.length === 0` como o estado esperado de uma
  * conta sem IA configurada, não como falha.
  */
-async function resolveLegacyRouting(feature: AIRoutingFeature, workspaceId: string | null): Promise<ResolvedAIRouting> {
-  const config = workspaceId ? await getActiveConfig(workspaceId, feature) : null;
+async function resolveLegacyRouting(
+  feature: AIRoutingFeature,
+  workspaceId: string | null,
+  supabase: SupabaseClient,
+): Promise<ResolvedAIRouting> {
+  const config = workspaceId ? await getActiveConfig(workspaceId, feature, supabase) : null;
   const attempts = config ? [{ config, isDemo: false }] : [];
 
   return {
@@ -239,11 +248,28 @@ async function resolveLegacyRouting(feature: AIRoutingFeature, workspaceId: stri
   };
 }
 
-export async function resolveFeatureRouting(feature: AIRoutingFeature): Promise<ResolvedAIRouting> {
-  const workspaceId = await getCurrentWorkspaceId();
-  if (!workspaceId) return resolveLegacyRouting(feature, null);
-
-  const supabase = await createClient();
+/**
+ * O perfil de IA que ATENDE um pedido — lido com a chave de serviço.
+ *
+ * ⚖️ Quem pede é qualquer pessoa que alcança a marca (a rota já passou por
+ * `portaoDeIA`, que confere a capacidade na marca). Quem pode LER e MUDAR a
+ * configuração continua sendo só quem administra a conta (as policies de
+ * `ai_settings` e `ai_routing_policies` não mudam, e a tela de configuração
+ * usa a sessão da pessoa).
+ *
+ * Até 19/09/2026 esta leitura usava a sessão de quem pedia. As policies só
+ * deixam o DONO ler, e a primeira pessoa de consulta a usar o chat (ensaio de
+ * 19/09) recebeu "a IA desta conta ainda não está configurada" numa conta
+ * configurada. Abrir a tabela a todo membro exporia a chave cifrada pela API;
+ * ler aqui, no servidor, deixa a chave onde ela sempre esteve.
+ *
+ * O `workspaceId` é o que o portão resolveu — nunca o que o cliente mandou.
+ */
+export async function resolveFeatureRouting(
+  feature: AIRoutingFeature,
+  workspaceId: string,
+): Promise<ResolvedAIRouting> {
+  const supabase = createServiceClient();
   const { data: policy, error } = await supabase
     .from("ai_routing_policies")
     .select("primary_setting_id, fallback_setting_id, first_chunk_timeout_ms, allow_cross_provider")
@@ -252,11 +278,11 @@ export async function resolveFeatureRouting(feature: AIRoutingFeature): Promise<
     .maybeSingle();
 
   if (error) throw error;
-  if (!policy) return resolveLegacyRouting(feature, workspaceId);
+  if (!policy) return resolveLegacyRouting(feature, workspaceId, supabase);
 
   const [primary, fallback] = await Promise.all([
-    getSettingConfig(workspaceId, policy.primary_setting_id, feature),
-    getSettingConfig(workspaceId, policy.fallback_setting_id, feature),
+    getSettingConfig(workspaceId, policy.primary_setting_id, feature, supabase),
+    getSettingConfig(workspaceId, policy.fallback_setting_id, feature, supabase),
   ]);
   const attempts = [primary, fallback].filter((attempt): attempt is ResolvedChatAttempt => Boolean(attempt));
   const uniqueAttempts = attempts.filter(
@@ -272,7 +298,7 @@ export async function resolveFeatureRouting(feature: AIRoutingFeature): Promise<
   }
 
   if (uniqueAttempts.length === 0) {
-    const demo = await resolveLegacyRouting(feature, null);
+    const demo = await resolveLegacyRouting(feature, null, supabase);
     return { ...demo, timeoutMs: policy.first_chunk_timeout_ms };
   }
 
@@ -287,12 +313,12 @@ export async function resolveFeatureRouting(feature: AIRoutingFeature): Promise<
  * Cross-provider fallback is opt-in through dedicated server variables.
  * Without that consent, Groq may only switch models under the same key/provider.
  */
-export async function resolveChatRouting(): Promise<ResolvedAIRouting> {
-  return resolveFeatureRouting("chat");
+export async function resolveChatRouting(workspaceId: string): Promise<ResolvedAIRouting> {
+  return resolveFeatureRouting("chat", workspaceId);
 }
 
-export async function resolveAnalysisRouting(): Promise<ResolvedAIRouting> {
-  return resolveFeatureRouting("analysis");
+export async function resolveAnalysisRouting(workspaceId: string): Promise<ResolvedAIRouting> {
+  return resolveFeatureRouting("analysis", workspaceId);
 }
 
 // `resolveConfig` existiu aqui: nenhum chamador a usava, e o tipo prometia

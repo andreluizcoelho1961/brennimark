@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     // de qualquer chamada ao provedor.
     if (!recuperacao.ok) return conhecimentoIndisponivel();
     trechos = recuperacao.trechos;
-    const routing = await resolveChatRouting();
+    const routing = await resolveChatRouting(portao.auth.workspaceId);
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
     // Interrompe AQUI: sem isto, `executarComOrcamento` chegaria a
     // `prepareStreamWithFallback` com uma lista vazia e lançaria um erro

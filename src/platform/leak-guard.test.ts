@@ -88,8 +88,10 @@ const V2 = [
   "src/components/shell/navigation.ts",
   // A citação é instrumento de governança: ela afirma de onde veio a
   // informação, e não pode vestir a cor de marca nenhuma — nem a do cliente
-  // apresentado, nem a de um release antigo.
-  "src/components/ai/AssistantMessage.tsx",
+  // apresentado, nem a de um release antigo. Desde a fatia 4a ela mora na
+  // janela do Vini.
+  "src/components/vini/RespostaDoVini.tsx",
+  "src/components/vini/JanelaDoVini.tsx",
   /**
    * O visualizador do documento-fonte é o caso mais afiado da fronteira:
    * a moldura cerca a página do CLIENTE, e as duas ficam encostadas na tela.
@@ -472,7 +474,8 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/components/admin/VersionHistory.tsx",
   "src/components/assets/AssetLibrary.tsx",
   "src/components/ai/AIRoutingPanel.tsx",
-  "src/components/ai/AssistantMessage.tsx",
+  "src/components/vini/RespostaDoVini.tsx",
+  "src/components/vini/JanelaDoVini.tsx",
   "src/components/analysis/FeedbackPanel.tsx",
   "src/app/layout.tsx",
   "src/app/login/page.tsx",
