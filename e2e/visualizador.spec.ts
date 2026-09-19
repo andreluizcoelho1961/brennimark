@@ -31,6 +31,41 @@ async function montados(page: Page): Promise<number> {
   );
 }
 
+/**
+ * A medida da primeira página DESENHADA — canvas com tamanho de verdade.
+ *
+ * `abrir` espera um canvas VISÍVEL, e visível não é desenhado: o elemento
+ * entra na árvore antes de o PDF.js pintar, com 0×0. Medir nesse instante dá
+ * 0/0 = NaN. Foi o que derrubou "a página mantém a proporção" no Firefox em
+ * 19/09/2026, só na suíte inteira — a mesma corrida de carga de 09/09. Aqui
+ * se espera um canvas com pixels E com caixa na tela, e é ESSE que se mede.
+ */
+async function medirPaginaDesenhada(page: Page) {
+  const desenhado = () => page.evaluate(() => {
+    const c = [...document.querySelectorAll("canvas")].find((el) => {
+      const r = el.getBoundingClientRect();
+      return el.width > 10 && el.height > 10 && r.width > 0 && r.height > 0;
+    });
+    if (!c) return null;
+    const r = c.getBoundingClientRect();
+    return {
+      largura: r.width,
+      proporcaoNaTela: r.height / r.width,
+      proporcaoDoCanvas: c.height / c.width,
+      rolagemHorizontal: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+  // A medida devolvida é a MESMA que satisfez a espera. Medir de novo depois
+  // abriria outra corrida: o visualizador libera canvases (volta a 0×0) ao
+  // reciclar páginas, e entre as duas chamadas o desenhado pode sumir — foi o
+  // que a suíte inteira pegou na primeira versão desta função.
+  let medida: Awaited<ReturnType<typeof desenhado>> = null;
+  await expect.poll(async () => (medida = await desenhado()), {
+    timeout: 30_000, message: "nenhuma página chegou a ser desenhada",
+  }).not.toBeNull();
+  return medida!;
+}
+
 async function irPara(page: Page, numero: number) {
   const campo = page.locator("#pagina-atual");
   await campo.fill(String(numero));
@@ -112,15 +147,7 @@ test("a camada de texto existe e acompanha a página", async ({ page }) => {
 test("a página mantém a proporção e não estoura a largura", async ({ page }) => {
   await abrir(page);
 
-  const medida = await page.evaluate(() => {
-    const c = document.querySelector("canvas")!;
-    const r = c.getBoundingClientRect();
-    return {
-      proporcaoNaTela: r.height / r.width,
-      proporcaoDoCanvas: c.height / c.width,
-      rolagemHorizontal: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    };
-  });
+  const medida = await medirPaginaDesenhada(page);
 
   expect(Math.abs(medida.proporcaoNaTela - medida.proporcaoDoCanvas)).toBeLessThan(0.02);
   expect(medida.rolagemHorizontal).toBe(false);
@@ -130,20 +157,12 @@ test("em 375px a página continua inteira, sem remontar o documento", async ({ p
   await page.setViewportSize({ width: 375, height: 812 });
   await abrir(page);
 
-  const medida = await page.evaluate(() => {
-    const c = document.querySelector("canvas")!;
-    const r = c.getBoundingClientRect();
-    return {
-      largura: r.width,
-      proporcao: r.height / r.width,
-      rolagemHorizontal: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    };
-  });
+  const medida = await medirPaginaDesenhada(page);
 
   expect(medida.largura).toBeLessThanOrEqual(375);
   expect(medida.rolagemHorizontal).toBe(false);
   // Mobile mantém o layout ORIGINAL: a proporção da página não muda com a tela.
-  expect(medida.proporcao).toBeGreaterThan(1);
+  expect(medida.proporcaoNaTela).toBeGreaterThan(1);
 });
 
 /**
