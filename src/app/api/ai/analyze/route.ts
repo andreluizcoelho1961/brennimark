@@ -152,7 +152,7 @@ export async function POST(request: Request) {
   let attempts: ResolvedChatAttempt[];
   let firstChunkTimeoutMs: number;
   try {
-    const routing = await resolveAnalysisRouting();
+    const routing = await resolveAnalysisRouting(workspaceId);
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
     if (routing.attempts.length === 0) {
       const { code, message } = semProvedorConfigurado();
