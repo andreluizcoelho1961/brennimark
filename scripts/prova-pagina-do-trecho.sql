@@ -3,7 +3,7 @@
 -- O importador grava `{"de", "ate"}`; a função dos trechos lia `{"start",
 -- "end"}` e deixava a página vazia em todos os trechos. A citação do Vini leva
 -- o PDF à página do trecho — sem página, abria o manual no começo. Ver a
--- migration 20260919143250_pagina_do_trecho.
+-- migration 20260919145330_pagina_do_trecho.
 --
 -- Mesmo método das outras: mundo próprio, preparação que falha REPROVA, e
 -- `rollback` no fim. A busca é chamada como a pessoa (authenticated), porque é
