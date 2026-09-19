@@ -531,30 +531,34 @@ for (const [largura, nome] of [
 test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ page }) => {
   /*
    * Desde 18/09 as funcionalidades de IA moram no Vini, no canto inferior
-   * direito — não na coluna. A regra que este caso protege continua a mesma:
-   * cada marca oferece o que declarou, e nada herdado da anterior.
+   * direito — não na coluna. Desde a fatia 4a ele é uma JANELA: a conversa
+   * acontece dentro dela (campo de pergunta), e o que ainda não mudou para lá
+   * (Analisar peça, Histórico) fica no rodapé. A regra que este caso protege
+   * continua a mesma: cada marca oferece o que declarou, e nada herdado.
    */
   await page.setViewportSize({ width: 1440, height: 900 });
   const vini = async () => {
     await page.locator("[data-botao-do-vini]").click();
-    return page.locator("[data-vini-lista]");
+    return page.locator("[data-vini-janela]");
   };
+  const pergunta = (janela: ReturnType<typeof page.locator>) => janela.getByRole("textbox", { name: "Pergunta para o Vini" });
 
   await page.goto("/dev/marcas?marca=institucional"); // só chat
-  let lista = await vini();
-  await expect(lista.getByRole("link", { name: "Perguntar" })).toBeVisible();
-  await expect(lista.getByRole("link", { name: "Analisar peça" })).toHaveCount(0);
+  let janela = await vini();
+  await expect(pergunta(janela)).toBeVisible();
+  await expect(janela.getByRole("link", { name: "Analisar peça" })).toHaveCount(0);
 
   await page.goto("/dev/marcas?marca=mercado"); // análise e histórico, sem chat
-  lista = await vini();
-  await expect(lista.getByRole("link", { name: "Analisar peça" })).toBeVisible();
-  await expect(lista.getByRole("link", { name: "Histórico" })).toBeVisible();
-  await expect(lista.getByRole("link", { name: "Perguntar" })).toHaveCount(0);
+  janela = await vini();
+  await expect(janela.getByRole("link", { name: "Analisar peça" })).toBeVisible();
+  await expect(janela.getByRole("link", { name: "Histórico" })).toBeVisible();
+  await expect(pergunta(janela)).toHaveCount(0);
 
   await page.goto("/dev/marcas?marca=festival"); // todas
-  lista = await vini();
-  for (const destino of ["Perguntar", "Analisar peça", "Histórico"]) {
-    await expect(lista.getByRole("link", { name: destino })).toBeVisible();
+  janela = await vini();
+  await expect(pergunta(janela)).toBeVisible();
+  for (const destino of ["Analisar peça", "Histórico"]) {
+    await expect(janela.getByRole("link", { name: destino })).toBeVisible();
   }
   // Provedores de IA é configuração, não conversa: fica na coluna até
   // Configurações existir.
@@ -566,17 +570,19 @@ test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ p
 
   // E a volta: a marca só com chat não herdou nada das anteriores.
   await page.goto("/dev/marcas?marca=institucional");
-  lista = await vini();
-  await expect(lista.getByRole("link", { name: "Histórico" })).toHaveCount(0);
+  janela = await vini();
+  await expect(janela.getByRole("link", { name: "Histórico" })).toHaveCount(0);
 });
 
-test("o Vini fecha com Esc e devolve o foco ao botão", async ({ page }) => {
+test("o Vini recolhe com Esc e devolve o foco ao botão", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/dev/marcas?marca=festival");
   await page.locator("[data-botao-do-vini]").click();
-  await expect(page.locator("[data-vini-lista]")).toBeVisible();
+  await expect(page.locator("[data-vini-janela]")).toBeVisible();
+  // Abrir põe o cursor no campo: é para perguntar que se abre.
+  await expect(page.getByRole("textbox", { name: "Pergunta para o Vini" })).toBeFocused();
   await page.keyboard.press("Escape");
-  await expect(page.locator("[data-vini-lista]")).toHaveCount(0);
+  await expect(page.locator("[data-vini-janela]")).toHaveCount(0);
   await expect(page.locator("[data-botao-do-vini]")).toBeFocused();
 });
 

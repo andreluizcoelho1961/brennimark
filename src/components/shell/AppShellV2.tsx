@@ -8,7 +8,7 @@ import { CommandPalette } from "./CommandPalette";
 import type { OpcaoDeContexto } from "./SeletorDeContexto";
 import { ColunaDaPlataforma } from "./ColunaDaPlataforma";
 import { gruposDaGaveta, type DestinoDaMarca, type GrupoDaColuna } from "./coluna";
-import { LancadorDoVini } from "./LancadorDoVini";
+import { JanelaDoVini } from "@/components/vini/JanelaDoVini";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { PlatformTopBar } from "./PlatformTopBar";
 import type { ShellSection } from "./navigation";
@@ -298,9 +298,15 @@ export function AppShellV2({
         </div>
       </div>
 
-      {/* Fora do trecho `inert`: o Vini é da página inteira, e fica no canto
-          como a janela definitiva vai ficar (plano da interface §2). */}
-      {modal === "none" && <LancadorDoVini destinos={vini} />}
+      {/* Fora do trecho `inert`: o Vini é da página inteira. Com gaveta ou
+          busca abertas ele se ESCONDE, não desmonta — desmontar apagaria a
+          conversa. A chave é a marca: trocar de marca começa conversa nova,
+          porque toda resposta é sobre uma marca só. */}
+      {basePath && (
+        <div hidden={modal !== "none"}>
+          <JanelaDoVini key={basePath} destinos={vini} basePath={basePath} />
+        </div>
+      )}
 
       <NavigationDrawer
         open={modal === "nav"}

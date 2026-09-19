@@ -3,6 +3,7 @@ import { streamText, type ModelMessage } from "ai";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
+import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
@@ -213,6 +214,9 @@ export async function POST(request: Request) {
     // administra consegue rastrear uma execução específica sem precisar de
     // outro id.
     response.headers.set("X-AI-Execution-Id", executionId);
+    // As páginas dos trechos entregues ao modelo, para a citação levar ao PDF
+    // (ver `lib/ai/paginas-citadas.ts`: a página nunca é pedida ao modelo).
+    response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas(trechos)));
     return response;
   } catch (error) {
     // executarComOrcamento já libera a reserva antes de repassar o erro —

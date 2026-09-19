@@ -22,7 +22,7 @@ export const metadata = { robots: { index: false, follow: false } };
 export default async function BancadaDoVisualizador({
   searchParams,
 }: {
-  searchParams: Promise<{ fixture?: string }>;
+  searchParams: Promise<{ fixture?: string; pagina?: string; ir?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
 
@@ -30,14 +30,16 @@ export default async function BancadaDoVisualizador({
    * Modo fixture: o visualizador sobre um PDF da pasta de testes, sem banco e
    * sem sessão. É o que a suíte de navegador dirige nos três motores.
    */
-  const { fixture } = await searchParams;
+  const { fixture, pagina, ir } = await searchParams;
   if (fixture) {
+    const numero = Number(pagina);
     return (
       <main className="flex h-dvh flex-col">
         <VisualizadorDePdf
           documentoId="fixture"
           origem={`/dev/fixture/${encodeURIComponent(fixture)}`}
           className="min-h-0 flex-1"
+          paginaPedida={Number.isInteger(numero) && numero >= 1 ? { pagina: numero, pedido: ir ?? "" } : undefined}
         />
       </main>
     );

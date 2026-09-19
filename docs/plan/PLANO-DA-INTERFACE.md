@@ -104,6 +104,8 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 18/09 | Tema claro e escuro da moldura (a página do manual nunca inverte) | spec-menus §8.9 |
 | 18/09 | O chat mostra Markdown cru (`###`, `**`): resolver na janela do Vini (fatia 4), não na tela que ela substitui | ensaio |
 | 18/09 | Login criado por uma conta não recebe acesso de outra até existir confirmação de e-mail (convite): um fornecedor de duas agências precisa esperar o convite | fatia 2 |
+| 18/09 | O aviso "N páginas ficaram sem seção… a curadoria atribui depois" aparece para quem só consulta; é informação de quem edita | ensaio (fatia 2) |
+| 18/09 | Faixa branca na borda direita da página do PDF no visualizador — conferir contra o arquivo antes de chamar de defeito | ensaio (fatia 2) |
 | 18/09 | Busca por significado ("primary color" achar "cluster colours" sem palavra em comum). Exige escolher provedor de *embeddings* — decisão de provedor e de custo, do André | ensaio |
 
 ## 6. Registro de mudanças deste plano
@@ -113,3 +115,4 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 18/09/2026 | Criação, consolidando as decisões de 17 e 18/09 e o esboço da moldura | André |
 | 18/09/2026 | Chat, análise e histórico **saem da coluna já na fatia 1**. O botão do Vini entra no canto inferior direito como **lançador** (lista que leva às telas existentes); a janela de três estados continua sendo a fatia 4 | André |
 | 18/09/2026 | Correção fora da ordem: a busca de trechos passa a aceitar grafia americana/britânica e, sem trecho com todas as palavras, qualquer uma delas. O chat afirmava "não documentado" sobre manual que documenta | André |
+| 18/09/2026 | **O Vini vem antes do manual completo.** O lançador "cai numa outra janela" e ficou sem sentido. A fatia 4 se divide em 4a (janela e conversa, citação que abre o PDF na página), 4b (analisar peça na janela), 4c (gerar prompt) e 4d (histórico guardado, por autor — muda o banco) | André |

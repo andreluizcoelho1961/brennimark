@@ -66,6 +66,25 @@ test("clicar num item leva à página daquele item", async ({ page }) => {
     .toBe("4");
 });
 
+test("o endereço pede a página — é o que a citação do Vini abre", async ({ page }) => {
+  await abrir(page, `${COM_INDICE}&pagina=3&ir=1`);
+  await expect.poll(async () => page.locator("#pagina-atual").inputValue(), { timeout: 10_000 })
+    .toBe("3");
+});
+
+test("página pedida que não existe não inventa lugar", async ({ page }) => {
+  // Maior que o total: vai à última, sem erro. Não-número: abre no começo.
+  await abrir(page, `${COM_INDICE}&pagina=999&ir=1`);
+  // O total é o que a barra mostra ao lado do campo ("de N").
+  const barra = page.locator("#pagina-atual").locator("xpath=..");
+  const total = (await barra.innerText()).match(/(?:de|of)\s+(\d+)/)?.[1];
+  expect(total, "a barra não mostrou o total").toBeTruthy();
+  await expect.poll(async () => page.locator("#pagina-atual").inputValue(), { timeout: 10_000 })
+    .toBe(total);
+  await abrir(page, `${COM_INDICE}&pagina=abc`);
+  await expect(page.locator("#pagina-atual")).toHaveValue("1");
+});
+
 test("PDF sem marcadores e sem seções não mostra o botão de índice", async ({ page }) => {
   await abrir(page, SEM_MARCADORES);
   /*

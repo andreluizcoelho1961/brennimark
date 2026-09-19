@@ -26,10 +26,19 @@ import type { SecaoExtraida } from "@/lib/documento-fonte/indice";
  */
 export default async function ManualOriginal({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceSlug: string; brandKey: string }>;
+  searchParams: Promise<{ pagina?: string; ir?: string }>;
 }) {
   const alvo = await params;
+  // `?pagina=12` é o que a citação do Vini abre. Número que não é página vira
+  // "nenhuma" — o manual abre onde estava, e não numa página inventada.
+  const { pagina, ir } = await searchParams;
+  const numeroPedido = Number(pagina);
+  const paginaPedida = Number.isInteger(numeroPedido) && numeroPedido >= 1
+    ? { pagina: numeroPedido, pedido: ir ?? "" }
+    : undefined;
   const contexto = await resolveWorkspaceContext(alvo);
   // O layout já resolveu sessão e pertencimento; chegar aqui sem marca é
   // endereço que não serve para esta pessoa.
@@ -130,6 +139,7 @@ export default async function ManualOriginal({
           contaSlug={alvo.workspaceSlug}
           marcaChave={alvo.brandKey}
           className="h-full"
+          paginaPedida={paginaPedida}
         />
       </div>
     </div>
