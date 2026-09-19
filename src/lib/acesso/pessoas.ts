@@ -119,7 +119,9 @@ export function alcanceDaPessoa(pessoa: Pessoa, totalDeMarcas: number, ingles = 
   }
   const n = pessoa.marcas.length;
   if (n === 0) return ingles ? "No brand yet" : "Nenhuma marca ainda";
-  if (n === totalDeMarcas && totalDeMarcas > 0) {
+  // Com uma marca só, "todas" seria "As 1 marcas" — visto no ensaio de 18/09.
+  // O nome da marca diz mais.
+  if (n === totalDeMarcas && totalDeMarcas > 1) {
     return ingles ? `All ${n} brands (granted one by one)` : `As ${n} marcas (concedidas uma a uma)`;
   }
   return pessoa.marcas.map((m) => m.nome).join(", ");

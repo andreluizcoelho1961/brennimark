@@ -45,11 +45,10 @@ test("marca com utilidades mostra as que contratou", async ({ page }) => {
   await page.goto(COM_UTILIDADES);
   await expect(page.locator("[data-shell-ready]")).toHaveCount(1);
   // Desde 18/09 o chat é do Vini, no canto inferior direito — não da coluna.
+  // Desde a fatia 4a a conversa acontece DENTRO da janela: o sinal de que o
+  // chat foi contratado é o campo de pergunta, não um link.
   await page.locator("[data-botao-do-vini]").click();
-  const destinos = await page.evaluate(() =>
-    [...document.querySelectorAll("[data-destino-do-vini]")].map((a) => a.getAttribute("href") ?? ""),
-  );
-  expect(destinos.some((d) => d.includes("chat"))).toBe(true);
+  await expect(page.getByRole("textbox", { name: "Pergunta para o Vini" })).toBeVisible();
 });
 
 for (const utilidade of UTILIDADES) {

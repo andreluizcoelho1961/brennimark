@@ -39,6 +39,7 @@ export function VisualizadorDePdf({
   origem,
   secoes,
   className,
+  paginaPedida,
 }: {
   /** O identificador do DOCUMENTO. Nunca um caminho de Storage. */
   documentoId: string;
@@ -63,6 +64,12 @@ export function VisualizadorDePdf({
    */
   secoes?: readonly SecaoExtraida[];
   className?: string;
+  /**
+   * A página que alguém pediu de fora — a citação do Vini, pelo endereço
+   * (`?pagina=12`). Vem com um `pedido` que muda a cada clique: clicar duas
+   * vezes na mesma citação, depois de rolar para longe, tem de levar de novo.
+   */
+  paginaPedida?: { pagina: number; pedido: string };
 }) {
   const [documento, setDocumento] = useState<PDFDocumentProxy | null>(null);
   const [total, setTotal] = useState(0);
@@ -639,6 +646,18 @@ export function VisualizadorDePdf({
     const salva = posicaoSalva.current;
     if (salva && salva.pagina > 1) irParaRef.current(salva.pagina);
   }, [documento]);
+
+  /*
+   * A página pedida de fora. Espera o documento E a tabela de posições
+   * (`total`): antes disso `irPara` não sabe onde a página fica. Depende do
+   * `pedido`, e não só do número, pela mesma razão do comentário da prop.
+   */
+  const pedido = paginaPedida ? `${paginaPedida.pagina}:${paginaPedida.pedido}` : "";
+  useEffect(() => {
+    if (!documento || total === 0 || !pedido) return;
+    const numero = Number(pedido.split(":")[0]);
+    if (Number.isInteger(numero) && numero >= 1) irParaRef.current(numero);
+  }, [documento, total, pedido]);
 
   if (falha) {
     return (

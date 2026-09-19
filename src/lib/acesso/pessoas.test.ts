@@ -73,6 +73,9 @@ test("quem consulta mostra as marcas que recebeu, e diz quando são todas", () =
   assert.equal(alcanceDaPessoa(duas, 3), "Solara, Ferro");
   assert.equal(alcanceDaPessoa(duas, 2), "As 2 marcas (concedidas uma a uma)");
   assert.equal(alcanceDaPessoa(pessoa({}), 2), "Nenhuma marca ainda");
+  // A conta com uma marca só: nada de "As 1 marcas".
+  const uma = pessoa({ marcas: [{ id: "m1", nome: "Sony Vaio" }] });
+  assert.equal(alcanceDaPessoa(uma, 1), "Sony Vaio");
 });
 
 test("o texto do resultado vem do mapa, e o desconhecido não vira frase inventada", () => {
