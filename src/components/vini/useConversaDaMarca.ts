@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { CABECALHO_DE_PAGINAS, decodificarMapa, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
+import { avisoDeInterrupcao, separarFim } from "@/lib/ai/fim-da-resposta";
 
 /**
  * A conversa com o Vini — pedir, receber em fluxo, interromper, tentar de novo.
@@ -24,6 +25,8 @@ export type MensagemDoVini = {
   content: string;
   /** Só nas respostas: as páginas dos trechos que o servidor entregou. */
   paginas?: MapaDePaginas;
+  /** O provedor parou antes de terminar — o texto acima pode estar incompleto. */
+  incompleta?: boolean;
 };
 
 export type FaseDaConversa = "idle" | "connecting" | "thinking" | "answering";
@@ -85,13 +88,21 @@ export function useConversaDaMarca() {
         if (done) break;
         texto += decodificador.decode(value, { stream: true });
         setFase("answering");
-        setMensagens([...proximas, { role: "assistant", content: texto, paginas }]);
+        // Pedaço da marca de fim não pisca na tela enquanto o resto não chega.
+        setMensagens([...proximas, { role: "assistant", content: separarFim(texto).texto, paginas }]);
       }
       texto += decodificador.decode();
-      if (!texto.trim()) {
+      const fim = separarFim(texto);
+      if (!fim.texto.trim()) {
         throw new Error(isEnglish ? "The assistant ended without producing an answer." : "O assistente encerrou sem produzir uma resposta.");
       }
-      setMensagens([...proximas, { role: "assistant", content: texto, paginas }]);
+      setMensagens([...proximas, { role: "assistant", content: fim.texto, paginas, incompleta: fim.interrompida !== null }]);
+      if (fim.interrompida !== null) {
+        // O pedaço fica à vista — pode ser útil —, mas dito como pedaço, e
+        // com o caminho de tentar de novo.
+        setAviso(avisoDeInterrupcao(fim.interrompida, isEnglish));
+        setParaRepetir(proximas);
+      }
     } catch (caught) {
       setParaRepetir(proximas);
       if (controle.signal.aborted) {

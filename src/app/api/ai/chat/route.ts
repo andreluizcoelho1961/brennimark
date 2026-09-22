@@ -3,6 +3,7 @@ import { streamText, type ModelMessage } from "ai";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
+import { marcaDeFim } from "@/lib/ai/fim-da-resposta";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
@@ -66,6 +67,9 @@ export async function POST(request: Request) {
   let brandPrompt: BrandPromptContext;
   let executionId: string | undefined;
   let maxOutputTokens: number;
+  // O motivo de parada que o provedor informa, preenchido no despacho e lido
+  // no fim do fluxo. Promessas do SDK: só resolvem quando o texto acaba.
+  let fimDoProvedor: { unificado: PromiseLike<string>; bruto: PromiseLike<string | undefined> } | null = null;
   try {
     /*
      * O portão do G1, no servidor.
@@ -169,6 +173,8 @@ export async function POST(request: Request) {
             console.error(`[api/ai/chat] ${attempt.config.provider}/${attempt.config.model}`, error);
           },
         });
+        // Guardado para o fim do fluxo: é o provedor dizendo POR QUE parou.
+        fimDoProvedor = { unificado: result.finishReason, bruto: result.rawFinishReason };
         return { textStream: result.textStream, usage: result.usage };
       },
     });
@@ -186,6 +192,22 @@ export async function POST(request: Request) {
 
           const next = await execucao.iterator.next();
           if (next.done) {
+            // Resposta pela metade não passa por inteira (ensaio de 19/09: o
+            // Vini parou em "(such as the Sony" e a janela mostrou o pedaço
+            // como resposta). O motivo vai ao log — sem o texto, que é conversa
+            // de cliente — e, se não for "terminou", uma marca vai ao fim do
+            // fluxo para a janela avisar. Ver `lib/ai/fim-da-resposta.ts`.
+            const [motivo, bruto] = await Promise.all([
+              Promise.resolve(fimDoProvedor?.unificado ?? "unknown").catch(() => "error"),
+              Promise.resolve(fimDoProvedor?.bruto).catch(() => undefined),
+            ]);
+            const marca = marcaDeFim(motivo);
+            if (marca) {
+              console.warn(JSON.stringify({
+                level: "warn", msg: "ai_resposta_incompleta", motivo, motivoDoProvedor: bruto ?? null, executionId,
+              }));
+              controller.enqueue(encoder.encode(marca));
+            }
             execucao.cleanup();
             controller.close();
             return;
