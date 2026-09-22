@@ -363,7 +363,12 @@ test("ver não é baixar, e o cache não mente sobre a representação", async (
   // descreve uma representação completa que não varia.
   assert.doesNotMatch(r.headers.get("cache-control") ?? "", /immutable/);
   assert.equal(r.headers.get("x-content-type-options"), "nosniff");
-  assert.match(r.headers.get("server-timing") ?? "", /autorizacao;dur=\d+/);
+  const tempos = r.headers.get("server-timing") ?? "";
+  // As etapas que existem de fato — e nenhuma que meça zero por construção.
+  assert.match(tempos, /consulta;dur=\d+/);
+  assert.match(tempos, /sessao;dur=\d+/);
+  assert.match(tempos, /storage;dur=\d+/);
+  assert.doesNotMatch(tempos, /documento;dur=/, "documento voltou como etapa separada — ela é a mesma consulta");
 });
 
 

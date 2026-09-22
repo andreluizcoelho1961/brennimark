@@ -182,8 +182,13 @@ test("o relatório confere a evidência antes de desenhá-la", () => {
  * a guarda das bancadas tinha.
  */
 test("as rotas de histórico exigem a utilidade contratada", () => {
-  const rotas = listarArquivos("src/app/api/analysis").filter((a) => a.endsWith("route.ts"));
-  assert.ok(rotas.length >= 3, `só ${rotas.length} rotas de histórico — a varredura quebrou?`);
+  // A rota da análise entra junto (22/09/2026): ela resolvia a conta sozinha
+  // antes do portão, e "conta ambígua" saía como 401 em vez do 409 do portão.
+  const rotas = [
+    ...listarArquivos("src/app/api/analysis").filter((a) => a.endsWith("route.ts")),
+    "src/app/api/ai/analyze/route.ts",
+  ];
+  assert.ok(rotas.length >= 4, `só ${rotas.length} rotas de análise e histórico — a varredura quebrou?`);
 
   for (const rota of rotas) {
     const codigo = lerCodigo(rota);

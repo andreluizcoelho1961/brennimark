@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
 import { LocaleProvider } from "@/platform/locale-client";
 import { VisualizadorDePdf } from "@/components/documento-fonte/VisualizadorDePdf";
+import { VisualizadorDesmontavel } from "./Desmontavel";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -22,7 +23,7 @@ export const metadata = { robots: { index: false, follow: false } };
 export default async function BancadaDoVisualizador({
   searchParams,
 }: {
-  searchParams: Promise<{ fixture?: string; pagina?: string; ir?: string }>;
+  searchParams: Promise<{ fixture?: string; pagina?: string; ir?: string; desmontavel?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
 
@@ -30,12 +31,14 @@ export default async function BancadaDoVisualizador({
    * Modo fixture: o visualizador sobre um PDF da pasta de testes, sem banco e
    * sem sessão. É o que a suíte de navegador dirige nos três motores.
    */
-  const { fixture, pagina, ir } = await searchParams;
+  const { fixture, pagina, ir, desmontavel } = await searchParams;
   if (fixture) {
     const numero = Number(pagina);
+    // `?desmontavel=1`: com o botão que tira o visualizador sem recarregar.
+    const Visualizador = desmontavel ? VisualizadorDesmontavel : VisualizadorDePdf;
     return (
       <main className="flex h-dvh flex-col">
-        <VisualizadorDePdf
+        <Visualizador
           documentoId="fixture"
           origem={`/dev/fixture/${encodeURIComponent(fixture)}`}
           className="min-h-0 flex-1"

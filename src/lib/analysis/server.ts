@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import type { ActiveBrand } from "@/lib/brandville/brand-row";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
 import {
   ANALYSIS_EVIDENCE_BUCKET,
   evidencePath,
@@ -21,36 +19,6 @@ export type AnalysisAuthContext = {
    *  de quatro marcas era um só. */
   brandId: string;
 };
-
-/**
- * Sessão e workspace para as rotas de análise.
- *
- * O `.limit(1)` que estava aqui gravava o histórico de análise da pessoa no
- * primeiro workspace que o banco devolvesse. Agora usa a mesma resolução do
- * resto: o pedido, o único, ou nenhum — nunca "o primeiro".
- */
-export async function getAnalysisAuthContext(
-  alvo?: { workspaceSlug?: string; brandKey?: string },
-): Promise<AnalysisAuthContext | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const r = await resolverWorkspaceAtivo(alvo?.workspaceSlug);
-  if (r.tipo !== "workspace") return null;
-
-  // A marca também vem da URL. Sem `brandKey`, resolve se houver uma só —
-  // mesma regra do resto do produto, e nunca "a primeira".
-  const marcas = r.workspace.marcas;
-  const marca = alvo?.brandKey
-    ? marcas.find((m) => m.key === alvo.brandKey)
-    : marcas.length === 1
-      ? marcas[0]
-      : undefined;
-  if (!marca) return null;
-
-  return { supabase, user, workspaceId: r.workspace.id, brandId: marca.id };
-}
 
 /**
  * O contexto do HISTÓRICO, com o portão da utilidade aplicado.
