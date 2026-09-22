@@ -533,7 +533,8 @@ test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ p
    * Desde 18/09 as funcionalidades de IA moram no Vini, no canto inferior
    * direito — não na coluna. Desde a fatia 4a ele é uma JANELA: a conversa
    * acontece dentro dela (campo de pergunta), e o que ainda não mudou para lá
-   * (Analisar peça, Histórico) fica no rodapé. A regra que este caso protege
+   * (o Histórico) fica no rodapé; desde a 4b a análise também acontece nela,
+   * pelo clipe. A regra que este caso protege
    * continua a mesma: cada marca oferece o que declarou, e nada herdado.
    */
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -546,20 +547,19 @@ test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ p
   await page.goto("/dev/marcas?marca=institucional"); // só chat
   let janela = await vini();
   await expect(pergunta(janela)).toBeVisible();
-  await expect(janela.getByRole("link", { name: "Analisar peça" })).toHaveCount(0);
+  await expect(janela.locator("[data-clipe-da-peca]")).toHaveCount(0);
 
   await page.goto("/dev/marcas?marca=mercado"); // análise e histórico, sem chat
   janela = await vini();
-  await expect(janela.getByRole("link", { name: "Analisar peça" })).toBeVisible();
+  await expect(janela.getByRole("button", { name: "Analisar uma peça" })).toBeVisible();
   await expect(janela.getByRole("link", { name: "Histórico" })).toBeVisible();
   await expect(pergunta(janela)).toHaveCount(0);
 
   await page.goto("/dev/marcas?marca=festival"); // todas
   janela = await vini();
   await expect(pergunta(janela)).toBeVisible();
-  for (const destino of ["Analisar peça", "Histórico"]) {
-    await expect(janela.getByRole("link", { name: destino })).toBeVisible();
-  }
+  await expect(janela.getByRole("button", { name: "Anexar peça para análise" })).toBeVisible();
+  await expect(janela.getByRole("link", { name: "Histórico" })).toBeVisible();
   // Provedores de IA é configuração, não conversa: fica na coluna até
   // Configurações existir.
   const coluna = page.getByRole("navigation", { name: "Navegação principal" });
