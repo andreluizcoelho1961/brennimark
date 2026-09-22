@@ -149,3 +149,39 @@ test("no celular a janela cabe na tela", async ({ page }) => {
   expect(caixa!.x).toBeGreaterThanOrEqual(0);
   expect(caixa!.x + caixa!.width).toBeLessThanOrEqual(375);
 });
+
+test("resposta que o provedor interrompeu aparece como incompleta, nunca como inteira", async ({ page }) => {
+  // O caso do ensaio de 19/09: o Vini parou em "(such as the Sony" e a janela
+  // mostrou o pedaço como resposta. O servidor acrescenta a marca de fim
+  // (`lib/ai/fim-da-resposta.ts`) quando o motivo não é "terminou".
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comResposta(page, "A decision needs to be made (such as the Sony⁣[[brennimark:incompleta:content-filter]]", enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "what is the primary logo?");
+
+  const resposta = page.locator("[data-vini-janela] [data-incompleta]");
+  await expect(resposta).toContainText("(such as the Sony");
+  await expect(resposta).toContainText("Resposta incompleta");
+  // A marca é do sistema: não aparece para a pessoa.
+  await expect(page.locator("[data-vini-janela]")).not.toContainText("brennimark:incompleta");
+
+  const aviso = page.locator("[data-vini-aviso]");
+  await expect(aviso).toContainText("parou antes de terminar");
+  await expect(aviso).toContainText("filtro de conteúdo");
+
+  // Tentar de novo refaz a PERGUNTA, sem o pedaço interrompido.
+  await aviso.getByRole("button", { name: "Tentar de novo" }).click();
+  await expect.poll(() => enviados.length).toBe(2);
+  expect(enviados[1]).toEqual({ messages: [{ role: "user", content: "what is the primary logo?" }] });
+});
+
+test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comResposta(page);
+  await page.goto(MARCA);
+  await perguntar(page, "cores?");
+  await expect(page.locator("[data-resposta-do-vini]")).toBeVisible();
+  await expect(page.locator("[data-incompleta]")).toHaveCount(0);
+  await expect(page.locator("[data-vini-aviso]")).toHaveCount(0);
+});

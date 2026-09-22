@@ -129,7 +129,16 @@ export function JanelaDoVini({
                   {m.role === "user" ? t("Você", "You") : "Vini"}
                 </p>
                 {m.role === "assistant"
-                  ? <RespostaDoVini conteudo={m.content} paginas={m.paginas ?? {}} basePath={basePath} />
+                  ? (
+                    <div data-incompleta={m.incompleta ? "" : undefined}>
+                      <RespostaDoVini conteudo={m.content} paginas={m.paginas ?? {}} basePath={basePath} />
+                      {m.incompleta && (
+                        <p className="mt-2 font-display text-[10px] font-bold uppercase tracking-wide text-platform-warning">
+                          {t("Resposta incompleta", "Incomplete answer")}
+                        </p>
+                      )}
+                    </div>
+                  )
                   : <p className="whitespace-pre-wrap text-[14px] leading-relaxed text-platform-text">{m.content}</p>}
               </div>
             ))}
@@ -143,6 +152,7 @@ export function JanelaDoVini({
             )}
             {(conversa.erro || conversa.aviso) && (
               <div role={conversa.erro ? "alert" : "status"} data-vini-erro={conversa.erro ? "" : undefined}
+                data-vini-aviso={conversa.aviso ? "" : undefined}
                 className="border border-platform-border px-3 py-2 text-[13px] text-platform-text-muted">
                 <p>{conversa.erro || conversa.aviso}</p>
                 {conversa.podeRepetir && (
