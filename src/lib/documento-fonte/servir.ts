@@ -137,8 +137,8 @@ export async function servirDocumentoFonte(
   }
 
   const { linha, error } = await portas.documento(id, marcaChave);
-  const marcaAutorizado = Date.now();
-  const marcaDocumento = marcaAutorizado;
+  // Autorização e documento são UMA consulta (ver acima): uma marca só.
+  const marcaConsulta = Date.now();
 
   if (error) {
     return NextResponse.json({ error: "falha_ao_resolver_documento" }, { status: 500 });
@@ -367,9 +367,14 @@ export async function servirDocumentoFonte(
   cabecalhos.set(
     "server-timing",
     [
-      `autorizacao;dur=${marcaAutorizado - marcaEntrada}`,
-      `documento;dur=${marcaDocumento - marcaAutorizado}`,
-      `sessao;dur=${marcaOrigem - marcaDocumento}`,
+      /*
+       * `consulta` é autorização E documento juntos, porque são uma ida ao
+       * banco só desde 16/09. Até 22/09 saíam como `autorizacao` (o tempo
+       * todo) e `documento` (sempre 0) — e quem lia `documento;dur=0`
+       * concluía que o banco era instantâneo. Achado da revisão de 22/09.
+       */
+      `consulta;dur=${marcaConsulta - marcaEntrada};desc="autorizacao e documento"`,
+      `sessao;dur=${marcaOrigem - marcaConsulta}`,
       `storage;dur=${Date.now() - marcaOrigem}`,
     ].join(", "),
   );

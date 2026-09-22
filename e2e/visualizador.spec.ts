@@ -281,3 +281,46 @@ test.describe("manual acima do teto de fatia", () => {
     expect(estoura).toBe(false);
   });
 });
+
+/**
+ * Sair da tela ANTES de o documento abrir não deixa carregamento correndo.
+ *
+ * Achado da revisão de 22/09: a limpeza de saída só destruía um documento JÁ
+ * aberto. Fechar no meio do carregamento deixava os pedidos de intervalo
+ * seguindo (até 20 s cada), o documento terminando de abrir sem dono e o
+ * worker vivo. A bancada fecha o visualizador SEM recarregar — como trocar de
+ * tela no produto —, e os pedaços chegam devagar para o fechamento cair no
+ * meio do carregamento.
+ */
+test("fechar no meio do carregamento para todos os pedidos", async ({ page }) => {
+  const erros: string[] = [];
+  page.on("pageerror", (e) => erros.push(e.message));
+
+  let fechado = false;
+  let depoisDeFechar = 0;
+  let pedidos = 0;
+  page.on("request", (r) => {
+    if (!r.url().includes("/dev/fixture/") || r.method() !== "GET") return;
+    pedidos += 1;
+    if (fechado) depoisDeFechar += 1;
+  });
+  // Cada pedaço demora: o fechamento pega o carregamento no meio.
+  await page.route("**/dev/fixture/**", async (rota) => {
+    if (rota.request().method() === "GET") await new Promise((r) => setTimeout(r, 700));
+    await rota.continue().catch(() => undefined);
+  });
+
+  await page.goto("/dev/visualizador?fixture=mil-paginas.pdf&desmontavel=1");
+  // Premissa: o carregamento começou e ainda não terminou.
+  await expect.poll(() => pedidos, { timeout: 15_000 }).toBeGreaterThan(0);
+  await expect(page.locator("canvas")).toHaveCount(0);
+
+  await page.locator("[data-fechar-visualizador]").click();
+  fechado = true;
+  await expect(page.locator("[data-visualizador-fechado]")).toBeVisible();
+
+  // Tempo de sobra para três pedaços atrasados chegarem e pedirem os próximos.
+  await page.waitForTimeout(3_000);
+  expect(depoisDeFechar, "o carregamento seguiu pedindo pedaços depois de a tela sair").toBe(0);
+  expect(erros).toEqual([]);
+});

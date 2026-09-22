@@ -112,8 +112,17 @@ export function VisualizadorDePdf({
     return `/api/documento-fonte/${documentoId}${consulta ? `?${consulta}` : ""}`;
   }, [documentoId, contaSlug, marcaChave, origem]);
 
-  /** Carrega (ou recarrega) o documento, preservando a posição de leitura. */
-  const carregar = useCallback(async () => {
+  /**
+   * Carrega (ou recarrega) o documento, preservando a posição de leitura.
+   *
+   * `parar` é o fim da vida DESTE carregamento: a tela saiu, ou o endereço
+   * mudou. Até 22/09/2026 o carregamento não tinha como ser interrompido — a
+   * limpeza de saída só destruía um documento JÁ aberto. Sair antes de abrir
+   * deixava os pedidos de intervalo correndo (até 20 s cada), o documento
+   * terminava de carregar sem ninguém para destruí-lo, e o worker do PDF.js
+   * ficava vivo. Achado da revisão de 22/09.
+   */
+  const carregar = useCallback(async (parar: AbortSignal) => {
     prepararAmbienteDePdf();
     const pdfjs = await import("pdfjs-dist");
     pdfjs.GlobalWorkerOptions.workerSrc = new URL(
@@ -145,7 +154,7 @@ export function VisualizadorDePdf({
      * chega à rota**, e é isso que o teste `nenhuma requisição sem Range`
      * tranca: é a invariante que protege produção, e não uma preferência.
      */
-    const cabecalhos = await fetch(url, { method: "HEAD", cache: "no-store" });
+    const cabecalhos = await fetch(url, { method: "HEAD", cache: "no-store", signal: parar });
     if (!cabecalhos.ok) {
       throw Object.assign(new Error("documento indisponível"), { status: cabecalhos.status });
     }
@@ -185,8 +194,16 @@ export function VisualizadorDePdf({
       } catch {
         // Abortar duas vezes não é erro, e não deve mascarar o motivo.
       }
-      setFalha(motivo);
+      // Tela que já saiu não recebe estado: não há a quem mostrar a falha.
+      if (!parar.aborted) setFalha(motivo);
     };
+
+    // A tela saiu: nenhum pedaço novo, e o que está em voo é cortado.
+    let tarefa: ReturnType<typeof pdfjs.getDocument> | null = null;
+    parar.addEventListener("abort", () => {
+      desistir("interrompido");
+      void tarefa?.destroy();
+    }, { once: true });
 
     transporte.requestDataRange = (inicio: number, fim: number) => {
       void (async () => {
@@ -208,8 +225,11 @@ export function VisualizadorDePdf({
 
           // Duas tentativas: a primeira e uma repetição.
           for (let tentativa = 0; tentativa < 2 && parte === null; tentativa += 1) {
+            if (parar.aborted) return;
             const prazo = new AbortController();
             const relogio = setTimeout(() => prazo.abort(), PRAZO_DO_PEDACO);
+            const cortar = () => prazo.abort();
+            parar.addEventListener("abort", cortar, { once: true });
             try {
               const resposta = await fetch(url, {
                 headers: { Range: `bytes=${cursor}-${limite - 1}` },
@@ -228,6 +248,7 @@ export function VisualizadorDePdf({
               // Prazo esgotado ou rede: a repetição decide.
             } finally {
               clearTimeout(relogio);
+              parar.removeEventListener("abort", cortar);
             }
           }
 
@@ -253,7 +274,7 @@ export function VisualizadorDePdf({
       })();
     };
 
-    const tarefa = pdfjs.getDocument({
+    tarefa = pdfjs.getDocument({
       range: transporte,
       disableStream: true,
       disableAutoFetch: true,
@@ -276,6 +297,12 @@ export function VisualizadorDePdf({
     });
 
     const doc = await tarefa.promise;
+    // Abriu depois que a tela saiu: destruir aqui, porque a limpeza de saída
+    // só alcança o documento que chegou ao estado.
+    if (parar.aborted) {
+      void tarefa.destroy();
+      return;
+    }
     setDocumento((anterior) => {
       // O documento anterior é destruído explicitamente: sem isto, recarregar
       // por credencial vencida acumula um documento inteiro a cada renovação.
@@ -291,10 +318,11 @@ export function VisualizadorDePdf({
 
   useEffect(() => {
     let cancelado = false;
+    const parar = new AbortController();
 
     async function abrir() {
       try {
-        await carregar();
+        await carregar(parar.signal);
       } catch (erro: unknown) {
         if (cancelado) return;
         /**
@@ -307,7 +335,7 @@ export function VisualizadorDePdf({
         if (status === 401 && tentativas.current === 0) {
           tentativas.current += 1;
           try {
-            await carregar();
+            await carregar(parar.signal);
           } catch {
             if (!cancelado) setFalha("expirada");
           }
@@ -320,6 +348,7 @@ export function VisualizadorDePdf({
     void abrir();
     return () => {
       cancelado = true;
+      parar.abort();
     };
   }, [carregar]);
 

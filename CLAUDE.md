@@ -157,7 +157,7 @@ linha vem, o banco provou. Usar a autorização das páginas de interface custav
 pedido de intervalo** contra 16 ms — ela resolve workspaces, marcas, perfil, documentos e
 capacidades e valida o token pela rede.
 
-**`Server-Timing` fica na resposta.** `autorizacao`, `documento`, `sessao`, `storage`. Quando o
+**`Server-Timing` fica na resposta.** `consulta` (autorização e documento, uma ida ao banco), `sessao`, `storage`. Quando o
 sintoma é lentidão, ler a etapa vem antes de formular hipótese: três rodadas foram gastas em
 teoria — uma delas errada — e a instrumentação resolveu na primeira leitura.
 

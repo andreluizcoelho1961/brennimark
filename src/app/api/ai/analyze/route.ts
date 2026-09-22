@@ -10,8 +10,8 @@ import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
-import { getAnalysisAuthContext, persistAnalysisRun } from "@/lib/analysis/server";
-import { alvoDaRota, portaoDeIA } from "@/lib/brandville/contexto-da-rota";
+import { persistAnalysisRun, type AnalysisAuthContext } from "@/lib/analysis/server";
+import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
 import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
@@ -92,15 +92,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "image_too_large", message: isEnglish ? "The image must be at most 10 MB." : "A imagem deve ter no máximo 10 MB." }, { status: 413 });
   }
 
-  let authContext;
+  /*
+   * O portão do G1 — o MESMO de chat e histórico — resolve sessão, conta,
+   * marca e se a marca contratou a ANÁLISE (contratar o chat não contrata a
+   * análise). Até 22/09/2026 esta rota resolvia a conta antes, por conta
+   * própria, e transformava "conta ambígua" em 401 ("entre de novo") — o resto
+   * da API responde 409 e pede `?w=`. Achado da revisão de 22/09: agora a
+   * resolução é uma só, e o código de erro é o do portão.
+   */
+  let portao: Awaited<ReturnType<typeof portaoDeIA>>;
   try {
-    authContext = await getAnalysisAuthContext(alvoDaRota(request));
+    portao = await portaoDeIA(request, "analysis");
   } catch {
     return NextResponse.json({ error: "auth_unavailable", message: isEnglish ? "Couldn't verify your access right now." : "Não foi possível validar seu acesso agora." }, { status: 503 });
   }
-  if (!authContext) {
-    return NextResponse.json({ error: "unauthorized", message: isEnglish ? "Sign in again to analyze and save this piece." : "Entre novamente para analisar e salvar a peça." }, { status: 401 });
-  }
+  if (!portao.ok) return portao.resposta;
+  const authContext: AnalysisAuthContext = {
+    supabase: portao.auth.supabase,
+    user: portao.auth.user,
+    workspaceId: portao.auth.workspaceId,
+    brandId: portao.brand.id,
+  };
 
   let trechos: Trecho[] = [];
   let brandPrompt: BrandPromptContext;
@@ -114,12 +126,6 @@ export async function POST(request: Request) {
   // administra consegue rastrear uma execução específica sem outro id.
   let executionId: string;
   try {
-    /*
-     * O portão do G1: a marca precisa ter contratado a ANÁLISE, e não basta
-     * ter contratado o chat. Contratar uma coisa não contrata a outra.
-     */
-    const portao = await portaoDeIA(request, "analysis");
-    if (!portao.ok) return portao.resposta;
     workspaceId = portao.auth.workspaceId;
     brandId = portao.brand.id;
     analysisRole = portao.brand.ai.analysisRole;
