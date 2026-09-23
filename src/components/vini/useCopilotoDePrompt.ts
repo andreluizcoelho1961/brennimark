@@ -17,7 +17,7 @@ import { avisoDeInterrupcao, separarFim } from "@/lib/ai/fim-da-resposta";
  */
 export type RegrasDoPrompt = { aprovadas: RegraResumida[]; rascunhos: RegraResumida[] };
 
-export function useCopilotoDePrompt() {
+export function useCopilotoDePrompt(obterConversa?: () => string) {
   const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const [descricao, setDescricaoCrua] = useState("");
@@ -48,7 +48,7 @@ export function useCopilotoDePrompt() {
     return fetch(comAlvo("/api/ai/prompt", alvo), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ descricao, tipo, ...corpo }),
+      body: JSON.stringify({ descricao, tipo, conversaId: obterConversa?.(), ...corpo }),
       signal: controle?.signal,
     });
   }

@@ -56,7 +56,9 @@ test("a pergunta sai da janela e a resposta volta formatada, dentro dela", async
   await expect(resposta).toBeVisible();
   // Nada de navegar: a conversa acontece aqui.
   expect(page.url()).toBe(url);
-  expect(enviados[0]).toEqual({ messages: [{ role: "user", content: "what is the primary color?" }] });
+  expect(enviados[0]).toMatchObject({ messages: [{ role: "user", content: "what is the primary color?" }] });
+  // A conversa em curso vai junto: é nela que a troca fica guardada (4d).
+  expect((enviados[0] as { conversaId: string }).conversaId).toMatch(/^[0-9a-f-]{36}$/);
 
   // Formatado: título, negrito, itálico e lista — sem os símbolos crus.
   await expect(resposta.getByRole("heading", { name: "Provisional rules" })).toBeVisible();
@@ -121,7 +123,7 @@ test("Shift+Enter quebra a linha; Enter envia", async ({ page }) => {
   await campo.press("Enter");
 
   await expect.poll(() => enviados.length).toBe(1);
-  expect(enviados[0]).toEqual({ messages: [{ role: "user", content: "linha um\nlinha dois" }] });
+  expect(enviados[0]).toMatchObject({ messages: [{ role: "user", content: "linha um\nlinha dois" }] });
 });
 
 test("a recusa do servidor aparece como ele a escreveu, com como tentar de novo", async ({ page }) => {
@@ -173,7 +175,7 @@ test("resposta que o provedor interrompeu aparece como incompleta, nunca como in
   // Tentar de novo refaz a PERGUNTA, sem o pedaço interrompido.
   await aviso.getByRole("button", { name: "Tentar de novo" }).click();
   await expect.poll(() => enviados.length).toBe(2);
-  expect(enviados[1]).toEqual({ messages: [{ role: "user", content: "what is the primary logo?" }] });
+  expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "what is the primary logo?" }] });
 });
 
 test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
@@ -403,7 +405,7 @@ test("gerar manda só a descrição e os rascunhos marcados — nunca o conteúd
   await janela.getByRole("button", { name: "Gerar prompt" }).click();
 
   await expect(janela.locator("[data-prompt-texto]")).toContainText("VAIO black #000000");
-  expect(enviados.at(-1)).toEqual({ descricao: "foto de produto", tipo: "imagem", etapa: "gerar", rascunhos: ["fotografia"] });
+  expect(enviados.at(-1)).toMatchObject({ descricao: "foto de produto", tipo: "imagem", etapa: "gerar", rascunhos: ["fotografia"] });
 
   // A procedência: o que o prompt usou, e o rascunho dito como rascunho.
   await expect(janela.locator("[data-regras-usadas]")).toContainText("VAIO Photographic Style");
@@ -448,4 +450,111 @@ test("mudar a descrição apaga as regras da pergunta anterior", async ({ page }
   await campo.fill("vídeo curto de lançamento");
   await expect(janela.locator("[data-regras-rascunho]")).toHaveCount(0);
   await expect(janela.getByRole("button", { name: "Ver as regras" })).toBeVisible();
+});
+
+// ─── Fatia 4d: as conversas por autor ──────────────────────────────────────
+
+async function comConversas(page: Page, apagadas: string[]) {
+  const lista = [
+    { id: "11111111-1111-4111-8111-111111111111", titulo: "qual é a cor primária?", atualizadaEm: "2026-09-23T12:00:00Z" },
+    { id: "22222222-2222-4222-8222-222222222222", titulo: "foto de produto", atualizadaEm: "2026-09-22T12:00:00Z" },
+  ];
+  await page.route("**/api/conversas**", async (rota) => {
+    const url = new URL(rota.request().url());
+    const metodo = rota.request().method();
+    const id = url.pathname.split("/").pop();
+    if (metodo === "DELETE") {
+      apagadas.push(id ?? "");
+      return rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ apagada: true }) });
+    }
+    if (url.pathname.endsWith("/api/conversas")) {
+      return rota.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ conversas: lista.filter((c) => !apagadas.includes(c.id)) }) });
+    }
+    return rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+      id, titulo: "foto de produto",
+      mensagens: [
+        { papel: "user", tipo: "pergunta", conteudo: "foto de produto", paginas: {}, regras: [], incompleta: false },
+        { papel: "assistant", tipo: "prompt", conteudo: "Studio product photo, VAIO black #000000.",
+          paginas: {}, regras: [{ slug: "cores", titulo: "Cores", status: "draft", pagina: 8 }], incompleta: false },
+      ],
+    }) });
+  });
+}
+
+test("a lista mostra só as conversas da pessoa, e diz que ninguém mais as lê", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comConversas(page, []);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-conversas]").click();
+
+  const lista = page.locator("[data-lista-de-conversas]");
+  await expect(lista).toContainText("ninguém mais as lê — nem quem administra a conta");
+  await expect(lista.locator("[data-conversa]")).toHaveCount(2);
+});
+
+test("reabrir uma conversa traz as mensagens, e o prompt guardado com as regras que usou", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comConversas(page, []);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-conversas]").click();
+  await page.locator('[data-conversa="22222222-2222-4222-8222-222222222222"] button').first().click();
+
+  const janela = page.locator("[data-vini-janela]");
+  await expect(janela).toHaveAttribute("data-modo", "conversa");
+  await expect(janela.locator("[data-prompt-guardado]")).toContainText("VAIO black #000000");
+  await expect(janela.locator("[data-prompt-guardado]")).toContainText("Cores (rascunho)");
+});
+
+test("continuar a conversa reaberta grava nela, não numa nova", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comConversas(page, []);
+  await comResposta(page, RESPOSTA, enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-conversas]").click();
+  await page.locator('[data-conversa="22222222-2222-4222-8222-222222222222"] button').first().click();
+
+  const campo = page.getByRole("textbox", { name: "Pergunta para o Vini" });
+  await campo.fill("e a cor?");
+  await campo.press("Enter");
+  await expect.poll(() => enviados.length).toBe(1);
+  expect((enviados[0] as { conversaId: string }).conversaId).toBe("22222222-2222-4222-8222-222222222222");
+});
+
+test("apagar pergunta antes, avisa que é de vez, e a conversa sai da lista", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const apagadas: string[] = [];
+  const avisos: string[] = [];
+  await comConversas(page, apagadas);
+  page.on("dialog", (d) => { avisos.push(d.message()); void d.accept(); });
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-conversas]").click();
+
+  await page.getByRole("button", { name: "Apagar “foto de produto”" }).click();
+  await expect.poll(() => apagadas).toEqual(["22222222-2222-4222-8222-222222222222"]);
+  expect(avisos[0]).toContain("some de vez");
+  await expect(page.locator("[data-lista-de-conversas] [data-conversa]")).toHaveCount(1);
+});
+
+test("Nova começa outra conversa, com outro identificador", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comResposta(page, RESPOSTA, enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "primeira");
+  await expect(page.locator("[data-resposta-do-vini]")).toBeVisible();
+  await page.locator("[data-nova-conversa]").click();
+  await expect(page.locator("[data-mensagem]")).toHaveCount(0);
+
+  const campo = page.getByRole("textbox", { name: "Pergunta para o Vini" });
+  await campo.fill("segunda");
+  await campo.press("Enter");
+  await expect.poll(() => enviados.length).toBe(2);
+  const [a, b] = enviados as { conversaId: string }[];
+  expect(a.conversaId).not.toBe(b.conversaId);
 });

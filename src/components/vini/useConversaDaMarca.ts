@@ -27,11 +27,19 @@ export type MensagemDoVini = {
   paginas?: MapaDePaginas;
   /** O provedor parou antes de terminar — o texto acima pode estar incompleto. */
   incompleta?: boolean;
+  /** Reaberta do histórico: um prompt gerado pelo copiloto, com as regras usadas. */
+  tipo?: "pergunta" | "resposta" | "prompt";
+  regras?: { slug: string; titulo: string; status: string; pagina: number | null }[];
 };
 
 export type FaseDaConversa = "idle" | "connecting" | "thinking" | "answering";
 
-export function useConversaDaMarca() {
+/**
+ * `obterConversa` dá o identificador da conversa em curso (fatia 4d): a rota
+ * guarda cada troca nela, na conta do autor. É função, e não valor, porque a
+ * janela troca de conversa ao reabrir uma do histórico.
+ */
+export function useConversaDaMarca(obterConversa?: () => string) {
   const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const [mensagens, setMensagens] = useState<MensagemDoVini[]>([]);
@@ -68,7 +76,10 @@ export function useConversaDaMarca() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Só papel e texto vão ao servidor: as páginas são da tela.
-        body: JSON.stringify({ messages: proximas.map(({ role, content }) => ({ role, content })) }),
+        body: JSON.stringify({
+          messages: proximas.map(({ role, content }) => ({ role, content })),
+          conversaId: obterConversa?.(),
+        }),
         signal: controle.signal,
       });
 
@@ -132,6 +143,22 @@ export function useConversaDaMarca() {
     },
     interromper() {
       abortRef.current?.abort();
+    },
+    /** Põe na tela uma conversa reaberta do histórico. */
+    carregar(historico: MensagemDoVini[]) {
+      abortRef.current?.abort();
+      setMensagens(historico);
+      setErro("");
+      setAviso("");
+      setParaRepetir(null);
+    },
+    /** Começa do zero: a janela gera outro identificador de conversa. */
+    limpar() {
+      abortRef.current?.abort();
+      setMensagens([]);
+      setErro("");
+      setAviso("");
+      setParaRepetir(null);
     },
     repetir() {
       if (paraRepetir) void pedir(paraRepetir);
