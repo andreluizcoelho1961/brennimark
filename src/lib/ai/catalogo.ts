@@ -65,6 +65,16 @@ export interface ModelCapabilities {
   maxImageBytes?: number;
   supportsStructuredOutput?: boolean;
   /**
+   * Teto de tokens de SAÍDA que o provedor aceita por pedido, quando menor que
+   * o teto da tarefa (`execucao.ts`). Ausente = vale o da tarefa.
+   *
+   * Existe por medição: em 23/09/2026 o Groq recusou o teste de conexão do
+   * Qwen 3.8 — "output tokens per minute (OTPM): Limit 1000, Requested 1281".
+   * O limite é da camada gratuita e é POR MINUTO; um pedido com `max_tokens`
+   * acima dele nem começa.
+   */
+  maxOutputTokens?: number;
+  /**
    * Preço verificado — ver `ModelPricing`. Ausente = nenhuma reserva de
    * orçamento pode ser calculada para este modelo, texto ou imagem; é o que
    * `decidirExecucao` (execucao.ts) checa antes de reservar qualquer coisa.
@@ -80,7 +90,7 @@ export interface ModelCapabilities {
  * execução antiga continua lendo o preço que valia quando ela aconteceu, em
  * vez de ser reescrita silenciosamente pela mudança.
  */
-export const CATALOGO_VERSION = "2026-09-18";
+export const CATALOGO_VERSION = "2026-09-23";
 
 export interface ModeloDoCatalogo {
   provider: AIProvider;
@@ -135,6 +145,10 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
        * serve de reserva ocasional, não de principal.
        */
       maxImageBytes: 4 * MB,
+      // Camada gratuita: 1.000 tokens de saída POR MINUTO (medido na recusa
+      // de 23/09). ~700 palavras: cabe resposta do chat e prompt; análise
+      // longa pode sair cortada, e a janela avisa. Rever na fase comercial.
+      maxOutputTokens: 1_000,
       pricing: {
         inputPerMillionTokensUsd: 0.8, outputPerMillionTokensUsd: 4, currency: "USD",
         source: "https://console.groq.com/docs/model/qwen/qwen3.8-27b", asOf: "2026-09-23",

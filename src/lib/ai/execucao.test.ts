@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento } from "./execucao";
-import { custoMicros, type ModelPricing } from "./catalogo";
+import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento, tetoDeTokensDeEntrada } from "./execucao";
+import { custoDeReservaMicros, custoMicros, type ModelPricing } from "./catalogo";
 import { buildChatSystemPrompt, buildAnalysisSystemPrompt, type BrandPromptContext } from "./brand-context";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
 import type { LanguageModelUsage } from "ai";
@@ -908,4 +908,28 @@ test("sinal já abortado: NÃO marca exposição — nada saiu, e liberar contin
     false,
     "marcou exposição num pedido que nunca foi despachado",
   );
+});
+
+test("o teto de saída do MODELO vale quando é menor que o da tarefa — e a reserva usa o mesmo número", async () => {
+  /*
+   * Groq gratuito, 23/09/2026: "output tokens per minute (OTPM): Limit 1000,
+   * Requested 1281" — o pedido com max_tokens 2.000 nem começou. O teto do
+   * catálogo (1.000) tem de chegar à chamada E à reserva, pelo mesmo motivo
+   * do teste acima: dois números para "o teto de saída" divergem.
+   */
+  const { cliente, chamadas } = supabaseFalso({
+    reservar_execucao_de_ia_server: RESERVA_OK,
+    kill_switch_ativo: KILL_SWITCH_INATIVO,
+  });
+  const r = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, { provider: "groq", model: "qwen/qwen3.8-27b" });
+  assert.ok(r.pode);
+  assert.equal(r.maxOutputTokens, 1_000);
+  const pricing = r.capabilities.pricing!;
+  const reservado = chamadas.find((c) => c.fn === "reservar_execucao_de_ia_server")!.args.p_reserved_micros as number;
+  const entrada = tetoDeTokensDeEntrada(REQUEST_BASE.task, REQUEST_BASE.role);
+  assert.equal(reservado, custoDeReservaMicros(pricing, { entrada, saida: 1_000 }), "a reserva não usou o teto do modelo");
+  // E um modelo sem teto próprio continua com o teto da tarefa.
+  const outro = await decidirExecucao(cliente, cliente, USER_ID, REQUEST_BASE, PERFIL_SO_TEXTO_COM_PRECO);
+  assert.ok(outro.pode);
+  assert.equal(outro.maxOutputTokens, 2_000);
 });

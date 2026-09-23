@@ -145,7 +145,7 @@ const MARGEM_DE_PROTOCOLO = 1.2;
  * superestimar é seguro porque a consolidação ajusta para o custo real
  * depois.
  */
-function tetoDeTokensDeEntrada(task: AITaskType, role: string): number {
+export function tetoDeTokensDeEntrada(task: AITaskType, role: string): number {
   const papelReal = Math.min(contarCaracteres(role), MAX_CARACTERES_DO_PAPEL_DA_MARCA);
   const base = LIMITES_DE_IA.maxCaracteresDeContexto + BOILERPLATE_DO_PROMPT_DE_SISTEMA[task] + papelReal;
   const comHistorico = task === "assist"
@@ -230,7 +230,9 @@ export async function decidirExecucao(
   // chamada real. Duas variáveis para "o teto de saída" seriam duas chances
   // de divergirem — e a diferença entre elas é exatamente a folga que
   // deixaria uma resposta real custar mais do que a reserva cobriu.
-  const maxOutputTokens = tetoDeTokensDeSaida(request.task);
+  // O menor entre o teto da tarefa e o que o provedor aceita por pedido —
+  // acima deste, o Groq gratuito recusa antes de começar.
+  const maxOutputTokens = Math.min(tetoDeTokensDeSaida(request.task), capabilities.maxOutputTokens ?? Infinity);
   const reservedMicros = custoDeReservaMicros(pricing, {
     entrada: tetoDeTokensDeEntrada(request.task, request.role),
     saida: maxOutputTokens,
