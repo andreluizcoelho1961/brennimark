@@ -170,7 +170,12 @@ test("os modelos do catálogo com imagem computável hoje", () => {
   // 18/09/2026: entrou o Gemini 3.6 Flash, com a fonte oficial do teto de
   // imagem (https://ai.google.dev/gemini-api/docs/media-resolution, 2240
   // tokens no nível mais alto) — no mesmo commit, como este teste exige.
-  assert.deepEqual(comImagemComputavel, ["google:gemini-3.6-flash", "ollama-cloud:gemma4:31b-cloud"]);
+  // 23/09/2026: entrou o Qwen 3.8 27B do Groq, a IA de reserva da fase de
+  // testes — 2.048 tokens por imagem, fonte
+  // https://console.groq.com/docs/model/qwen/qwen3.8-27b.
+  assert.deepEqual(comImagemComputavel, [
+    "groq:qwen/qwen3.8-27b", "google:gemini-3.6-flash", "ollama-cloud:gemma4:31b-cloud",
+  ]);
 });
 
 test("todo modelo com preço verificado cita fonte, data e moeda", () => {

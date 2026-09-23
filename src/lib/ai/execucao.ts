@@ -405,10 +405,11 @@ async function aguardarUsoComTimeout(
  * então mesmo uma corrida aqui seria inofensiva — duas camadas, não uma
  * confiando na outra.
  *
- * Nenhum fallback automático: só `attempts[0]` é tentado, mesmo que
+ * Nenhum fallback automático AQUI: só `attempts[0]` é tentado, mesmo que
  * `attempts` traga mais — a reserva foi calculada para UM preço, e deixar
  * esta função trocar de perfil por conta própria liquidaria com um preço
- * que ninguém reservou.
+ * que ninguém reservou. A troca de IA mora em `executarEmFila`, que reserva
+ * de novo antes de cada tentativa.
  */
 /**
  * O razão não conseguiu registrar que a cobrança ia acontecer.
@@ -612,4 +613,116 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
       await encerrarPosDespacho();
     },
   };
+}
+
+/**
+ * Os bloqueios que dizem respeito a UM modelo — outro modelo da fila pode
+ * passar. Orçamento, pausa e execução repetida valem para a conta inteira: a
+ * fila para neles.
+ */
+const BLOQUEIOS_DO_MODELO: ReadonlySet<MotivoDeBloqueio> = new Set<MotivoDeBloqueio>([
+  "modelo_nao_catalogado", "preco_nao_verificado", "imagem_sem_preco_verificado", "imagem_maior_que_o_limite_do_modelo",
+]);
+
+/**
+ * A fila de IAs: a principal e, se ela falhar ANTES de começar a responder,
+ * a reserva — decisão do André, 23/09/2026 (principal + reserva de outro
+ * provedor, em fila).
+ *
+ * Cada tentativa é uma execução própria no razão, com reserva calculada pelo
+ * preço DAQUELE modelo. É isso que `executarComOrcamento` sozinha não podia
+ * fazer: a reserva dela foi feita para um preço só, e trocar de modelo lá
+ * dentro liquidaria por um preço que ninguém reservou. Aqui a troca passa de
+ * novo por `decidirExecucao` — catálogo, visão, orçamento, pausa — como se
+ * fosse o primeiro pedido.
+ *
+ * A tentativa que falhou já foi liquidada por `executarComOrcamento`: pelo
+ * uso real, se o provedor informou, ou pelo teto reservado, se não. Ela pode
+ * ter chegado ao provedor, e custo desconhecido não vira zero. A fila custa,
+ * no pior caso, o teto da principal mais o da reserva — o preço de responder
+ * em vez de falhar.
+ *
+ * A primeira decisão chega pronta: a rota já a tomou para poder recusar com
+ * a mensagem certa ANTES de abrir o fluxo. As seguintes são tomadas aqui, com
+ * `execution_id` novo — o do cliente identifica o PEDIDO, e só a primeira
+ * tentativa o usa.
+ *
+ * O que NÃO troca de IA:
+ * - falha depois da primeira palavra: a pessoa já está lendo a resposta, e
+ *   emendar outra IA no meio produziria um texto que nenhuma das duas escreveu;
+ * - cancelamento de quem pediu;
+ * - falha em registrar a cobrança — nada foi enviado, e a próxima tentativa
+ *   esbarraria no mesmo razão.
+ */
+export async function executarEmFila<TAttempt extends { config: { provider: string; model: string } }>(
+  params: {
+    supabase: SupabaseClient;
+    serviceClient: SupabaseClient;
+    userId: string;
+    /** O pedido, com o `executionId` da PRIMEIRA tentativa. */
+    request: AIExecutionRequest;
+    attempts: readonly TAttempt[];
+    /** A decisão que a rota já tomou para `attempts[0]`. */
+    primeira: { pricing: ModelPricing; reservedMicros: number; maxOutputTokens: number };
+    firstChunkTimeoutMs: number;
+    usageTimeoutMs?: number;
+    parentSignal?: AbortSignal;
+    validateInitialText?: (text: string, streamEnded: boolean) => "accept" | "continue" | "reject";
+    dispatch: (attempt: TAttempt, signal: AbortSignal, maxOutputTokens: number) => ResultadoDoDespacho;
+    onAttemptStart?: (attempt: TAttempt, index: number) => void;
+    onAttemptFailure?: (attempt: TAttempt, index: number, error: unknown) => void;
+    /** Quando a reserva é recusada — para o log dizer por que a fila parou. */
+    onReservaRecusada?: (attempt: TAttempt, index: number, motivo: MotivoDeBloqueio) => void;
+    /** Só para testes. */
+    novoId?: () => string;
+  },
+): Promise<ExecucaoComOrcamento<TAttempt> & { executionId: string }> {
+  const novoId = params.novoId ?? (() => crypto.randomUUID());
+  const falhas: unknown[] = [];
+
+  for (let indice = 0; indice < params.attempts.length; indice++) {
+    const attempt = params.attempts[indice];
+    let executionId = params.request.executionId;
+    let custo = params.primeira;
+
+    if (indice > 0) {
+      executionId = novoId();
+      const decisao = await decidirExecucao(
+        params.supabase, params.serviceClient, params.userId,
+        { ...params.request, executionId },
+        { provider: attempt.config.provider, model: attempt.config.model },
+      );
+      if (!decisao.pode) {
+        params.onReservaRecusada?.(attempt, indice, decisao.motivo);
+        if (BLOQUEIOS_DO_MODELO.has(decisao.motivo)) continue;
+        break;
+      }
+      custo = { pricing: decisao.capabilities.pricing!, reservedMicros: decisao.reservedMicros, maxOutputTokens: decisao.maxOutputTokens };
+    }
+
+    try {
+      const execucao = await executarComOrcamento({
+        serviceClient: params.serviceClient,
+        userId: params.userId,
+        executionId,
+        pricing: custo.pricing,
+        reservedMicros: custo.reservedMicros,
+        attempts: [attempt],
+        firstChunkTimeoutMs: params.firstChunkTimeoutMs,
+        usageTimeoutMs: params.usageTimeoutMs,
+        parentSignal: params.parentSignal,
+        validateInitialText: params.validateInitialText,
+        onAttemptStart: (a) => params.onAttemptStart?.(a, indice),
+        onAttemptFailure: (a, _i, erro) => params.onAttemptFailure?.(a, indice, erro),
+        dispatch: (a, signal) => params.dispatch(a, signal, custo.maxOutputTokens),
+      });
+      return { ...execucao, fallbackUsed: indice > 0, executionId };
+    } catch (erro) {
+      if (params.parentSignal?.aborted || erro instanceof FalhaDeExposicaoDeCobranca) throw erro;
+      // Achatado: quem trata o erro lê a ÚLTIMA causa (`errors.at(-1)`).
+      falhas.push(...(erro instanceof AggregateError ? erro.errors : [erro]));
+    }
+  }
+
+  throw new AggregateError(falhas, "Todas as IAs da fila falharam antes de iniciar a resposta.");
 }

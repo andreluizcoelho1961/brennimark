@@ -10,7 +10,8 @@ import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/pag
 import { buscarTrechos } from "@/lib/ai/buscar";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
-import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
 import {
   CABECALHO_DE_REGRAS, MAX_CARACTERES_DA_DESCRICAO, consultaDoPrompt, ehTipoDePrompt, regrasDosTrechos, regrasPermitidas,
@@ -104,18 +105,20 @@ export async function POST(request: Request) {
       const { code, message } = semProvedorConfigurado();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
-    const attempts = [routing.attempts[0]];
+    // A fila inteira; a decisão abaixo é da primeira (ver `executarEmFila`).
+    const attempts = routing.attempts;
     executionId = (corpo?.executionId as string | undefined) || crypto.randomUUID();
     const serviceClient = createServiceClient();
+    const pedido = {
+      workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "prompt" as const,
+      role: portao.brand.ai.chatRole, question: descricao, sources: trechosPermitidos,
+    };
 
     const decisao = await decidirExecucao(
       portao.auth.supabase,
       serviceClient,
       portao.auth.user.id,
-      {
-        workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "prompt",
-        role: portao.brand.ai.chatRole, question: descricao, sources: trechosPermitidos,
-      },
+      pedido,
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {
@@ -126,16 +129,20 @@ export async function POST(request: Request) {
     // Medida, não palpite (CLAUDE.md, "instrumentar antes de teorizar"): quanto
     // o provedor levou até a primeira palavra. Sem o texto, que é do cliente.
     const inicioDaEspera = Date.now();
-    const execucao = await executarComOrcamento({
+    const execucao = await executarEmFila({
+      supabase: portao.auth.supabase,
       serviceClient,
       userId: portao.auth.user.id,
-      executionId,
-      pricing: decisao.capabilities.pricing!,
-      reservedMicros: decisao.reservedMicros,
+      request: pedido,
       attempts,
+      primeira: {
+        pricing: decisao.capabilities.pricing!, reservedMicros: decisao.reservedMicros, maxOutputTokens: decisao.maxOutputTokens,
+      },
       firstChunkTimeoutMs: Math.max(routing.timeoutMs, ESPERA_MINIMA_DO_PROMPT_MS),
       parentSignal: request.signal,
-      dispatch: (attempt, abortSignal) => {
+      onAttemptFailure: registrarFalhaNaFila("prompt", executionId),
+      onReservaRecusada: registrarReservaRecusada("prompt", executionId),
+      dispatch: (attempt, abortSignal, tetoDeSaida) => {
         const result = streamText({
           model: getModel(attempt.config),
           system: sistema,
@@ -143,7 +150,7 @@ export async function POST(request: Request) {
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: PROMPT_TIMEOUT_MS },
-          maxOutputTokens: decisao.maxOutputTokens,
+          maxOutputTokens: tetoDeSaida,
           maxRetries: 0,
           onError: ({ error }) => {
             console.error(`[api/ai/prompt] ${attempt.config.provider}/${attempt.config.model}`, error);
@@ -156,7 +163,8 @@ export async function POST(request: Request) {
 
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "prompt", ms: Date.now() - inicioDaEspera,
-      provider: execucao.attempt.config.provider, model: execucao.attempt.config.model, executionId,
+      provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
+      reserva: execucao.fallbackUsed, executionId: execucao.executionId,
     }));
     let primeiro = execucao.firstChunk;
     // O prompt gerado entra na conversa do autor, com as regras que usou —

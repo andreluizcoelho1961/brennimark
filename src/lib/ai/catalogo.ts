@@ -110,10 +110,36 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     capabilities: { text: true, vision: false, streaming: true, maxContextTokens: 131_072 },
   },
   {
-    provider: "groq", model: "qwen/qwen3.6-27b", label: "Qwen 3.6 27B",
+    provider: "groq", model: "qwen/qwen3.8-27b", label: "Qwen 3.8 27B",
     capabilities: {
       text: true, vision: true, streaming: true,
-      maxContextTokens: 131_072, maxImageBytes: 20 * MB,
+      maxContextTokens: 131_072,
+      /*
+       * A IA de reserva da fase de testes — decisão do André, 23/09/2026: fila
+       * Gemini → Groq. Substitui o `qwen3.6-27b`, que saiu da documentação do
+       * Groq; nenhuma conta o usava em produção (conferido em 23/09).
+       *
+       * Preço conferido em https://console.groq.com/docs/model/qwen/qwen3.8-27b
+       * em 2026-09-23, USD por milhão de tokens: entrada 0,80, saída 4,00. É o
+       * modelo com visão do Groq: até 3 imagens, cada uma conta 2.048 tokens
+       * de entrada — o custo da imagem é a taxa de entrada, não preço à parte.
+       *
+       * Imagem: a página fala em 20 MB por URL; o produto manda a imagem
+       * EMBUTIDA (base64), e para isso o Groq documentava 4 MB. Fico com o
+       * menor: recusar uma imagem grande com mensagem clara é melhor que o
+       * provedor recusar no meio da análise.
+       *
+       * ⚖️ Dados: o contrato do Groq (§4.2) proíbe usar entrada e saída para
+       * treinar modelos sem permissão do cliente, e a inferência não é retida
+       * por padrão. Camada gratuita: ~30 pedidos/min e ~8 mil tokens/min —
+       * serve de reserva ocasional, não de principal.
+       */
+      maxImageBytes: 4 * MB,
+      pricing: {
+        inputPerMillionTokensUsd: 0.8, outputPerMillionTokensUsd: 4, currency: "USD",
+        source: "https://console.groq.com/docs/model/qwen/qwen3.8-27b", asOf: "2026-09-23",
+        maxImageTokens: 2048,
+      },
     },
   },
 

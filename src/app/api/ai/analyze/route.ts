@@ -18,7 +18,8 @@ import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
-import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { executarEmFila, decidirExecucao, mensagemDeBloqueio, type AIExecutionRequest } from "@/lib/ai/execucao";
+import { registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
@@ -193,11 +194,12 @@ export async function POST(request: Request) {
   }
 
   /*
-   * Um único perfil, não a lista inteira — `executarComOrcamento` também
-   * ignora qualquer um além do primeiro, mas a decisão (e a reserva) já é
-   * calculada só para este par provedor+modelo.
+   * A fila dos modelos com visão. A decisão (e a reserva) abaixo é da
+   * PRIMEIRA; `executarEmFila` reserva de novo, pelo preço da reserva, antes
+   * de trocar.
    */
-  const visionAttempts = [modelosComVisao[0]];
+  const visionAttempts = modelosComVisao;
+  let pedido: AIExecutionRequest;
   let maxOutputTokens: number;
   let pricing: ModelPricing;
   let reservedMicros: number;
@@ -210,14 +212,15 @@ export async function POST(request: Request) {
     // falhas — não um 500 cru sem explicação.
     serviceClient = createServiceClient();
 
+    pedido = {
+      workspaceId, brandId, executionId, task: "analyse-image", role: analysisRole, question,
+      sources: trechos, image: { mediaType: image.mediaType, sizeBytes: imageBytes },
+    };
     const decisao = await decidirExecucao(
       supabase,
       serviceClient,
       userId,
-      {
-        workspaceId, brandId, executionId, task: "analyse-image", role: analysisRole, question,
-        sources: trechos, image: { mediaType: image.mediaType, sizeBytes: imageBytes },
-      },
+      pedido,
       { provider: visionAttempts[0].config.provider, model: visionAttempts[0].config.model },
     );
     if (!decisao.pode) {
@@ -258,9 +261,11 @@ export async function POST(request: Request) {
       send({ type: "progress", stage: "preparing", message: isEnglish ? "Preparing the image and brand guidelines…" : "Preparando a imagem e as diretrizes da marca…", elapsedMs: 0 });
 
       try {
-        const execucao = await executarComOrcamento({
-          serviceClient, userId, executionId, pricing, reservedMicros,
+        const execucao = await executarEmFila({
+          supabase, serviceClient, userId, request: pedido,
+          primeira: { pricing, reservedMicros, maxOutputTokens },
           attempts: visionAttempts,
+          onReservaRecusada: registrarReservaRecusada("analyze", executionId),
           firstChunkTimeoutMs,
           parentSignal: request.signal,
           onAttemptStart: (attempt, index) => {
@@ -295,7 +300,7 @@ export async function POST(request: Request) {
               error: error instanceof Error ? error.message : String(error),
             }));
           },
-          dispatch: (attempt, abortSignal) => {
+          dispatch: (attempt, abortSignal, tetoDeSaida) => {
             const result = streamText({
               model: getModel(attempt.config),
               system: buildAnalysisSystemPrompt(trechos, brandPrompt),
@@ -315,7 +320,7 @@ export async function POST(request: Request) {
               providerOptions: getAnalysisProviderOptions(attempt.config),
               abortSignal,
               timeout: { totalMs: ANALYSIS_COMPLETION_TIMEOUT_MS },
-              maxOutputTokens,
+              maxOutputTokens: tetoDeSaida,
               maxRetries: 0,
               include: { requestBody: false },
               onError: ({ error }) => {
