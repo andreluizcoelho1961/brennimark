@@ -84,6 +84,13 @@ export function PlatformTopBar({
         <SegmentadoDaMarca manual={segmentado?.manual} materiais={segmentado?.materiais} />
       </div>
 
+      {/*
+        O encaixe das ações da tela aberta — no manual: Índice, Buscar, Zoom,
+        •••. Fica vazio fora do manual; quem o preenche é a própria tela, por
+        portal (`MolduraDoManual.tsx`), e o estado continua com ela.
+      */}
+      <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center lg:flex" />
+
       <div className="ml-auto flex items-center gap-[var(--space-shell-3)]">
         <button
           type="button"
@@ -96,7 +103,7 @@ export function PlatformTopBar({
           <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline">⌘K</kbd>
         </button>
         {userEmail && (
-          <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted md:inline">
+          <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted xl:inline">
             {userEmail}
           </span>
         )}

@@ -72,6 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * O registro de download do manual (fatia 3, 23/09/2026). Tabela nova, sem
+   * dado a migrar: aplicar em produção só com autorização nominal do André,
+   * e então sair daqui com o carimbo alinhado.
+   */
+  "downloads_do_manual",
   // `capacidade_na_marca_permissao_explicita` e `importacao_sem_recursao` saíram
   // daqui em 18/09/2026: aplicadas ao banco hospedado por autorização do André,
   // carimbadas `20260918122014` e `20260918122018`. Conferido depois: a policy de

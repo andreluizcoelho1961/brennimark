@@ -23,7 +23,7 @@ export const metadata = { robots: { index: false, follow: false } };
 export default async function BancadaDoVisualizador({
   searchParams,
 }: {
-  searchParams: Promise<{ fixture?: string; pagina?: string; ir?: string; desmontavel?: string }>;
+  searchParams: Promise<{ fixture?: string; pagina?: string; ir?: string; desmontavel?: string; moldura?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
 
@@ -31,18 +31,30 @@ export default async function BancadaDoVisualizador({
    * Modo fixture: o visualizador sobre um PDF da pasta de testes, sem banco e
    * sem sessão. É o que a suíte de navegador dirige nos três motores.
    */
-  const { fixture, pagina, ir, desmontavel } = await searchParams;
+  const { fixture, pagina, ir, desmontavel, moldura } = await searchParams;
   if (fixture) {
     const numero = Number(pagina);
     // `?desmontavel=1`: com o botão que tira o visualizador sem recarregar.
     const Visualizador = desmontavel ? VisualizadorDesmontavel : VisualizadorDePdf;
     return (
       <main className="flex h-dvh flex-col">
+        {/*
+          `?moldura=1`: uma barra de cima com o MESMO encaixe da moldura real
+          (`PlatformTopBar`), para a suíte dirigir as ações do manual no lugar
+          em que elas ficam em produção — e não só na faixa de reserva.
+        */}
+        {moldura && (
+          <header className="flex h-14 flex-none items-center gap-4 border-b border-platform-border bg-platform-bg px-4">
+            <span className="text-[13px] font-semibold text-platform-text">Bancada</span>
+            <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center lg:flex" />
+          </header>
+        )}
         <Visualizador
           documentoId="fixture"
           origem={`/dev/fixture/${encodeURIComponent(fixture)}`}
           className="min-h-0 flex-1"
           paginaPedida={Number.isInteger(numero) && numero >= 1 ? { pagina: numero, pedido: ir ?? "" } : undefined}
+          nomeDoArquivo={fixture}
         />
       </main>
     );
