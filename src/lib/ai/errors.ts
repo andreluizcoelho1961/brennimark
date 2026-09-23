@@ -108,8 +108,10 @@ export function classifyAIError(
       return {
         code: "timed_out",
         message: isEnglish
-          ? "The configured AIs took longer than the limit. Try again; if this persists, choose a faster visual AI in settings."
-          : "As IAs configuradas demoraram além do limite. Tente novamente; se isso persistir, escolha uma IA visual mais rápida nas configurações.",
+          // Até 23/09 mandava "escolher uma IA visual mais rápida" — sem sentido
+          // para a pergunta ou o prompt, e dito a quem não configura nada.
+          ? "The AI took too long to start answering. Try again in a moment; the provider may be overloaded."
+          : "A IA demorou demais para começar a responder. Tente de novo daqui a pouco; o provedor pode estar sobrecarregado.",
       };
     }
     return { code: "unknown", message: mensagemGenerica(), detalheTecnico: error.message };
