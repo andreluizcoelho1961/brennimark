@@ -42,6 +42,16 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 const t = (pt: string, en: string) => (isEnglish ? en : pt);
 const PROMPT_TIMEOUT_MS = 60_000;
+/**
+ * A espera pela PRIMEIRA palavra do prompt: no mínimo 45 s.
+ *
+ * O copiloto reaproveitava a espera da política do chat (20 s no Ensaio), e
+ * compor um prompt a partir de várias seções do manual pesa mais que responder
+ * uma pergunta: no ensaio de 23/09 o Gemini passou dos 20 s sem começar.
+ * Esperar um pouco mais é melhor que falhar; a política do chat, se maior,
+ * continua valendo.
+ */
+const ESPERA_MINIMA_DO_PROMPT_MS = 45_000;
 
 export const maxDuration = 120;
 
@@ -113,6 +123,9 @@ export async function POST(request: Request) {
     }
 
     const sistema = sistemaDoCopiloto(permitidas, tipo, portao.brand.brand.name);
+    // Medida, não palpite (CLAUDE.md, "instrumentar antes de teorizar"): quanto
+    // o provedor levou até a primeira palavra. Sem o texto, que é do cliente.
+    const inicioDaEspera = Date.now();
     const execucao = await executarComOrcamento({
       serviceClient,
       userId: portao.auth.user.id,
@@ -120,7 +133,7 @@ export async function POST(request: Request) {
       pricing: decisao.capabilities.pricing!,
       reservedMicros: decisao.reservedMicros,
       attempts,
-      firstChunkTimeoutMs: routing.timeoutMs,
+      firstChunkTimeoutMs: Math.max(routing.timeoutMs, ESPERA_MINIMA_DO_PROMPT_MS),
       parentSignal: request.signal,
       dispatch: (attempt, abortSignal) => {
         const result = streamText({
@@ -141,6 +154,10 @@ export async function POST(request: Request) {
       },
     });
 
+    console.info(JSON.stringify({
+      level: "info", msg: "ai_primeira_palavra", rota: "prompt", ms: Date.now() - inicioDaEspera,
+      provider: execucao.attempt.config.provider, model: execucao.attempt.config.model, executionId,
+    }));
     let primeiro = execucao.firstChunk;
     // O prompt gerado entra na conversa do autor, com as regras que usou —
     // a trilha que o ADR-0004 §3.5 pede, legível só por quem gerou.

@@ -152,6 +152,8 @@ export async function POST(request: Request) {
     }
     maxOutputTokens = decisao.maxOutputTokens;
 
+    // Medida, não palpite: quanto o provedor levou até a primeira palavra.
+    const inicioDaEspera = Date.now();
     const execucao = await executarComOrcamento({
       serviceClient,
       userId: portao.auth.user.id,
@@ -184,6 +186,10 @@ export async function POST(request: Request) {
       },
     });
 
+    console.info(JSON.stringify({
+      level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
+      provider: execucao.attempt.config.provider, model: execucao.attempt.config.model, executionId,
+    }));
     let firstChunk = execucao.firstChunk;
     // A resposta inteira, para guardar na conversa do autor quando acabar
     // (fatia 4d). Sem `conversaId` válido, nada se guarda.
