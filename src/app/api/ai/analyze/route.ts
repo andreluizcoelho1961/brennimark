@@ -4,7 +4,7 @@ import { streamText } from "ai";
 // virar fluxo vazio (ver `lib/ai/texto-do-fluxo.ts`).
 import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getModel, supportsVision } from "@/lib/ai/provider";
+import { getModel, supportsVision, getAnalysisProviderOptions } from "@/lib/ai/provider";
 import type { ModelPricing } from "@/lib/ai/catalogo";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
@@ -312,6 +312,7 @@ export async function POST(request: Request) {
                   ],
                 },
               ],
+              providerOptions: getAnalysisProviderOptions(attempt.config),
               abortSignal,
               timeout: { totalMs: ANALYSIS_COMPLETION_TIMEOUT_MS },
               maxOutputTokens,
