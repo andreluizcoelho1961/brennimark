@@ -14,7 +14,8 @@ import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
-import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
+import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
 import { brandPromptContext } from "@/lib/brandville/context";
 import type { BrandPromptContext } from "@/lib/ai/brand-context";
@@ -124,10 +125,9 @@ export async function POST(request: Request) {
       const { code, message } = semProvedorConfigurado();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
-    // Só o primeiro perfil chega a `executarComOrcamento` — ela mesma
-    // ignora qualquer outro, mas nem monta a lista maior aqui: a reserva
-    // abaixo é calculada para ESTE par provedor+modelo.
-    attempts = [routing.attempts[0]];
+    // A fila inteira: principal e reserva. A reserva abaixo é da PRIMEIRA;
+    // `executarEmFila` reserva de novo, pelo preço dela, antes de cada troca.
+    attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
 
     // Cliente de serviço — chave sb_secret_..., só para as três mutações
@@ -154,19 +154,24 @@ export async function POST(request: Request) {
 
     // Medida, não palpite: quanto o provedor levou até a primeira palavra.
     const inicioDaEspera = Date.now();
-    const execucao = await executarComOrcamento({
+    const execucao = await executarEmFila({
+      supabase: portao.auth.supabase,
       serviceClient,
       userId: portao.auth.user.id,
-      executionId,
+      request: {
+        workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
+        role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: trechos,
+      },
+      attempts,
       // decidirExecucao só devolve pode:true com preço verificado — a
       // checagem que bloqueia antes de chegar aqui — não-nulo garantido.
-      pricing: decisao.capabilities.pricing!,
-      reservedMicros: decisao.reservedMicros,
-      attempts,
+      primeira: { pricing: decisao.capabilities.pricing!, reservedMicros: decisao.reservedMicros, maxOutputTokens },
       firstChunkTimeoutMs,
       parentSignal: request.signal,
       validateInitialText: evaluateChatInitialText,
-      dispatch: (attempt, abortSignal) => {
+      onAttemptFailure: registrarFalhaNaFila("chat", executionId),
+      onReservaRecusada: registrarReservaRecusada("chat", executionId),
+      dispatch: (attempt, abortSignal, tetoDeSaida) => {
         const result = streamText({
           model: getModel(attempt.config),
           system: buildChatSystemPrompt(trechos, brandPrompt),
@@ -174,7 +179,7 @@ export async function POST(request: Request) {
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: CHAT_TIMEOUT_MS },
-          maxOutputTokens,
+          maxOutputTokens: tetoDeSaida,
           maxRetries: 0,
           onError: ({ error }) => {
             console.error(`[api/ai/chat] ${attempt.config.provider}/${attempt.config.model}`, error);
@@ -188,7 +193,8 @@ export async function POST(request: Request) {
 
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
-      provider: execucao.attempt.config.provider, model: execucao.attempt.config.model, executionId,
+      provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
+      reserva: execucao.fallbackUsed, executionId: execucao.executionId,
     }));
     let firstChunk = execucao.firstChunk;
     // A resposta inteira, para guardar na conversa do autor quando acabar
