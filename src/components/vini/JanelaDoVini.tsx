@@ -5,6 +5,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import type { DestinoDaMarca } from "@/components/shell/coluna";
 import { RespostaDoVini } from "./RespostaDoVini";
+import { PainelDaAnalise } from "./PainelDaAnalise";
+import { useAnaliseDaPeca } from "./useAnaliseDaPeca";
+import { FORMATOS_DA_PECA } from "@/lib/ai/peca";
 import { useConversaDaMarca } from "./useConversaDaMarca";
 
 /**
@@ -47,13 +50,22 @@ export function JanelaDoVini({
   const t = (pt: string, en: string) => (isEnglish ? en : pt);
   const [aberta, setAberta] = useState(false);
   const [texto, setTexto] = useState("");
+  // "conversa" (~440 px) ou "analise" (~600 px, altura inteira) — spec §2.
+  const [modo, setModo] = useState<"conversa" | "analise">("conversa");
+  const [perguntaDaPeca, setPerguntaDaPeca] = useState("");
+  const [arrastando, setArrastando] = useState(false);
+  const arquivo = useRef<HTMLInputElement>(null);
+  const analise = useAnaliseDaPeca();
   const botao = useRef<HTMLButtonElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const rolo = useRef<HTMLDivElement>(null);
   const conversa = useConversaDaMarca();
 
   const temChat = destinos.some((d) => temSegmento(d.href, "chat"));
-  const outros = destinos.filter((d) => !temSegmento(d.href, "chat"));
+  const temAnalise = destinos.some((d) => temSegmento(d.href, "analise"));
+  // Perguntar e analisar acontecem NA janela; o que ainda mora fora (o
+  // histórico, até a 4d) fica no rodapé.
+  const outros = destinos.filter((d) => !temSegmento(d.href, "chat") && !temSegmento(d.href, "analise"));
 
   useEffect(() => {
     if (!aberta) return;
@@ -73,6 +85,20 @@ export function JanelaDoVini({
 
   if (destinos.length === 0) return null;
 
+  /** A peça chega (clipe ou soltar): a janela entra em Análise. Recusada,
+   *  também entra — é lá que a recusa diz qual limite barrou. */
+  async function receber(peca: File | undefined) {
+    if (!peca || !temAnalise) return;
+    setModo("analise");
+    setAberta(true);
+    await analise.escolher(peca);
+  }
+
+  function analisarPeca(evento?: FormEvent) {
+    evento?.preventDefault();
+    void analise.analisar(perguntaDaPeca);
+  }
+
   function enviar(evento?: FormEvent) {
     evento?.preventDefault();
     if (conversa.perguntar(texto)) setTexto("");
@@ -88,13 +114,34 @@ export function JanelaDoVini({
           id="vini-janela"
           data-vini-janela
           aria-label="Vini"
-          className="pointer-events-auto flex h-[min(70dvh,40rem)] w-[min(27.5rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[var(--radius-entry,12px)] border border-platform-border bg-platform-panel shadow-[0_16px_40px_rgba(0,0,0,0.28)]"
+          data-modo={modo}
+          onDragOver={temAnalise ? (e) => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); setArrastando(true); } } : undefined}
+          onDragLeave={temAnalise ? (e) => { if (e.currentTarget === e.target) setArrastando(false); } : undefined}
+          onDrop={temAnalise ? (e) => { e.preventDefault(); setArrastando(false); void receber(e.dataTransfer.files[0]); } : undefined}
+          className={`pointer-events-auto relative flex flex-col overflow-hidden rounded-[var(--radius-entry,12px)] border bg-platform-panel shadow-[0_16px_40px_rgba(0,0,0,0.28)] ${
+            modo === "analise"
+              ? "h-[calc(100dvh-6.5rem)] w-[min(37.5rem,calc(100vw-2rem))]"
+              : "h-[min(70dvh,40rem)] w-[min(27.5rem,calc(100vw-2rem))]"
+          } ${arrastando ? "border-platform-signal" : "border-platform-border"}`}
         >
+          {arrastando && (
+            <div aria-hidden className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-platform-panel/90 text-[14px] text-platform-text">
+              {t("Solte a peça para analisar", "Drop the piece to review it")}
+            </div>
+          )}
           <header className="flex items-center justify-between gap-3 border-b border-platform-border px-[var(--space-shell-4)] py-[var(--space-shell-3)]">
             <div>
-              <p className="text-[14px] font-semibold text-platform-text">Vini</p>
+              <p className="text-[14px] font-semibold text-platform-text">
+                {modo === "analise" ? t("Vini · Análise de peça", "Vini · Piece review") : "Vini"}
+              </p>
               <p className="text-[12px] text-platform-text-muted">{t("Curador do manual desta marca", "Curator of this brand's manual")}</p>
             </div>
+            {modo === "analise" && temChat && (
+              <button type="button" data-voltar-a-conversa onClick={() => setModo("conversa")}
+                className="ml-auto text-[12px] text-platform-text-muted underline-offset-4 hover:text-platform-text hover:underline">
+                {t("← Conversa", "← Conversation")}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => { setAberta(false); botao.current?.focus(); }}
@@ -105,6 +152,12 @@ export function JanelaDoVini({
             </button>
           </header>
 
+          {modo === "analise" ? (
+            <div aria-live="polite" aria-busy={analise.analisando} data-vini-analise
+              className="min-h-0 flex-1 overflow-y-auto px-[var(--space-shell-4)] py-[var(--space-shell-4)]">
+              <PainelDaAnalise analise={analise} basePath={basePath} />
+            </div>
+          ) : (
           <div
             ref={rolo}
             role="log"
@@ -164,10 +217,34 @@ export function JanelaDoVini({
               </div>
             )}
           </div>
+          )}
 
           <footer className="border-t border-platform-border px-[var(--space-shell-4)] py-[var(--space-shell-3)]">
-            {temChat && (
+            {temAnalise && (
+              <input ref={arquivo} type="file" hidden data-arquivo-da-peca
+                accept={FORMATOS_DA_PECA.join(",")}
+                onChange={(e) => { void receber(e.target.files?.[0]); e.target.value = ""; }} />
+            )}
+            {modo === "analise" ? (
+              <form onSubmit={analisarPeca} className="flex items-end gap-2">
+                <BotaoDoClipe aoClicar={() => arquivo.current?.click()} rotulo={t("Escolher outra peça", "Choose another piece")} />
+                <input
+                  value={perguntaDaPeca}
+                  onChange={(e) => setPerguntaDaPeca(e.target.value)}
+                  placeholder={t("O que conferir? (opcional)", "What to check? (optional)")}
+                  aria-label={t("Pergunta sobre a peça", "Question about the piece")}
+                  className="h-10 min-w-0 flex-1 border border-platform-border bg-transparent px-3 text-[14px] text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal focus:outline-none"
+                />
+                <button type="submit" disabled={!analise.peca || analise.analisando}
+                  className="h-10 bg-platform-signal px-4 text-[12px] font-semibold text-platform-bg disabled:opacity-40">
+                  {analise.analisando ? t("Analisando…", "Reviewing…") : t("Analisar", "Review")}
+                </button>
+              </form>
+            ) : temChat && (
               <form onSubmit={enviar} className="flex items-end gap-2">
+                {temAnalise && (
+                  <BotaoDoClipe aoClicar={() => arquivo.current?.click()} rotulo={t("Anexar peça para análise", "Attach a piece to review")} />
+                )}
                 <textarea
                   ref={campo}
                   value={texto}
@@ -193,6 +270,12 @@ export function JanelaDoVini({
                   </button>
                 )}
               </form>
+            )}
+            {modo === "conversa" && !temChat && temAnalise && (
+              <button type="button" onClick={() => setModo("analise")}
+                className="text-[13px] text-platform-text underline underline-offset-4">
+                {t("Analisar uma peça", "Review a piece")}
+              </button>
             )}
             {outros.length > 0 && (
               <nav aria-label={t("Mais do Vini", "More from Vini")} className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
@@ -227,5 +310,17 @@ export function JanelaDoVini({
         {aberta ? t("Recolher", "Collapse") : t("Pergunte ao Vini", "Ask Vini")}
       </button>
     </div>
+  );
+}
+
+/** O clipe: anexar a peça. Alvo de 40 px, rótulo acessível — o desenho não nomeia. */
+function BotaoDoClipe({ aoClicar, rotulo }: { aoClicar: () => void; rotulo: string }) {
+  return (
+    <button type="button" onClick={aoClicar} aria-label={rotulo} title={rotulo} data-clipe-da-peca
+      className="flex h-10 w-10 flex-none items-center justify-center border border-platform-border text-platform-text-muted hover:text-platform-text focus-visible:outline-2 focus-visible:outline-platform-focus">
+      <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 11.5l-7.8 7.8a5 5 0 01-7.1-7.1l8.5-8.5a3.3 3.3 0 014.7 4.7l-8.5 8.5a1.7 1.7 0 01-2.4-2.4l7.8-7.8" />
+      </svg>
+    </button>
   );
 }

@@ -185,3 +185,159 @@ test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
   await expect(page.locator("[data-incompleta]")).toHaveCount(0);
   await expect(page.locator("[data-vini-aviso]")).toHaveCount(0);
 });
+
+// ─── Fatia 4b: analisar a peça dentro da janela ────────────────────────────
+
+const PNG_1PX = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+async function comAnalise(page: Page, veredito: string, enviados?: unknown[]) {
+  await page.route("**/api/ai/analyze**", async (rota) => {
+    enviados?.push(rota.request().postDataJSON());
+    const linhas = [
+      { type: "progress", stage: "preparing", message: "Preparando", elapsedMs: 0 },
+      { type: "progress", stage: "consulting", message: "Consultando", elapsedMs: 10 },
+      {
+        type: "complete",
+        analysis: {
+          verdict: veredito,
+          evidence: ["Cluster em vermelho no canto"],
+          rules: ["Clusters devem ser sempre azuis [Fonte: Cluster Colours — UNDER REVIEW · /docs/cluster]"],
+          problems: ["O cluster está vermelho [Fonte: Cluster Colours — UNDER REVIEW · /docs/cluster]"],
+          impact: "", correction: "Trocar o cluster para o azul.", confidence: "Alta",
+          sources: [], raw: "",
+        },
+        isDemo: false, provider: "google", model: "gemini-3.6-flash", fallbackUsed: false, elapsedMs: 20,
+        attempts: [], historyId: "h1", historySaved: true, imageSaved: true,
+        paginas: { "/docs/cluster": 12 },
+      },
+    ];
+    await rota.fulfill({
+      status: 200, contentType: "application/x-ndjson",
+      body: linhas.map((l) => JSON.stringify(l)).join("\n") + "\n",
+    });
+  });
+}
+
+test("a peça entra pelo clipe, a janela alarga e a análise aparece nela", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comAnalise(page, "Desalinhada", enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  const janela = page.locator("[data-vini-janela]");
+  const estreita = (await janela.boundingBox())!.width;
+
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({ name: "cartaz.png", mimeType: "image/png", buffer: PNG_1PX });
+
+  await expect(janela).toHaveAttribute("data-modo", "analise");
+  await expect(janela.getByRole("img", { name: "Peça: cartaz.png" })).toBeVisible();
+  expect((await janela.boundingBox())!.width, "a janela não alargou para a análise").toBeGreaterThan(estreita + 100);
+
+  await janela.getByRole("textbox", { name: "Pergunta sobre a peça" }).fill("o cluster está certo?");
+  await janela.getByRole("button", { name: "Analisar" }).click();
+
+  const resultado = janela.locator("[data-analise-resultado]");
+  await expect(resultado.locator("[data-veredito]")).toHaveAttribute("data-veredito", "misaligned");
+  await expect(resultado.locator("[data-veredito]")).toHaveText("Desalinhada");
+  await expect(resultado.getByRole("heading", { name: "Problemas" })).toBeVisible();
+  await expect(resultado).toContainText("Trocar o cluster para o azul.");
+  // A citação da análise também leva à página.
+  await expect(resultado.locator("[data-citacao]").first()).toHaveAttribute("href", /original\?pagina=12/);
+  await expect(resultado).toContainText("Guardada no histórico");
+  // Nada de navegar: a análise acontece na janela.
+  await expect(page).toHaveURL(/\/dev\/marcas/);
+
+  const corpo = enviados[0] as { fileName: string; question: string; imageBase64: string };
+  expect(corpo.fileName).toBe("cartaz.png");
+  expect(corpo.question).toBe("o cluster está certo?");
+  expect(corpo.imageBase64).toMatch(/^data:image\/png;base64,/);
+
+  // Voltar à conversa não perde nada, e a janela volta ao tamanho de conversa.
+  await janela.locator("[data-voltar-a-conversa]").click();
+  await expect(janela).toHaveAttribute("data-modo", "conversa");
+});
+
+test("o que passa fica em tinta; só o que reprova ganha cor forte", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comAnalise(page, "Alinhada");
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({ name: "ok.png", mimeType: "image/png", buffer: PNG_1PX });
+  await page.getByRole("button", { name: "Analisar" }).click();
+  const selo = page.locator("[data-veredito]");
+  await expect(selo).toHaveAttribute("data-veredito", "aligned");
+  await expect(selo).not.toHaveClass(/platform-danger/);
+});
+
+test("soltar a peça na janela também serve", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comAnalise(page, "Alinhada");
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+
+  const transferencia = await page.evaluateHandle((b64) => {
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const dt = new DataTransfer();
+    dt.items.add(new File([bytes], "solta.png", { type: "image/png" }));
+    return dt;
+  }, PNG_1PX.toString("base64"));
+  await page.locator("[data-vini-janela]").dispatchEvent("drop", { dataTransfer: transferencia });
+
+  await expect(page.locator("[data-vini-janela]")).toHaveAttribute("data-modo", "analise");
+  await expect(page.getByRole("img", { name: "Peça: solta.png" })).toBeVisible();
+});
+
+test("peça recusada diz qual limite barrou, e nada vai ao servidor", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comAnalise(page, "Alinhada", enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({ name: "manual.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4") });
+  await expect(page.locator("[data-analise-erro]")).toContainText("este arquivo é application/pdf");
+
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({
+    name: "enorme.png", mimeType: "image/png", buffer: Buffer.alloc(10 * 1024 * 1024 + 1),
+  });
+  await expect(page.locator("[data-analise-erro]")).toContainText("o limite é 10 MB por imagem");
+  await expect(page.getByRole("button", { name: "Analisar" })).toBeDisabled();
+  expect(enviados).toEqual([]);
+});
+
+test("marca sem análise contratada não oferece o clipe", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/dev/marcas?marca=institucional");
+  await page.locator("[data-botao-do-vini]").click();
+  await expect(page.locator("[data-clipe-da-peca]")).toHaveCount(0);
+  await expect(page.locator("[data-arquivo-da-peca]")).toHaveCount(0);
+});
+
+test("a imagem com as correções baixa como PNG: a peça intacta e o painel ao lado", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comAnalise(page, "Desalinhada");
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({ name: "Campanha Outono.png", mimeType: "image/png", buffer: PNG_1PX });
+  await page.getByRole("button", { name: "Analisar" }).click();
+  await expect(page.locator("[data-analise-resultado]")).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.locator("[data-baixar-prancha]").click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("Campanha-Outono-analise.png");
+
+  const bytes = await (await import("node:fs/promises")).readFile(await download.path());
+  // Assinatura PNG, e as dimensões do cabeçalho IHDR.
+  expect(bytes.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");
+  const largura = bytes.readUInt32BE(16);
+  const altura = bytes.readUInt32BE(20);
+  // Peça de 1 px + painel de no mínimo 560 px + margens: a prancha é o painel,
+  // não a peça esticada.
+  expect(largura).toBeGreaterThanOrEqual(560 + 3 * 56);
+  expect(altura).toBeGreaterThan(200);
+});

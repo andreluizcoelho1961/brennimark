@@ -12,6 +12,7 @@ import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { persistAnalysisRun, type AnalysisAuthContext } from "@/lib/analysis/server";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
+import { mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";
 import { executarComOrcamento, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
@@ -35,7 +36,7 @@ type AttemptLog = {
 
 type AnalysisEvent =
   | { type: "progress"; stage: "preparing" | "consulting" | "fallback" | "verifying"; message: string; provider?: string; model?: string; elapsedMs: number }
-  | { type: "complete"; analysis: ReturnType<typeof parseAnalysisText>; isDemo: boolean; provider: string; model: string; fallbackUsed: boolean; elapsedMs: number; attempts: AttemptLog[]; historyId: string | null; historySaved: boolean; imageSaved: boolean }
+  | { type: "complete"; analysis: ReturnType<typeof parseAnalysisText>; isDemo: boolean; provider: string; model: string; fallbackUsed: boolean; elapsedMs: number; attempts: AttemptLog[]; historyId: string | null; historySaved: boolean; imageSaved: boolean; paginas: Record<string, number> }
   | { type: "error"; error: string; message: string; elapsedMs: number };
 
 function parseImageDataUrl(value: string) {
@@ -394,6 +395,9 @@ export async function POST(request: Request) {
             historyId,
             historySaved,
             imageSaved,
+            // As páginas dos trechos entregues ao modelo: a citação da análise
+            // leva o PDF à página, como a do chat (lib/ai/paginas-citadas.ts).
+            paginas: mapaDePaginas(trechos),
           });
           console.log(JSON.stringify({
             level: "info",
