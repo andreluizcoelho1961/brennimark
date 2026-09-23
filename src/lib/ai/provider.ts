@@ -76,8 +76,27 @@ export function getModel(config: AIProviderConfig): LanguageModel {
   }
 }
 
+/**
+ * O nível de raciocínio do Gemini 3: BAIXO — ensaio de 19 e 23/09/2026.
+ *
+ * O Gemini 3.6 "pensa" antes de escrever, e o pensamento conta como saída.
+ * No nível padrão: o chat gastou ~680 de 709 tokens pensando e parou no meio
+ * da frase; a análise de uma imagem de 250 KB passou 30 s sem produzir uma
+ * palavra (`O provedor não iniciou a resposta em 30000ms`). As respostas
+ * daqui CITAM o manual — o trabalho é achar e mostrar, não deduzir —, e
+ * raciocínio longo compra pouco a esse custo de espera.
+ *
+ * Vale para a família 3 (a 2.5 usa `thinkingBudget`, e fica como está).
+ * Voltar atrás é trocar "low" por "medium" ou tirar a linha.
+ */
+function opcoesDoGemini(config: AIProviderConfig) {
+  if (config.provider !== "google" || !/^gemini-3/.test(config.model)) return undefined;
+  return { google: { thinkingConfig: { thinkingLevel: "low" as const } } };
+}
+
 /** Provider-specific latency controls kept behind the provider boundary. */
 export function getChatProviderOptions(config: AIProviderConfig) {
+  if (config.provider === "google") return opcoesDoGemini(config);
   if (config.provider !== "groq") return undefined;
 
   return {
@@ -86,6 +105,11 @@ export function getChatProviderOptions(config: AIProviderConfig) {
       reasoningEffort: config.model.startsWith("qwen/") ? ("none" as const) : ("low" as const),
     },
   };
+}
+
+/** O mesmo controle de espera, para a análise de peça (imagem). */
+export function getAnalysisProviderOptions(config: AIProviderConfig) {
+  return opcoesDoGemini(config);
 }
 
 export const PROVIDERS: { value: AIProvider; label: string }[] = [
