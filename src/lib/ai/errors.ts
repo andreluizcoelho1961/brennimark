@@ -6,6 +6,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
 export type AIErrorCode =
   | "invalid_key"
   | "rate_limited"
+  | "overloaded"
   | "model_unavailable"
   | "timed_out"
   | "no_provider"
@@ -48,19 +49,44 @@ export function semProvedorConfigurado(): { code: "no_provider"; message: string
   };
 }
 
+/**
+ * Provedor sobrecarregado — ensaio de 23/09/2026.
+ *
+ * O Google respondeu "This model is currently experiencing high demand" e a
+ * tela disse "não foi possível falar com o provedor", que soa como defeito
+ * nosso e não diz o que fazer. Sobrecarga é do PROVEDOR, passa em minutos, e
+ * a pessoa precisa saber as duas coisas. 503 é o código do Google para isso
+ * ("UNAVAILABLE"); 529 é o da Anthropic; o texto cobre quem manda outro.
+ */
+const SOBRECARGA = /high demand|overloaded|over capacity|temporarily unavailable|\bUNAVAILABLE\b/i;
+
+function sobrecarga(): { code: "overloaded"; message: string } {
+  return {
+    code: "overloaded",
+    message: isEnglish
+      ? "The AI model is overloaded right now — high demand at the provider. This usually clears in a few minutes; try again shortly."
+      : "O modelo de IA está sobrecarregado agora — alta demanda no provedor. Isso costuma passar em alguns minutos; tente de novo daqui a pouco.",
+  };
+}
+
 export function classifyAIError(
   error: unknown,
 ): { code: AIErrorCode; message: string; detalheTecnico?: string } {
   if (APICallError.isInstance(error)) {
+    if (error.statusCode === 503 || error.statusCode === 529 || SOBRECARGA.test(error.message)) {
+      return { ...sobrecarga(), detalheTecnico: error.message };
+    }
     if (error.statusCode === 401 || error.statusCode === 403) {
       return { code: "invalid_key", message: isEnglish ? "Invalid API key or no permission for this model." : "Chave de API inválida ou sem permissão para esse modelo." };
     }
     if (error.statusCode === 429) {
       return {
         code: "rate_limited",
+        // Até 23/09 esta frase mandava "configurar a própria chave no modo
+        // demo" — um modo que não existe mais, dito a quem só consulta.
         message: isEnglish
-          ? "Request limit exceeded. If you're in demo mode, configure your own key in Settings — Connect Your AI."
-          : "Limite de requisições excedido. Se estiver no modo demo, configure sua própria chave em Configurações — Conecte sua IA.",
+          ? "The AI provider's usage limit was reached. Try again in a few minutes; if it persists, tell whoever administers the account."
+          : "O limite de uso do provedor de IA foi atingido. Tente de novo em alguns minutos; se continuar, avise quem administra a conta.",
       };
     }
     if (error.statusCode === 404) {
@@ -74,6 +100,9 @@ export function classifyAIError(
     // consulta precisa saber a quem pedir, e não qual variável falta.
     if (error.name === "SemProvedorDeIA") {
       return { ...semProvedorConfigurado(), detalheTecnico: error.message };
+    }
+    if (SOBRECARGA.test(error.message)) {
+      return { ...sobrecarga(), detalheTecnico: error.message };
     }
     if (error.name === "TimeoutError" || /aborted due to timeout|timed?\s*out|não iniciou a resposta|didn.t start responding/i.test(error.message)) {
       return {

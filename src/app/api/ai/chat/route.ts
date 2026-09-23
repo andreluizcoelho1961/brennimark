@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { streamText, type ModelMessage } from "ai";
+// Lê o fluxo COMPLETO: o erro do provedor chega a `classifyAIError` em vez de
+// virar fluxo vazio (ver `lib/ai/texto-do-fluxo.ts`).
+import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
@@ -175,7 +178,7 @@ export async function POST(request: Request) {
         });
         // Guardado para o fim do fluxo: é o provedor dizendo POR QUE parou.
         fimDoProvedor = { unificado: result.finishReason, bruto: result.rawFinishReason };
-        return { textStream: result.textStream, usage: result.usage };
+        return { textStream: textoOuErro(result.fullStream), usage: result.usage };
       },
     });
 

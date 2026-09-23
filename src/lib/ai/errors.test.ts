@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { APICallError } from "ai";
 import { classifyAIError } from "./errors";
 
 /**
@@ -52,4 +53,32 @@ test("erro desconhecido não expõe a mensagem original", () => {
 test("o que não é Error também não vaza", () => {
   const { message } = classifyAIError({ segredo: "hunter2" });
   assert.ok(!message.includes("hunter2"));
+});
+
+test("sobrecarga do provedor tem mensagem própria — não é 'não foi possível falar'", () => {
+  // A resposta literal do Google no ensaio de 23/09.
+  const doGoogle = new APICallError({
+    message: "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.",
+    url: "https://generativelanguage.googleapis.com/", requestBodyValues: {}, statusCode: 503,
+  });
+  const r = classifyAIError(doGoogle);
+  assert.equal(r.code, "overloaded");
+  assert.match(r.message, /sobrecarregado/);
+  assert.match(r.message, /alguns minutos/);
+  // O texto do provedor fica para o log, não para a tela.
+  assert.ok(!r.message.includes("high demand"));
+  assert.match(r.detalheTecnico ?? "", /high demand/);
+});
+
+test("sobrecarga reconhecida pelo código, mesmo com texto diferente", () => {
+  const anthropic = new APICallError({ message: "Overloaded", url: "x", requestBodyValues: {}, statusCode: 529 });
+  assert.equal(classifyAIError(anthropic).code, "overloaded");
+  const semTexto = new APICallError({ message: "", url: "x", requestBodyValues: {}, statusCode: 503 });
+  assert.equal(classifyAIError(semTexto).code, "overloaded");
+});
+
+test("limite de uso não manda mais configurar 'modo demo'", () => {
+  const r = classifyAIError(new APICallError({ message: "quota", url: "x", requestBodyValues: {}, statusCode: 429 }));
+  assert.equal(r.code, "rate_limited");
+  assert.doesNotMatch(r.message, /demo/i);
 });
