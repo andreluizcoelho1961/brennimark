@@ -4,6 +4,8 @@ import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting } from "@/lib/ai/settings";
 import { marcaDeFim } from "@/lib/ai/fim-da-resposta";
+import { idDeConversa } from "@/lib/ai/conversas";
+import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
@@ -140,6 +142,10 @@ export async function POST(request: Request) {
     });
 
     let primeiro = execucao.firstChunk;
+    // O prompt gerado entra na conversa do autor, com as regras que usou —
+    // a trilha que o ADR-0004 §3.5 pede, legível só por quem gerou.
+    let promptInteiro = primeiro;
+    const conversaId = idDeConversa(corpo?.conversaId);
     const encoder = new TextEncoder();
     const fluxo = new ReadableStream<Uint8Array>({
       async pull(controller) {
@@ -160,10 +166,22 @@ export async function POST(request: Request) {
               console.warn(JSON.stringify({ level: "warn", msg: "ai_resposta_incompleta", motivo, motivoDoProvedor: bruto ?? null, executionId }));
               controller.enqueue(encoder.encode(marca));
             }
+            if (conversaId) {
+              await guardarTroca({
+                supabase: portao.auth.supabase, conversaId,
+                workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, autor: portao.auth.user.id,
+                pergunta: descricao,
+                resposta: {
+                  conteudo: promptInteiro, tipo: "prompt", regras: resumoDasRegras(permitidas),
+                  paginas: mapaDePaginas(trechosPermitidos), incompleta: Boolean(marca),
+                },
+              });
+            }
             execucao.cleanup();
             controller.close();
             return;
           }
+          promptInteiro += next.value;
           controller.enqueue(encoder.encode(next.value));
         } catch (error) {
           execucao.cleanup();

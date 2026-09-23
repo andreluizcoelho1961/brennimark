@@ -94,6 +94,7 @@ const V2 = [
   "src/components/vini/JanelaDoVini.tsx",
   "src/components/vini/PainelDaAnalise.tsx",
   "src/components/vini/PainelDoPrompt.tsx",
+  "src/components/vini/ListaDeConversas.tsx",
   /**
    * O visualizador do documento-fonte é o caso mais afiado da fronteira:
    * a moldura cerca a página do CLIENTE, e as duas ficam encostadas na tela.
@@ -485,6 +486,7 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/components/vini/JanelaDoVini.tsx",
   "src/components/vini/PainelDaAnalise.tsx",
   "src/components/vini/PainelDoPrompt.tsx",
+  "src/components/vini/ListaDeConversas.tsx",
   "src/components/analysis/FeedbackPanel.tsx",
   "src/app/layout.tsx",
   "src/app/login/page.tsx",

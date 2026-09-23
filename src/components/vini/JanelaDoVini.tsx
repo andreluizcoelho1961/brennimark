@@ -7,6 +7,7 @@ import type { DestinoDaMarca } from "@/components/shell/coluna";
 import { RespostaDoVini } from "./RespostaDoVini";
 import { PainelDaAnalise } from "./PainelDaAnalise";
 import { PainelDoPrompt } from "./PainelDoPrompt";
+import { ListaDeConversas } from "./ListaDeConversas";
 import { useCopilotoDePrompt } from "./useCopilotoDePrompt";
 import type { TipoDePrompt } from "@/lib/ai/copiloto";
 import { useAnaliseDaPeca } from "./useAnaliseDaPeca";
@@ -55,8 +56,23 @@ export function JanelaDoVini({
   const [texto, setTexto] = useState("");
   // "conversa" (~440 px) ou "analise" (~600 px, altura inteira) — spec §2.
   // "prompt" é a fatia 4c: o copiloto de criação (ADR-0004 §3.1).
-  const [modo, setModo] = useState<"conversa" | "analise" | "prompt">("conversa");
-  const copiloto = useCopilotoDePrompt();
+  const [modo, setModo] = useState<"conversa" | "analise" | "prompt" | "conversas">("conversa");
+  /*
+   * A conversa em curso (fatia 4d): chat e copiloto guardam nela. O
+   * identificador nasce aqui, sob demanda, e é trocado ao reabrir uma conversa
+   * do histórico ou começar outra. Ref, e não estado: mudar de conversa não
+   * precisa redesenhar nada por si.
+   */
+  const conversaAtual = useRef<string | null>(null);
+  // Espelho em estado, só para a lista destacar a conversa aberta: ler a ref
+  // durante o desenho é proibido (react-hooks/refs).
+  const [idDaConversa, setIdDaConversa] = useState<string | null>(null);
+  const trocarConversa = (id: string | null) => { conversaAtual.current = id; setIdDaConversa(id); };
+  const obterConversa = () => {
+    if (!conversaAtual.current) trocarConversa(crypto.randomUUID());
+    return conversaAtual.current as string;
+  };
+  const copiloto = useCopilotoDePrompt(obterConversa);
   const [perguntaDaPeca, setPerguntaDaPeca] = useState("");
   const [arrastando, setArrastando] = useState(false);
   const arquivo = useRef<HTMLInputElement>(null);
@@ -64,7 +80,7 @@ export function JanelaDoVini({
   const botao = useRef<HTMLButtonElement>(null);
   const campo = useRef<HTMLTextAreaElement>(null);
   const rolo = useRef<HTMLDivElement>(null);
-  const conversa = useConversaDaMarca();
+  const conversa = useConversaDaMarca(obterConversa);
 
   const temChat = destinos.some((d) => temSegmento(d.href, "chat"));
   const temAnalise = destinos.some((d) => temSegmento(d.href, "analise"));
@@ -138,7 +154,8 @@ export function JanelaDoVini({
             <div>
               <p className="text-[14px] font-semibold text-platform-text">
                 {modo === "analise" ? t("Vini · Análise de peça", "Vini · Piece review")
-                  : modo === "prompt" ? t("Vini · Gerar prompt", "Vini · Build a prompt") : "Vini"}
+                  : modo === "prompt" ? t("Vini · Gerar prompt", "Vini · Build a prompt")
+                  : modo === "conversas" ? t("Vini · Conversas", "Vini · Conversations") : "Vini"}
               </p>
               <p className="text-[12px] text-platform-text-muted">{t("Curador do manual desta marca", "Curator of this brand's manual")}</p>
             </div>
@@ -147,6 +164,21 @@ export function JanelaDoVini({
                 className="ml-auto text-[12px] text-platform-text-muted underline-offset-4 hover:text-platform-text hover:underline">
                 {t("← Conversa", "← Conversation")}
               </button>
+            )}
+            {modo === "conversa" && temChat && (
+              <div className="ml-auto flex items-center gap-3">
+                <button type="button" data-abrir-conversas onClick={() => setModo("conversas")}
+                  className="text-[12px] text-platform-text-muted underline-offset-4 hover:text-platform-text hover:underline">
+                  {t("Conversas", "Conversations")}
+                </button>
+                {conversa.mensagens.length > 0 && (
+                  <button type="button" data-nova-conversa
+                    onClick={() => { trocarConversa(null); conversa.limpar(); campo.current?.focus(); }}
+                    className="text-[12px] text-platform-text-muted underline-offset-4 hover:text-platform-text hover:underline">
+                    {t("Nova", "New")}
+                  </button>
+                )}
+              </div>
             )}
             <button
               type="button"
@@ -158,7 +190,15 @@ export function JanelaDoVini({
             </button>
           </header>
 
-          {modo === "prompt" ? (
+          {modo === "conversas" ? (
+            <div data-vini-conversas className="min-h-0 flex-1 overflow-y-auto px-[var(--space-shell-4)] py-[var(--space-shell-4)]">
+              <ListaDeConversas
+                atual={idDaConversa ?? ""}
+                aoAbrir={(c) => { trocarConversa(c.id); conversa.carregar(c.mensagens); setModo("conversa"); }}
+                aoApagarAtual={() => { trocarConversa(null); conversa.limpar(); }}
+              />
+            </div>
+          ) : modo === "prompt" ? (
             <div aria-live="polite" aria-busy={copiloto.gerando || copiloto.buscando} data-vini-prompt
               className="min-h-0 flex-1 overflow-y-auto px-[var(--space-shell-4)] py-[var(--space-shell-4)]">
               <PainelDoPrompt copiloto={copiloto} basePath={basePath} />
@@ -195,7 +235,22 @@ export function JanelaDoVini({
                 {m.role === "assistant"
                   ? (
                     <div data-incompleta={m.incompleta ? "" : undefined}>
-                      <RespostaDoVini conteudo={m.content} paginas={m.paginas ?? {}} basePath={basePath} />
+                      {m.tipo === "prompt" ? (
+                        // Prompt gerado pelo copiloto, reaberto do histórico: texto
+                        // para copiar, e as regras de que foi feito.
+                        <div data-prompt-guardado className="space-y-2">
+                          <p className="font-display text-[10px] font-bold uppercase tracking-wide text-platform-text-muted">{t("Prompt gerado", "Generated prompt")}</p>
+                          <pre className="whitespace-pre-wrap break-words border border-platform-border bg-platform-bg p-3 font-mono text-[13px] text-platform-text">{m.content}</pre>
+                          {(m.regras ?? []).length > 0 && (
+                            <p className="text-[12px] text-platform-text-muted">
+                              {t("Feito a partir de: ", "Built from: ")}
+                              {(m.regras ?? []).map((r) => `${r.titulo}${r.status !== "ready" ? ` (${t("rascunho", "draft")})` : ""}`).join(" · ")}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <RespostaDoVini conteudo={m.content} paginas={m.paginas ?? {}} basePath={basePath} />
+                      )}
                       {m.incompleta && (
                         <p className="mt-2 font-display text-[10px] font-bold uppercase tracking-wide text-platform-warning">
                           {t("Resposta incompleta", "Incomplete answer")}

@@ -7,6 +7,8 @@ import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
 import { marcaDeFim } from "@/lib/ai/fim-da-resposta";
+import { idDeConversa } from "@/lib/ai/conversas";
+import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
@@ -183,6 +185,10 @@ export async function POST(request: Request) {
     });
 
     let firstChunk = execucao.firstChunk;
+    // A resposta inteira, para guardar na conversa do autor quando acabar
+    // (fatia 4d). Sem `conversaId` válido, nada se guarda.
+    let respostaInteira = firstChunk;
+    const conversaId = idDeConversa(body?.conversaId);
     const encoder = new TextEncoder();
     const responseStream = new ReadableStream<Uint8Array>({
       async pull(controller) {
@@ -211,10 +217,19 @@ export async function POST(request: Request) {
               }));
               controller.enqueue(encoder.encode(marca));
             }
+            if (conversaId) {
+              await guardarTroca({
+                supabase: portao.auth.supabase, conversaId,
+                workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, autor: portao.auth.user.id,
+                pergunta: perguntaDasMensagens(messages),
+                resposta: { conteudo: respostaInteira, tipo: "resposta", paginas: mapaDePaginas(trechos), incompleta: Boolean(marca) },
+              });
+            }
             execucao.cleanup();
             controller.close();
             return;
           }
+          respostaInteira += next.value;
           controller.enqueue(encoder.encode(next.value));
         } catch (error) {
           execucao.cleanup();
