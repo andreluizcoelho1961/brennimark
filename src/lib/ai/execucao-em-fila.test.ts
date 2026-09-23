@@ -131,7 +131,8 @@ test("a principal falha antes de responder: a reserva responde, com execução e
   assert.equal(respondeu.p_execution_id, "exec-reserva-1");
   assert.equal(respondeu.p_settled_micros, 100 * 0.8 + 10 * 4);
   assert.equal(respondeu.p_provider, "groq");
-  assert.deepEqual(tetos, [2_000, 2_000]);
+  // Cada tentativa com o teto de saída DELA: o Groq gratuito aceita 1.000.
+  assert.deepEqual(tetos, [2_000, 1_000]);
 });
 
 test("as duas falham: o erro sai achatado, com a causa da ÚLTIMA por último", async () => {

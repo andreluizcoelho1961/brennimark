@@ -9,6 +9,7 @@ export type AIErrorCode =
   | "overloaded"
   | "model_unavailable"
   | "timed_out"
+  | "request_too_large"
   | "no_provider"
   | "unknown";
 
@@ -60,6 +61,9 @@ export function semProvedorConfigurado(): { code: "no_provider"; message: string
  */
 const SOBRECARGA = /high demand|overloaded|over capacity|temporarily unavailable|\bUNAVAILABLE\b/i;
 
+/** Groq: "Request too large for model … tokens per minute" (HTTP 413), 23/09/2026. */
+const GRANDE_DEMAIS = /request too large|tokens per minute/i;
+
 function sobrecarga(): { code: "overloaded"; message: string } {
   return {
     code: "overloaded",
@@ -75,6 +79,15 @@ export function classifyAIError(
   if (APICallError.isInstance(error)) {
     if (error.statusCode === 503 || error.statusCode === 529 || SOBRECARGA.test(error.message)) {
       return { ...sobrecarga(), detalheTecnico: error.message };
+    }
+    if (error.statusCode === 413 || GRANDE_DEMAIS.test(error.message)) {
+      return {
+        code: "request_too_large",
+        message: isEnglish
+          ? "This request is larger than the current plan of the AI provider allows per minute. Try again in a minute; if it persists, tell whoever administers the account."
+          : "Este pedido passa do que o plano atual do provedor de IA aceita por minuto. Tente de novo daqui a um minuto; se continuar, avise quem administra a conta.",
+        detalheTecnico: error.message,
+      };
     }
     if (error.statusCode === 401 || error.statusCode === 403) {
       return { code: "invalid_key", message: isEnglish ? "Invalid API key or no permission for this model." : "Chave de API inválida ou sem permissão para esse modelo." };

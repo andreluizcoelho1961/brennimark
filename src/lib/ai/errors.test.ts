@@ -82,3 +82,16 @@ test("limite de uso não manda mais configurar 'modo demo'", () => {
   assert.equal(r.code, "rate_limited");
   assert.doesNotMatch(r.message, /demo/i);
 });
+
+test("pedido grande demais para o plano (Groq 413) tem mensagem própria, e o detalhe fica no log", () => {
+  // O texto real da recusa de 23/09/2026, no teste de conexão do Qwen 3.8.
+  const doGroq = new APICallError({
+    message: "Request too large for model `qwen/qwen3.8-27b` in organization `org_x` service tier `on_demand` on output tokens per minute (OTPM): Limit 1000, Requested 1281.",
+    url: "https://api.groq.com/", requestBodyValues: {}, statusCode: 413,
+  });
+  const r = classifyAIError(doGroq);
+  assert.equal(r.code, "request_too_large");
+  assert.match(r.message, /por minuto/);
+  assert.doesNotMatch(r.message, /org_x|qwen/);
+  assert.match(r.detalheTecnico ?? "", /OTPM/);
+});

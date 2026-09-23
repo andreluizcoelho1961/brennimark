@@ -72,7 +72,10 @@ export async function POST(request: Request) {
     response.headers.set("X-AI-Execution-Id", resultado.executionId);
     return response;
   } catch (error) {
-    const { code, message, detalheTecnico } = classifyAIError(error);
+    // A causa está dentro do AggregateError da fila — sem abrir, todo erro
+    // virava "não foi possível falar com o provedor" (23/09, Groq 413).
+    const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
+    const { code, message, detalheTecnico } = classifyAIError(raiz);
     // Nunca o erro bruto: mensagens de SDK podem conter corpo de requisição.
     // A chave tampouco aparece no objeto estruturado.
     console.error(JSON.stringify({ level: "error", msg: "ai_connection_test_failed", code, detalheTecnico, executionId }));
