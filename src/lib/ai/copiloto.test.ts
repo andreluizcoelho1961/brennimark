@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   consultaDoPrompt, ehTipoDePrompt, lerCabecalhoDeRegras, regrasDosTrechos, regrasPermitidas, resumoDasRegras, separarRegras, sistemaDoCopiloto,
+  TEXTO_SO_DO_LOGOTIPO,
 } from "./copiloto";
 import type { Trecho } from "./recuperacao";
 
@@ -74,6 +75,12 @@ test("o modelo recebe só as regras permitidas, com status e página", () => {
   assert.match(sistema, /Write the prompt in English/);
   assert.match(sistemaDoCopiloto([], "texto", "X"), /same language as the person's description/);
   assert.match(sistemaDoCopiloto([], "imagem", "X"), /no brand rules were provided/);
+});
+
+test("prompt de imagem sempre pede nenhum texto além do logotipo; vídeo e texto não", () => {
+  assert.ok(sistemaDoCopiloto([], "imagem", "X").includes(TEXTO_SO_DO_LOGOTIPO));
+  assert.ok(!sistemaDoCopiloto([], "video", "X").includes(TEXTO_SO_DO_LOGOTIPO));
+  assert.ok(!sistemaDoCopiloto([], "texto", "X").includes(TEXTO_SO_DO_LOGOTIPO));
 });
 
 test("o cabeçalho de regras vai e volta, e lixo vira lista vazia", () => {

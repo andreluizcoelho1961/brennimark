@@ -14,7 +14,7 @@ import { limitarConteudo, tituloDaConversa } from "./conversas";
  * Falhar aqui NÃO desfaz a resposta: a pessoa já leu o que o Vini disse. Só
  * vai ao log — o código, nunca o conteúdo, que é conversa de cliente.
  */
-export async function guardarTroca(entrada: {
+type Troca = {
   supabase: SupabaseClient;
   conversaId: string;
   workspaceId: string;
@@ -28,7 +28,35 @@ export async function guardarTroca(entrada: {
     regras?: unknown[];
     incompleta?: boolean;
   };
-}): Promise<void> {
+};
+
+/**
+ * As duas linhas da troca, com as MESMAS colunas nas duas.
+ *
+ * Num insert em lote, o cliente do Supabase manda a união das chaves e
+ * preenche a que falta numa linha com `null` — não com o `default` da tabela.
+ * A pergunta sem `paginas` virava `null`, esbarrava no `not null`, e o lote
+ * inteiro caía: em produção, de 23/09 até esta correção, nenhuma mensagem foi
+ * guardada. Dizer cada coluna nas duas linhas não depende de opção do cliente.
+ */
+export function linhasDaTroca(entrada: Omit<Troca, "supabase" | "workspaceId">) {
+  const { conversaId, brandId, autor } = entrada;
+  return [
+    {
+      conversa_id: conversaId, autor, brand_id: brandId, papel: "user", tipo: "pergunta",
+      conteudo: limitarConteudo(entrada.pergunta.trim() || "…"),
+      paginas: {}, regras: [], incompleta: false,
+    },
+    {
+      conversa_id: conversaId, autor, brand_id: brandId, papel: "assistant", tipo: entrada.resposta.tipo,
+      conteudo: limitarConteudo(entrada.resposta.conteudo.trim() || "…"),
+      paginas: entrada.resposta.paginas ?? {}, regras: entrada.resposta.regras ?? [],
+      incompleta: Boolean(entrada.resposta.incompleta),
+    },
+  ];
+}
+
+export async function guardarTroca(entrada: Troca): Promise<void> {
   const { supabase, conversaId, workspaceId, brandId, autor } = entrada;
   const agora = new Date().toISOString();
   try {
@@ -38,18 +66,7 @@ export async function guardarTroca(entrada: {
     );
     if (erroDaConversa) throw erroDaConversa;
 
-    const { error: erroDasMensagens } = await supabase.from("mensagens_da_conversa").insert([
-      {
-        conversa_id: conversaId, autor, brand_id: brandId, papel: "user", tipo: "pergunta",
-        conteudo: limitarConteudo(entrada.pergunta.trim() || "…"),
-      },
-      {
-        conversa_id: conversaId, autor, brand_id: brandId, papel: "assistant", tipo: entrada.resposta.tipo,
-        conteudo: limitarConteudo(entrada.resposta.conteudo.trim() || "…"),
-        paginas: entrada.resposta.paginas ?? {}, regras: entrada.resposta.regras ?? [],
-        incompleta: Boolean(entrada.resposta.incompleta),
-      },
-    ]);
+    const { error: erroDasMensagens } = await supabase.from("mensagens_da_conversa").insert(linhasDaTroca(entrada));
     if (erroDasMensagens) throw erroDasMensagens;
 
     // A lista mostra primeiro a conversa mexida por último.
