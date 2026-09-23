@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { streamText } from "ai";
+// Lê o fluxo COMPLETO: o erro do provedor chega a `classifyAIError` em vez de
+// virar fluxo vazio (ver `lib/ai/texto-do-fluxo.ts`).
+import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { classifyAIError } from "@/lib/ai/errors";
 import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
@@ -56,7 +59,7 @@ export async function POST(request: Request) {
           maxOutputTokens,
           maxRetries: 0,
         });
-        return { textStream: geracao.textStream, usage: geracao.usage };
+        return { textStream: textoOuErro(geracao.fullStream), usage: geracao.usage };
       },
     });
     if (!resultado.ok) {
