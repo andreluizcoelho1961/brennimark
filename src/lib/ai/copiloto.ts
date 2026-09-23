@@ -125,6 +125,10 @@ const DESTINO: Record<TipoDePrompt, [string, string]> = {
  * língua em que esses motores rendem melhor; o de texto, na língua da
  * descrição, porque é ele que vai escrever para o público da marca.
  */
+/** A instrução que todo prompt de imagem carrega: nenhum texto além do logotipo. */
+export const TEXTO_SO_DO_LOGOTIPO =
+  "- Unless the person's description explicitly asks for specific text in the image, end the prompt with this exact negative instruction: \"No text, letters, words, slogans or signage anywhere in the image other than the brand logo.\"";
+
 export function sistemaDoCopiloto(regras: readonly RegraDoPrompt[], tipo: TipoDePrompt, marca: string): string {
   const blocos = regras.map((r) =>
     `<rule title="${r.titulo.replace(/"/g, "'")}" status="${r.status}"${r.pagina ? ` page="${r.pagina}"` : ""}>\n${r.conteudo.slice(0, 1500)}\n</rule>`,
@@ -141,6 +145,10 @@ export function sistemaDoCopiloto(regras: readonly RegraDoPrompt[], tipo: TipoDe
     tipo === "texto"
       ? "- Write the prompt in the same language as the person's description."
       : "- Write the prompt in English: generative image and video models follow English best.",
+    // Ensaio de 23/09: a imagem gerada inventou "Good Ideas Brighter Days" numa
+    // caneca e "A Brighter Tomorrow" num livro — texto que a marca não
+    // escreveu, diante do cliente. Decisão do André: em imagem, sempre.
+    ...(tipo === "imagem" ? [TEXTO_SO_DO_LOGOTIPO] : []),
     "- Output ONLY the prompt itself: no preamble, no explanation, no markdown, no list of sources.",
     "",
     regras.length > 0 ? blocos : "(no brand rules were provided — use only the description, and do not invent brand facts)",

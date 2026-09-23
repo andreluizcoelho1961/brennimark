@@ -111,7 +111,11 @@ export function PainelDoPrompt({
       {(prompt || gerando) && (
         <section data-prompt-resultado className="space-y-3 border-t border-platform-border pt-4">
           <h3 className="font-display text-[11px] font-bold uppercase tracking-wide text-platform-text-muted">{t("Prompt", "Prompt")}</h3>
-          <pre data-prompt-texto className="max-h-[40dvh] overflow-y-auto whitespace-pre-wrap break-words border border-platform-border bg-platform-bg p-3 font-mono text-[13px] leading-relaxed text-platform-text">
+          {/* Sem rolagem própria: no Mac a barra fica escondida, e no ensaio de
+              23/09 o prompt pareceu terminar em "avoid busy" com a geração
+              registrada como completa — o resto, muito provavelmente, estava
+              abaixo, sem sinal. A janela do Vini já rola; o prompt aparece inteiro. */}
+          <pre data-prompt-texto className="whitespace-pre-wrap break-words border border-platform-border bg-platform-bg p-3 font-mono text-[13px] leading-relaxed text-platform-text">
             {prompt || "…"}
           </pre>
           {prompt && !gerando && (
