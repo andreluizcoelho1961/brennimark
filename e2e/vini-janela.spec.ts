@@ -341,3 +341,111 @@ test("a imagem com as correções baixa como PNG: a peça intacta e o painel ao 
   expect(largura).toBeGreaterThanOrEqual(560 + 3 * 56);
   expect(altura).toBeGreaterThan(200);
 });
+
+// ─── Fatia 4c: o copiloto de criação (ADR-0004 §3.1 e §3.2) ────────────────
+
+async function comCopiloto(page: Page, respostas: { aprovadas?: unknown[]; rascunhos?: unknown[] }, enviados: unknown[]) {
+  await page.route("**/api/ai/prompt**", async (rota) => {
+    const corpo = rota.request().postDataJSON();
+    enviados.push(corpo);
+    if (corpo.etapa === "regras") {
+      return rota.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ aprovadas: respostas.aprovadas ?? [], rascunhos: respostas.rascunhos ?? [] }) });
+    }
+    const usadas = [
+      ...(respostas.aprovadas ?? []),
+      ...((respostas.rascunhos ?? []) as { slug: string }[]).filter((r) => (corpo.rascunhos ?? []).includes(r.slug)),
+    ];
+    return rota.fulfill({
+      status: 200, contentType: "text/plain; charset=utf-8",
+      headers: { "X-Brennimark-Regras": encodeURIComponent(JSON.stringify(usadas)) },
+      body: "Studio product photo of a slim laptop on a light background, VAIO black #000000 accents, minimal composition. Avoid saturated colours.",
+    });
+  });
+}
+
+const FOTOGRAFIA = { slug: "fotografia", titulo: "VAIO Photographic Style", status: "draft", pagina: 20 };
+const CORES = { slug: "cores", titulo: "VAIO Logo Formats and Colours", status: "draft", pagina: 8 };
+
+test("sem regra aprovada, nada entra em silêncio: os rascunhos aparecem desmarcados", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comCopiloto(page, { rascunhos: [FOTOGRAFIA, CORES] }, enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-prompt]").click();
+
+  const janela = page.locator("[data-vini-janela]");
+  await expect(janela).toHaveAttribute("data-modo", "prompt");
+  await janela.getByRole("textbox", { name: "O que você vai criar" }).fill("foto de produto do notebook para Instagram");
+  await janela.getByRole("button", { name: "Ver as regras" }).click();
+
+  await expect(janela.locator("[data-regras-aprovadas]")).toContainText("Nenhuma regra aprovada");
+  const caixas = janela.locator("[data-regras-rascunho] input[type=checkbox]");
+  await expect(caixas).toHaveCount(2);
+  for (const caixa of await caixas.all()) await expect(caixa).not.toBeChecked();
+  // O rascunho é dito no vocabulário da marca ("Under review" na festival).
+  await expect(janela.locator("[data-regras-rascunho]")).toContainText(/under review/i);
+});
+
+test("gerar manda só a descrição e os rascunhos marcados — nunca o conteúdo das regras", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comCopiloto(page, { rascunhos: [FOTOGRAFIA, CORES] }, enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-prompt]").click();
+  const janela = page.locator("[data-vini-janela]");
+  await janela.getByRole("textbox", { name: "O que você vai criar" }).fill("foto de produto");
+  await janela.getByRole("button", { name: "Ver as regras" }).click();
+
+  await janela.getByLabel(/VAIO Photographic Style/).check();
+  await janela.getByRole("button", { name: "Gerar prompt" }).click();
+
+  await expect(janela.locator("[data-prompt-texto]")).toContainText("VAIO black #000000");
+  expect(enviados.at(-1)).toEqual({ descricao: "foto de produto", tipo: "imagem", etapa: "gerar", rascunhos: ["fotografia"] });
+
+  // A procedência: o que o prompt usou, e o rascunho dito como rascunho.
+  await expect(janela.locator("[data-regras-usadas]")).toContainText("VAIO Photographic Style");
+  await expect(janela.locator("[data-regras-usadas]")).not.toContainText("Logo Formats");
+  await expect(janela.locator("[data-prompt-usa-rascunho]")).toContainText("regra em rascunho");
+  await expect(janela.getByRole("button", { name: "Copiar prompt" })).toBeVisible();
+});
+
+test("regra aprovada entra sozinha, sem caixa para marcar", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  const APROVADA = { slug: "cores", titulo: "Cores", status: "ready", pagina: 8 };
+  await comCopiloto(page, { aprovadas: [APROVADA] }, enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-prompt]").click();
+  const janela = page.locator("[data-vini-janela]");
+  await janela.getByRole("textbox", { name: "O que você vai criar" }).fill("banner");
+  await janela.getByRole("button", { name: "Ver as regras" }).click();
+
+  await expect(janela.locator("[data-regras-aprovadas]")).toContainText("Cores");
+  await expect(janela.locator("[data-regras-rascunho]")).toHaveCount(0);
+  await janela.getByRole("button", { name: "Gerar prompt" }).click();
+  await expect(janela.locator("[data-prompt-texto]")).toContainText("laptop");
+  // Só aprovada: nada de aviso de rascunho.
+  await expect(janela.locator("[data-prompt-usa-rascunho]")).toHaveCount(0);
+});
+
+test("mudar a descrição apaga as regras da pergunta anterior", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comCopiloto(page, { rascunhos: [FOTOGRAFIA] }, enviados);
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-prompt]").click();
+  const janela = page.locator("[data-vini-janela]");
+  const campo = janela.getByRole("textbox", { name: "O que você vai criar" });
+  await campo.fill("foto de produto");
+  await janela.getByRole("button", { name: "Ver as regras" }).click();
+  await expect(janela.locator("[data-regras-rascunho]")).toBeVisible();
+
+  await campo.fill("vídeo curto de lançamento");
+  await expect(janela.locator("[data-regras-rascunho]")).toHaveCount(0);
+  await expect(janela.getByRole("button", { name: "Ver as regras" })).toBeVisible();
+});
