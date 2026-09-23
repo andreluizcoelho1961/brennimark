@@ -57,9 +57,6 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Fatia 4d (23/09/2026): conversas por autor. A aplicar em produção por
-  // autorização do André; sai daqui quando o carimbo remoto for alinhado.
-  "conversas_por_autor",
   // `kill_switch_excecao_registrada` saiu daqui em 10/09/2026: aplicada ao
   // banco hospedado por decisão do proprietário, carimbada `20260910215914`.
   // Medido depois: só o comentário mudou — corpo, grants, SECURITY DEFINER e
