@@ -6,6 +6,9 @@ import { useIsEnglish } from "@/platform/locale-client";
 import type { DestinoDaMarca } from "@/components/shell/coluna";
 import { RespostaDoVini } from "./RespostaDoVini";
 import { PainelDaAnalise } from "./PainelDaAnalise";
+import { PainelDoPrompt } from "./PainelDoPrompt";
+import { useCopilotoDePrompt } from "./useCopilotoDePrompt";
+import type { TipoDePrompt } from "@/lib/ai/copiloto";
 import { useAnaliseDaPeca } from "./useAnaliseDaPeca";
 import { FORMATOS_DA_PECA } from "@/lib/ai/peca";
 import { useConversaDaMarca } from "./useConversaDaMarca";
@@ -51,7 +54,9 @@ export function JanelaDoVini({
   const [aberta, setAberta] = useState(false);
   const [texto, setTexto] = useState("");
   // "conversa" (~440 px) ou "analise" (~600 px, altura inteira) — spec §2.
-  const [modo, setModo] = useState<"conversa" | "analise">("conversa");
+  // "prompt" é a fatia 4c: o copiloto de criação (ADR-0004 §3.1).
+  const [modo, setModo] = useState<"conversa" | "analise" | "prompt">("conversa");
+  const copiloto = useCopilotoDePrompt();
   const [perguntaDaPeca, setPerguntaDaPeca] = useState("");
   const [arrastando, setArrastando] = useState(false);
   const arquivo = useRef<HTMLInputElement>(null);
@@ -119,7 +124,7 @@ export function JanelaDoVini({
           onDragLeave={temAnalise ? (e) => { if (e.currentTarget === e.target) setArrastando(false); } : undefined}
           onDrop={temAnalise ? (e) => { e.preventDefault(); setArrastando(false); void receber(e.dataTransfer.files[0]); } : undefined}
           className={`pointer-events-auto relative flex flex-col overflow-hidden rounded-[var(--radius-entry,12px)] border bg-platform-panel shadow-[0_16px_40px_rgba(0,0,0,0.28)] ${
-            modo === "analise"
+            modo !== "conversa"
               ? "h-[calc(100dvh-6.5rem)] w-[min(37.5rem,calc(100vw-2rem))]"
               : "h-[min(70dvh,40rem)] w-[min(27.5rem,calc(100vw-2rem))]"
           } ${arrastando ? "border-platform-signal" : "border-platform-border"}`}
@@ -132,11 +137,12 @@ export function JanelaDoVini({
           <header className="flex items-center justify-between gap-3 border-b border-platform-border px-[var(--space-shell-4)] py-[var(--space-shell-3)]">
             <div>
               <p className="text-[14px] font-semibold text-platform-text">
-                {modo === "analise" ? t("Vini · Análise de peça", "Vini · Piece review") : "Vini"}
+                {modo === "analise" ? t("Vini · Análise de peça", "Vini · Piece review")
+                  : modo === "prompt" ? t("Vini · Gerar prompt", "Vini · Build a prompt") : "Vini"}
               </p>
               <p className="text-[12px] text-platform-text-muted">{t("Curador do manual desta marca", "Curator of this brand's manual")}</p>
             </div>
-            {modo === "analise" && temChat && (
+            {modo !== "conversa" && temChat && (
               <button type="button" data-voltar-a-conversa onClick={() => setModo("conversa")}
                 className="ml-auto text-[12px] text-platform-text-muted underline-offset-4 hover:text-platform-text hover:underline">
                 {t("← Conversa", "← Conversation")}
@@ -152,7 +158,12 @@ export function JanelaDoVini({
             </button>
           </header>
 
-          {modo === "analise" ? (
+          {modo === "prompt" ? (
+            <div aria-live="polite" aria-busy={copiloto.gerando || copiloto.buscando} data-vini-prompt
+              className="min-h-0 flex-1 overflow-y-auto px-[var(--space-shell-4)] py-[var(--space-shell-4)]">
+              <PainelDoPrompt copiloto={copiloto} basePath={basePath} />
+            </div>
+          ) : modo === "analise" ? (
             <div aria-live="polite" aria-busy={analise.analisando} data-vini-analise
               className="min-h-0 flex-1 overflow-y-auto px-[var(--space-shell-4)] py-[var(--space-shell-4)]">
               <PainelDaAnalise analise={analise} basePath={basePath} />
@@ -225,7 +236,41 @@ export function JanelaDoVini({
                 accept={FORMATOS_DA_PECA.join(",")}
                 onChange={(e) => { void receber(e.target.files?.[0]); e.target.value = ""; }} />
             )}
-            {modo === "analise" ? (
+            {modo === "prompt" ? (
+              <form
+                onSubmit={(e) => { e.preventDefault(); void (copiloto.regras ? copiloto.gerar() : copiloto.verRegras()); }}
+                className="space-y-2"
+              >
+                <textarea
+                  value={copiloto.descricao}
+                  rows={2}
+                  maxLength={500}
+                  onChange={(e) => copiloto.setDescricao(e.target.value)}
+                  placeholder={t("O que você vai criar? Ex.: foto de produto do notebook para Instagram, fundo claro", "What are you creating? E.g.: product photo of the laptop for Instagram, light background")}
+                  aria-label={t("O que você vai criar", "What you're creating")}
+                  className="block max-h-32 min-h-14 w-full resize-none border border-platform-border bg-transparent px-3 py-2 text-[14px] text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal focus:outline-none"
+                />
+                <div className="flex items-center gap-2">
+                  <select
+                    value={copiloto.tipo}
+                    onChange={(e) => copiloto.setTipo(e.target.value as TipoDePrompt)}
+                    aria-label={t("Tipo de peça", "Kind of piece")}
+                    className="h-10 border border-platform-border bg-platform-panel px-2 text-[13px] text-platform-text"
+                  >
+                    <option value="imagem">{t("Imagem", "Image")}</option>
+                    <option value="video">{t("Vídeo", "Video")}</option>
+                    <option value="texto">{t("Texto", "Text")}</option>
+                  </select>
+                  <button type="submit"
+                    disabled={!copiloto.descricao.trim() || copiloto.buscando || copiloto.gerando}
+                    className="ml-auto h-10 bg-platform-signal px-4 text-[12px] font-semibold text-platform-bg disabled:opacity-40">
+                    {copiloto.buscando ? t("Buscando regras…", "Finding rules…")
+                      : copiloto.gerando ? t("Gerando…", "Building…")
+                      : copiloto.regras ? t("Gerar prompt", "Build prompt") : t("Ver as regras", "See the rules")}
+                  </button>
+                </div>
+              </form>
+            ) : modo === "analise" ? (
               <form onSubmit={analisarPeca} className="flex items-end gap-2">
                 <BotaoDoClipe aoClicar={() => arquivo.current?.click()} rotulo={t("Escolher outra peça", "Choose another piece")} />
                 <input
@@ -245,6 +290,14 @@ export function JanelaDoVini({
                 {temAnalise && (
                   <BotaoDoClipe aoClicar={() => arquivo.current?.click()} rotulo={t("Anexar peça para análise", "Attach a piece to review")} />
                 )}
+                <button type="button" data-abrir-prompt onClick={() => setModo("prompt")}
+                  aria-label={t("Gerar prompt com o DNA da marca", "Build a prompt with the brand's DNA")}
+                  title={t("Gerar prompt com o DNA da marca", "Build a prompt with the brand's DNA")}
+                  className="flex h-10 w-10 flex-none items-center justify-center border border-platform-border text-platform-text-muted hover:text-platform-text focus-visible:outline-2 focus-visible:outline-platform-focus">
+                  <svg aria-hidden viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3z" /><path d="M18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8L18 15z" />
+                  </svg>
+                </button>
                 <textarea
                   ref={campo}
                   value={texto}
