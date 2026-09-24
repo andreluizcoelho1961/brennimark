@@ -252,3 +252,32 @@ test("EPS sem tipo declarado é tratado como PostScript — e vai sem miniatura"
   expect(envio.preparo).toMatchObject({ mimeType: "application/postscript" });
   expect(envio.conclusao).not.toContain('name="miniatura"');
 });
+
+test("remover o item escolhido no envio limpa a escolha — a caixa não mostra um item e guarda outro", async ({ page }) => {
+  // Ensaio de 24/09: o item removido continuava escolhido por dentro, a caixa
+  // mostrava outro, os eixos sumiam e o botão travava.
+  let itens = [
+    { id: "item-a", tipo: "logo", nome: "Logo A", descricao: "", ordem: 0, regra: [] },
+    { id: "item-b", tipo: "logo", nome: "Logo B", descricao: "", ordem: 1, regra: [] },
+  ];
+  await page.route("**/api/assets", (rota) =>
+    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ itens, assets: [], manual: null }) }));
+  await page.route("**/api/admin/assets/itens", async (rota) => {
+    itens = itens.filter((i) => i.id !== "item-b");
+    await rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
+  page.on("dialog", (d) => void d.accept());
+  await page.goto("/dev/biblioteca");
+  const envio = page.locator("[data-form-envio]");
+  await envio.getByLabel("Item").selectOption("item-b");
+  await expect(envio.locator('select[name="hierarquia"]')).toBeVisible();
+
+  await page.locator("section", { hasText: "Logo B" }).getByRole("button", { name: /Remover item/i }).click();
+  await expect(envio.getByLabel("Item")).toHaveValue("");
+  await expect(envio.locator('select[name="hierarquia"]')).toHaveCount(0);
+
+  // Escolher de novo o item que ficou devolve os eixos e o botão.
+  await envio.getByLabel("Item").selectOption("item-a");
+  await expect(envio.locator('select[name="hierarquia"]')).toBeVisible();
+  await expect(envio.getByRole("button", { name: /Enviar arquivo/i })).toBeEnabled();
+});
