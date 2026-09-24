@@ -25,36 +25,62 @@ export const platformIdentity = {
  * e rodapé. Deliberadamente neutra e distinta de qualquer marca cliente, para
  * que o cliente perceba que existe um produto por trás do manual dele.
  *
- * PROVISÓRIA. Não é identidade visual aprovada — é um lugar de encaixe. Quando
- * a marca do aplicativo existir, os valores trocam aqui e em mais nenhum lugar.
+ * Fatia 6, 24/09/2026 — decisão do André sobre a folha de tokens: "livro de
+ * design de marca dos anos 70" (Vignelli, Aicher, suíço), com calor orgânico.
+ * O CLARO ("papel") é o padrão; o ESCURO ("estúdio") é opção de quem usa. A
+ * regra do ADR-0004 continua: moldura de museu, acromática, sem cor de
+ * destaque — o calor entra pela temperatura dos cinzas, puxados para o papel,
+ * e não por uma cor. Contraste de todo texto ≥ 4,5 : 1 nos dois temas
+ * (conferido na folha de tokens).
+ *
+ * Os valores trocam aqui e em mais nenhum lugar.
  */
-export const platformTheme = {
-  /** Pilha tipográfica da interface. Vive em globals.css (--font-ui); repetida
-   *  aqui só como documentação de que a plataforma tem fonte própria e não
-   *  herda a da marca consultada. */
-  uiFontNote: "system-ui — provisória, ver --font-ui em globals.css",
+/** Os papéis de cor da moldura — os mesmos nos dois temas. */
+export type PaletaDaMoldura = {
+  bg: string; panel: string; panelMuted: string; text: string; textMuted: string; border: string;
+  signal: string; signalSoft: string; focus: string; success: string; warning: string; danger: string;
+};
 
-  bg: "#14161a",
-  panel: "#1b1e24",
-  panelMuted: "#242830",
-  text: "#f4f5f7",
-  textMuted: "#9099a8",
-  border: "#2b3038",
+export const platformTheme: PaletaDaMoldura & { uiFontNote: string } = {
+  /** Pilha tipográfica da interface. Vive em globals.css (--font-ui): Inter
+   *  Tight, grotesca neutra da linhagem Helvetica (escolha do André, 24/09). */
+  uiFontNote: "Inter Tight — ver --font-ui em globals.css",
+
+  bg: "#f3efe7",
+  panel: "#fbf8f2",
+  panelMuted: "#ece6da",
+  text: "#1c1a16",
+  textMuted: "#6c655b",
+  border: "#ddd5c6",
 
   /**
-   * Sinal de localização e ação. ACROMÁTICO nesta fase, por decisão: o produto
-   * ainda não tem identidade aprovada, e consolidar uma cor proprietária agora
-   * criaria relação com todas as marcas que a moldura precisa emoldurar.
-   * O contrato do token permanece, para receber cor quando a identidade existir.
+   * Sinal de localização e ação. ACROMÁTICO, por decisão: consolidar uma cor
+   * proprietária criaria relação com todas as marcas que a moldura emoldura.
    */
-  signal: "#f4f5f7",
-  signalSoft: "#242830",
+  signal: "#1c1a16",
+  signalSoft: "#e5ded0",
 
   /** Alta visibilidade por acessibilidade. Não é cor de marca do produto. */
-  focus: "#ffffff",
+  focus: "#1c1a16",
 
   /** Semânticos. Sempre acompanhados de texto ou ícone, nunca só cor. */
-  success: "#62c68a",
-  warning: "#f0bb52",
-  danger: "#ff8a82",
-} as const;
+  success: "#39714c",
+  warning: "#8c5c0b",
+  danger: "#a8453a",
+};
+
+/** O tema escuro ("estúdio") — os mesmos papéis, a mesma temperatura. */
+export const platformThemeEscuro: PaletaDaMoldura = {
+  bg: "#161513",
+  panel: "#1e1c19",
+  panelMuted: "#282520",
+  text: "#ede8df",
+  textMuted: "#a39c90",
+  border: "#34302a",
+  signal: "#ede8df",
+  signalSoft: "#2e2a24",
+  focus: "#f5efe3",
+  success: "#7fb88f",
+  warning: "#e3b35a",
+  danger: "#e08a7a",
+};

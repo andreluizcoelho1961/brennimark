@@ -20,6 +20,13 @@ import { platformCssVars } from "../platform/tokens";
  * não pode voltar. Renomeá-los seria mexer em muitos arquivos para não mudar
  * nada observável, e o V1 não é sobre renomear.
  */
+/*
+ * O tema CLARO como estilo em linha. Desde a fatia 6 (24/09/2026) o layout raiz
+ * não o usa mais: com dois temas, a paleta vai como CSS gerado
+ * (`platformThemeCss`, em `platform/tokens.ts`), que um seletor consegue trocar
+ * — estilo em linha nenhum seletor vence. Fica aqui porque `config.test.ts`
+ * guarda que este módulo nunca mais exporte instância de marca.
+ */
 export const platformThemeStyle = {
   ...platformCssVars(),
 } as CSSProperties;

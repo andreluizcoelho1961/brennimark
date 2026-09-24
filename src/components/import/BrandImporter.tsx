@@ -36,10 +36,11 @@ const FUNCIONALIDADES: { chave: BrandvilleUtilityKey; pt: string; en: string }[]
 
 /** Neutro de propósito: a paleta da marca é decisão de quem cura, não do PDF. */
 const TEMA_INICIAL = {
-  background: "#14161a", backgroundSecondary: "#14161a", surface: "#1b1e24",
-  surfaceLight: "#242830", foreground: "#f4f5f7", muted: "#9099a8",
-  accent: "#f4f5f7", accentSecondary: "#9099a8", border: "#2b3038",
-  focus: "#ffffff", fontStack: "var(--font-ui)",
+  // A moldura neutra acompanha o tema da PLATAFORMA (claro ou escuro).
+  background: "var(--platform-bg)", backgroundSecondary: "var(--platform-bg)", surface: "var(--platform-panel)",
+  surfaceLight: "var(--platform-panel-muted)", foreground: "var(--platform-text)", muted: "var(--platform-text-muted)",
+  accent: "var(--platform-text)", accentSecondary: "var(--platform-text-muted)", border: "var(--platform-border)",
+  focus: "var(--platform-focus)", fontStack: "var(--font-ui)",
 };
 
 export function BrandImporter({

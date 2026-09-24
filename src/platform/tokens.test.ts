@@ -83,3 +83,43 @@ test("não existem mais aliases de compatibilidade", () => {
   // E nenhum outro export com cara de ponte entre os vocabulários.
   assert.deepEqual(exportado.filter((nome) => /alias|legad|compat/i.test(nome)), []);
 });
+
+// ─── Fatia 6 (24/09/2026): dois temas, e a legibilidade como lei ────────────
+
+import { platformThemeCss, SCRIPT_DO_TEMA, CHAVE_DO_TEMA } from "./tokens";
+import { platformThemeEscuro } from "./identity";
+
+test("a folha dos temas só carrega tokens da PLATAFORMA — nunca da marca", () => {
+  const css = platformThemeCss();
+  const nomes = [...css.matchAll(/(--[a-z-]+):/g)].map((m) => m[1]);
+  assert.ok(nomes.length > 0);
+  for (const nome of nomes) assert.match(nome, /^--(platform|color-platform)-/, `token fora da plataforma: ${nome}`);
+  assert.match(css, /:root\{[^}]*color-scheme:light\}/);
+  assert.match(css, /:root\[data-tema="escuro"\]\{[^}]*color-scheme:dark\}/);
+});
+
+test("o script do tema só lê a própria chave, e nunca quebra a página", () => {
+  assert.ok(SCRIPT_DO_TEMA.startsWith("try{"));
+  assert.ok(SCRIPT_DO_TEMA.includes(JSON.stringify(CHAVE_DO_TEMA)));
+});
+
+function luminancia(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function contraste(a: string, b: string): number {
+  const [claro, escuro] = [luminancia(a), luminancia(b)].sort((x, y) => y - x);
+  return (claro + 0.05) / (escuro + 0.05);
+}
+
+for (const [nome, tema] of [["claro", platformTheme], ["escuro", platformThemeEscuro]] as const) {
+  test(`tema ${nome}: todo texto passa em 4,5 : 1 sobre todo fundo (WCAG AA)`, () => {
+    for (const texto of ["text", "textMuted", "warning", "danger", "success"] as const) {
+      for (const fundo of ["bg", "panel", "panelMuted"] as const) {
+        const razao = contraste(tema[texto], tema[fundo]);
+        assert.ok(razao >= 4.5, `${nome}: ${texto} sobre ${fundo} = ${razao.toFixed(2)} : 1`);
+      }
+    }
+  });
+}

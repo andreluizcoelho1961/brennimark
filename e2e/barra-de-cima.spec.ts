@@ -33,3 +33,30 @@ test("a zona do Brennimark é separada da marca aberta", async ({ page }) => {
   expect(borda).toBe("1px");
   expect((await zona.boundingBox())!.width).toBeGreaterThanOrEqual(176);
 });
+
+test("o tema claro é o padrão; o escuro é escolha, e sobrevive a recarregar sem piscar", async ({ page }) => {
+  // Fatia 6 (24/09): claro "papel" por padrão; escuro "estúdio" por opção.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(LAB);
+  const html = page.locator("html");
+  await expect(html).not.toHaveAttribute("data-tema", /.+/);
+  const fundoClaro = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+  const botao = page.locator("[data-alternar-tema]");
+  await botao.click();
+  await expect(html).toHaveAttribute("data-tema", "escuro");
+  await expect(botao).toHaveAttribute("aria-pressed", "true");
+  const fundoEscuro = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  expect(fundoEscuro).not.toBe(fundoClaro);
+
+  // Recarregar: o tema vem aplicado ANTES da primeira pintura (script do
+  // layout), então o primeiro quadro já é escuro.
+  await page.reload();
+  await expect(html).toHaveAttribute("data-tema", "escuro");
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).toBe(fundoEscuro);
+
+  await page.locator("[data-alternar-tema]").click();
+  await expect(html).not.toHaveAttribute("data-tema", /.+/);
+  await page.reload();
+  await expect(html).not.toHaveAttribute("data-tema", /.+/);
+});

@@ -5,6 +5,7 @@ import { platformIdentity } from "@/platform/identity";
 import { useIsEnglish } from "@/platform/locale-client";
 import { WorkspaceIdentity } from "./WorkspaceIdentity";
 import { SegmentadoDaMarca } from "./SegmentadoDaMarca";
+import { AlternarTema } from "./AlternarTema";
 
 /**
  * Barra da plataforma: identidade provisória do produto, contexto da marca,
@@ -123,6 +124,7 @@ export function PlatformTopBar({
             {userEmail}
           </span>
         )}
+        <AlternarTema />
         {children}
       </div>
     </header>

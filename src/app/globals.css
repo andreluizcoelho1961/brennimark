@@ -29,27 +29,27 @@
    * O fallback existe para o caso de um token ser lido antes de a camada
    * correspondente o definir — nunca deve acontecer em uso normal.
    */
-  --color-platform-bg: #14161a;
-  --color-platform-panel: #1b1e24;
-  --color-platform-panel-muted: #242830;
-  --color-platform-text: #f4f5f7;
-  --color-platform-text-muted: #9099a8;
-  --color-platform-border: #2b3038;
-  --color-platform-signal: #f4f5f7;
-  --color-platform-signal-soft: #242830;
-  --color-platform-focus: #ffffff;
-  --color-platform-success: #62c68a;
-  --color-platform-warning: #f0bb52;
-  --color-platform-danger: #ff8a82;
+  --color-platform-bg: #f3efe7;
+  --color-platform-panel: #fbf8f2;
+  --color-platform-panel-muted: #ece6da;
+  --color-platform-text: #1c1a16;
+  --color-platform-text-muted: #6c655b;
+  --color-platform-border: #ddd5c6;
+  --color-platform-signal: #1c1a16;
+  --color-platform-signal-soft: #e5ded0;
+  --color-platform-focus: #1c1a16;
+  --color-platform-success: #39714c;
+  --color-platform-warning: #8c5c0b;
+  --color-platform-danger: #a8453a;
 
   /*
    * Geometria da plataforma. Escala pequena e deliberada, não valores livres:
    * campo e controle compacto, painel e menu, superfície de entrada. Card não é
    * a unidade de layout — agrupamento vem antes de contorno.
    */
-  --radius-control: 6px;
-  --radius-panel: 10px;
-  --radius-entry: 16px;
+  --radius-control: 3px;
+  --radius-panel: 4px;
+  --radius-entry: 6px;
 
   /* Passo de espaçamento da moldura. O canvas tem o seu próprio ritmo. */
   --space-shell-1: 4px;
@@ -101,13 +101,13 @@
    * tipografia própria, escolhida para leitura em tela e uso prolongado —
    * independente de qual marca está sendo consultada.
    *
-   * PROVISÓRIA: pilha de sistema enquanto a identidade do produto não existe.
-   * Quando existir, a fonte entra aqui e em mais nenhum lugar.
+   * Inter Tight (fatia 6, escolha do André em 24/09): carregada pelo layout
+   * raiz em `--fonte-interface`, com a pilha de sistema como reserva.
    */
-  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-ui: var(--fonte-interface), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-display: var(--font-ui);
   --font-body: var(--font-ui);
-  --font-mono: "SF Mono", "Menlo", monospace;
+  --font-mono: var(--fonte-mono), "SF Mono", "Menlo", monospace;
 
   /*
    * Tipografia da MARCA consultada. Só existe dentro do BrandCanvas, onde a
