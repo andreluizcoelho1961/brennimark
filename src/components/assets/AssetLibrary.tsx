@@ -166,7 +166,14 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     const response = await fetch(comAlvo("/api/admin/assets/itens", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Item removed." : "Item removido.") : (data.message ?? (isEnglish ? "Couldn't remove the item." : "Não foi possível remover o item.")));
-    if (response.ok) await load();
+    if (response.ok) {
+      // O item removido não pode continuar escolhido no envio: a caixa mostraria
+      // outro item (o navegador exibe a primeira opção válida) enquanto o
+      // formulário apontava para o que sumiu — sem eixos e com o botão travado
+      // (ensaio de 24/09).
+      if (id === itemDoEnvio) setItemDoEnvio("");
+      await load();
+    }
   }
 
   /*
@@ -359,7 +366,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
       <form onSubmit={upload} data-form-envio className="grid content-start gap-4 border border-platform-border bg-platform-panel p-5 md:grid-cols-2">
         <h2 className="font-display text-xs font-black uppercase tracking-widest text-platform-text-muted md:col-span-2">{isEnglish ? "Add a file" : "Enviar arquivo"}</h2>
         <label className="md:col-span-2"><span className={rotuloDeCampo}>{isEnglish ? "Item" : "Item"}</span>
-          <select name="item" required value={itemDoEnvio} onChange={(event) => setItemDoEnvio(event.target.value)} className={campo}>
+          <select name="item" required value={itemEscolhido ? itemDoEnvio : ""} onChange={(event) => setItemDoEnvio(event.target.value)} className={campo}>
             <option value="" disabled>{itens.length ? (isEnglish ? "Choose the item…" : "Escolha o item…") : (isEnglish ? "Create an item first" : "Crie um item antes")}</option>
             {itens.map((item) => <option key={item.id} value={item.id}>{rotulo(item.tipo, isEnglish)} — {item.nome}</option>)}
           </select>
