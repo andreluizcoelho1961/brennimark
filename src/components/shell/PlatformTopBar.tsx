@@ -105,15 +105,18 @@ export function PlatformTopBar({
           type="button"
           onClick={onOpenSearch}
           aria-label={searchLabel}
-          className="flex h-11 w-11 items-center justify-center gap-[var(--space-shell-2)] rounded-[var(--radius-control)] text-platform-text-muted transition-colors duration-[var(--motion-control)] hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus sm:h-8 sm:w-56 sm:justify-start sm:border sm:border-platform-border sm:bg-platform-panel sm:px-[var(--space-shell-3)] sm:text-left sm:text-[13px] sm:hover:border-platform-signal-soft md:w-8 md:justify-center md:px-0 min-[1800px]:w-56 min-[1800px]:justify-start min-[1800px]:px-[var(--space-shell-3)]"
+          className="flex h-11 w-11 items-center justify-center gap-[var(--space-shell-2)] rounded-[var(--radius-control)] text-platform-text-muted transition-colors duration-[var(--motion-control)] hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus sm:h-8 sm:w-56 sm:justify-start sm:border sm:border-platform-border sm:bg-platform-panel sm:px-[var(--space-shell-3)] sm:text-left sm:text-[13px] sm:hover:border-platform-signal-soft md:max-[1799px]:w-8 md:max-[1799px]:justify-center md:max-[1799px]:px-0"
         >
           <span aria-hidden>⌕</span>
           {/* De 768 a 1800 px a barra leva o segmentado (e, a partir de 1280, as
               ações do manual): a busca da plataforma fica só no ícone — o ⌘K
               continua valendo. Em 768, com a zona do Brennimark, o texto
-              estourava a tela em 15 px (CI de 24/09). */}
-          <span className="hidden truncate sm:inline md:hidden min-[1800px]:inline">{searchLabel}</span>
-          <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline md:hidden min-[1800px]:inline">⌘K</kbd>
+              estourava a tela em 15 px (CI de 24/09). A faixa é FECHADA
+              (`md:max-[1799px]`): `md:hidden` com `min-[1800px]:inline` dependia
+              da ordem das regras, e em produção o `md` venceu — a busca ficou
+              no ícone até em 1920 px (ensaio de 24/09). */}
+          <span className="hidden truncate sm:inline md:max-[1799px]:hidden">{searchLabel}</span>
+          <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline md:max-[1799px]:hidden">⌘K</kbd>
         </button>
         {userEmail && (
           <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted min-[1800px]:inline">
