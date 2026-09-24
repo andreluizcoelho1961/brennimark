@@ -72,6 +72,14 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * A limpeza periódica do material órfão (envio abandonado entre preparar e
+   * concluir). Escrita em 24/09/2026, NÃO aplicada em produção: aplicar é
+   * autorização nominal do André. Só cria a função `enfileirar_materiais_orfaos`
+   * (`service_role`-only); não altera tabela nem dado. Prova em
+   * `scripts/prova-limpeza-de-material-orfao.sh`.
+   */
+  "limpeza_de_material_orfao",
   // `materiais_regra_e_miniatura` saiu daqui em 24/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260924183637`;
   // impressão digital igual à do local (colunas, constraints, índice, gatilho
