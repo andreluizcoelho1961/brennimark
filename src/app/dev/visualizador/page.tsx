@@ -46,7 +46,7 @@ export default async function BancadaDoVisualizador({
         {moldura && (
           <header className="flex h-14 flex-none items-center gap-4 border-b border-platform-border bg-platform-bg px-4">
             <span className="text-[13px] font-semibold text-platform-text">Bancada</span>
-            <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center lg:flex" />
+            <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center xl:flex" />
           </header>
         )}
         <Visualizador

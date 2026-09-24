@@ -65,10 +65,19 @@ export function PlatformTopBar({
         </button>
       )}
 
-      <span className="flex min-w-0 items-center gap-[var(--space-shell-3)]">
+      {/*
+        A zona do Brennimark: espaço PRÓPRIO, separado da marca aberta por um
+        filete — pedido do André em 24/09 ("mais arejado"). Largura fixa em tela
+        larga, para o nome da plataforma não andar conforme o nome da marca
+        muda; a marca, o segmentado e as ações começam depois dela.
+      */}
+      <span className="flex h-full flex-none items-center border-r border-platform-border pr-[var(--space-shell-5)] lg:min-w-[11rem]">
         <span className="truncate text-[13px] font-semibold tracking-tight text-platform-text">
           {platformIdentity.displayName}
         </span>
+      </span>
+
+      <span className="flex min-w-0 items-center gap-[var(--space-shell-3)]">
         {/* Com contexto, o nome da marca É o controle de troca. Sem ele —
             preview local, rota de comparação — continua sendo só rótulo. */}
         {contextoAtivo ? (
@@ -89,21 +98,23 @@ export function PlatformTopBar({
         •••. Fica vazio fora do manual; quem o preenche é a própria tela, por
         portal (`MolduraDoManual.tsx`), e o estado continua com ela.
       */}
-      <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center lg:flex" />
+      <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center xl:flex" />
 
       <div className="ml-auto flex items-center gap-[var(--space-shell-3)]">
         <button
           type="button"
           onClick={onOpenSearch}
           aria-label={searchLabel}
-          className="flex h-11 w-11 items-center justify-center gap-[var(--space-shell-2)] rounded-[var(--radius-control)] text-platform-text-muted transition-colors duration-[var(--motion-control)] hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus sm:h-8 sm:w-56 sm:justify-start sm:border sm:border-platform-border sm:bg-platform-panel sm:px-[var(--space-shell-3)] sm:text-left sm:text-[13px] sm:hover:border-platform-signal-soft"
+          className="flex h-11 w-11 items-center justify-center gap-[var(--space-shell-2)] rounded-[var(--radius-control)] text-platform-text-muted transition-colors duration-[var(--motion-control)] hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus sm:h-8 sm:w-56 sm:justify-start sm:border sm:border-platform-border sm:bg-platform-panel sm:px-[var(--space-shell-3)] sm:text-left sm:text-[13px] sm:hover:border-platform-signal-soft xl:w-8 xl:justify-center xl:px-0 min-[1800px]:w-56 min-[1800px]:justify-start min-[1800px]:px-[var(--space-shell-3)]"
         >
           <span aria-hidden>⌕</span>
-          <span className="hidden truncate sm:inline">{searchLabel}</span>
-          <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline">⌘K</kbd>
+          {/* Entre 1280 e 1800 px a barra leva as ações do manual, e a busca da
+              plataforma fica só no ícone — o ⌘K continua valendo. */}
+          <span className="hidden truncate sm:inline xl:hidden min-[1800px]:inline">{searchLabel}</span>
+          <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline xl:hidden min-[1800px]:inline">⌘K</kbd>
         </button>
         {userEmail && (
-          <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted xl:inline">
+          <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted min-[1800px]:inline">
             {userEmail}
           </span>
         )}

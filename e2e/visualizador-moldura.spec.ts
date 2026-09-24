@@ -111,6 +111,13 @@ test("a página não tem faixa branca: a moldura tem a largura do desenho", asyn
     return Math.abs(moldura.width - canvas.width);
   });
   expect(sobra).toBeLessThan(1);
+
+  // E, desenhada, a moldura perde o fundo branco: com canvas de largura
+  // fracionária, meio pixel de branco virava filete em volta da página escura
+  // (ensaio de 24/09).
+  await expect.poll(async () => page.locator("section[data-pagina='1']").evaluate(
+    (secao) => getComputedStyle(secao).backgroundColor,
+  )).toBe("rgba(0, 0, 0, 0)");
 });
 
 test("na bancada, sem marca, o ••• não oferece baixar", async ({ page }) => {
