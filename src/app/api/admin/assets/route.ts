@@ -1,63 +1,29 @@
 import { NextResponse } from "next/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
-import { BUCKETS, caminhoDeAsset, caminhoDeMiniatura } from "@/lib/storage/caminhos";
+import { BUCKETS, caminhoDeMiniatura } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { decidirRemocao } from "@/lib/assets/remocao";
-import { conferirEixos, ehTipoDeItem, lerEixos, motivoDaRecusa, rotulo } from "@/lib/assets/eixos";
+import { motivoDaRecusa } from "@/lib/assets/eixos";
+import { BYTES_DO_COMECO, TAMANHO_MAXIMO_DE_MATERIAL, conteudoConfere } from "@/lib/assets/conferir-arquivo";
+import { lerEnvio, tamanhoDoContentRange } from "@/lib/assets/envio";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
 const isEnglish = inEnglish(PRODUCT_LOCALE);
-const MAX_SIZE = 25 * 1024 * 1024;
-// Tipo declarado pelo cliente é uma pista, não prova. Cada entrada traz as
-// assinaturas de bytes que o conteúdo precisa apresentar para ser aceito.
-// `application/octet-stream` foi removido: como também era o fallback quando o
-// navegador não declarava tipo, sua presença tornava a allowlist inócua.
-const MAGIC: Record<string, string[]> = {
-  "image/jpeg": ["ffd8ff"],
-  "image/png": ["89504e47"],
-  "image/webp": ["52494646"], // RIFF; o marcador WEBP é conferido à parte
-  "application/pdf": ["25504446"],
-  "application/zip": ["504b0304", "504b0506", "504b0708"],
-  "application/postscript": ["25215053", "c5d0d3c6"],
-  "font/otf": ["4f54544f"],
-  "font/ttf": ["00010000", "74727565"],
-  "font/woff": ["774f4646"],
-  "font/woff2": ["774f4632"],
-};
-// SVG e XML, não binário: não tem assinatura de bytes confiável. É aceito com
-// checagem textual e servido exclusivamente como download (ver createSignedUrl
-// em /api/assets), porque SVG é executável quando renderizado inline.
-const SVG_TYPE = "image/svg+xml";
 /**
  * A miniatura: PNG pequeno, gerado no navegador de quem envia (fatia 5). Não é
  * obrigatória — EPS e AI sem compatibilidade PDF não geram —, e falhar em
- * guardá-la não derruba o envio do original.
+ * guardá-la não derruba o envio do original. Pequena o bastante para ainda
+ * atravessar a função; o original, não.
  */
 const MAX_MINIATURA = 512 * 1024;
 async function miniaturaAceitavel(valor: FormDataEntryValue | null): Promise<File | null> {
   if (!(valor instanceof File) || valor.size < 1 || valor.size > MAX_MINIATURA || valor.type !== "image/png") return null;
-  return (await contentMatchesType(valor, "image/png")) ? valor : null;
+  return conteudoConfere(new Uint8Array(await valor.slice(0, BYTES_DO_COMECO).arrayBuffer()), "image/png") ? valor : null;
 }
-const ALLOWED_TYPES = new Set([...Object.keys(MAGIC), SVG_TYPE]);
 
-/** Confere se os primeiros bytes correspondem ao tipo declarado. */
-async function contentMatchesType(file: File, declaredType: string): Promise<boolean> {
-  if (declaredType === SVG_TYPE) {
-    const head = (await file.slice(0, 512).text()).trimStart().toLowerCase();
-    return head.startsWith("<?xml") || head.startsWith("<svg") || head.startsWith("<!doctype svg");
-  }
-  const signatures = MAGIC[declaredType];
-  if (!signatures) return false;
-  const head = new Uint8Array(await file.slice(0, 16).arrayBuffer());
-  const hex = Array.from(head, (b) => b.toString(16).padStart(2, "0")).join("");
-  if (!signatures.some((signature) => hex.startsWith(signature))) return false;
-  // RIFF cobre vários formatos; exigir o marcador WEBP nos bytes 8-11.
-  if (declaredType === "image/webp") return hex.slice(16, 24) === "57454250";
-  return true;
-}
 /**
  * Dono do workspace resolvido pela requisição.
  *
@@ -73,58 +39,65 @@ async function ownerContext(request: Request) {
   return { ok: true as const, contexto: r };
 }
 
+/**
+ * CONCLUIR o envio de um material — passo 2 de 2 (24/09/2026).
+ *
+ * O arquivo já está no Storage: o navegador o mandou direto, pelo endereço que
+ * o passo 1 (`/api/admin/assets/envio`) assinou para UM caminho. Aqui chega só
+ * a autorização assinada — e a miniatura, que é pequena. Nada do que o cliente
+ * mandar de novo é usado: caminho, item, eixos e nome vêm da autorização.
+ *
+ * Antes de registrar, a rota lê os primeiros bytes e o tamanho REAIS do que
+ * chegou. Enquanto a variante não existe, a policy do bucket deixa quem edita
+ * a marca ler o arquivo; depois de registrada, só pela rota que registra
+ * download. Conteúdo que não confere, ou tamanho diferente do declarado, apaga
+ * o arquivo e recusa.
+ */
 export async function POST(request: Request) {
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;
   if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can upload assets." : "Apenas o proprietário pode enviar assets." }, { status: 403 });
-  const form = await request.formData();
-  const file = form.get("file");
-  const label = String(form.get("label") ?? "").trim();
-  const description = String(form.get("description") ?? "").trim();
-  const itemId = String(form.get("item") ?? "").trim();
-  // Opcional: o asset que este arquivo vem substituir. Vazio é o caso comum —
-  // nem todo upload troca alguma coisa.
-  const substitui = String(form.get("substitui") ?? "").trim();
-  if (!(file instanceof File) || !label || label.length > 120 || description.length > 500 || !itemId || file.size < 1 || file.size > MAX_SIZE || !ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json({ message: isEnglish ? "Check the file and its details. The limit is 25 MB." : "Revise o arquivo e seus dados. O limite é 25 MB." }, { status: 400 });
-  }
+  const chave = process.env.SUPABASE_SECRET_KEY;
+  if (!chave) return NextResponse.json({ message: isEnglish ? "Uploads aren't configured on this server." : "O envio não está configurado neste servidor." }, { status: 503 });
 
-  /*
-   * O item e os eixos, conferidos ANTES de o arquivo subir.
-   *
-   * O banco recusaria de qualquer jeito — mas depois de 25 MB irem para o
-   * Storage e voltarem apagados. Conferir aqui é o que deixa a recusa custar
-   * uma requisição curta, e dizer QUAL eixo falta em vez de "não foi possível".
-   * A autoridade continua sendo o gatilho do banco (ver `lib/assets/eixos.ts`).
-   */
-  const { data: item } = await context.auth.supabase.from("brand_asset_items")
-    .select("id, tipo").eq("id", itemId).eq("brand_id", context.brandId).maybeSingle();
-  if (!item || !ehTipoDeItem(item.tipo)) {
-    return NextResponse.json({ message: isEnglish ? "Choose an item of this brand." : "Escolha um item desta marca." }, { status: 400 });
+  const form = await request.formData();
+  const leitura = lerEnvio(form.get("autorizacao"), chave, {
+    userId: context.auth.user.id, workspaceId: context.workspaceId, brandId: context.brandId,
+  });
+  if (!leitura.ok) {
+    return NextResponse.json({
+      message: leitura.motivo === "expirado"
+        ? (isEnglish ? "The upload took too long. Send the file again." : "O envio demorou demais. Envie o arquivo de novo.")
+        : (isEnglish ? "This upload isn't valid." : "Este envio não é válido."),
+    }, { status: 400 });
   }
-  const lidos = lerEixos((nome) => form.get(nome));
-  if ("invalido" in lidos) {
-    return NextResponse.json({ message: isEnglish ? `Invalid value for ${rotulo(lidos.invalido, true)}.` : `Valor inválido para ${rotulo(lidos.invalido, false)}.` }, { status: 400 });
+  const envio = leitura.dados;
+  const path = envio.caminho;
+  const apagar = (caminhos: string[]) => context.auth.supabase.storage.from(BUCKETS.assets).remove(caminhos);
+
+  // A mesma autorização concluída de novo (duplo clique, repetição de rede):
+  // o arquivo já está registrado. Responde o mesmo, e não toca em nada — nem
+  // conseguiria ler o arquivo, que depois do registro só sai pela rota que
+  // registra download.
+  const { data: jaRegistrado } = await context.auth.supabase.from("brand_assets")
+    .select("id").eq("storage_path", path).eq("brand_id", context.brandId).maybeSingle();
+  if (jaRegistrado) return NextResponse.json({ ok: true, substituicao: "nao-pedida" }, { status: 200 });
+
+  // O que chegou de verdade: os primeiros bytes e o tamanho total.
+  const { data: leituraAssinada } = await context.auth.supabase.storage.from(BUCKETS.assets).createSignedUrl(path, 60);
+  const comeco = leituraAssinada?.signedUrl
+    ? await fetch(leituraAssinada.signedUrl, { headers: { Range: `bytes=0-${BYTES_DO_COMECO - 1}` }, cache: "no-store" }).catch(() => null)
+    : null;
+  if (!comeco || (comeco.status !== 206 && comeco.status !== 200)) {
+    return NextResponse.json({ message: isEnglish ? "The file didn't reach storage. Send it again." : "O arquivo não chegou ao armazenamento. Envie de novo." }, { status: 400 });
   }
-  const conferencia = conferirEixos(item.tipo, lidos.eixos);
-  if (!conferencia.ok) {
-    const message = conferencia.motivo === "exige-termo"
-      ? (isEnglish ? "Fonts can only be uploaded after the license term is signed." : "Fonte só pode ser enviada depois de assinado o termo de licença.")
-      : conferencia.motivo === "falta"
-        ? (isEnglish ? `${rotulo(item.tipo, true)} needs ${rotulo(conferencia.eixo, true).toLowerCase()}.` : `${rotulo(item.tipo, false)} precisa de ${rotulo(conferencia.eixo, false).toLowerCase()}.`)
-        : (isEnglish ? `${rotulo(conferencia.eixo, true)} doesn't apply to ${rotulo(item.tipo, true).toLowerCase()}.` : `${rotulo(conferencia.eixo, false)} não se aplica a ${rotulo(item.tipo, false).toLowerCase()}.`);
-    return NextResponse.json({ message }, { status: 400 });
-  }
-  if (!(await contentMatchesType(file, file.type))) {
+  const tamanhoReal = tamanhoDoContentRange(comeco.headers.get("content-range")) ?? Number(comeco.headers.get("content-length"));
+  const bytes = new Uint8Array(await comeco.arrayBuffer()).slice(0, BYTES_DO_COMECO);
+  if (tamanhoReal !== envio.sizeBytes || tamanhoReal > TAMANHO_MAXIMO_DE_MATERIAL || !conteudoConfere(bytes, envio.mimeType)) {
+    await apagar([path]);
     return NextResponse.json({ message: isEnglish ? "The file content doesn't match its declared type." : "O conteúdo do arquivo não corresponde ao tipo declarado." }, { status: 400 });
   }
-  // O caminho só carrega identificadores imutáveis. Com a chave da marca ali,
-  // renomeá-la deixaria todo arquivo já enviado num caminho que não
-  // corresponde mais a nada — e nem a listagem nem a exclusão os encontrariam.
-  const path = caminhoDeAsset(context.workspaceId, context.brandId, file.name, crypto.randomUUID());
-  const { error: uploadError } = await context.auth.supabase.storage.from(BUCKETS.assets).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
-  if (uploadError) return NextResponse.json({ message: isEnglish ? "Couldn't upload the file." : "Não foi possível enviar o arquivo." }, { status: 500 });
 
   let miniaturaPath: string | null = null;
   const miniatura = await miniaturaAceitavel(form.get("miniatura"));
@@ -135,20 +108,25 @@ export async function POST(request: Request) {
     if (!erroDaMiniatura) miniaturaPath = caminho;
   }
   const { error } = await context.auth.supabase.from("brand_assets").insert({
-    workspace_id: context.workspaceId, brand_id: context.brandId, item_id: item.id, label, description,
-    ...lidos.eixos,
-    storage_path: path, file_name: file.name.slice(0, 240), mime_type: file.type,
-    size_bytes: file.size, status: "ready", created_by: context.auth.user.id,
+    workspace_id: context.workspaceId, brand_id: context.brandId, item_id: envio.itemId,
+    label: envio.label, description: envio.description,
+    ...envio.eixos,
+    storage_path: path, file_name: envio.fileName, mime_type: envio.mimeType,
+    size_bytes: tamanhoReal, status: "ready", created_by: context.auth.user.id,
     miniatura_path: miniaturaPath,
   });
   if (error) {
-    await context.auth.supabase.storage.from(BUCKETS.assets).remove(miniaturaPath ? [path, miniaturaPath] : [path]);
+    await apagar(miniaturaPath ? [path, miniaturaPath] : [path]);
     // A recusa do banco com nome conhecido é erro de quem enviou, e diz o quê.
     // Só o que não se reconhece continua sendo "não foi possível".
     const motivo = motivoDaRecusa(`${error.message} ${error.details ?? ""}`);
     if (motivo) return NextResponse.json({ message: isEnglish ? "The library refused this file's details. Review the item and its fields." : "A biblioteca recusou os dados deste arquivo. Revise o item e os campos." , motivo }, { status: 400 });
+    // Registro duplicado: o mesmo envio concluído duas vezes (duplo clique,
+    // repetição de rede). O arquivo é o mesmo, e já está registrado.
+    if (error.code === "23505") return NextResponse.json({ ok: true, substituicao: "nao-pedida" }, { status: 200 });
     return NextResponse.json({ message: isEnglish ? "The file uploaded, but couldn't be registered." : "O arquivo chegou, mas não foi possível registrá-lo." }, { status: 500 });
   }
+  const substitui = envio.substitui;
 
   /*
    * A substituição, quando pedida — e o que acontece se ela falhar.
