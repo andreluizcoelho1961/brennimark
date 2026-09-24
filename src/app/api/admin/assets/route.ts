@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
-import { BUCKETS, caminhoDeAsset } from "@/lib/storage/caminhos";
+import { BUCKETS, caminhoDeAsset, caminhoDeMiniatura } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { decidirRemocao } from "@/lib/assets/remocao";
 import { conferirEixos, ehTipoDeItem, lerEixos, motivoDaRecusa, rotulo } from "@/lib/assets/eixos";
@@ -31,6 +31,16 @@ const MAGIC: Record<string, string[]> = {
 // checagem textual e servido exclusivamente como download (ver createSignedUrl
 // em /api/assets), porque SVG é executável quando renderizado inline.
 const SVG_TYPE = "image/svg+xml";
+/**
+ * A miniatura: PNG pequeno, gerado no navegador de quem envia (fatia 5). Não é
+ * obrigatória — EPS e AI sem compatibilidade PDF não geram —, e falhar em
+ * guardá-la não derruba o envio do original.
+ */
+const MAX_MINIATURA = 512 * 1024;
+async function miniaturaAceitavel(valor: FormDataEntryValue | null): Promise<File | null> {
+  if (!(valor instanceof File) || valor.size < 1 || valor.size > MAX_MINIATURA || valor.type !== "image/png") return null;
+  return (await contentMatchesType(valor, "image/png")) ? valor : null;
+}
 const ALLOWED_TYPES = new Set([...Object.keys(MAGIC), SVG_TYPE]);
 
 /** Confere se os primeiros bytes correspondem ao tipo declarado. */
@@ -115,14 +125,24 @@ export async function POST(request: Request) {
   const path = caminhoDeAsset(context.workspaceId, context.brandId, file.name, crypto.randomUUID());
   const { error: uploadError } = await context.auth.supabase.storage.from(BUCKETS.assets).upload(path, file, { contentType: file.type, upsert: false, cacheControl: "3600" });
   if (uploadError) return NextResponse.json({ message: isEnglish ? "Couldn't upload the file." : "Não foi possível enviar o arquivo." }, { status: 500 });
+
+  let miniaturaPath: string | null = null;
+  const miniatura = await miniaturaAceitavel(form.get("miniatura"));
+  if (miniatura) {
+    const caminho = caminhoDeMiniatura(context.workspaceId, context.brandId, crypto.randomUUID());
+    const { error: erroDaMiniatura } = await context.auth.supabase.storage.from(BUCKETS.assets)
+      .upload(caminho, miniatura, { contentType: "image/png", upsert: false, cacheControl: "3600" });
+    if (!erroDaMiniatura) miniaturaPath = caminho;
+  }
   const { error } = await context.auth.supabase.from("brand_assets").insert({
     workspace_id: context.workspaceId, brand_id: context.brandId, item_id: item.id, label, description,
     ...lidos.eixos,
     storage_path: path, file_name: file.name.slice(0, 240), mime_type: file.type,
     size_bytes: file.size, status: "ready", created_by: context.auth.user.id,
+    miniatura_path: miniaturaPath,
   });
   if (error) {
-    await context.auth.supabase.storage.from(BUCKETS.assets).remove([path]);
+    await context.auth.supabase.storage.from(BUCKETS.assets).remove(miniaturaPath ? [path, miniaturaPath] : [path]);
     // A recusa do banco com nome conhecido é erro de quem enviou, e diz o quê.
     // Só o que não se reconhece continua sendo "não foi possível".
     const motivo = motivoDaRecusa(`${error.message} ${error.details ?? ""}`);

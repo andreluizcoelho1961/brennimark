@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
+import { gerarMiniatura } from "@/lib/assets/miniatura";
 import { EIXOS, EIXOS_POR_TIPO, TIPOS_DE_ITEM, TIPOS_SEM_UPLOAD, colunasDoTipo, formatoDoArquivo, rotulo, type TipoDeItem } from "@/lib/assets/eixos";
 
 type Eixos = { hierarquia: string | null; lockup: string | null; cor: string | null; polaridade: string | null; espaco_de_cor: string | null };
@@ -69,7 +70,15 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setUploading(true); setMessage("");
     const form = event.currentTarget;
-    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "POST", body: new FormData(form) });
+    const corpo = new FormData(form);
+    // A miniatura da prévia, gerada AQUI, no navegador de quem envia (fatia 5).
+    // Sem prévia possível (EPS), vai sem — a tela diz o formato.
+    const arquivo = corpo.get("file");
+    if (arquivo instanceof File && arquivo.size > 0) {
+      const miniatura = await gerarMiniatura(arquivo);
+      if (miniatura) corpo.set("miniatura", new File([miniatura], "miniatura.png", { type: "image/png" }));
+    }
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "POST", body: corpo });
     const data = await response.json().catch(() => ({}));
     setUploading(false);
     setMessage(

@@ -115,3 +115,14 @@ export function pertenceAImportacao(
     /^[0-9a-f]{64}\.pdf$/.test(partes[2])
   );
 }
+
+/**
+ * Miniatura de uma variante de Materiais: `workspaceId/brandId/miniatura-<uuid>.png`.
+ *
+ * Nome próprio, e nunca o de um original (`<uuid>-<nome>` começa pelo uuid):
+ * a policy do bucket deixa quem consulta ler o que NÃO é original, e a
+ * miniatura precisa estar desse lado. Ver a migration `materiais_regra_e_miniatura`.
+ */
+export function caminhoDeMiniatura(workspaceId: string, brandId: string, id: string): string {
+  return `${workspaceId}/${brandId}/miniatura-${id}.png`;
+}
