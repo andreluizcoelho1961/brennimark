@@ -72,6 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * Conta removida — LGPD (24/09/2026): autoria vira nula, e-mail vira apelido
+   * anônimo, análises ficam com a marca. Aplicar só com autorização nominal do
+   * André.
+   */
+  "conta_removida",
   // `materiais_regra_e_miniatura` saiu daqui em 24/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260924183637`;
   // impressão digital igual à do local (colunas, constraints, índice, gatilho

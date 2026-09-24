@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { rotuloDaPessoa } from "@/lib/acesso/conta-removida";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import {
@@ -273,7 +274,7 @@ export function PessoasEAcesso() {
                     className="border-b border-platform-border/60 align-top">
                     <td className="py-3 pr-4 text-platform-text">
                       {pessoa.nome && <span className="block">{pessoa.nome}</span>}
-                      <span className={pessoa.nome ? "block text-[12px] text-platform-text-muted" : undefined}>{pessoa.email}</span>
+                      <span className={pessoa.nome ? "block text-[12px] text-platform-text-muted" : undefined}>{rotuloDaPessoa(pessoa.email, isEnglish)}</span>
                       {/* "Esperando" e não "convidado": nenhuma mensagem saiu. */}
                       {pessoa.pendente && (
                         <span data-pendente className="mt-1 inline-block border border-platform-border px-2 py-0.5 text-[10px] uppercase tracking-wider text-platform-text-muted">

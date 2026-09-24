@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { gerarMiniatura } from "@/lib/assets/miniatura";
+import { rotuloDaPessoa } from "@/lib/acesso/conta-removida";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -426,7 +427,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
                   {downloads.map((d) => (
                     <tr key={d.id} className="border-b border-platform-border/60">
                       <td className="py-2 pr-4 font-mono text-[12px] text-platform-text-muted">{new Date(d.quando).toLocaleString(isEnglish ? "en" : "pt-BR")}</td>
-                      <td className="py-2 pr-4 text-platform-text">{d.pessoa}</td>
+                      <td className="py-2 pr-4 text-platform-text">{rotuloDaPessoa(d.pessoa, isEnglish)}</td>
                       <td className="py-2 text-platform-text">
                         {d.rotulo} <span className="font-mono text-[11px] text-platform-text-muted">{d.arquivo}</span>
                         {/* O arquivo pode ter sido apagado em definitivo depois.
