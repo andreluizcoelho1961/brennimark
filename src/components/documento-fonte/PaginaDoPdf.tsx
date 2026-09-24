@@ -173,10 +173,19 @@ export function PaginaDoPdf({
      * que é justamente o que torna o manual legível para quem usa leitor de
      * tela. O rótulo nomeia a região; o conteúdo dela continua sendo lido.
      */
+    /*
+     * `w-fit`: a moldura branca tem a largura do CANVAS, e não da coluna.
+     *
+     * Defeito do ensaio de 18/09, medido em 23/09: sem isto a seção esticava à
+     * largura da coluna COM o recuo (961 px), o canvas tinha a largura SEM ele
+     * (937 px) e ficava encostado à esquerda — 24 px de fundo branco à direita
+     * de toda página. Em página clara, invisível; na Sony Vaio, de fundo azul-
+     * -marinho, uma faixa branca na borda que parecia ser do documento.
+     */
     <section
       ref={molduraRef}
       data-pagina={numero}
-      className="relative mx-auto bg-white shadow-[0_1px_12px_rgba(0,0,0,0.45)] data-[falhou=sim]:outline data-[falhou=sim]:outline-platform-warning"
+      className="relative mx-auto w-fit bg-white shadow-[0_1px_12px_rgba(0,0,0,0.45)] data-[falhou=sim]:outline data-[falhou=sim]:outline-platform-warning"
       aria-label={rotulo ?? `${numero}`}
     >
       {/* `block` remove o espaço de linha-base que um canvas inline herda e que

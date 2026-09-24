@@ -92,3 +92,26 @@ export function pertenceAMarca(
 ): boolean {
   return caminho.startsWith(`${workspaceId}/${brandId}/`);
 }
+
+/**
+ * O PDF é DESTA importação, desta conta? — o download do manual (fatia 3).
+ *
+ * O caminho da importação não carrega a marca (`conta/importação/<hash>.pdf`),
+ * então `pertenceAMarca` não serve. O que se confere é a conta e a importação
+ * lidas da linha que a RLS devolveu, e que não há subpasta escondida: um
+ * `storage_path` gravado errado assinaria o arquivo de outra conta com a
+ * sessão de quem tem direito a esta.
+ */
+export function pertenceAImportacao(
+  caminho: string,
+  workspaceId: string,
+  importId: string,
+): boolean {
+  const partes = caminho.split("/");
+  return (
+    partes.length === 3 &&
+    partes[0] === workspaceId &&
+    partes[1] === importId &&
+    /^[0-9a-f]{64}\.pdf$/.test(partes[2])
+  );
+}

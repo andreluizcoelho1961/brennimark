@@ -10,6 +10,7 @@ import {
   classificarPublicacao, type EstadoDaPublicacao,
 } from "@/lib/documento-fonte/conclusao-da-publicacao";
 import type { SecaoExtraida } from "@/lib/documento-fonte/indice";
+import { nomeDoArquivoDoManual } from "@/lib/documento-fonte/nome-do-arquivo";
 
 /**
  * O manual original — a camada visual canônica.
@@ -58,7 +59,7 @@ export default async function ManualOriginal({
   // depender de uma garantia que vive em outro arquivo.
   const { data: documento } = await auth.supabase
     .from("brand_imports")
-    .select("id, page_count")
+    .select("id, page_count, arquivo:report->>arquivo")
     .eq("workspace_id", auth.workspaceId)
     .eq("brand_id", contexto.brand.id)
     .order("created_at", { ascending: false })
@@ -105,14 +106,27 @@ export default async function ManualOriginal({
    * o campo antigo de faixas e descrevia o que as seções absorveram, não o que
    * existia.
    */
+  /*
+   * Os avisos de registro e de curadoria são de quem EDITA a marca — fatia 3,
+   * item estacionado no ensaio de 18/09: "N páginas ficaram sem seção… a
+   * curadoria atribui depois" aparecia para quem só consulta, e a ação que ele
+   * pede não é dela. A interface decide o que aparece; concluir o registro
+   * continua autorizado pelo banco, não por este `if`.
+   */
+  const edita = contexto.capabilities.includes("editar");
+  const nomeDoArquivo = nomeDoArquivoDoManual(
+    (documento as { arquivo?: string | null }).arquivo, contexto.brand.brand.name,
+  );
+  const consulta = new URLSearchParams({ w: alvo.workspaceSlug, b: alvo.brandKey }).toString();
+
   const secoes = registro?.sourceDocumentId
     ? await lerSecoesDoIndice(auth.supabase, registro.sourceDocumentId)
     : [];
 
   return (
     <div className="flex h-[calc(100dvh-var(--shell-topbar,56px))] flex-col">
-      {registro?.estado === "anterior-ao-manifesto" && <AnteriorAoManifesto />}
-      {registro?.estado === "incompleto" && registro.importId && (
+      {edita && registro?.estado === "anterior-ao-manifesto" && <AnteriorAoManifesto />}
+      {edita && registro?.estado === "incompleto" && registro.importId && (
         <ConclusaoPendente
           contaSlug={alvo.workspaceSlug}
           marcaChave={alvo.brandKey}
@@ -126,7 +140,7 @@ export default async function ManualOriginal({
         necessariamente quem importou, e o aviso do importador morreu com a
         navegação.
       */}
-      {registro?.sourceDocumentId && (
+      {edita && registro?.sourceDocumentId && (
         <PendenciaDeSecao
           paginasSemSecao={registro.paginasSemSecao}
           total={documento.page_count}
@@ -140,6 +154,8 @@ export default async function ManualOriginal({
           marcaChave={alvo.brandKey}
           className="h-full"
           paginaPedida={paginaPedida}
+          nomeDoArquivo={nomeDoArquivo}
+          enderecoDoDownload={`/api/documento-fonte/${documento.id}/baixar?${consulta}`}
         />
       </div>
     </div>

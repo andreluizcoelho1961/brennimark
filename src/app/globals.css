@@ -290,3 +290,13 @@ p, blockquote, li {
 .textLayer span {
   pointer-events: auto;
 }
+
+/*
+ * A janela do Vini fica À ESQUERDA da aba de capítulo, nos três estados — a aba
+ * é a borda mais externa da tela do manual (spec da tela do manual §0.4). A
+ * aba não sabe do Vini, e o Vini não sabe da aba: quando a aba está na página,
+ * a janela recua a largura dela (w-7 = 1.75rem).
+ */
+:root:has([data-aba-de-capitulo]) [data-vini] {
+  right: calc(max(env(safe-area-inset-right), 1rem) + 1.75rem);
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   montarIndice, type FonteDoIndice, type ItemDeIndice, type MarcadorResolvido,
   type SecaoExtraida,
@@ -14,6 +15,9 @@ import {
   janelaMontada,
 } from "@/lib/documento-fonte/virtualizacao";
 import { PaginaDoPdf } from "./PaginaDoPdf";
+import {
+  AbaDeCapitulo, AcoesDoManual, Folio, useEncaixeDaBarra, useTelaLarga, type EstadoDaBusca,
+} from "./MolduraDoManual";
 
 /** Passos de zoom. "Ajustar à largura" é estado, não um número desta lista. */
 const PASSOS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
@@ -40,6 +44,8 @@ export function VisualizadorDePdf({
   secoes,
   className,
   paginaPedida,
+  nomeDoArquivo,
+  enderecoDoDownload,
 }: {
   /** O identificador do DOCUMENTO. Nunca um caminho de Storage. */
   documentoId: string;
@@ -70,6 +76,10 @@ export function VisualizadorDePdf({
    * vezes na mesma citação, depois de rolar para longe, tem de levar de novo.
    */
   paginaPedida?: { pagina: number; pedido: string };
+  /** O nome com que a agência enviou o PDF — aparece no fólio. */
+  nomeDoArquivo?: string;
+  /** A rota que registra e baixa o PDF. Ausente na bancada. */
+  enderecoDoDownload?: string;
 }) {
   const [documento, setDocumento] = useState<PDFDocumentProxy | null>(null);
   const [total, setTotal] = useState(0);
@@ -80,6 +90,7 @@ export function VisualizadorDePdf({
     new Map(),
   );
   const [termo, setTermo] = useState("");
+  const [busca, setBusca] = useState<EstadoDaBusca>("ocioso");
   const [falha, setFalha] = useState<string | null>(null);
   const [miniaturasAbertas, setMiniaturasAbertas] = useState(false);
   const [indiceAberto, setIndiceAberto] = useState(false);
@@ -90,6 +101,8 @@ export function VisualizadorDePdf({
 
   const isEnglish = useIsEnglish();
   const t = useCallback((pt: string, en: string) => (isEnglish ? en : pt), [isEnglish]);
+  const encaixe = useEncaixeDaBarra();
+  const telaLarga = useTelaLarga();
 
   const roloRef = useRef<HTMLDivElement | null>(null);
   const colunaRef = useRef<HTMLDivElement | null>(null);
@@ -382,7 +395,14 @@ export function VisualizadorDePdf({
       if (largura > 0) setLarguraDaColuna(largura);
     };
 
-    medir(coluna.clientWidth);
+    /*
+     * A MESMA medida nos dois caminhos: a largura de CONTEÚDO, sem o recuo.
+     * `clientWidth` inclui o recuo, e o `ResizeObserver` entrega `contentRect`,
+     * que não inclui — a primeira pintura usava uma largura e a segunda outra,
+     * e toda abertura desenhava as páginas duas vezes.
+     */
+    const estilo = getComputedStyle(coluna);
+    medir(coluna.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight));
 
     const observador = new ResizeObserver(([entrada]) => medir(entrada.contentRect.width));
     observador.observe(coluna);
@@ -590,6 +610,63 @@ export function VisualizadorDePdf({
     [escalaDe, paginaAtual],
   );
 
+  /**
+   * Buscar leva à PRÓXIMA página que contém o termo — fatia 3.
+   *
+   * Até aqui a busca só destacava o termo nas páginas montadas: num manual de
+   * 47 páginas, digitar "logo" não levava a lugar nenhum. Agora Enter percorre
+   * as páginas a partir da seguinte, dando a volta, e para na primeira que tem
+   * o termo; Enter de novo vai à outra.
+   *
+   * O texto de cada página é lido UMA vez e guardado. Ler página ainda não vista
+   * pede os bytes dela pela rota de intervalos — o mesmo caminho da leitura, sem
+   * pedido sem `Range`. Num manual de centenas de páginas, a primeira busca por
+   * um termo raro lê muito; as seguintes são de memória.
+   */
+  const textos = useRef(new Map<number, string>());
+  const rodadaDaBusca = useRef(0);
+  useEffect(() => {
+    textos.current = new Map();
+  }, [documento]);
+
+  const mudarTermo = useCallback((novo: string) => {
+    rodadaDaBusca.current += 1;
+    setTermo(novo);
+    setBusca("ocioso");
+  }, []);
+
+  const buscarProxima = useCallback(async () => {
+    const alvo = termo.trim().toLocaleLowerCase();
+    if (!alvo || !documento || total === 0) return;
+    const rodada = ++rodadaDaBusca.current;
+    setBusca("buscando");
+    for (let passo = 1; passo <= total; passo += 1) {
+      const numero = ((paginaAtual - 1 + passo) % total) + 1;
+      let texto = textos.current.get(numero);
+      if (texto === undefined) {
+        try {
+          const pagina = await documento.getPage(numero);
+          const conteudo = await pagina.getTextContent();
+          texto = conteudo.items
+            .map((item) => ("str" in item ? item.str : ""))
+            .join(" ")
+            .toLocaleLowerCase();
+        } catch {
+          texto = "";
+        }
+        textos.current.set(numero, texto);
+      }
+      // Termo trocado no meio: esta rodada não decide mais nada.
+      if (rodada !== rodadaDaBusca.current) return;
+      if (texto.includes(alvo)) {
+        irPara(numero);
+        setBusca({ pagina: numero });
+        return;
+      }
+    }
+    if (rodada === rodadaDaBusca.current) setBusca("sem-resultado");
+  }, [termo, documento, total, paginaAtual, irPara]);
+
   // Guarda a posição a cada mudança, para a retomada depois de recarregar.
   useEffect(() => {
     posicaoSalva.current = { pagina: paginaAtual, deslocamento: roloRef.current?.scrollTop ?? 0 };
@@ -706,35 +783,59 @@ export function VisualizadorDePdf({
     );
   }
 
+  const acoes = (
+    <AcoesDoManual
+      t={t}
+      indice={indice}
+      indiceAberto={indiceAberto}
+      aoAlternarIndice={setIndiceAberto}
+      paginaAtual={paginaAtual}
+      aoIrPara={irPara}
+      termo={termo}
+      aoMudarTermo={mudarTermo}
+      aoBuscarProxima={() => void buscarProxima()}
+      busca={busca}
+      escalaEfetiva={escalaDe(paginaAtual)}
+      ajustadoALargura={ajuste.tipo === "largura"}
+      aoZoom={zoom}
+      aoEscala={(escala) => setAjuste({ tipo: "fixo", escala })}
+      aoAjustarLargura={() => setAjuste({ tipo: "largura" })}
+      miniaturasAbertas={miniaturasAbertas}
+      aoAlternarMiniaturas={() => setMiniaturasAbertas((v) => !v)}
+      aoTelaCheia={telaCheia}
+      enderecoDoDownload={enderecoDoDownload}
+    />
+  );
+  // Na moldura e em tela larga, as ações sobem para a barra de cima; sem
+  // moldura (bancada) ou em tela estreita, ficam numa faixa sobre o PDF.
+  const naBarraDeCima = Boolean(encaixe) && telaLarga;
+
   return (
     <div className={`flex h-full flex-col bg-platform-bg ${className ?? ""}`}>
-      <Barra
-        t={t}
-        paginaAtual={paginaAtual}
-        total={total}
-        ajuste={ajuste}
-        termo={termo}
-        miniaturasAbertas={miniaturasAbertas}
-        indiceAberto={indiceAberto}
-        temIndice={indice.itens.length > 0}
-        aoAlternarIndice={() => setIndiceAberto((v) => !v)}
-        aoIrPara={irPara}
-        aoZoom={zoom}
-        aoAjustarLargura={() => setAjuste({ tipo: "largura" })}
-        aoBuscar={setTermo}
-        aoTelaCheia={telaCheia}
-        aoAlternarMiniaturas={() => setMiniaturasAbertas((v) => !v)}
-      />
+      {naBarraDeCima && encaixe
+        ? createPortal(acoes, encaixe)
+        : (
+          <div className="flex flex-none flex-wrap items-center gap-[var(--space-shell-2)] border-b border-platform-border bg-platform-panel px-[var(--space-shell-3)] py-[var(--space-shell-2)] text-platform-text">
+            {acoes}
+          </div>
+        )}
 
       <div className="flex min-h-0 flex-1">
-        {indiceAberto && indice.itens.length > 0 && (
-          <Indice
-            t={t}
-            itens={indice.itens}
-            fonte={indice.fonte}
-            paginaAtual={paginaAtual}
-            aoEscolher={irPara}
-          />
+        {/*
+          A alça da tira de miniaturas: recolhível à esquerda do PDF (esboço de
+          17/09). Fechada por padrão; também abre pelo •••.
+        */}
+        {documento && (
+          <button
+            type="button"
+            data-alca-miniaturas
+            onClick={() => setMiniaturasAbertas((v) => !v)}
+            aria-pressed={miniaturasAbertas}
+            aria-label={miniaturasAbertas ? t("Esconder miniaturas", "Hide thumbnails") : t("Mostrar miniaturas", "Show thumbnails")}
+            className="hidden w-5 flex-none items-start justify-center border-r border-platform-border bg-platform-panel pt-[var(--space-shell-3)] text-[11px] text-platform-text-muted hover:text-platform-text focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-platform-focus sm:flex"
+          >
+            <span aria-hidden>{miniaturasAbertas ? "◂" : "▸"}</span>
+          </button>
         )}
 
         {miniaturasAbertas && documento && (
@@ -795,163 +896,24 @@ export function VisualizadorDePdf({
               })}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-function Barra({
-  t,
-  paginaAtual,
-  total,
-  ajuste,
-  termo,
-  miniaturasAbertas,
-  indiceAberto,
-  temIndice,
-  aoAlternarIndice,
-  aoIrPara,
-  aoZoom,
-  aoAjustarLargura,
-  aoBuscar,
-  aoTelaCheia,
-  aoAlternarMiniaturas,
-}: {
-  t: (pt: string, en: string) => string;
-  paginaAtual: number;
-  total: number;
-  ajuste: Ajuste;
-  termo: string;
-  miniaturasAbertas: boolean;
-  indiceAberto: boolean;
-  temIndice: boolean;
-  aoAlternarIndice: () => void;
-  aoIrPara: (n: number) => void;
-  aoZoom: (d: 1 | -1) => void;
-  aoAjustarLargura: () => void;
-  aoBuscar: (t: string) => void;
-  aoTelaCheia: () => void;
-  aoAlternarMiniaturas: () => void;
-}) {
-  /**
-   * O campo de página acompanha a rolagem, mas nunca atropela quem digita.
-   *
-   * Ele é não-controlado e atualizado por referência: enquanto o campo tem o
-   * foco, a rolagem não o toca. Duas alternativas foram tentadas e são piores.
-   * Sincronizar por efeito reescreve o que a pessoa está digitando a cada
-   * página que passa. Remontar por `key` recria o elemento a cada mudança de
-   * página — o foco cai no meio da digitação, e num documento de mil páginas
-   * isso acontece a cada rolagem.
-   */
-  const campoRef = useRef<HTMLInputElement | null>(null);
-  useEffect(() => {
-    const campo = campoRef.current;
-    if (campo && document.activeElement !== campo) campo.value = String(paginaAtual);
-  }, [paginaAtual]);
-
-  return (
-    /**
-     * A barra é da PLATAFORMA: só tokens `--platform-*`.
-     *
-     * Nenhum controle pode herdar cor ou fonte da marca do cliente — um manual
-     * de fundo preto e um de fundo bege precisam da mesma moldura, e o
-     * `leak-guard` verifica isso no código-fonte.
-     */
-    <div className="flex flex-wrap items-center gap-[var(--space-shell-3)] border-b border-platform-border bg-platform-panel px-[var(--space-shell-3)] py-[var(--space-shell-2)] text-platform-text">
-      {/*
-        O índice só aparece quando existe.
-        Um botão que abre uma coluna vazia é pior que a ausência do botão: ele
-        promete um sumário que o documento não tem. Ver `indice.ts` — em 30
-        manuais reais, 23 não trazem marcadores.
-      */}
-      {temIndice && (
-        <button
-          type="button"
-          onClick={aoAlternarIndice}
-          aria-pressed={indiceAberto}
-          className="rounded border border-platform-border px-2 py-1 text-[13px]"
-        >
-          {t("Índice", "Contents")}
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={aoAlternarMiniaturas}
-        aria-pressed={miniaturasAbertas}
-        className="rounded border border-platform-border px-2 py-1 text-[13px]"
-      >
-        {t("Miniaturas", "Thumbnails")}
-      </button>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const n = Number(campoRef.current?.value);
-          if (Number.isFinite(n)) aoIrPara(n);
-          campoRef.current?.blur();
-        }}
-        className="flex items-center gap-1 text-[13px]"
-      >
-        <label htmlFor="pagina-atual" className="sr-only">
-          {t("Ir para a página", "Go to page")}
-        </label>
-        <input
-          id="pagina-atual"
-          ref={campoRef}
-          defaultValue={String(paginaAtual)}
-          inputMode="numeric"
-          className="w-14 rounded border border-platform-border bg-platform-bg px-2 py-1 text-center"
+        <AbaDeCapitulo
+          t={t}
+          itens={indice.itens}
+          paginaAtual={paginaAtual}
+          aoAbrirIndice={() => setIndiceAberto(true)}
         />
-        <span className="text-platform-text-muted">
-          {t("de", "of")} {total || "—"}
-        </span>
-      </form>
-
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => aoZoom(-1)}
-          aria-label={t("Diminuir zoom", "Zoom out")}
-          className="rounded border border-platform-border px-2 py-1 text-[13px]"
-        >
-          −
-        </button>
-        <button
-          type="button"
-          onClick={() => aoZoom(1)}
-          aria-label={t("Aumentar zoom", "Zoom in")}
-          className="rounded border border-platform-border px-2 py-1 text-[13px]"
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={aoAjustarLargura}
-          aria-pressed={ajuste.tipo === "largura"}
-          className="rounded border border-platform-border px-2 py-1 text-[13px]"
-        >
-          {t("Ajustar à largura", "Fit to width")}
-        </button>
       </div>
 
-      <label className="flex items-center gap-1 text-[13px]">
-        <span className="sr-only">{t("Buscar no manual", "Search the manual")}</span>
-        <input
-          value={termo}
-          onChange={(e) => aoBuscar(e.target.value)}
-          placeholder={t("Buscar", "Search")}
-          className="w-40 rounded border border-platform-border bg-platform-bg px-2 py-1"
-        />
-      </label>
-
-      <button
-        type="button"
-        onClick={aoTelaCheia}
-        className="ml-auto rounded border border-platform-border px-2 py-1 text-[13px]"
-      >
-        {t("Tela cheia", "Full screen")}
-      </button>
+      <Folio
+        t={t}
+        paginaAtual={paginaAtual}
+        total={total}
+        ajustadoALargura={ajuste.tipo === "largura"}
+        escalaEfetiva={escalaDe(paginaAtual)}
+        nomeDoArquivo={nomeDoArquivo}
+        aoIrPara={irPara}
+      />
     </div>
   );
 }
@@ -1002,82 +964,6 @@ function Miniaturas({
           </li>
         ))}
       </ol>
-    </nav>
-  );
-}
-
-/**
- * O índice, numa coluna à esquerda do documento.
- *
- * É navegação, então é da PLATAFORMA: só tokens `--platform-*`. Um manual de
- * fundo preto e um de fundo bege precisam da mesma coluna, e o `leak-guard`
- * confere isso no código-fonte.
- *
- * ─── Por que ele diz de onde veio ───────────────────────────────────────────
- *
- * O rodapé distingue o sumário que o estúdio exportou do índice que a máquina
- * propôs a partir da extração. São coisas diferentes: um é do documento, o
- * outro é interpretação — a mesma distinção que o ADR-0006 usou para tirar as
- * páginas remontadas do caminho de leitura. Apresentar os dois com o mesmo
- * silêncio faria a proposta da máquina passar por documento aprovado.
- */
-function Indice({
-  t,
-  itens,
-  fonte,
-  paginaAtual,
-  aoEscolher,
-}: {
-  t: (pt: string, en: string) => string;
-  itens: readonly ItemDeIndice[];
-  fonte: FonteDoIndice;
-  paginaAtual: number;
-  aoEscolher: (n: number) => void;
-}) {
-  /**
-   * O item ativo é o ÚLTIMO cujo início já passou.
-   *
-   * Comparar com a página exata falharia em todo item que cobre mais de uma
-   * página — que é a maioria: um capítulo que começa na 12 e vai até a 19
-   * precisa continuar marcado enquanto se lê a 15.
-   */
-  const ativo = itens.reduce(
-    (melhor, item, i) => (item.pagina <= paginaAtual ? i : melhor),
-    -1,
-  );
-
-  return (
-    <nav
-      aria-label={t("Índice do manual", "Manual contents")}
-      className="hidden w-[var(--shell-sidebar,224px)] flex-none flex-col overflow-y-auto border-r border-platform-border bg-platform-panel py-[var(--space-shell-3)] text-platform-text lg:flex"
-    >
-      <ul className="min-h-0 flex-1">
-        {itens.map((item, i) => (
-          <li key={`${item.pagina}-${item.titulo}-${i}`}>
-            <button
-              type="button"
-              data-indice-item
-              aria-current={i === ativo ? "true" : undefined}
-              onClick={() => aoEscolher(item.pagina)}
-              className={`flex w-full items-baseline gap-2 px-[var(--space-shell-3)] py-[6px] text-left text-[13px] hover:bg-platform-bg ${
-                i === ativo ? "text-platform-text" : "text-platform-text-muted"
-              } ${item.nivel === 2 ? "pl-[var(--space-shell-5)]" : ""}`}
-            >
-              <span className="min-w-0 flex-1 truncate">{item.titulo}</span>
-              <span className="shrink-0 tabular-nums text-platform-text-muted">{item.pagina}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      <p
-        data-indice-fonte={fonte}
-        className="border-t border-platform-border px-[var(--space-shell-3)] pt-[var(--space-shell-2)] text-[11px] text-platform-text-muted"
-      >
-        {fonte === "marcadores"
-          ? t("Sumário do próprio documento.", "The document's own outline.")
-          : t("Índice proposto pela extração.", "Contents proposed by extraction.")}
-      </p>
     </nav>
   );
 }

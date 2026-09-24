@@ -5,6 +5,7 @@ import {
   caminhoDeEvidencia,
   caminhoDeImportacao,
   nomeSeguro,
+  pertenceAImportacao,
   pertenceAMarca,
 } from "./caminhos";
 
@@ -83,4 +84,18 @@ test("prefixo parecido não passa por igual", () => {
 
 test("caminho de outra CONTA não passa, mesmo com a marca certa", () => {
   assert.equal(pertenceAMarca(`${OUTRA}/${MARCA}/x.png`, WS, MARCA), false);
+});
+
+test("o PDF do manual pertence à importação e à conta lidas da linha — e a nada mais", () => {
+  const importacao = "33333333-3333-3333-3333-333333333333";
+  const hash = "a".repeat(64);
+  const certo = caminhoDeImportacao(WS, importacao, hash);
+  assert.equal(pertenceAImportacao(certo, WS, importacao), true);
+
+  // Outra conta, outra importação, subpasta escondida, arquivo que não é o PDF.
+  assert.equal(pertenceAImportacao(certo, "44444444-4444-4444-4444-444444444444", importacao), false);
+  assert.equal(pertenceAImportacao(certo, WS, "55555555-5555-5555-5555-555555555555"), false);
+  assert.equal(pertenceAImportacao(`${WS}/${importacao}/x/${hash}.pdf`, WS, importacao), false);
+  assert.equal(pertenceAImportacao(`${WS}/${importacao}/pagina-1.png`, WS, importacao), false);
+  assert.equal(pertenceAImportacao(`${WS}/${importacao}/../${hash}.pdf`, WS, importacao), false);
 });
