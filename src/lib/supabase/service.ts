@@ -12,6 +12,10 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * - a assinatura do download da biblioteca (`/api/assets/[id]/download`),
  *   porque desde 15/09/2026 nenhuma sessão lê arquivo da biblioteca direto no
  *   Storage — é o que torna o registro de download incontornável.
+ * - a limpeza periódica do material órfão (`/api/manutencao/materiais-orfaos`),
+ *   que não tem sessão nenhuma: quem chama é o Vercel Cron, com segredo. A
+ *   função que decide o que é órfão é `service_role`-only, e a drenagem roda
+ *   com escopo (bucket de Materiais, pasta da conta, nunca variante viva).
  *
  * Comentário corrigido em 15/09: ele dizia que o cliente existia SÓ para o
  * ledger de IA, e já não era verdade antes desta data.
