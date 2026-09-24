@@ -178,40 +178,77 @@ test("quem edita liga a regra às páginas; quem consulta não vê o editor", as
 });
 
 /**
- * A miniatura nasce no navegador de quem envia, e vai junto com o original.
- * EPS não gera — vai sem, e o envio não trava por isso.
+ * O ENVIO direto ao Storage (24/09/2026) — e a miniatura que nasce no
+ * navegador de quem envia.
+ *
+ * O arquivo não passa pela função da Vercel (que corta o corpo em ~4,5 MB):
+ * preparar (a rota confere e escolhe o caminho) → enviar (daqui direto ao
+ * Storage, por endereço assinado para aquele caminho) → concluir (só a
+ * autorização assinada e a miniatura voltam à rota).
  */
-async function enviar(page: Page, nome: string, tipo: string, conteudo: string): Promise<string> {
+type Envio = { preparo: Record<string, unknown> | null; armazenado: Buffer | null; conclusao: string };
+
+async function enviar(page: Page, nome: string, tipo: string, conteudo: Buffer | string): Promise<Envio> {
+  const envio: Envio = { preparo: null, armazenado: null, conclusao: "" };
   await page.route("**/api/assets", (rota) =>
     rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ itens: ITENS, assets: [], manual: null }) }));
-  let corpo = "";
+  await page.route("**/api/admin/assets/envio**", async (rota) => {
+    envio.preparo = rota.request().postDataJSON();
+    await rota.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ autorizacao: "autorizacao-assinada", caminho: "w/b/uuid-arquivo", token: "tok" }) });
+  });
+  // O Storage de mentira: é aqui que o arquivo tem de chegar.
+  await page.route("**/storage/v1/object/upload/sign/**", async (rota) => {
+    envio.armazenado = rota.request().postDataBuffer();
+    await rota.fulfill({ status: 200, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ Key: "brand-assets/w/b/uuid-arquivo" }) });
+  });
   await page.route("**/api/admin/assets", async (rota) => {
-    corpo = rota.request().postDataBuffer()?.toString("latin1") ?? "";
+    envio.conclusao = rota.request().postDataBuffer()?.toString("latin1") ?? "";
     await rota.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ ok: true, substituicao: "nao-pedida" }) });
   });
   await page.goto("/dev/biblioteca");
-  const envio = page.locator("[data-form-envio]");
-  await envio.getByLabel("Item").selectOption("item-paleta");
-  await envio.locator('select[name="espaco_de_cor"]').selectOption("rgb");
-  await envio.locator('input[name="label"]').fill("Arquivo");
-  await envio.locator('input[name="file"]').setInputFiles({ name: nome, mimeType: tipo, buffer: Buffer.from(conteudo) });
+  const form = page.locator("[data-form-envio]");
+  await form.getByLabel("Item").selectOption("item-paleta");
+  await form.locator('select[name="espaco_de_cor"]').selectOption("rgb");
+  await form.locator('input[name="label"]').fill("Arquivo");
+  await form.locator('input[name="file"]').setInputFiles({ name: nome, mimeType: tipo, buffer: Buffer.from(conteudo) });
   const pedido = page.waitForRequest("**/api/admin/assets");
-  await envio.evaluate((f) => (f as HTMLFormElement).requestSubmit());
+  await form.evaluate((f) => (f as HTMLFormElement).requestSubmit());
   await pedido;
-  await expect.poll(() => corpo).not.toBe("");
-  return corpo;
+  await expect.poll(() => envio.conclusao).not.toBe("");
+  return envio;
 }
 
-test("o envio de um SVG leva a miniatura em PNG, gerada no navegador", async ({ page }) => {
-  const corpo = await enviar(page, "logo.svg", "image/svg+xml",
-    '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="#123"/></svg>');
-  expect(corpo).toContain('name="miniatura"; filename="miniatura.png"');
-  expect(corpo).toContain("Content-Type: image/png");
-  expect(corpo).toContain("\x89PNG");
+test("o arquivo vai direto ao Storage; a rota recebe só a autorização — e a miniatura do SVG", async ({ page }) => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><rect width="200" height="100" fill="#123"/></svg>';
+  const envio = await enviar(page, "logo.svg", "image/svg+xml", svg);
+  expect(envio.preparo).toMatchObject({ item: "item-paleta", label: "Arquivo", fileName: "logo.svg", mimeType: "image/svg+xml",
+    sizeBytes: Buffer.byteLength(svg), espaco_de_cor: "rgb" });
+  expect(envio.armazenado?.toString()).toContain("<svg");
+  expect(envio.conclusao).toContain('name="autorizacao"');
+  expect(envio.conclusao).toContain("autorizacao-assinada");
+  expect(envio.conclusao).toContain('name="miniatura"; filename="miniatura.png"');
+  expect(envio.conclusao).toContain("\x89PNG");
+  // O arquivo NÃO passa pela função.
+  expect(envio.conclusao).not.toContain("<svg");
+  expect(envio.conclusao).not.toContain('name="file"');
 });
 
-test("o envio de um EPS vai sem miniatura — e vai", async ({ page }) => {
-  const corpo = await enviar(page, "logo.eps", "application/postscript", "%!PS-Adobe-3.0 EPSF-3.0\n");
-  expect(corpo).toContain('name="file"; filename="logo.eps"');
-  expect(corpo).not.toContain('name="miniatura"');
+test("um arquivo de 6 MB — acima do corte da Vercel — sai inteiro para o Storage, e a rota não o carrega", async ({ page }) => {
+  const grande = Buffer.concat([Buffer.from("%!PS-Adobe-3.0 EPSF-3.0\n"), Buffer.alloc(6 * 1024 * 1024, 0x20)]);
+  const envio = await enviar(page, "logo-grande.eps", "application/postscript", grande);
+  expect(envio.preparo).toMatchObject({ sizeBytes: grande.length });
+  // O cliente do Supabase embrulha o arquivo num formulário (multipart): o que
+  // chega é o arquivo inteiro mais uns trezentos bytes de cabeçalho.
+  expect(envio.armazenado?.length).toBeGreaterThanOrEqual(grande.length);
+  expect(envio.armazenado?.length).toBeLessThan(grande.length + 2_000);
+  expect(envio.armazenado?.toString("latin1")).toContain("%!PS-Adobe-3.0");
+  expect(envio.conclusao.length).toBeLessThan(10_000);
+});
+
+test("EPS sem tipo declarado é tratado como PostScript — e vai sem miniatura", async ({ page }) => {
+  const envio = await enviar(page, "logo.eps", "", "%!PS-Adobe-3.0 EPSF-3.0\n");
+  expect(envio.preparo).toMatchObject({ mimeType: "application/postscript" });
+  expect(envio.conclusao).not.toContain('name="miniatura"');
 });

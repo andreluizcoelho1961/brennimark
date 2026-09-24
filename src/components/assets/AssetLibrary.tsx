@@ -4,6 +4,29 @@ import { useCallback, useEffect, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { gerarMiniatura } from "@/lib/assets/miniatura";
+import { createClient } from "@/lib/supabase/client";
+
+/**
+ * O tipo do arquivo — o que o navegador declara, ou, quando ele não sabe (EPS e
+ * AI costumam vir sem tipo), o da extensão. É só uma pista: o servidor confere
+ * pelos BYTES que chegaram, e recusa o que não bate.
+ */
+const TIPO_PELA_EXTENSAO: Record<string, string> = {
+  svg: "image/svg+xml", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp",
+  pdf: "application/pdf", ai: "application/pdf", eps: "application/postscript", zip: "application/zip",
+  otf: "font/otf", ttf: "font/ttf", woff: "font/woff", woff2: "font/woff2",
+};
+async function tipoDoArquivo(arquivo: File): Promise<string> {
+  const extensao = arquivo.name.split(".").pop()?.toLowerCase() ?? "";
+  // AI é PDF quando salvo com compatibilidade (o padrão do Illustrator) e
+  // PostScript nas versões antigas: os primeiros bytes dizem qual.
+  if (extensao === "ai") {
+    const comeco = await arquivo.slice(0, 4).text().catch(() => "");
+    return comeco === "%!PS" ? "application/postscript" : "application/pdf";
+  }
+  if (arquivo.type && arquivo.type !== "application/octet-stream") return arquivo.type;
+  return TIPO_PELA_EXTENSAO[extensao] ?? arquivo.type;
+}
 import { EIXOS, EIXOS_POR_TIPO, TIPOS_DE_ITEM, TIPOS_SEM_UPLOAD, colunasDoTipo, formatoDoArquivo, rotulo, type TipoDeItem } from "@/lib/assets/eixos";
 
 type Eixos = { hierarquia: string | null; lockup: string | null; cor: string | null; polaridade: string | null; espaco_de_cor: string | null };
@@ -70,15 +93,44 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setUploading(true); setMessage("");
     const form = event.currentTarget;
-    const corpo = new FormData(form);
+    const campos = new FormData(form);
+    const arquivo = campos.get("file");
+    if (!(arquivo instanceof File) || arquivo.size < 1) { setUploading(false); return; }
+
+    /*
+     * O arquivo vai DIRETO ao Storage (24/09/2026): pela função da Vercel ele
+     * era cortado em ~4,5 MB, e o produto promete 25 MB. Três passos:
+     * preparar (a rota confere e escolhe o caminho), enviar (daqui ao Storage,
+     * por um endereço que só serve àquele caminho) e concluir (a rota confere
+     * o que chegou e registra). Ver `lib/assets/envio.ts`.
+     */
+    const erro = (texto: string) => { setUploading(false); setMessage(texto); };
+    const tipo = await tipoDoArquivo(arquivo);
+    const metadados: Record<string, unknown> = {
+      item: campos.get("item"), label: campos.get("label"), description: campos.get("description") ?? "",
+      substitui: campos.get("substitui") ?? "", fileName: arquivo.name, mimeType: tipo, sizeBytes: arquivo.size,
+    };
+    for (const eixo of Object.keys(EIXOS)) metadados[eixo] = campos.get(eixo) ?? "";
+
+    setMessage(isEnglish ? "Preparing the upload…" : "Preparando o envio…");
+    const preparo = await fetch(comAlvo("/api/admin/assets/envio", alvo), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(metadados),
+    });
+    const preparado = await preparo.json().catch(() => ({}));
+    if (!preparo.ok) return erro(preparado.message ?? (isEnglish ? "Couldn't upload." : "Não foi possível enviar."));
+
+    setMessage(isEnglish ? `Uploading ${arquivo.name}…` : `Enviando ${arquivo.name}…`);
+    const { error: erroDoEnvio } = await createClient().storage.from("brand-assets")
+      .uploadToSignedUrl(preparado.caminho, preparado.token, arquivo, { contentType: tipo });
+    if (erroDoEnvio) return erro(isEnglish ? "The file couldn't be uploaded. Try again." : "Não foi possível enviar o arquivo. Tente de novo.");
+
     // A miniatura da prévia, gerada AQUI, no navegador de quem envia (fatia 5).
     // Sem prévia possível (EPS), vai sem — a tela diz o formato.
-    const arquivo = corpo.get("file");
-    if (arquivo instanceof File && arquivo.size > 0) {
-      const miniatura = await gerarMiniatura(arquivo);
-      if (miniatura) corpo.set("miniatura", new File([miniatura], "miniatura.png", { type: "image/png" }));
-    }
-    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "POST", body: corpo });
+    const conclusao = new FormData();
+    conclusao.set("autorizacao", preparado.autorizacao);
+    const miniatura = await gerarMiniatura(arquivo);
+    if (miniatura) conclusao.set("miniatura", new File([miniatura], "miniatura.png", { type: "image/png" }));
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "POST", body: conclusao });
     const data = await response.json().catch(() => ({}));
     setUploading(false);
     setMessage(
