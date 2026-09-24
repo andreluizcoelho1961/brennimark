@@ -108,6 +108,13 @@ export function PaginaDoPdf({
         if (!vivo || (erro as { name?: string })?.name === "RenderingCancelledException") return;
         throw erro;
       }
+      /*
+       * Desenhada: o fundo branco da moldura sai. Ele existe para a folha
+       * aparecer enquanto carrega; depois, com o canvas em tamanho fracionário
+       * (1073,6 px), sobrava meio pixel de branco nas bordas — um filete claro
+       * em volta de toda página escura (ensaio de 24/09, Sony Vaio).
+       */
+      if (vivo && molduraRef.current) molduraRef.current.dataset.desenhada = "sim";
       if (!vivo || !camadaDeTexto) return;
 
       /**
@@ -185,7 +192,7 @@ export function PaginaDoPdf({
     <section
       ref={molduraRef}
       data-pagina={numero}
-      className="relative mx-auto w-fit bg-white shadow-[0_1px_12px_rgba(0,0,0,0.45)] data-[falhou=sim]:outline data-[falhou=sim]:outline-platform-warning"
+      className="relative mx-auto w-fit bg-white shadow-[0_1px_12px_rgba(0,0,0,0.45)] data-[desenhada=sim]:bg-transparent data-[falhou=sim]:outline data-[falhou=sim]:outline-platform-warning"
       aria-label={rotulo ?? `${numero}`}
     >
       {/* `block` remove o espaço de linha-base que um canvas inline herda e que

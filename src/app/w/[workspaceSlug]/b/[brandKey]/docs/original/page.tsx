@@ -124,7 +124,13 @@ export default async function ManualOriginal({
     : [];
 
   return (
-    <div className="flex h-[calc(100dvh-var(--shell-topbar,56px))] flex-col">
+    /*
+     * A altura da tela MENOS a moldura inteira: a barra de cima e, em tela
+     * larga, o recuo do `<main>` (16 px em cima e embaixo) e a borda do cartão
+     * (1 px + 1 px). Descontando só a barra, sobravam ~34 px — o `<main>`
+     * rolava, e o fólio ficava abaixo da tela (ensaio de 24/09).
+     */
+    <div className="flex h-[calc(100dvh_-_var(--shell-topbar,56px)_-_env(safe-area-inset-top)_-_env(safe-area-inset-bottom))] flex-col lg:h-[calc(100dvh_-_var(--shell-topbar,56px)_-_env(safe-area-inset-top)_-_2*var(--space-shell-4)_-_2px)]">
       {edita && registro?.estado === "anterior-ao-manifesto" && <AnteriorAoManifesto />}
       {edita && registro?.estado === "incompleto" && registro.importId && (
         <ConclusaoPendente

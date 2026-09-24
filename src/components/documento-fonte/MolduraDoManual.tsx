@@ -44,9 +44,10 @@ export function useEncaixeDaBarra(): HTMLElement | null {
  * descem para uma faixa sobre o PDF. Uma instância só, nunca as duas: dois
  * índices abertos ao mesmo tempo seriam dois menus para o mesmo estado.
  */
-// 1024 px, e não 768: a barra de cima já leva marca, segmentado e busca da
-// plataforma, e as ações do manual pedem ~480 px. Abaixo disso, faixa.
-const TELA_LARGA = "(min-width: 1024px)";
+// 1280 px, medido na moldura real em 24/09: a barra de cima leva a zona do
+// Brennimark, a marca, o segmentado, a busca da plataforma e Sair, e as ações
+// do manual pedem ~380 px. Abaixo disso, faixa sobre o PDF.
+const TELA_LARGA = "(min-width: 1280px)";
 
 function assinarTela(avisar: () => void) {
   const consulta = window.matchMedia(TELA_LARGA);
@@ -278,7 +279,7 @@ export function AcoesDoManual({
     : "";
 
   return (
-    <div data-acoes-do-manual className="flex min-w-0 flex-wrap items-center gap-[var(--space-shell-2)] lg:flex-nowrap">
+    <div data-acoes-do-manual className="flex min-w-0 flex-wrap items-center gap-[var(--space-shell-2)] xl:flex-nowrap">
       {/*
         O índice só aparece quando existe. Um botão que abre lista vazia
         promete um sumário que o documento não tem — 23 de 30 manuais reais não
@@ -319,10 +320,10 @@ export function AcoesDoManual({
             onChange={(e) => aoMudarTermo(e.target.value)}
             placeholder={t("Buscar", "Search")}
             enterKeyHint="search"
-            className="h-8 w-32 rounded-[var(--radius-control)] border border-platform-border bg-platform-bg px-2 text-[13px] text-platform-text lg:w-44"
+            className="h-8 w-32 rounded-[var(--radius-control)] border border-platform-border bg-platform-bg px-2 text-[13px] text-platform-text"
           />
         </label>
-        <span aria-live="polite" data-busca-aviso className="min-w-[4.5rem] text-[12px] text-platform-text-muted">
+        <span aria-live="polite" data-busca-aviso className="text-[12px] text-platform-text-muted empty:hidden">
           {aviso}
         </span>
       </form>
