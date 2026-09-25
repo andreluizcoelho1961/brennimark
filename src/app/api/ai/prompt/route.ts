@@ -8,7 +8,7 @@ import { idDeConversa } from "@/lib/ai/conversas";
 import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
-import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
+import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";

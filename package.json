@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "brandville:references": "node scripts/index-brandville-references.mjs",
+    "brennimark:references": "node scripts/index-brennimark-references.mjs",
     "test:brand-context": "rm -rf .tmp/brand-context-test && tsc -p tsconfig.tests.json && node --test \".tmp/brand-context-test/**/*.test.js\"",
     "evaluate:brand-chat": "node scripts/evaluate-brand-chat.mjs",
     "test:ci": "npm run test:brand-context",

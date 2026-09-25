@@ -138,7 +138,7 @@ documentos, versões, importações, pendências, arquivos.
   propósito: fazê-las antes do importador deixaria a avaliação visual apoiada em
   estado vazio e fixtures.
 - **Migração 2:** a marca ativa ainda é filtrada por
-  `NEXT_PUBLIC_BRANDVILLE_INSTANCE`. Documentado como compatibilidade
+  `NEXT_PUBLIC_BRENNIMARK_INSTANCE`. Documentado como compatibilidade
   temporária; sai quando houver seleção de marca em tempo de execução.
 - **Preferência de idioma por pessoa:** não existe onde guardar. O
   desacoplamento do manual está feito; a personalização exige coluna, mudança em

@@ -83,7 +83,7 @@ function drawHeader(
 ) {
   page.drawRectangle({ x: 0, y: PAGE.height - 94, width: PAGE.width, height: 94, color: paleta.tinta });
   page.drawRectangle({ x: PAGE.margin, y: PAGE.height - 44, width: 55, height: 5, color: paleta.destaque });
-  // "BRANDVILLE" era codinome técnico legado e não pode aparecer em artefato
+  // "BRENNIMARK" era codinome técnico legado e não pode aparecer em artefato
   // entregue a cliente. Quem assina o relatório é a marca, e o produto é o
   // Brennimark.
   page.drawText(safeText(`${nomeDaMarca} / ${platformIdentity.displayName}`).toUpperCase(), { x: PAGE.margin, y: PAGE.height - 68, size: 13, font: bold, color: rgb(1, 1, 1) });

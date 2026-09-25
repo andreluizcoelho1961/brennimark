@@ -1,4 +1,4 @@
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { CatalogoDeMateriais } from "@/components/materiais/Materiais";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";

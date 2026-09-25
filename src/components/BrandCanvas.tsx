@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import type { BrandvilleTheme } from "@/brandville/types";
+import type { BrennimarkTheme } from "@/brennimark/types";
 import { brandCssVars } from "@/platform/tokens";
 
 /**
@@ -19,7 +19,7 @@ export function BrandCanvas({
   theme,
   children,
 }: {
-  theme: BrandvilleTheme;
+  theme: BrennimarkTheme;
   children: React.ReactNode;
 }) {
   const estilo = brandCssVars(theme) as CSSProperties;

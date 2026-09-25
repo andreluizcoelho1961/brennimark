@@ -10,7 +10,7 @@ import {
 } from "./orcamento";
 import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
-import { contarCaracteres, MAX_CARACTERES_DO_PAPEL_DA_MARCA } from "../brandville/brand-row";
+import { contarCaracteres, MAX_CARACTERES_DO_PAPEL_DA_MARCA } from "../brennimark/brand-row";
 
 /**
  * O contrato único que toda tarefa de IA atravessa, independente de provedor.

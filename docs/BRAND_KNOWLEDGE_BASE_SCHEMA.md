@@ -1,7 +1,7 @@
 # Universal Brand Knowledge Base Schema v1.0
 
 **Document type:** Canonical schema specification
-**Product:** Brandville
+**Product:** Brennimark
 **Version:** 1.0
 
 ---
@@ -18,7 +18,7 @@
 
 # Purpose
 
-This document defines the universal information architecture for every Brand Knowledge Base created inside Brandville.
+This document defines the universal information architecture for every Brand Knowledge Base created inside Brennimark.
 
 It is brand-agnostic and reusable across industries.
 

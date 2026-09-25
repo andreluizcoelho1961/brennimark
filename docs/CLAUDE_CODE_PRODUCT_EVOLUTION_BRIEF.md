@@ -4,8 +4,8 @@
 **Tipo de documento:** briefing de produto, arquitetura e implementação  
 **Versão:** 1.0  
 **Data:** 27 de agosto de 2026  
-**Repositório:** `BrandvilleApp`  
-**Nome do produto:** ainda não definido; `Brandville` é somente codinome técnico legado
+**Repositório:** `BrennimarkApp`  
+**Nome do produto:** ainda não definido; `Brennimark` é somente codinome técnico legado
 
 ---
 
@@ -33,12 +33,12 @@ a revisão.
 ## 2. Regras obrigatórias antes de trabalhar
 
 1. Ler integralmente `AGENTS.md`, `CLAUDE.md`, `docs/PROJECT_BOUNDARY.md`,
-   `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md`, `docs/BRANDVILLE_MATRIX.md`,
+   `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md`, `docs/BRENNIMARK_MATRIX.md`,
    `docs/BRAND_KNOWLEDGE_BASE_SCHEMA.md` e este briefing.
 2. Este projeto usa Next.js 16.2.10 com mudanças incompatíveis com versões anteriores. Antes de
    alterar APIs, roteamento, cache, middleware/proxy, Server Components ou convenções do App Router,
    consultar a documentação local correspondente em `node_modules/next/dist/docs/`.
-3. Tratar `Brandville` como codinome interno. Não consolidá-lo em novas interfaces, textos de venda,
+3. Tratar `Brennimark` como codinome interno. Não consolidá-lo em novas interfaces, textos de venda,
    domínios, tabelas ou contratos como se fosse nome comercial aprovado.
 4. Não transformar uma necessidade específica de The BluesMaker, Hairline, Guitar Garage ou outra
    instância em regra do produto sem abstração e validação.
@@ -196,7 +196,7 @@ da implementação.
 ### 5.3 Operação de agência
 
 - Não existe uma camada Studio para carteira de marcas.
-- A instância ativa é selecionada por `NEXT_PUBLIC_BRANDVILLE_INSTANCE` no deploy, não em runtime.
+- A instância ativa é selecionada por `NEXT_PUBLIC_BRENNIMARK_INSTANCE` no deploy, não em runtime.
 - Não há registro central de instalações, estágio de onboarding, saúde, plano, domínio, responsável,
   próxima ação ou data de publicação.
 - Não há fluxo de duplicação operacional da primeira para a segunda marca.
@@ -248,7 +248,7 @@ da implementação.
 
 ### 6.1 Não fazer uma migração multi-tenant ampla antes dos pilotos
 
-A implementação atual e o documento `BRANDVILLE_MATRIX.md` adotam isolamento forte: cada marca tem
+A implementação atual e o documento `BRENNIMARK_MATRIX.md` adotam isolamento forte: cada marca tem
 seu domínio, Supabase, usuários, storage, chaves e histórico. A visão de longo prazo descreve uma
 plataforma multi-brand. Não resolver essa divergência com uma reescrita big-bang.
 
@@ -919,8 +919,8 @@ O desenho final deve ser proposto após auditoria. Aplicar estes princípios:
 ### 21.1 Manter a suíte atual
 
 - `npm run lint`
-- `npm run test:brandville-scaffold`
-- `npm run test:brandville-import`
+- `npm run test:brennimark-scaffold`
+- `npm run test:brennimark-import`
 - `npm run test:brand-context`
 - `npm run evaluate:brand-chat`
 - `npm run build`
@@ -1032,15 +1032,15 @@ A evolução será bem-sucedida quando a plataforma puder demonstrar, com dados 
 - `docs/PROJECT_BOUNDARY.md`
 - `docs/ARCHITECTURE.md`
 - `docs/PRODUCT_ARCHITECTURE.md`
-- `docs/BRANDVILLE_MATRIX.md`
+- `docs/BRENNIMARK_MATRIX.md`
 - `docs/BRAND_KNOWLEDGE_BASE_SCHEMA.md`
 - `docs/investor/platform-preinvestment-study.md`
 - `docs/investor/startup-commercial-validation-guide.md`
-- `src/brandville/`
+- `src/brennimark/`
 - `src/app/`
 - `src/lib/ai/`
 - `src/lib/analysis/`
-- `src/lib/brandville/`
+- `src/lib/brennimark/`
 - `src/content/doc-blocks.ts`
 - `supabase/migrations/`
 - `package.json`
@@ -1054,5 +1054,5 @@ A evolução será bem-sucedida quando a plataforma puder demonstrar, com dados 
 > repositório e produza: (1) divergências entre briefing e código, (2) ADR para Studio como control
 > plane sobre instalações isoladas, (3) plano incremental começando pelo WP0, (4) migrations/RLS
 > necessárias, (5) telemetria e testes. Preserve o produto existente, o isolamento entre marcas, a
-> abstração multi-provider de IA e a honestidade editorial. Não trate Brandville como nome comercial
+> abstração multi-provider de IA e a honestidade editorial. Não trate Brennimark como nome comercial
 > definitivo e não transforme conteúdo de uma instância em regra do core.

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { caminhoDaMarca } from "@/lib/brandville/selecao";
+import { caminhoDaMarca } from "@/lib/brennimark/selecao";
 
 /**
  * O endereço antigo do chat.

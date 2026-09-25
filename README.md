@@ -50,7 +50,7 @@ As decisões vigentes estão nos ADRs:
 | [0004](./docs/adr/0004-o-produto-age-na-criacao.md) | O produto age na criação, não só na consulta |
 
 O [0001](./docs/adr/0001-studio-como-control-plane.md) foi substituído pelo 0003, e
-`docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRANDVILLE_MATRIX.md` são
+`docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRENNIMARK_MATRIX.md` são
 históricos. Onde divergirem dos ADRs, valem os ADRs.
 
 ### Duas fronteiras que sustentam o produto

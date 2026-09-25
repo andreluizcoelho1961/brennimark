@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
  * de /docs, a compatibilidade dos endereços antigos e o fato de a moldura
  * montar dentro do contexto. O que eles NÃO alcançam, e é honesto dizer: a
  * escolha entre duas marcas reais, que exige duas marcas no banco e uma sessão
- * — a regra dessa escolha está contada em src/lib/brandville/selecao.test.ts,
+ * — a regra dessa escolha está contada em src/lib/brennimark/selecao.test.ts,
  * com dezoito casos, e é lá que ela é verificável.
  *
  * Também não está aqui a verificação de que nenhum link sai do contexto: no

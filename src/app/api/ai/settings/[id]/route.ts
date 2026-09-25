@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { listSettings } from "@/lib/ai/settings";
-import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { donoDaRota } from "@/lib/brennimark/contexto-da-rota";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -2,7 +2,7 @@
 
 **Version:** 1.0  
 **Status:** Draft  
-**Project:** Brandville
+**Project:** Brennimark
 
 > Companion to [`PRODUCT_ARCHITECTURE.md`](./PRODUCT_ARCHITECTURE.md) (the
 > platform this discovery flow feeds) and
@@ -13,7 +13,7 @@
 
 ## Purpose
 
-The Universal Branding Brief Template (UBBT) is the strategic discovery framework used by Brandville.
+The Universal Branding Brief Template (UBBT) is the strategic discovery framework used by Brennimark.
 
 Its purpose is to collect, organize, validate and transform information about a brand into a structured Knowledge Base.
 
@@ -135,6 +135,6 @@ Stores:
 
 ## Guiding Principle
 
-Brandville does not build briefings.
+Brennimark does not build briefings.
 
-Brandville builds knowledge.
+Brennimark builds knowledge.

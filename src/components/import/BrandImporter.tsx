@@ -14,7 +14,7 @@ import {
   agrupar, faixaLegivel, fimDe, inicioDe, type Agrupamento, type Secao,
 } from "@/lib/import/secoes";
 import { ListaDeSecoes } from "./ListaDeSecoes";
-import type { BrandvilleUtilityKey } from "@/brandville/types";
+import type { BrennimarkUtilityKey } from "@/brennimark/types";
 import { caminhoDeImportacao } from "@/lib/storage/caminhos";
 import { enviarArquivosDaImportacao, garantirAusencia } from "@/lib/import/orfaos";
 import { portasDeEnvioSupabase } from "@/lib/import/portas-supabase";
@@ -27,7 +27,7 @@ import { relatarObjetoSemDestino } from "@/lib/import/relatar-rastro";
 
 
 
-const FUNCIONALIDADES: { chave: BrandvilleUtilityKey; pt: string; en: string }[] = [
+const FUNCIONALIDADES: { chave: BrennimarkUtilityKey; pt: string; en: string }[] = [
   { chave: "chat", pt: "Chat da marca", en: "Brand assistant" },
   { chave: "analysis", pt: "Análise de aplicações", en: "Application review" },
   { chave: "history", pt: "Histórico e calibração", en: "History & calibration" },
@@ -36,10 +36,11 @@ const FUNCIONALIDADES: { chave: BrandvilleUtilityKey; pt: string; en: string }[]
 
 /** Neutro de propósito: a paleta da marca é decisão de quem cura, não do PDF. */
 const TEMA_INICIAL = {
-  background: "#14161a", backgroundSecondary: "#14161a", surface: "#1b1e24",
-  surfaceLight: "#242830", foreground: "#f4f5f7", muted: "#9099a8",
-  accent: "#f4f5f7", accentSecondary: "#9099a8", border: "#2b3038",
-  focus: "#ffffff", fontStack: "var(--font-ui)",
+  // A moldura neutra acompanha o tema da PLATAFORMA (claro ou escuro).
+  background: "var(--platform-bg)", backgroundSecondary: "var(--platform-bg)", surface: "var(--platform-panel)",
+  surfaceLight: "var(--platform-panel-muted)", foreground: "var(--platform-text)", muted: "var(--platform-text-muted)",
+  accent: "var(--platform-text)", accentSecondary: "var(--platform-text-muted)", border: "var(--platform-border)",
+  focus: "var(--platform-focus)", fontStack: "var(--font-ui)",
 };
 
 export function BrandImporter({
@@ -112,7 +113,7 @@ export function BrandImporter({
   const [concluindo, setConcluindo] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [nome, setNome] = useState("");
-  const [utilidades, setUtilidades] = useState<BrandvilleUtilityKey[]>([]);
+  const [utilidades, setUtilidades] = useState<BrennimarkUtilityKey[]>([]);
   /**
    * O idioma do MANUAL, e não o de quem está importando.
    *

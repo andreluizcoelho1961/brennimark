@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { encryptApiKey, last4 } from "@/lib/ai/crypto";
 import { PROVIDERS, type AIProvider, type AIRole } from "@/lib/ai/provider";
 import { listSettings } from "@/lib/ai/settings";
-import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { donoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { modeloAutorizado } from "@/lib/ai/catalogo";
 
 const VALID_PROVIDERS = new Set(PROVIDERS.map((p) => p.value));

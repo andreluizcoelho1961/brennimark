@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { DocPage } from "@/components/docs/DocPage";
 import { BrandCanvas } from "@/components/BrandCanvas";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
-import { caminhoDaMarca } from "@/lib/brandville/selecao";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
+import { caminhoDaMarca } from "@/lib/brennimark/selecao";
 import { documentosVisiveis } from "@/content/visibilidade";
 import { Trilha, Vizinhos } from "@/components/shell/TrilhaEVizinhos";
 

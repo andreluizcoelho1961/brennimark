@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { resolveWorkspaceContext, type WorkspaceContext } from "./workspace-context";
 import type { Alvo } from "./selecao";
 import { podeUsar, type Utilidade } from "../ai/permissao";
-import { getBrandvilleAuthContext, resolverWorkspaceAtivo, type BrandvilleAuthContext } from "./server";
+import { getBrennimarkAuthContext, resolverWorkspaceAtivo, type BrennimarkAuthContext } from "./server";
 
 /**
  * O workspace de uma rota de API, ou uma resposta que explica por que não há um.
@@ -65,14 +65,14 @@ export async function workspaceDaRota(request: Request): Promise<ContextoDaRota>
  * também: 409 quando há mais de uma conta e nenhuma foi indicada.
  */
 export type AutenticacaoDaRota =
-  | { ok: true; contexto: BrandvilleAuthContext }
+  | { ok: true; contexto: BrennimarkAuthContext }
   | { ok: false; resposta: NextResponse };
 
 export async function autenticacaoDaRota(request: Request): Promise<AutenticacaoDaRota> {
   const workspace = await workspaceDaRota(request);
   if (!workspace.ok) return { ok: false, resposta: workspace.resposta };
 
-  const contexto = await getBrandvilleAuthContext(workspace.workspaceSlug);
+  const contexto = await getBrennimarkAuthContext(workspace.workspaceSlug);
   if (!contexto) {
     return { ok: false, resposta: NextResponse.json({ error: "not_authenticated" }, { status: 401 }) };
   }
@@ -100,7 +100,7 @@ export function alvoDaRota(request: Request): Alvo | undefined {
  * marcas recebia 401 e era mandada a entrar de novo numa sessão válida.
  */
 export type ConteudoDaRota =
-  | { ok: true; contexto: WorkspaceContext; auth: BrandvilleAuthContext }
+  | { ok: true; contexto: WorkspaceContext; auth: BrennimarkAuthContext }
   | { ok: false; resposta: NextResponse };
 
 export async function conteudoDaRota(request: Request): Promise<ConteudoDaRota> {
@@ -129,7 +129,7 @@ export async function conteudoDaRota(request: Request): Promise<ConteudoDaRota> 
     return { ok: false, resposta: NextResponse.json({ error: "not_authenticated" }, { status: 401 }) };
   }
 
-  const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
+  const auth = await getBrennimarkAuthContext(contexto.workspaceSlug ?? undefined);
   if (!auth) {
     return { ok: false, resposta: NextResponse.json({ error: "not_authenticated" }, { status: 401 }) };
   }
@@ -150,7 +150,7 @@ export type MarcaDaRota =
       workspaceId: string;
       brandId: string;
       brand: NonNullable<WorkspaceContext["brand"]>;
-      auth: BrandvilleAuthContext;
+      auth: BrennimarkAuthContext;
       papel: "owner" | "member";
     }
   | { ok: false; resposta: NextResponse };
@@ -197,7 +197,7 @@ export type PortaoDeIA =
   | {
       ok: true;
       contexto: WorkspaceContext;
-      auth: BrandvilleAuthContext;
+      auth: BrennimarkAuthContext;
       brand: NonNullable<WorkspaceContext["brand"]>;
     }
   | { ok: false; resposta: NextResponse };

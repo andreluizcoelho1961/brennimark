@@ -4,8 +4,8 @@ import { platformCssVars } from "../platform/tokens";
 /**
  * O que sobrou deste módulo depois do V1: o tema da PLATAFORMA.
  *
- * Ele já foi o centro do produto. Exportava `brandvilleInstance` — a marca
- * escolhida por `NEXT_PUBLIC_BRANDVILLE_INSTANCE` na inicialização do processo
+ * Ele já foi o centro do produto. Exportava `brennimarkInstance` — a marca
+ * escolhida por `NEXT_PUBLIC_BRENNIMARK_INSTANCE` na inicialização do processo
  * — e um registro de documentos derivado dela. Era global por processo: duas
  * contas servidas pelo mesmo processo veriam a mesma marca.
  *
@@ -14,11 +14,18 @@ import { platformCssVars } from "../platform/tokens";
  * instância global, nem registro de documentos em código, nem leitura daquela
  * variável de ambiente em lugar nenhum.
  *
- * O nome do diretório continua `brandville/` e os tipos continuam
- * `Brandville*`. São identificadores internos, que somem na compilação e não
+ * O nome do diretório continua `brennimark/` e os tipos continuam
+ * `Brennimark*`. São identificadores internos, que somem na compilação e não
  * aparecem em interface, venda, domínio ou contrato — que é onde o codinome
  * não pode voltar. Renomeá-los seria mexer em muitos arquivos para não mudar
  * nada observável, e o V1 não é sobre renomear.
+ */
+/*
+ * O tema CLARO como estilo em linha. Desde a fatia 6 (24/09/2026) o layout raiz
+ * não o usa mais: com dois temas, a paleta vai como CSS gerado
+ * (`platformThemeCss`, em `platform/tokens.ts`), que um seletor consegue trocar
+ * — estilo em linha nenhum seletor vence. Fica aqui porque `config.test.ts`
+ * guarda que este módulo nunca mais exporte instância de marca.
  */
 export const platformThemeStyle = {
   ...platformCssVars(),

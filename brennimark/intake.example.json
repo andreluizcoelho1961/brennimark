@@ -7,7 +7,7 @@
     "descriptor": "Servicos claros para negocios em movimento"
   },
   "metadata": {
-    "title": "Empresa Modelo — Brandville",
+    "title": "Empresa Modelo — Brennimark",
     "description": "Diretrizes vivas de marca da Empresa Modelo.",
     "language": "pt-BR"
   },
@@ -58,8 +58,8 @@
   },
   "ai": {
     "knowledgeMode": "docs",
-    "chatRole": "Voce e o assistente oficial da Empresa Modelo dentro do Brandville.",
-    "analysisRole": "Voce analisa pecas da Empresa Modelo contra as diretrizes documentadas neste Brandville."
+    "chatRole": "Voce e o assistente oficial da Empresa Modelo dentro do Brennimark.",
+    "analysisRole": "Voce analisa pecas da Empresa Modelo contra as diretrizes documentadas neste Brennimark."
   },
   "legal": {
     "footerNotice": "Diretrizes oficiais da Empresa Modelo. Uso autorizado."

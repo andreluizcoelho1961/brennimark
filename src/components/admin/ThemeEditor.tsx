@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { BrandCanvas } from "@/components/BrandCanvas";
-import type { BrandvilleTheme } from "@/brandville/types";
+import type { BrennimarkTheme } from "@/brennimark/types";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
@@ -32,7 +32,7 @@ const CAMPOS_DE_COR: readonly { chave: ChaveDeCor; pt: string; en: string }[] = 
  * TRANSCRIÇÃO fiel do que o manual da marca já declara — nunca uma escolha
  * nova. "Neutro" é o produto (a moldura); a marca nunca é neutra.
  */
-export function ThemeEditor({ theme }: { theme: BrandvilleTheme }) {
+export function ThemeEditor({ theme }: { theme: BrennimarkTheme }) {
   const alvo = useAlvo();
   const isEnglish = useIsEnglish();
   const [tema, setTema] = useState(theme);
@@ -41,7 +41,7 @@ export function ThemeEditor({ theme }: { theme: BrandvilleTheme }) {
   const [message, setMessage] = useState("");
   const hasUnsavedChanges = JSON.stringify(tema) !== JSON.stringify(persistido);
 
-  function update(patch: Partial<BrandvilleTheme>) {
+  function update(patch: Partial<BrennimarkTheme>) {
     setTema((atual) => ({ ...atual, ...patch }));
     setMessage("");
   }
@@ -87,7 +87,7 @@ export function ThemeEditor({ theme }: { theme: BrandvilleTheme }) {
                 <span aria-hidden className="h-6 w-6 shrink-0 border border-platform-border" style={{ background: tema[chave] }} />
                 <input
                   value={tema[chave]}
-                  onChange={(event) => update({ [chave]: event.target.value } as Partial<BrandvilleTheme>)}
+                  onChange={(event) => update({ [chave]: event.target.value } as Partial<BrennimarkTheme>)}
                   spellCheck={false}
                   className="w-full bg-transparent text-sm text-platform-text focus:outline-none"
                   placeholder="#000000"

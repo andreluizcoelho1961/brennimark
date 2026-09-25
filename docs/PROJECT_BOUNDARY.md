@@ -12,7 +12,7 @@ Aqui vivem:
 - onboarding, pricing, demo comercial e documentação do produto;
 - materiais técnicos, comerciais e de investimento da startup.
 
-**Brennimark** é o nome de trabalho do produto. `Brandville` é codinome legado que ainda aparece
+**Brennimark** é o nome de trabalho do produto. `Brennimark` é codinome legado que ainda aparece
 em identificadores internos e não pode voltar à interface.
 
 ## As marcas são dados, não o produto

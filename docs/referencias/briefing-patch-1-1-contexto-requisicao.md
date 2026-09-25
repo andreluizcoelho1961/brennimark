@@ -45,10 +45,10 @@ O Patch 1.1 não deve desfazer esses ganhos.
 
 O código afirma resolver uma vez por requisição, mas o fluxo atual ainda é:
 
-1. `src/app/docs/layout.tsx` chama `getBrandvilleAuthContext()` diretamente;
+1. `src/app/docs/layout.tsx` chama `getBrennimarkAuthContext()` diretamente;
 2. o layout consulta `profiles` diretamente;
 3. o layout chama `resolveWorkspaceContext()`;
-4. `resolveWorkspaceContext()` chama `getBrandvilleAuthContext()` novamente;
+4. `resolveWorkspaceContext()` chama `getBrennimarkAuthContext()` novamente;
 5. `resolveWorkspaceContext()` chama `resolveActiveBrand(auth)`;
 6. depois chama `getResolvedBrandDocs(auth)`;
 7. `getResolvedBrandDocs(auth)` chama `resolveActiveBrand(auth)` novamente.
@@ -70,9 +70,9 @@ Referência oficial:
 
 ### 3.2 Arquivos envolvidos
 
-- `src/lib/brandville/workspace-context.ts`
-- `src/lib/brandville/server.ts`
-- `src/lib/brandville/context.ts`
+- `src/lib/brennimark/workspace-context.ts`
+- `src/lib/brennimark/server.ts`
+- `src/lib/brennimark/context.ts`
 - `src/app/docs/layout.tsx`
 - `src/app/docs/page.tsx`
 - `src/app/docs/[...slug]/page.tsx`
@@ -101,7 +101,7 @@ O layout deve consumir somente `resolveWorkspaceContext()` para decidir:
 - capacidades;
 - documentos da navegação.
 
-Não chamar `getBrandvilleAuthContext()` separadamente no layout.
+Não chamar `getBrennimarkAuthContext()` separadamente no layout.
 
 ### 3.4 Consulta de documentos
 
@@ -151,7 +151,7 @@ O comportamento deve permanecer:
 - sem sessão: `/login`;
 - sessão sem nome completo: `/onboarding`;
 - sessão e perfil completos: renderizar o manual;
-- `BRANDVILLE_DEV_SKIP_AUTH=true`: fluxo local explícito, sem criar uma regra falsa de autorização.
+- `BRENNIMARK_DEV_SKIP_AUTH=true`: fluxo local explícito, sem criar uma regra falsa de autorização.
 
 ### 3.6 Paralelismo permitido
 
@@ -169,7 +169,7 @@ Não introduzir cache de processo, `Map` global, variável mutável de módulo o
 
 ### 4.1 Comportamento atual
 
-Em `src/lib/brandville/context.ts`, o contexto usa:
+Em `src/lib/brennimark/context.ts`, o contexto usa:
 
 ```ts
 capabilitiesForRole(auth?.role ?? "member")
@@ -201,7 +201,7 @@ Sem sessão:
 
 ### 4.3 Desenvolvimento local
 
-Se o preview com `BRANDVILLE_DEV_SKIP_AUTH=true` precisar simular um membro, isso deve ser uma decisão explícita da camada de desenvolvimento.
+Se o preview com `BRENNIMARK_DEV_SKIP_AUTH=true` precisar simular um membro, isso deve ser uma decisão explícita da camada de desenvolvimento.
 
 Não usar o fallback de `member` dentro de `montarContexto`.
 
@@ -244,7 +244,7 @@ Não fazer neste patch:
 
 ### 6.1 Regra pura do contexto
 
-Fortalecer `src/lib/brandville/context.test.ts`.
+Fortalecer `src/lib/brennimark/context.test.ts`.
 
 Adicionar ou ajustar:
 
@@ -290,8 +290,8 @@ Não é obrigatório usar exatamente dependência injetada, mas o teste deve pro
 Manter e ampliar a leak guard para impedir:
 
 - retorno de `hasBrand` no caminho da marca;
-- import de `brandvilleInstance` como fonte da marca ativa;
-- chamada direta de `getBrandvilleAuthContext()` em `src/app/docs/layout.tsx`;
+- import de `brennimarkInstance` como fonte da marca ativa;
+- chamada direta de `getBrennimarkAuthContext()` em `src/app/docs/layout.tsx`;
 - resolução da marca dentro da função que recebe `brandId` para buscar documentos;
 - restauração de `getResolvedBrandDoc()` como caminho paralelo.
 
@@ -320,7 +320,7 @@ Exigências:
 
 O Patch 1.1 só está concluído quando:
 
-- [ ] `DocsLayout` não chama `getBrandvilleAuthContext()` diretamente.
+- [ ] `DocsLayout` não chama `getBrennimarkAuthContext()` diretamente.
 - [ ] O perfil faz parte da resolução request-scoped.
 - [ ] A autenticação é resolvida uma vez no fluxo da requisição.
 - [ ] A membership é resolvida uma vez.
@@ -347,7 +347,7 @@ Antes de alterar o código, responder com:
    - marca no contexto + consulta de documentos;
 2. desenho do novo contrato de `WorkspaceContext`;
 3. estratégia para testar que cada dependência roda uma vez;
-4. tratamento explícito de `BRANDVILLE_DEV_SKIP_AUTH`;
+4. tratamento explícito de `BRENNIMARK_DEV_SKIP_AUTH`;
 5. arquivos que serão modificados.
 
 Ao concluir, reportar:

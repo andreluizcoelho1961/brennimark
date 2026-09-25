@@ -5,7 +5,7 @@ import { streamText } from "ai";
 import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { classifyAIError } from "@/lib/ai/errors";
-import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
+import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { createServiceClient } from "@/lib/supabase/service";
 import { mensagemDeBloqueio } from "@/lib/ai/execucao";
 import {

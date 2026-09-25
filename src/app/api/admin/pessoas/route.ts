@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
-import { workspaceDaRota } from "@/lib/brandville/contexto-da-rota";
+import { workspaceDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { conferirConcessao, normalizarEmail } from "@/lib/acesso/pessoas";

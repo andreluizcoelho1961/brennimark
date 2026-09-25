@@ -1,4 +1,4 @@
-import { resolverWorkspaceAtivo } from "@/lib/brandville/server";
+import { resolverWorkspaceAtivo } from "@/lib/brennimark/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { SupabaseClient } from "@supabase/supabase-js";

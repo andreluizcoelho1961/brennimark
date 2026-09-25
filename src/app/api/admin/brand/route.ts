@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
-import { parseTheme } from "@/lib/brandville/brand-row";
+import { parseTheme } from "@/lib/brennimark/brand-row";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 

@@ -8,7 +8,7 @@ import { LocaleProvider } from "@/platform/locale-client";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
 import { capabilitiesForRole } from "@/platform/capabilities";
-import { parseBrandRow } from "@/lib/brandville/brand-row";
+import { parseBrandRow } from "@/lib/brennimark/brand-row";
 import { MARCAS_OPOSTAS } from "@/platform/fixtures/marcas-opostas";
 import type { DocPageEntry } from "@/content/docs";
 

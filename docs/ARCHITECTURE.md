@@ -9,7 +9,7 @@
 
 ---
 
-# Brandville — Architecture (current implementation)
+# Brennimark — Architecture (current implementation)
 
 Internal reference for how the app works and is put together **today**. See
 also root `CLAUDE.md` for editing conventions and non-negotiables; this file
@@ -17,7 +17,7 @@ is about *how it's built*, that one is about *how to work on it*.
 
 The product is a reusable matrix for independent, single-brand installations,
 not a shared multi-tenant platform. See
-[`BRANDVILLE_MATRIX.md`](./BRANDVILLE_MATRIX.md) for the replication contract,
+[`BRENNIMARK_MATRIX.md`](./BRENNIMARK_MATRIX.md) for the replication contract,
 client-isolation rules and deployment checklist.
 
 The target content model (modules/documents/sections/blocks, metadata,
@@ -48,7 +48,7 @@ Vercel AI SDK (`ai` + `@ai-sdk/*` providers) + Vercel (hosting).
 
 ```
 src/
-  brandville/
+  brennimark/
     types.ts                 Contract shared by every installation
     config.ts                Selects and validates the active instance
     instances/               One configuration module per brand
@@ -94,13 +94,13 @@ public/
   artwork/, images/, icons/, logo/    Existing brand assets
 docs/
   ARCHITECTURE.md   This file
-brandville/
+brennimark/
   intake.example.json        Modelo de briefing para uma nova instancia
 scripts/
-  create-brandville-instance.mjs     Questionario e comando de geracao
-  brandville-instance-generator.mjs  Validacao e gerador da matriz
+  create-brennimark-instance.mjs     Questionario e comando de geracao
+  brennimark-instance-generator.mjs  Validacao e gerador da matriz
   import-brand-book.mjs              Entrada guiada para um PDF existente
-  brandville-pdf-importer.mjs        Extracao, secoes e relatorio editorial
+  brennimark-pdf-importer.mjs        Extracao, secoes e relatorio editorial
 ```
 
 ## Auth & data model

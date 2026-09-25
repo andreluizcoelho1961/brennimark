@@ -5,9 +5,9 @@ import {
   pageFromSnapshot,
   parseSnapshot,
   type VersionSnapshot,
-} from "@/lib/brandville/version-snapshot";
-import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
-import { historyActionLabel, type HistoryAction } from "@/lib/brandville/history-action";
+} from "@/lib/brennimark/version-snapshot";
+import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
+import { historyActionLabel, type HistoryAction } from "@/lib/brennimark/history-action";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 

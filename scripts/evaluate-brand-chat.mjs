@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const BASE_URL = process.env.BRANDVILLE_BASE_URL ?? "http://127.0.0.1:3417";
-const LIMIT = Number.parseInt(process.env.BRANDVILLE_EVAL_LIMIT ?? "4", 10);
-const CASE_FILTER = (process.env.BRANDVILLE_EVAL_CASES ?? "").split(",").map((value) => value.trim()).filter(Boolean);
-const REPORT_PATH = process.env.BRANDVILLE_EVAL_REPORT ?? ".tmp/brand-evaluation-report.json";
-const EXTERNAL_EVAL_ALLOWED = process.env.BRANDVILLE_ALLOW_EXTERNAL_EVAL === "true";
+const BASE_URL = process.env.BRENNIMARK_BASE_URL ?? "http://127.0.0.1:3417";
+const LIMIT = Number.parseInt(process.env.BRENNIMARK_EVAL_LIMIT ?? "4", 10);
+const CASE_FILTER = (process.env.BRENNIMARK_EVAL_CASES ?? "").split(",").map((value) => value.trim()).filter(Boolean);
+const REPORT_PATH = process.env.BRENNIMARK_EVAL_REPORT ?? ".tmp/brand-evaluation-report.json";
+const EXTERNAL_EVAL_ALLOWED = process.env.BRENNIMARK_ALLOW_EXTERNAL_EVAL === "true";
 
 const cases = [
   {
@@ -118,7 +118,7 @@ async function runCase(testCase) {
 async function main() {
   if (!EXTERNAL_EVAL_ALLOWED) {
     throw new Error(
-      "Avaliação externa bloqueada. Defina BRANDVILLE_ALLOW_EXTERNAL_EVAL=true somente após autorizar o envio do guide ao provedor configurado.",
+      "Avaliação externa bloqueada. Defina BRENNIMARK_ALLOW_EXTERNAL_EVAL=true somente após autorizar o envio do guide ao provedor configurado.",
     );
   }
 

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { PessoasEAcesso } from "@/components/pessoas/PessoasEAcesso";
 import { MolduraDaConta } from "@/components/shell/MolduraDaConta";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 
 /**
  * Pessoas e acesso — tela da CONTA, não da marca.

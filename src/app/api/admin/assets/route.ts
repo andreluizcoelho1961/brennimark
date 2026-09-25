@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
-import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
+import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, caminhoDeMiniatura } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { decidirRemocao } from "@/lib/assets/remocao";

@@ -3,13 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
-import type { BrandvilleTheme } from "@/brandville/types";
+import type { BrennimarkTheme } from "@/brennimark/types";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { VersionHistory } from "@/components/admin/VersionHistory";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
-import { criarPedidoDeEdicao } from "@/lib/brandville/edicao-de-conteudo";
+import { criarPedidoDeEdicao } from "@/lib/brennimark/edicao-de-conteudo";
 
 const STATUS_LABEL_POR_IDIOMA = {
   en: { ready: "Approved", draft: "Draft", pending: "In progress" },
@@ -29,7 +29,7 @@ export function AdminPanel({
    *  selecionáveis porque é de lá que a recuperação parte. */
   deletedPages?: DeletedPage[];
   groups: readonly string[];
-  theme: BrandvilleTheme;
+  theme: BrennimarkTheme;
 }) {
   // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
   // saberia qual, e responderia 409 numa conta com mais de uma.

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { getBrennimarkAuthContext } from "@/lib/brennimark/server";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { VisualizadorDePdf } from "@/components/documento-fonte/VisualizadorDePdf";
 import {
   AnteriorAoManifesto, ConclusaoPendente, PendenciaDeSecao,
@@ -51,7 +51,7 @@ export default async function ManualOriginal({
    * Hoje é a importação mais recente. Quando `brand_source_documents` existir,
    * passa a ser a edição ATIVA do manual, e o `select` muda com ele.
    */
-  const auth = await getBrandvilleAuthContext(contexto.workspaceSlug ?? undefined);
+  const auth = await getBrennimarkAuthContext(contexto.workspaceSlug ?? undefined);
   if (!auth) notFound();
 
   // Os dois filtros, sempre — a mesma disciplina da rota de transporte: a FK
@@ -176,9 +176,9 @@ export default async function ManualOriginal({
  * visualizador continua servindo o PDF, que é a razão de a página existir.
  */
 async function lerEstadoDoRegistro(
-  supabase: Awaited<ReturnType<typeof getBrandvilleAuthContext>> extends null
+  supabase: Awaited<ReturnType<typeof getBrennimarkAuthContext>> extends null
     ? never
-    : NonNullable<Awaited<ReturnType<typeof getBrandvilleAuthContext>>>["supabase"],
+    : NonNullable<Awaited<ReturnType<typeof getBrennimarkAuthContext>>>["supabase"],
   id: string,
 ): Promise<{
   estado: EstadoDaPublicacao;
@@ -243,7 +243,7 @@ async function lerEstadoDoRegistro(
  * impedir a leitura do manual. É a mesma disciplina de `lerEstadoDoRegistro`.
  */
 async function lerSecoesDoIndice(
-  supabase: NonNullable<Awaited<ReturnType<typeof getBrandvilleAuthContext>>>["supabase"],
+  supabase: NonNullable<Awaited<ReturnType<typeof getBrennimarkAuthContext>>>["supabase"],
   sourceDocumentId: string,
 ): Promise<SecaoExtraida[]> {
   const { data, error } = await supabase

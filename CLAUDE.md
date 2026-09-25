@@ -5,8 +5,11 @@ Islandês para *marca de fogo* — a marca queimada no gado, origem literal da p
 Adotado como nome de trabalho, ainda não definitivo.
 
 `Brandville` era codinome técnico legado. Não pode voltar a aparecer em interface, venda, domínio
-ou contrato. Ainda existe em identificadores internos (`src/brandville/`, `BRANDVILLE_*`), e essa
-renomeação é dívida mecânica registrada, não decisão pendente.
+ou contrato. A dívida de identificadores internos foi quitada em 25/09/2026: pastas, tipos, funções,
+variáveis e documentos passaram a `brennimark`. O nome antigo sobrevive só em migrations já
+aplicadas (`supabase/migrations/`, `historico-remoto.txt`, `RECONCILIACAO.md`), que não se
+reescrevem porque o histórico precisa bater com o ledger de produção. `src/platform/codinome.test.ts`
+barra a volta dele.
 
 ## O que este repositório NÃO é
 
@@ -33,7 +36,7 @@ Os ADRs vigentes, em ordem:
 - [`docs/adr/0007`](./docs/adr/0007-biblioteca-de-assets-da-marca.md) — a biblioteca de assets da
   marca, a entrega governada por link com prazo, e a hospedagem de fonte
 
-`docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRANDVILLE_MATRIX.md` são
+`docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRENNIMARK_MATRIX.md` são
 **históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
 
 ## Next.js 16.3.4

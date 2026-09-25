@@ -4,7 +4,7 @@ import type { NextConfig } from "next";
  * A guarda vigiava o NOME ERRADO, e por isso não guardava nada.
  *
  * O código lê `BRENNIMARK_DEV_SKIP_AUTH` em cinco lugares, incluindo o
- * middleware. Esta verificação checava `BRANDVILLE_DEV_SKIP_AUTH` — o codinome
+ * middleware. Esta verificação checava `BRENNIMARK_DEV_SKIP_AUTH` — o codinome
  * legado. A renomeação trocou os leitores e esqueceu o guarda, então ligar a
  * flag em produção NÃO derrubava o build: servia o produto sem autenticação, em
  * silêncio.

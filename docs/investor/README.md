@@ -3,7 +3,7 @@
 **Versão do conjunto:** 1.1 · **data de referência:** 27 de agosto de 2026
 
 Esta pasta pertence à startup do aplicativo de gestão de marcas, não ao projeto Guitar
-Garage. O nome Brandville aparece nos arquivos existentes apenas como codinome provisório.
+Garage. O nome Brennimark aparece nos arquivos existentes apenas como codinome provisório.
 
 A Guitar Garage pode ser citada como caso demonstrativo externo. Ela não deve ser usada como
 evidência de product-market fit, repetibilidade técnica, retenção ou economia do canal.

@@ -54,7 +54,7 @@ test("a navegação some para quem só consulta, em vez de aparecer desabilitada
 /**
  * A seção "Inteligência" ficava permanentemente vazia.
  *
- * `shellSections` lia as chaves de `brandvilleUtilityLinks`, que por sua vez
+ * `shellSections` lia as chaves de `brennimarkUtilityLinks`, que por sua vez
  * lia a instância global — e a instância global é `unconfigured`, com zero
  * utilidades. Nenhuma marca, por mais completa, conseguia mostrar o assistente
  * na navegação. A promoção da V2 levou esse fio junto.

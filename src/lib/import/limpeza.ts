@@ -1,4 +1,4 @@
-import type { BrandvilleAuthContext } from "@/lib/brandville/server";
+import type { BrennimarkAuthContext } from "@/lib/brennimark/server";
 import { intervaloDeEspera, type PendenciaDeExclusao } from "./fila";
 
 /** Um lote por vez: a drenagem roda em resposta a uma requisição de alguém. */
@@ -9,7 +9,7 @@ export const LOTE = 50;
  * (a tela de administração) ou a chave de serviço (a limpeza periódica, uma
  * conta por vez).
  */
-export type ContextoDaDrenagem = Pick<BrandvilleAuthContext, "supabase" | "workspaceId">;
+export type ContextoDaDrenagem = Pick<BrennimarkAuthContext, "supabase" | "workspaceId">;
 
 /**
  * Obrigatório quando o cliente é a chave de serviço: sem a sessão, as

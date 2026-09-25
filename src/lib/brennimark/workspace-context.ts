@@ -9,13 +9,13 @@ import {
 import {
   carregarMarca,
   getBrandDocs,
-  getBrandvilleAuthContext,
+  getBrennimarkAuthContext,
   capacidadesNaMarca,
   getProfileSummary,
   listarDisponiveis,
   temPerfilCompleto,
   temSessao,
-  type BrandvilleAuthContext,
+  type BrennimarkAuthContext,
 } from "./server";
 
 export type { WorkspaceContext };
@@ -43,7 +43,7 @@ const SKIP_AUTH = process.env.BRENNIMARK_DEV_SKIP_AUTH === "true";
 export const resolveWorkspaceContext = cache(
   async (alvo?: Alvo): Promise<WorkspaceContext> => {
     if (SKIP_AUTH) {
-      return carregarWorkspaceContext<BrandvilleAuthContext & { role: "owner" | "member" }>({
+      return carregarWorkspaceContext<BrennimarkAuthContext & { role: "owner" | "member" }>({
         temSessao, getAuth: async () => null, getProfile: getProfileSummary,
         getActiveBrand: async () => null, getDocsByBrandId: getBrandDocs, devPreview: true,
       });
@@ -110,13 +110,13 @@ async function carregarPronto(
   disponiveis: readonly WorkspaceDisponivel[],
   brandId?: string,
 ): Promise<WorkspaceContext> {
-  return carregarWorkspaceContext<BrandvilleAuthContext & { role: "owner" | "member"; email?: string }>({
+  return carregarWorkspaceContext<BrennimarkAuthContext & { role: "owner" | "member"; email?: string }>({
     temSessao,
     workspaceSlug: alvo.workspaceSlug,
     // O seletor da barra procura a marca aberta AQUI para achar o nome dela.
     opcoes: disponiveis,
     getAuth: async () => {
-      const auth = await getBrandvilleAuthContext(alvo.workspaceSlug);
+      const auth = await getBrennimarkAuthContext(alvo.workspaceSlug);
       return auth ? { ...auth, email: auth.user.email ?? undefined } : null;
     },
     getProfile: getProfileSummary,

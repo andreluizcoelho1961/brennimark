@@ -94,7 +94,7 @@ export default defineConfig({
       // de propósito se esta variável estiver ligada.
       BRENNIMARK_DEV_SKIP_AUTH: "true",
       // Sem marca: é o estado real do produto antes do primeiro manual.
-      NEXT_PUBLIC_BRANDVILLE_INSTANCE: "",
+      NEXT_PUBLIC_BRENNIMARK_INSTANCE: "",
 
       /*
        * Credenciais FALSAS, e é isso que torna a suíte hermética de verdade.
