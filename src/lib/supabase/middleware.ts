@@ -1,9 +1,8 @@
 import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 import { CAMINHO_DA_TROCA, desvioDaSenhaProvisoria } from "@/lib/acesso/senha-provisoria";
+import { caminhoPublico } from "@/lib/supabase/caminhos-publicos";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-const PUBLIC_PATHS = ["/login", "/auth/callback"];
 
 export async function updateSession(request: NextRequest) {
   // Local-review escape hatch — set in .env.local only, never in
@@ -38,7 +37,7 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isPublicPath = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+  const isPublicPath = caminhoPublico(request.nextUrl.pathname);
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();

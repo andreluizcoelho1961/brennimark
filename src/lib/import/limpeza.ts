@@ -2,7 +2,20 @@ import type { BrennimarkAuthContext } from "@/lib/brennimark/server";
 import { intervaloDeEspera, type PendenciaDeExclusao } from "./fila";
 
 /** Um lote por vez: a drenagem roda em resposta a uma requisição de alguém. */
-const LOTE = 50;
+export const LOTE = 50;
+
+/**
+ * O que a drenagem precisa: um cliente e a conta. A sessão de quem administra
+ * (a tela de administração) ou a chave de serviço (a limpeza periódica, uma
+ * conta por vez).
+ */
+export type ContextoDaDrenagem = Pick<BrennimarkAuthContext, "supabase" | "workspaceId">;
+
+/**
+ * Obrigatório quando o cliente é a chave de serviço: sem a sessão, as
+ * policies do Storage não seguram nada, e o escopo passa a ser a trava.
+ */
+export type EscopoDaDrenagem = { bucket: "brand-assets" };
 
 /**
  * Remove os arquivos pendentes e fecha os registros que de fato saíram.
@@ -24,15 +37,22 @@ const LOTE = 50;
  * observaria a ausência (correta, no bucket errado) e fecharia o registro. Os
  * arquivos ficariam para sempre, e a fila diria que o trabalho terminou.
  */
-export async function drenarFilaDeExclusao(auth: BrennimarkAuthContext) {
+export async function drenarFilaDeExclusao(auth: ContextoDaDrenagem, escopo?: EscopoDaDrenagem) {
   const agora = Date.now();
 
-  const { data: todas, error } = await auth.supabase
+  let consulta = auth.supabase
     .from("brand_deletions")
     .select("id, storage_path, bucket_id, tentativas, ultima_tentativa_at")
-    .eq("workspace_id", auth.workspaceId)
-    .order("requested_at", { ascending: true })
-    .limit(LOTE);
+    .eq("workspace_id", auth.workspaceId);
+  if (escopo) {
+    // Com a chave de serviço nenhuma policy do Storage segura a remoção. O que
+    // segura é isto: só o bucket pedido, e só caminho DENTRO da pasta da conta
+    // dona da linha. A policy de inserção da fila deixa quem administra a
+    // conta enfileirar qualquer texto — um caminho de outra conta, enfileirado
+    // na sua, seria apagado pela chave que tudo pode.
+    consulta = consulta.eq("bucket_id", escopo.bucket).like("storage_path", `${auth.workspaceId}/%`);
+  }
+  const { data: todas, error } = await consulta.order("requested_at", { ascending: true }).limit(LOTE);
 
   if (error) return { removidos: 0, pendentes: 0, adiados: 0 };
 
@@ -40,10 +60,21 @@ export async function drenarFilaDeExclusao(auth: BrennimarkAuthContext) {
   // Uma falha permanente — arquivo que o Storage recusa apagar — seria tentada
   // de novo a cada abertura da administração, para sempre, gastando a mesma
   // chamada com o mesmo resultado. A espera cresce com o número de tentativas.
-  const prontas = pendentes.filter((linha) => podeTentar(linha, agora));
-  const adiados = pendentes.length - prontas.length;
+  const aptas = pendentes.filter((linha) => podeTentar(linha, agora));
+  const adiados = pendentes.length - aptas.length;
+
+  // Última conferência antes da chave de serviço apagar: a pendência cujo
+  // caminho ainda é o original ou a miniatura de uma variante NÃO sai. Não
+  // fecha nem apaga — fica na fila com o motivo, visível, para alguém olhar.
+  const vivos = escopo?.bucket === "brand-assets" ? await caminhosDeVariante(auth, aptas) : new Set<string>();
+  if (vivos === null) return { removidos: 0, pendentes: await contar(auth), adiados };
+  const prontas = aptas.filter((linha) => !vivos.has(linha.storage_path));
+  const recusadas = aptas
+    .filter((linha) => vivos.has(linha.storage_path))
+    .map((linha) => ({ ...linha, ultimo_erro: "o caminho ainda é de uma variante registrada: não se apaga" }));
 
   if (prontas.length === 0) {
+    await registrarFalhas(auth, recusadas);
     return { removidos: 0, pendentes: await contar(auth), adiados };
   }
 
@@ -56,7 +87,7 @@ export async function drenarFilaDeExclusao(auth: BrennimarkAuthContext) {
   }
 
   const fechar: string[] = [];
-  const falharam: PendenciaDeExclusao[] = [];
+  const falharam: PendenciaDeExclusao[] = [...recusadas];
 
   for (const [bucket, linhas] of porBucket) {
     const { error: erroDeRemocao } = await auth.supabase.storage
@@ -76,8 +107,16 @@ export async function drenarFilaDeExclusao(auth: BrennimarkAuthContext) {
     await auth.supabase.from("brand_deletions").delete().in("id", fechar);
   }
 
-  // O registro da tentativa é o que torna a falha VISÍVEL. Sem ele, um arquivo
-  // que nunca sai é indistinguível de um que acabou de entrar na fila.
+  await registrarFalhas(auth, falharam);
+
+  return { removidos: fechar.length, pendentes: await contar(auth), adiados };
+}
+
+/**
+ * O registro da tentativa é o que torna a falha VISÍVEL. Sem ele, um arquivo
+ * que nunca sai é indistinguível de um que acabou de entrar na fila.
+ */
+async function registrarFalhas(auth: ContextoDaDrenagem, falharam: PendenciaDeExclusao[]) {
   for (const linha of falharam) {
     await auth.supabase
       .from("brand_deletions")
@@ -88,8 +127,27 @@ export async function drenarFilaDeExclusao(auth: BrennimarkAuthContext) {
       })
       .eq("id", linha.id);
   }
+}
 
-  return { removidos: fechar.length, pendentes: await contar(auth), adiados };
+/**
+ * Quais destes caminhos ainda são original ou miniatura de uma variante.
+ * `null` quando a consulta falha: sem saber, nada se apaga.
+ */
+async function caminhosDeVariante(
+  auth: ContextoDaDrenagem,
+  linhas: PendenciaDeExclusao[],
+): Promise<Set<string> | null> {
+  if (linhas.length === 0) return new Set();
+  const caminhos = linhas.map((linha) => linha.storage_path);
+  const [originais, miniaturas] = await Promise.all([
+    auth.supabase.from("brand_assets").select("storage_path").in("storage_path", caminhos),
+    auth.supabase.from("brand_assets").select("miniatura_path").in("miniatura_path", caminhos),
+  ]);
+  if (originais.error || miniaturas.error) return null;
+  return new Set([
+    ...(originais.data ?? []).map((a: { storage_path: string }) => a.storage_path),
+    ...(miniaturas.data ?? []).map((a: { miniatura_path: string }) => a.miniatura_path),
+  ]);
 }
 
 function podeTentar(linha: PendenciaDeExclusao, agora: number): boolean {
@@ -98,7 +156,7 @@ function podeTentar(linha: PendenciaDeExclusao, agora: number): boolean {
   return desde >= intervaloDeEspera(linha.tentativas);
 }
 
-async function contar(auth: BrennimarkAuthContext): Promise<number> {
+async function contar(auth: ContextoDaDrenagem): Promise<number> {
   const { count } = await auth.supabase
     .from("brand_deletions")
     .select("id", { count: "exact", head: true })
@@ -107,7 +165,7 @@ async function contar(auth: BrennimarkAuthContext): Promise<number> {
 }
 
 async function objetoAusente(
-  auth: BrennimarkAuthContext,
+  auth: ContextoDaDrenagem,
   bucket: string,
   caminho: string,
 ): Promise<boolean> {

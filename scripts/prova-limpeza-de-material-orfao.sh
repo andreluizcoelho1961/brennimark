@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# Roda a prova da limpeza de material órfão (24/09): o que
+# `enfileirar_materiais_orfaos` põe na fila, o que ela deixa de fora, e quem
+# pode executá-la.
+#
+# A prova constrói o próprio mundo e termina em `rollback`. Não deixa resíduo.
+# Exige o stack local de pé com as migrations aplicadas.
+set -euo pipefail
+
+CONTAINER="${CONTAINER:-supabase_db_brennimark}"
+AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if ! docker exec "$CONTAINER" true 2>/dev/null; then
+  echo "FALHA: container $CONTAINER não responde. Suba o stack: npx supabase start" >&2
+  exit 1
+fi
+
+docker exec -i "$CONTAINER" psql -U postgres -q -f - < "$AQUI/prova-limpeza-de-material-orfao.sql"
