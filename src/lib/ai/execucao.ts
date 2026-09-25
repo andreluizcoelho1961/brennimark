@@ -109,11 +109,12 @@ const BYTES_POR_CARACTERE_PIOR_CASO = 4;
  * assume.
  *
  * PT, o pior caso entre os dois idiomas testados, com uma folga pequena:
- *   assist: 2.219 medidos → 2.300
+ *   assist: 2.834 medidos → 2.900 (era 2.219 → 2.300; subiu em 25/09/2026 com a
+ *     regra "dar os valores técnicos, não o ponteiro para eles")
  *   analyse-image: 3.632 medidos → 3.700
  */
 export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
-  assist: 2_300,
+  assist: 2_900,
   "analyse-image": 3_700,
   prompt: 2_300,
 };

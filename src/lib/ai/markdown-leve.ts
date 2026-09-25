@@ -81,7 +81,7 @@ export function blocosDeMarkdown(texto: string): Bloco[] {
  */
 export function enfases(texto: string): Enfase[] {
   const saida: Enfase[] = [];
-  const padrao = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|(?<![*\w])\*(?=\S)([^*]*?\S)\*(?![*\w])|(?<![_\w])_(?=\S)([^_]*?\S)_(?![_\w])/g;
+  const padrao = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|(?<![*\w])\*(?=\S)((?:\*\*(?=\S)[^*]*?\S\*\*|[^*])*?\S)\*(?![*\w])|(?<![_\w])_(?=\S)([^_]*?\S)_(?![_\w])/g;
   let cursor = 0;
   for (const m of texto.matchAll(padrao)) {
     const inicio = m.index ?? 0;
@@ -89,7 +89,10 @@ export function enfases(texto: string): Enfase[] {
     const negrito = m[1] ?? m[2];
     saida.push(negrito !== undefined
       ? { tipo: "negrito", valor: negrito }
-      : { tipo: "italico", valor: (m[3] ?? m[4]) as string });
+      // Negrito DENTRO do itálico ("*Nota: status de **RASCUNHO**.*", ensaio de
+      // 25/09/2026) deixava os asteriscos crus. O trecho inteiro fica itálico,
+      // sem os marcadores de dentro.
+      : { tipo: "italico", valor: ((m[3] ?? m[4]) as string).replace(/\*\*(\S(?:[^*]*?\S)?)\*\*/g, "$1") });
     cursor = inicio + m[0].length;
   }
   if (cursor < texto.length) saida.push({ tipo: "texto", valor: texto.slice(cursor) });

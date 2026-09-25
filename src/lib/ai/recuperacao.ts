@@ -31,11 +31,19 @@ export interface Trecho {
  */
 export const LIMITES_DE_IA = {
   /** Fontes por resposta. Acima disso o modelo dilui em vez de fundamentar. */
-  maxTrechos: 8,
-  /** Caracteres de cada trecho. Um bloco gigante consumiria a cota sozinho. */
-  maxCaracteresPorTrecho: 1_200,
+  maxTrechos: 6,
+  /**
+   * Caracteres de cada trecho. Um bloco gigante consumiria a cota sozinho.
+   *
+   * Era 1.200 até 25/09/2026. O trecho é uma SEÇÃO inteira do manual, e a
+   * tabela de códigos de cor da Heineken começava depois do caractere 1.200 do
+   * capítulo "3.2 Cores": o Vini respondeu "tons de verde" com os códigos no
+   * banco. Menos trechos, cada um maior, e recortado onde a pergunta está
+   * (`recortarTrecho`) — não no começo.
+   */
+  maxCaracteresPorTrecho: 2_000,
   /** Teto do contexto inteiro, somados os trechos. */
-  maxCaracteresDeContexto: 8_000,
+  maxCaracteresDeContexto: 10_000,
   /** A pergunta. Mais que isto é colagem de documento, não pergunta. */
   maxCaracteresDaPergunta: 2_000,
   /** Mensagens de histórico enviadas junto. */
@@ -50,6 +58,92 @@ export function limitarTexto(texto: string, maximo: number): string {
   const corte = texto.slice(0, maximo);
   const ultimoEspaco = corte.lastIndexOf(" ");
   return `${corte.slice(0, ultimoEspaco > maximo * 0.6 ? ultimoEspaco : maximo)}…`;
+}
+
+const PALAVRAS_VAZIAS = new Set([
+  "que", "qual", "quais", "como", "para", "uma", "umas", "uns", "das", "dos", "com", "sem", "por",
+  "sao", "ser", "tem", "esta", "este", "essa", "esse", "isso", "onde", "quando", "marca", "manual",
+  "sobre", "pode", "posso", "devo", "deve", "mais", "menos", "the", "what", "which", "are", "and",
+  "for", "with", "this", "that", "how", "can", "should", "brand", "about", "does",
+]);
+
+/** Minúsculas e sem acento: "Códigos" e "codigos" são a mesma palavra. */
+function normalizar(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+/**
+ * Os termos da pergunta que valem busca, como PREFIXOS de até 5 letras:
+ * "principais" acha "PRINCIPAIS" e "principal"; "cores" acha "cores".
+ */
+export function termosDaPergunta(pergunta: string): string[] {
+  const termos = normalizar(pergunta)
+    .split(/[^a-z0-9#]+/)
+    .filter((palavra) => palavra.length >= 3 && !PALAVRAS_VAZIAS.has(palavra))
+    .map((palavra) => palavra.slice(0, 5));
+  return [...new Set(termos)];
+}
+
+/**
+ * Valores técnicos: código de cor, sistema de cor, medida. Quem pergunta a um
+ * manual quase sempre quer o valor, e é nele que o recorte deve cair quando a
+ * pergunta não decide sozinha.
+ */
+const VALOR_TECNICO = /#[0-9a-f]{6}\b|\b(?:pantone|cmyk|rgb|hex)\b|\b[cmykrgb] ?\d{1,3}\b|\b\d+(?:[.,]\d+)? ?(?:mm|cm|px|pt|%)/g;
+
+/**
+ * A janela do trecho que responde à pergunta — não o começo dele.
+ *
+ * O trecho é uma seção inteira. Cortar no começo entregava a abertura do
+ * capítulo e deixava de fora a tabela que a pessoa pediu (Heineken, "quais as
+ * cores principais?", 25/09/2026). Aqui cada ocorrência de termo da pergunta
+ * vale 1 e cada valor técnico vale 0,3; vence a janela de `maximo`
+ * caracteres com mais pontos, a mais cedo em caso de empate. Sem ocorrência
+ * nenhuma, o começo — como antes.
+ */
+export function recortarTrecho(conteudo: string, pergunta: string, maximo: number): string {
+  if (conteudo.length <= maximo) return conteudo;
+  const base = normalizar(conteudo);
+  const marcas: { posicao: number; peso: number }[] = [];
+
+  for (const termo of termosDaPergunta(pergunta)) {
+    let indice = base.indexOf(termo);
+    while (indice !== -1) {
+      marcas.push({ posicao: indice, peso: 1 });
+      indice = base.indexOf(termo, indice + termo.length);
+    }
+  }
+  for (const achado of base.matchAll(VALOR_TECNICO)) {
+    marcas.push({ posicao: achado.index ?? 0, peso: 0.3 });
+  }
+  if (marcas.length === 0) return limitarTexto(conteudo, maximo);
+
+  marcas.sort((a, b) => a.posicao - b.posicao);
+  // Um pouco de contexto antes da primeira ocorrência da janela.
+  const folga = Math.floor(maximo * 0.1);
+  let melhorInicio = 0;
+  let melhorPontos = -1;
+  for (const marca of marcas) {
+    const inicio = Math.max(0, Math.min(marca.posicao - folga, conteudo.length - maximo));
+    const fim = inicio + maximo;
+    let pontos = 0;
+    for (const outra of marcas) {
+      if (outra.posicao >= inicio && outra.posicao < fim) pontos += outra.peso;
+    }
+    if (pontos > melhorPontos) {
+      melhorPontos = pontos;
+      melhorInicio = inicio;
+    }
+  }
+
+  // Começar e terminar em palavra inteira; a reticência avisa o corte.
+  let inicio = melhorInicio;
+  if (inicio > 0) {
+    const espaco = conteudo.indexOf(" ", inicio);
+    inicio = espaco !== -1 && espaco - inicio < 40 ? espaco + 1 : inicio;
+  }
+  const janela = limitarTexto(conteudo.slice(inicio), maximo - (inicio > 0 ? 1 : 0));
+  return inicio > 0 ? `…${janela}` : janela;
 }
 
 /**
@@ -137,13 +231,14 @@ export function faixaDeTrecho(trecho: Trecho, ingles: boolean): string {
 export function montarContextoRecuperado(
   trechos: readonly Trecho[],
   rotulos: Record<string, string>,
+  pergunta = "",
 ): { texto: string; usados: Trecho[] } {
   const usados: Trecho[] = [];
   const partes: string[] = [];
   let orcamento = LIMITES_DE_IA.maxCaracteresDeContexto;
 
   for (const trecho of trechos.slice(0, LIMITES_DE_IA.maxTrechos)) {
-    const conteudo = limitarTexto(trecho.content, LIMITES_DE_IA.maxCaracteresPorTrecho);
+    const conteudo = recortarTrecho(trecho.content, pergunta, LIMITES_DE_IA.maxCaracteresPorTrecho);
     if (conteudo.length > orcamento) break;
     orcamento -= conteudo.length;
     usados.push(trecho);

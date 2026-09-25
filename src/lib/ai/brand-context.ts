@@ -146,16 +146,19 @@ function regrasDeFundamentacao(brand: BrandPromptContext): string {
 export function buildChatSystemPrompt(
   trechos: readonly Trecho[],
   brand: BrandPromptContext,
+  pergunta = "",
 ): string {
   const regras = regrasDeFundamentacao(brand);
   const rotulos = rotulosDeStatus(brand);
-  const { texto } = montarContextoRecuperado(trechos, rotulos);
+  const { texto } = montarContextoRecuperado(trechos, rotulos, pergunta);
   const conhecimento = texto || semEvidencia(brand.language === "en");
 
   if (brand.language === "en") {
-    return `${brand.chatRole} Your role is to give short, useful, verifiable answers for teams and vendors.
+    return `${brand.chatRole} Your role is to give direct, useful, verifiable answers for teams and vendors — people who design, and who need the exact value, not a pointer to it.
 
 Grounding rules:${regras}
+- When the material contains technical values — color codes (Pantone, CMYK, RGB, HEX), measurements, clear space, typeface names and weights, proportions — the answer GIVES the values, complete and exactly as documented, organized as a list. Never replace a value with "see page X": the citation goes next to the value, not instead of it.
+- If the material seems cut ("…") before the value asked for, say that the value is on the cited pages and was not in the excerpt you received. Never complete it from memory.
 
 Recommended format:
 1. Start with the direct answer.
@@ -167,9 +170,11 @@ Recommended format:
 ${conhecimento}
 </brand_knowledge>`;
   }
-  return `${brand.chatRole} Sua função é dar respostas curtas, úteis e verificáveis para equipes e fornecedores.
+  return `${brand.chatRole} Sua função é dar respostas diretas, úteis e verificáveis para equipes e fornecedores — gente que desenha, e que precisa do valor exato, não de um ponteiro para ele.
 
 Regras de fundamentação:${regras}
+- Quando o material traz valores técnicos — códigos de cor (Pantone, CMYK, RGB, HEX), medidas, área de proteção, nomes e pesos de fonte, proporções —, a resposta DÁ os valores, completos e exatos como documentados, organizados em lista. Nunca troque um valor por "veja a página X": a citação vem junto do valor, não no lugar dele.
+- Se o material parecer cortado ("…") antes do valor pedido, diga que o valor está nas páginas citadas e não veio no trecho recebido. Nunca complete de memória.
 
 Formato recomendado:
 1. Comece pela resposta direta.

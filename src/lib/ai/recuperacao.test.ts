@@ -7,6 +7,8 @@ import {
   limitarPergunta,
   limitarTexto,
   montarContextoRecuperado,
+  recortarTrecho,
+  termosDaPergunta,
   semEvidencia,
   type Trecho,
 } from "./recuperacao";
@@ -236,4 +238,54 @@ test("a ordem das marcas não muda o resultado de nenhuma", () => {
 
   assert.equal(aPrimeiro, aDepois);
   assert.equal(bPrimeiro, bDepois);
+});
+
+// ─── O recorte onde a pergunta está (25/09/2026) ───────────────────────────
+//
+// O caso real: "quais as cores principais?" num manual cuja seção de cores
+// abre com texto institucional e só depois do caractere 1.200 traz a tabela de
+// códigos. O corte no começo entregava a abertura e deixava a tabela de fora.
+// O conteúdo abaixo é fictício, com a mesma forma.
+
+const ABERTURA = "Nossas cores. ".concat("A paleta da marca traz energia, contraste e harmonia para a comunicação. ".repeat(30));
+const TABELA =
+  "PRINCIPAIS SECUNDÁRIAS APOIO Códigos cromáticos Verde-claro Verde-escuro Vermelho " +
+  "PANTONE 7732C PANTONE 346C PANTONE 485C C 90 M 10 Y 90 K 25 C 63 M 0 Y 55 K 0 " +
+  "R 40 G 129 B 84 R 90 G 205 B 139 HEX #288154 #5ACD8B #FF2B00";
+const FECHO = " Estratégia de cores para comunicação. ".concat("Peças com mais texto usam mais branco ao fundo. ".repeat(20));
+const SECAO_DE_CORES = `${ABERTURA}${TABELA}${FECHO}`;
+
+test("o recorte cai na tabela de códigos, não na abertura da seção", () => {
+  assert.ok(SECAO_DE_CORES.indexOf("#FF2B00") > LIMITES_DE_IA.maxCaracteresPorTrecho, "a fixture precisa pôr a tabela além do teto");
+  const recorte = recortarTrecho(SECAO_DE_CORES, "quais as cores principais?", LIMITES_DE_IA.maxCaracteresPorTrecho);
+  assert.ok(recorte.length <= LIMITES_DE_IA.maxCaracteresPorTrecho);
+  for (const valor of ["PANTONE 7732C", "C 63 M 0 Y 55 K 0", "#288154", "#5ACD8B", "#FF2B00"]) {
+    assert.ok(recorte.includes(valor), `faltou ${valor} no recorte`);
+  }
+  assert.ok(recorte.startsWith("…"), "o corte do começo precisa ser avisado");
+});
+
+test("o contexto montado com a pergunta leva a tabela; sem a pergunta, também", () => {
+  const trechoDeCores: Trecho = {
+    documentSlug: "cores", documentTitle: "Cores", groupName: "Manual", section: null,
+    status: "draft", pageStart: 34, pageEnd: 38, content: SECAO_DE_CORES,
+  };
+  const comPergunta = montarContextoRecuperado([trechoDeCores], ROTULOS, "quais as cores principais?").texto;
+  assert.match(comPergunta, /#FF2B00/);
+  // Sem pergunta, os valores técnicos ainda puxam o recorte para a tabela.
+  const semPergunta = montarContextoRecuperado([trechoDeCores], ROTULOS).texto;
+  assert.match(semPergunta, /#5ACD8B/);
+});
+
+test("trecho que cabe inteiro não é recortado", () => {
+  assert.equal(recortarTrecho("Curto. #E1251B", "cores", 2_000), "Curto. #E1251B");
+});
+
+test("sem ocorrência de termo nem de valor, o recorte é o começo, como antes", () => {
+  const texto = "palavra ".repeat(600);
+  assert.equal(recortarTrecho(texto, "tipografia", 1_000), limitarTexto(texto, 1_000));
+});
+
+test("os termos da pergunta ignoram acento, caixa e palavras vazias", () => {
+  assert.deepEqual(termosDaPergunta("Quais são as CÓDIGOS das cores principais?"), ["codig", "cores", "princ"]);
 });
