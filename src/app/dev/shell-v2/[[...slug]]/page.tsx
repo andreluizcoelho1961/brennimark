@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { LocaleProvider } from "@/platform/locale-client";

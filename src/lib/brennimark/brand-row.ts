@@ -1,6 +1,6 @@
 import { parseDocBlocks } from "../../content/doc-blocks";
 import type { DocPageEntry, DocPageImage, DocStatus } from "../../content/docs";
-import type { BrandvilleInstance, BrandvilleTheme } from "../../brandville/types";
+import type { BrennimarkInstance, BrennimarkTheme } from "../../brennimark/types";
 
 /**
  * Traduz linhas do banco para as formas que a aplicação já usa.
@@ -74,7 +74,7 @@ function objeto(valor: unknown): valor is Record<string, unknown> {
  * de "tudo ou nada" vale nos dois sentidos: tanto para o que vem do banco
  * quanto para o que uma pessoa está prestes a salvar.
  */
-export function parseTheme(valor: unknown): BrandvilleTheme | null {
+export function parseTheme(valor: unknown): BrennimarkTheme | null {
   if (!objeto(valor)) return null;
   // Tema incompleto reprova: um campo faltando pintaria a interface com valor
   // indefinido, e o defeito apareceria só na tela do cliente.
@@ -107,7 +107,7 @@ function parseImages(valor: unknown): DocPageImage[] | undefined {
   return ok ? (valor as DocPageImage[]) : undefined;
 }
 
-export type ActiveBrand = Omit<BrandvilleInstance, "docs"> & { id: string };
+export type ActiveBrand = Omit<BrennimarkInstance, "docs"> & { id: string };
 
 export function parseBrandRow(row: unknown): ActiveBrand | null {
   if (!objeto(row)) return null;
@@ -139,7 +139,7 @@ export function parseBrandRow(row: unknown): ActiveBrand | null {
       groupCodes: objeto(navegacao.groupCodes) ? (navegacao.groupCodes as Record<string, string>) : {},
       defaultDocSlug: texto(navegacao.defaultDocSlug) ? navegacao.defaultDocSlug : "",
       utilityLinks: Array.isArray(navegacao.utilityLinks)
-        ? (navegacao.utilityLinks as BrandvilleInstance["navigation"]["utilityLinks"])
+        ? (navegacao.utilityLinks as BrennimarkInstance["navigation"]["utilityLinks"])
         : [],
     },
     theme,

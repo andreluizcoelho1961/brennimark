@@ -57,7 +57,7 @@ Um banco por agência, com as marcas daquela agência dentro dele.
 | Critério | 1. Isoladas + control plane | 2. Multi-tenant único | 3. Híbrido por agência |
 | --- | --- | --- | --- |
 | Isolamento entre clientes | Físico, o mais forte | Lógico; um bug de RLS vaza | Físico entre agências, lógico dentro |
-| Coerência com a arquitetura documentada | Total | **Diverge do que `BRANDVILLE_MATRIX.md` descreve** | Parcial |
+| Coerência com a arquitetura documentada | Total | **Diverge do que `BRENNIMARK_MATRIX.md` descreve** | Parcial |
 | Custo por marca | Alto (1 projeto + 1 deploy) | Baixo | Médio |
 | Complexidade operacional | Alta: N ambientes | Baixa: 1 ambiente | Média |
 | Esforço de migração a partir de hoje | **Nenhum** | Alto e big-bang | Médio |
@@ -80,7 +80,7 @@ Três razões, em ordem de peso:
 1. **É a única que não exige migração agora.** O produto está a caminho de três pilotos pagos. Uma
    reescrita multi-tenant antes de haver evidência de canal consumiria o orçamento de engenharia
    que deveria ir para medir a tese.
-2. **Preserva a arquitetura documentada.** `docs/BRANDVILLE_MATRIX.md` e a implementação atual
+2. **Preserva a arquitetura documentada.** `docs/BRENNIMARK_MATRIX.md` e a implementação atual
    descrevem isolamento por projeto separado. Trocá-lo por isolamento lógico seria uma mudança de
    garantia técnica feita antes de existir cliente pagante para justificá-la — e sem contrato
    assinado que a exija. Nada aqui presume compromisso comercial já firmado.

@@ -7,19 +7,19 @@
 > Preservado porque o raciocínio continua útil e porque a opção de silo permanece disponível como
 > plano. Onde este texto divergir dos ADRs, valem os ADRs.
 >
-> **Os comandos citados aqui não existem mais.** `npm run brandville:new` e o
+> **Os comandos citados aqui não existem mais.** `npm run brennimark:new` e o
 > gerador de instâncias em código foram removidos no V1: eles escreviam em
-> `src/brandville/instances/`, que era o registro de marcas em arquivo. Marca
+> `src/brennimark/instances/`, que era o registro de marcas em arquivo. Marca
 > agora nasce no banco, pela importação de um PDF. O que este documento
 > descreve é o modelo anterior, e é assim que deve ser lido.
 
 ---
 
-# Matriz replicável do Brandville
+# Matriz replicável do Brennimark
 
 ## Decisão de produto
 
-Cada Brandville continua sendo uma instalação individual: um domínio, uma marca,
+Cada Brennimark continua sendo uma instalação individual: um domínio, uma marca,
 um conjunto de usuários, um banco e uma configuração de IA. Esta matriz não
 transforma o produto em uma plataforma onde clientes diferentes dividem a mesma
 interface ou o mesmo banco.
@@ -28,7 +28,7 @@ O objetivo é repetir a implantação sem repetir a engenharia.
 
 ## O contrato de uma instância
 
-`src/brandville/types.ts` define tudo que a interface precisa saber:
+`src/brennimark/types.ts` define tudo que a interface precisa saber:
 
 - identidade e metadados da marca;
 - grupos, códigos e página inicial da navegação;
@@ -37,8 +37,8 @@ O objetivo é repetir a implantação sem repetir a engenharia.
 - identidade do assistente e modo de conhecimento;
 - recursos disponíveis e aviso de uso.
 
-`src/brandville/config.ts` resolve a instância ativa por meio da variável
-`NEXT_PUBLIC_BRANDVILLE_INSTANCE`. Componentes, prompts, relatórios e metadados
+`src/brennimark/config.ts` resolve a instância ativa por meio da variável
+`NEXT_PUBLIC_BRENNIMARK_INSTANCE`. Componentes, prompts, relatórios e metadados
 consomem essa configuração central.
 
 ## Instâncias incluídas
@@ -53,18 +53,18 @@ formas de iniciar:
 
 ```bash
 # questionário guiado
-npm run brandville:new
+npm run brennimark:new
 
 # manifesto preenchido durante o projeto
-npm run brandville:new -- --input brandville/cliente.json
+npm run brennimark:new -- --input brennimark/cliente.json
 ```
 
-O modelo completo está em `brandville/intake.example.json`. Antes de gerar, é
+O modelo completo está em `brennimark/intake.example.json`. Antes de gerar, é
 possível validar ou simular sem alterar arquivos:
 
 ```bash
-npm run brandville:new -- --input brandville/cliente.json --check
-npm run brandville:new -- --input brandville/cliente.json --dry-run
+npm run brennimark:new -- --input brennimark/cliente.json --check
+npm run brennimark:new -- --input brennimark/cliente.json --dry-run
 ```
 
 O gerador valida slugs, grupos, códigos, páginas, estados editoriais, recursos,
@@ -76,7 +76,7 @@ cores e contraste. Quando tudo está correto, ele cria:
 - a pasta pública de assets;
 - o checklist individual de lançamento.
 
-Depois disso, defina `NEXT_PUBLIC_BRANDVILLE_INSTANCE=<slug>` no projeto do
+Depois disso, defina `NEXT_PUBLIC_BRENNIMARK_INSTANCE=<slug>` no projeto do
 cliente, use Supabase e Vercel exclusivos, configure domínio, usuários e IA e
 rode lint, testes, build e revisão visual antes da publicação.
 
@@ -86,7 +86,7 @@ O importador transforma a camada textual de um PDF em um primeiro manifesto
 editorial, sem publicar nada automaticamente:
 
 ```bash
-npm run brandville:import -- \
+npm run brennimark:import -- \
   --pdf /caminho/manual-da-marca.pdf \
   --brand "Nome da Empresa" \
   --key nome-da-empresa \
@@ -98,7 +98,7 @@ seções, classifica grupos prováveis e marca todas as páginas como rascunho. 
 saída contém o manifesto e um relatório de revisão. Depois da curadoria:
 
 ```bash
-npm run brandville:new -- --input brandville/imports/nome-da-empresa.json --check
+npm run brennimark:new -- --input brennimark/imports/nome-da-empresa.json --check
 ```
 
 PDFs sem camada de texto são interrompidos com uma indicação explícita de OCR
@@ -112,14 +112,14 @@ remover divisórias, corrigir títulos e grupos, aplicar tokens confirmados e
 registrar decisões pendentes sem alterar o PDF de origem:
 
 ```bash
-npm run brandville:curate -- \
-  --input brandville/imports/cliente.json \
-  --rules brandville/imports/cliente-curation.json \
-  --output brandville/imports/cliente.curated.json
+npm run brennimark:curate -- \
+  --input brennimark/imports/cliente.json \
+  --rules brennimark/imports/cliente-curation.json \
+  --output brennimark/imports/cliente.curated.json
 ```
 
 Referências renderizadas podem ser relacionadas às páginas curadas com
-`npm run brandville:references`. Esses arquivos servem para conferência; logos
+`npm run brennimark:references`. Esses arquivos servem para conferência; logos
 vetoriais, fontes licenciadas, fotografias originais e templates de produção
 continuam sendo assets obrigatórios da implantação final.
 

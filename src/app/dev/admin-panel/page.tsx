@@ -3,11 +3,11 @@ import { AdminPanel } from "@/components/admin/AdminPanel";
 import { LocaleProvider } from "@/platform/locale-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
 import type { DocPageEntry } from "@/content/docs";
-import type { BrandvilleTheme } from "@/brandville/types";
+import type { BrennimarkTheme } from "@/brennimark/types";
 
 export const metadata = { robots: { index: false, follow: false } };
 
-const TEMA_FIXO: BrandvilleTheme = {
+const TEMA_FIXO: BrennimarkTheme = {
   background: "#14161a", backgroundSecondary: "#14161a", surface: "#1b1e24",
   surfaceLight: "#242830", foreground: "#f4f5f7", muted: "#9099a8",
   accent: "#f4f5f7", accentSecondary: "#9099a8", border: "#2b3038",

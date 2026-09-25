@@ -1,4 +1,4 @@
-import type { BrandvilleAuthContext } from "@/lib/brandville/server";
+import type { BrennimarkAuthContext } from "@/lib/brennimark/server";
 import { intervaloDeEspera, type PendenciaDeExclusao } from "./fila";
 
 /** Um lote por vez: a drenagem roda em resposta a uma requisição de alguém. */
@@ -24,7 +24,7 @@ const LOTE = 50;
  * observaria a ausência (correta, no bucket errado) e fecharia o registro. Os
  * arquivos ficariam para sempre, e a fila diria que o trabalho terminou.
  */
-export async function drenarFilaDeExclusao(auth: BrandvilleAuthContext) {
+export async function drenarFilaDeExclusao(auth: BrennimarkAuthContext) {
   const agora = Date.now();
 
   const { data: todas, error } = await auth.supabase
@@ -98,7 +98,7 @@ function podeTentar(linha: PendenciaDeExclusao, agora: number): boolean {
   return desde >= intervaloDeEspera(linha.tentativas);
 }
 
-async function contar(auth: BrandvilleAuthContext): Promise<number> {
+async function contar(auth: BrennimarkAuthContext): Promise<number> {
   const { count } = await auth.supabase
     .from("brand_deletions")
     .select("id", { count: "exact", head: true })
@@ -107,7 +107,7 @@ async function contar(auth: BrandvilleAuthContext): Promise<number> {
 }
 
 async function objetoAusente(
-  auth: BrandvilleAuthContext,
+  auth: BrennimarkAuthContext,
   bucket: string,
   caminho: string,
 ): Promise<boolean> {

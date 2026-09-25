@@ -31,7 +31,7 @@ humana identificada na auditoria §6.
 
 ## PR-01 — Aplicar a migration de blocos e proteger a ordem de deploy
 
-**Por quê:** `src/lib/brandville/server.ts:57` já pede a coluna `blocks` no `select`. Publicar contra
+**Por quê:** `src/lib/brennimark/server.ts:57` já pede a coluna `blocks` no `select`. Publicar contra
 um banco sem ela derruba `/docs` para todo usuário autenticado. É o único risco ativo com deploy
 pendente.
 
@@ -46,7 +46,7 @@ existentes **antes** de qualquer deploy deste código. Registrar a ordem obrigat
 
 **Rollback:** **não** derrubar a coluna. Uma vez publicada, ela pode conter conteúdo editorial que
 não existe em nenhum outro lugar, e `drop column` violaria a regra §2.9 do briefing. A reversão é
-**voltar o código** — remover `blocks` do `select` em `src/lib/brandville/server.ts:57` e do render —
+**voltar o código** — remover `blocks` do `select` em `src/lib/brennimark/server.ts:57` e do render —
 **preservando coluna e dados**. A coluna é aditiva e inerte para código que a ignora, então mantê-la
 não custa nada.
 
@@ -64,7 +64,7 @@ autenticação real** — conteúdo de demonstração, usuário de demonstraçã
 uma flag que desliga a verificação. Isso remove a dependência de decisão comercial.
 
 **Fazer:**
-1. Renomear `NEXT_PUBLIC_SKIP_AUTH` para `BRANDVILLE_DEV_SKIP_AUTH` (sem `NEXT_PUBLIC_`), ajustando
+1. Renomear `NEXT_PUBLIC_SKIP_AUTH` para `BRENNIMARK_DEV_SKIP_AUTH` (sem `NEXT_PUBLIC_`), ajustando
    os seis pontos de leitura. Todos são server-side, então a remoção do prefixo é segura — mas
    confirmar com um build antes e depois.
 2. Em `next.config.ts`, falhar o build quando a flag estiver ligada com `NODE_ENV=production`.
@@ -217,11 +217,11 @@ igual.
 ## PR-09 — Reconciliar a documentação **[parcial: D2]**
 
 **Fazer:** alinhar `README.md`, `CLAUDE.md`, `docs/ARCHITECTURE.md` e `docs/PRODUCT_ARCHITECTURE.md`
-ao estado real: matriz multi-instância e `NEXT_PUBLIC_BRANDVILLE_INSTANCE` documentados no
+ao estado real: matriz multi-instância e `NEXT_PUBLIC_BRENNIMARK_INSTANCE` documentados no
 `CLAUDE.md`; remover a referência residual a magic link (a autenticação é por senha,
 `src/app/login/page.tsx:46`); marcar como aspiracional o que ainda não existe; adotar um `CHANGELOG.md`.
 
-**Bloqueio parcial (D2):** se `Brandville` for aposentado como identificador técnico, a renomeação
+**Bloqueio parcial (D2):** se `Brennimark` for aposentado como identificador técnico, a renomeação
 de variáveis, scripts npm e do nome do pacote entra neste PR. Se permanecer como codinome interno,
 basta declarar isso explicitamente na documentação. Recomendação: **manter** — renomear agora é
 custo sem retorno, desde que nenhum texto de venda use o nome.

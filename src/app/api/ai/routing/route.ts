@@ -6,7 +6,7 @@ import {
   roleCoversFeature,
 } from "@/lib/ai/settings";
 import type { AIProvider, AIRole, AIRoutingFeature } from "@/lib/ai/provider";
-import { donoDaRota } from "@/lib/brandville/contexto-da-rota";
+import { donoDaRota } from "@/lib/brennimark/contexto-da-rota";
 
 const FEATURES = new Set<AIRoutingFeature>(["chat", "analysis"]);
 const MIN_TIMEOUT_MS = 3_000;

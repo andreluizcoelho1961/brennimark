@@ -1,8 +1,8 @@
 import type { DocPageEntry, DocStatus } from "../content/docs";
 
-export type BrandvilleUtilityKey = "chat" | "analysis" | "history" | "ai-settings";
+export type BrennimarkUtilityKey = "chat" | "analysis" | "history" | "ai-settings";
 
-export interface BrandvilleTheme {
+export interface BrennimarkTheme {
   background: string;
   backgroundSecondary: string;
   surface: string;
@@ -18,7 +18,7 @@ export interface BrandvilleTheme {
   fontStackDisplay?: string;
 }
 
-export interface BrandvilleInstance {
+export interface BrennimarkInstance {
   key: string;
   brand: {
     name: string;
@@ -34,12 +34,12 @@ export interface BrandvilleInstance {
     groups: readonly string[];
     groupCodes: Readonly<Record<string, string>>;
     defaultDocSlug: string;
-    utilityLinks: readonly BrandvilleUtilityKey[];
+    utilityLinks: readonly BrennimarkUtilityKey[];
   };
   docs: readonly DocPageEntry[];
   /** Vocabulário editorial próprio da instância. Ausente = rótulos do produto. */
   statusLabels?: Readonly<Record<DocStatus, string>>;
-  theme: BrandvilleTheme;
+  theme: BrennimarkTheme;
   ai: {
     knowledgeMode: "full" | "docs";
     chatRole: string;

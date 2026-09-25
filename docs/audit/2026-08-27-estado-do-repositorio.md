@@ -16,11 +16,11 @@ Cada item traz caminho de arquivo e evidência. Nenhum código foi alterado para
 | 5.1 | `.env.example` incompleto | **Confirmada** | ver §2.2 |
 | 5.1 | Documentação de momentos diferentes | **Confirmada** | ver §2.3 |
 | 5.1 | Apenas um commit no histórico | **Confirmada** | `git rev-list --count HEAD` = 1 |
-| 5.2 | Papéis só `owner`/`member` | **Confirmada** | `src/lib/brandville/server.ts:13,30` |
+| 5.2 | Papéis só `owner`/`member` | **Confirmada** | `src/lib/brennimark/server.ts:13,30` |
 | 5.2 | Sem convites, remoção, transferência | **Confirmada** | zero arquivos em `src/app`/`src/components` |
 | 5.2 | Sem troca/recuperação de senha | **Confirmada** | só `signInWithPassword` em `src/app/login/page.tsx:46` |
 | 5.2 | `.limit(1)` escolhe o primeiro workspace | **Confirmada — 4 ocorrências** | ver §2.4 |
-| 5.3 | Instância escolhida em build-time | **Confirmada** | `src/brandville/config.ts:24` |
+| 5.3 | Instância escolhida em build-time | **Confirmada** | `src/brennimark/config.ts:24` |
 | 5.3 | Sem registro central de instalações | **Confirmada** | nenhuma tabela correspondente |
 | 5.4 | Lifecycle limitado a 3 estados | **Confirmada — travada no banco** | ver §2.5 |
 | 5.5 | Sem taxonomia de eventos / telemetria | **Confirmada** | nenhuma tabela de eventos nas migrations |
@@ -92,7 +92,7 @@ Quatro migrations que existiam no repositório estavam gravadas em produção co
 | --- | --- | --- |
 | `20260721173226` | `20260721173333` | `add_analysis_history` |
 | `20260721174444` | `20260721174508` | `index_analysis_history_foreign_keys` |
-| `20260721183442` | `20260721184318` | `add_brandville_content_admin` |
+| `20260721183442` | `20260721184318` | `add_brennimark_content_admin` |
 | `20260721193403` | `20260721193521` | `add_brand_document_version_history` |
 
 Com os timestamps desalinhados, `supabase db push` trataria cada uma como migration inédita e tentaria
@@ -100,13 +100,13 @@ reaplicá-la sobre objetos já existentes. Os arquivos foram renomeados para as 
 
 ### 2.2 `.env.example` documenta 4 de 14 variáveis
 
-Documentadas: `NEXT_PUBLIC_BRANDVILLE_INSTANCE`, `NEXT_PUBLIC_SUPABASE_URL`,
+Documentadas: `NEXT_PUBLIC_BRENNIMARK_INSTANCE`, `NEXT_PUBLIC_SUPABASE_URL`,
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `AI_SETTINGS_ENCRYPTION_KEY`.
 
 Lidas pelo código mas **não documentadas**: `GROQ_API_KEY`, `AI_CHAT_FALLBACK_PROVIDER`,
-`AI_CHAT_FALLBACK_MODEL`, `AI_CHAT_FALLBACK_API_KEY`, `NEXT_PUBLIC_SKIP_AUTH`, `BRANDVILLE_BASE_URL`,
-`BRANDVILLE_EVAL_CASES`, `BRANDVILLE_EVAL_LIMIT`, `BRANDVILLE_EVAL_REPORT`,
-`BRANDVILLE_ALLOW_EXTERNAL_EVAL`.
+`AI_CHAT_FALLBACK_MODEL`, `AI_CHAT_FALLBACK_API_KEY`, `NEXT_PUBLIC_SKIP_AUTH`, `BRENNIMARK_BASE_URL`,
+`BRENNIMARK_EVAL_CASES`, `BRENNIMARK_EVAL_LIMIT`, `BRENNIMARK_EVAL_REPORT`,
+`BRENNIMARK_ALLOW_EXTERNAL_EVAL`.
 
 O comentário do arquivo também está defasado: lista `the-bluesmaker | example` como instâncias
 disponíveis, mas o registro tem quatro (`hairline` e `empresa-modelo` faltam).
@@ -115,16 +115,16 @@ disponíveis, mas o registro tem quatro (`hairline` e `empresa-modelo` faltam).
 
 `README.md` e `CLAUDE.md` estão modificados no working tree desde o último commit — ou seja, já há
 divergência em curso. O `CLAUDE.md` descreve o repositório na perspectiva "app do The BluesMaker" e
-não menciona a matriz multi-instância nem `NEXT_PUBLIC_BRANDVILLE_INSTANCE`; essa informação vive só
-em `docs/BRANDVILLE_MATRIX.md`. O briefing pede tratar `Brandville` como codinome, mas o nome está
+não menciona a matriz multi-instância nem `NEXT_PUBLIC_BRENNIMARK_INSTANCE`; essa informação vive só
+em `docs/BRENNIMARK_MATRIX.md`. O briefing pede tratar `Brennimark` como codinome, mas o nome está
 consolidado em variáveis de ambiente, scripts npm, nomes de arquivo e no próprio nome do pacote
-(`brandville-scaffold` em `package.json`).
+(`brennimark-scaffold` em `package.json`).
 
 ### 2.4 Seleção de workspace por `.limit(1)`
 
 Quatro pontos independentes assumem que a pessoa pertence a exatamente um workspace:
 
-- `src/lib/brandville/server.ts:27`
+- `src/lib/brennimark/server.ts:27`
 - `src/lib/ai/settings.ts:38` e `:119`
 - `src/lib/analysis/server.ts:29`
 
@@ -135,7 +135,7 @@ o cenário de uma agência com carteira — pode receber workspaces diferentes e
 
 `src/content/docs.ts:5` define `"ready" | "draft" | "pending"`, e o banco reforça:
 
-- `supabase/migrations/20260721183442_add_brandville_content_admin.sql:8` e `:29` — `check (status in ('ready','draft','pending'))`
+- `supabase/migrations/20260721183442_add_brennimark_content_admin.sql:8` e `:29` — `check (status in ('ready','draft','pending'))`
 
 Ampliar para `review | approved | deprecated | archived` (WP6) exige migration de constraint **e**
 backfill, não só mudança de tipo em TypeScript.
@@ -162,8 +162,8 @@ sem exigir login.
 | Catálogo de logos do Hairline em `/api/assets` | **Exposto** | bypass explícito, `src/app/api/assets/route.ts:9` |
 
 Ou seja: `SKIP_AUTH` **não** é um bypass total. Admin, histórico e assets privados mantêm verificação
-própria porque `getBrandvilleAuthContext()` devolve `null` e todas essas rotas tratam `null` como
-não autorizado (`src/lib/brandville/server.ts:17`).
+própria porque `getBrennimarkAuthContext()` devolve `null` e todas essas rotas tratam `null` como
+não autorizado (`src/lib/brennimark/server.ts:17`).
 
 **Verificação do bundle cliente — resultado negativo.** Build com a variável ligada e busca em
 `.next/static/`: **zero ocorrências**; 12 no bundle de servidor. O prefixo `NEXT_PUBLIC_` só provoca
@@ -213,7 +213,7 @@ genérica; na prática a allowlist não filtra.
 ### 3.3 Lógica específica de instância dentro do core
 
 `src/app/api/assets/route.ts:9` condiciona um caminho de autenticação a
-`brandvilleInstance.key === "hairline"`. Isso é exatamente o que a regra §2.4 do briefing proíbe:
+`brennimarkInstance.key === "hairline"`. Isso é exatamente o que a regra §2.4 do briefing proíbe:
 necessidade de uma instância virando regra do produto. O mesmo padrão existe em
 `src/app/docs/[...slug]/page.tsx` para os componentes bespoke do Hairline.
 
@@ -225,7 +225,7 @@ O briefing afirma que blocos estruturados já estão "persistidos e renderizados
 - **Persistidos:** não. A migration `20260819000000_add_brand_document_blocks.sql` existe no
   repositório mas **não foi aplicada a nenhum projeto Supabase**.
 
-E há um risco de ordem de deploy: `src/lib/brandville/server.ts:57` já inclui `blocks` no `select`.
+E há um risco de ordem de deploy: `src/lib/brennimark/server.ts:57` já inclui `blocks` no `select`.
 Publicar esse código contra um banco sem a coluna faz o PostgREST devolver erro e
 `getResolvedBrandDocs` lançar exceção — derrubando `/docs` para usuários autenticados. **A migration
 precisa ser aplicada antes do próximo deploy**, ou o `select` precisa virar tolerante.
@@ -322,7 +322,7 @@ do WP2 e a razão de a margem por marca ser hoje inestimável a partir do produt
 
 ### Nota sobre R13 — cold start por instalação
 
-Observado em 27/08/2026: o projeto `the-bluesmaker-brandville` estava `INACTIVE` apesar do keepalive
+Observado em 27/08/2026: o projeto `the-bluesmaker-brennimark` estava `INACTIVE` apesar do keepalive
 diário em vigor, e a restauração levou **cerca de 7 minutos** até o banco responder com dados. Durante
 a janela de `COMING_UP` o Postgres **aceita conexão mas devolve o schema vazio** — o app não recebe um
 erro claro, recebe "não há nada aqui".
@@ -357,7 +357,7 @@ Além da lista da §24 do briefing, a auditoria acrescenta quatro decisões que 
 | # | Decisão | Por que bloqueia | Bloqueia |
 | --- | --- | --- | --- |
 | D1 | As tabelas fundacionais existentes em produção podem ser descritas exatamente? | Sem o DDL real, a migration de recuperação vira adivinhação e pode divergir do que está rodando | WP0 |
-| D2 | `Brandville` permanece como identificador técnico interno? | Renomear variáveis, scripts e o pacote é caro; manter é aceitável se ninguém confundir com nome comercial | WP0 |
+| D2 | `Brennimark` permanece como identificador técnico interno? | Renomear variáveis, scripts e o pacote é caro; manter é aceitável se ninguém confundir com nome comercial | WP0 |
 | D3 | O ambiente de demonstração continua usando `SKIP_AUTH`? | Se sim, precisa de mecanismo seguro e explícito em vez da flag atual | WP0 |
 | D4 | Papéis definitivos: quantos e com quais permissões? | A matriz de permissões e as policies RLS derivam disso | WP1 |
 | D5 | Ligar a proteção contra senhas vazadas (HaveIBeenPwned) no Supabase Auth? | Único apontamento dos advisors de segurança; é configuração de projeto, não schema | WP1 |

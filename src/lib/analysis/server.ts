@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
-import type { ActiveBrand } from "@/lib/brandville/brand-row";
+import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
+import type { ActiveBrand } from "@/lib/brennimark/brand-row";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import {
   ANALYSIS_EVIDENCE_BUCKET,

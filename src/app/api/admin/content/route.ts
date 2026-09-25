@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { conteudoDaRota } from "@/lib/brandville/contexto-da-rota";
-import { interpretarEdicao } from "@/lib/brandville/edicao-de-conteudo";
+import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
+import { interpretarEdicao } from "@/lib/brennimark/edicao-de-conteudo";
 
 /**
  * Escrita de conteúdo, agora pela marca.

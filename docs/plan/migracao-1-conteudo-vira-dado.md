@@ -7,7 +7,7 @@
 
 ## 1. O que muda, em uma frase
 
-O manual de uma marca sai de `src/brandville/instances/<key>.ts` e passa a viver em tabelas. O
+O manual de uma marca sai de `src/brennimark/instances/<key>.ts` e passa a viver em tabelas. O
 banco deixa de ser camada de sobreposição e vira a fonte.
 
 ## 2. O que esta migração entrega — e o que não entrega
@@ -125,7 +125,7 @@ Cada PR mantém o aplicativo funcional e termina com `npm run verify` verde.
 recebem uma chave de serviço com escopo restrito, ou passam a chamar uma rota autenticada. A
 primeira é mais simples e concentra poder; a segunda é mais segura e exige login no terminal.
 
-**O que acontece com `NEXT_PUBLIC_BRANDVILLE_INSTANCE`.** Nesta migração ela permanece, escolhendo
+**O que acontece com `NEXT_PUBLIC_BRENNIMARK_INSTANCE`.** Nesta migração ela permanece, escolhendo
 qual linha de `brands` carregar. Some na migração 2. Confirmar que aceita continuar assim no
 intervalo.
 

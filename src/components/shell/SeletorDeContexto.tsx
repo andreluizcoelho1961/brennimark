@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useId, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
-import { destinoAoTrocarDeMarca } from "@/lib/brandville/selecao";
+import { destinoAoTrocarDeMarca } from "@/lib/brennimark/selecao";
 
 export interface OpcaoDeContexto {
   slug: string;

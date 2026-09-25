@@ -2,7 +2,7 @@
 
 **Aplicativo de gerenciamento de marca · versão 1.0 · agosto de 2026**
 
-> O nome Brandville aparece em materiais técnicos apenas como codinome. O nome comercial da
+> O nome Brennimark aparece em materiais técnicos apenas como codinome. O nome comercial da
 > startup ainda será definido.
 
 ## Resumo executivo

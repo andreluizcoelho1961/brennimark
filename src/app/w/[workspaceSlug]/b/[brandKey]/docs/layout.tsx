@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
-import { caminhoDaMarca } from "@/lib/brandville/selecao";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
+import { caminhoDaMarca } from "@/lib/brennimark/selecao";
 import { documentosVisiveis } from "@/content/visibilidade";
 import { LocaleProvider } from "@/platform/locale-client";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";

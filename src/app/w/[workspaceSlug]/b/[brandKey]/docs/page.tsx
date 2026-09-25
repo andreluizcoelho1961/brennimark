@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
-import { caminhoDaMarca } from "@/lib/brandville/selecao";
+import { caminhoDaMarca } from "@/lib/brennimark/selecao";
 
 /**
  * A porta do manual.

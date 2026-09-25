@@ -1,5 +1,5 @@
 import { permanentRedirect, redirect } from "next/navigation";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 
 /**
  * Endereços antigos, sem contexto: /docs/chat, /docs/historico/42.

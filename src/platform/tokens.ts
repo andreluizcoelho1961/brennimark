@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
-import { platformTheme } from "./identity";
+import { platformTheme, platformThemeEscuro, type PaletaDaMoldura } from "./identity";
 
-type PlatformTheme = typeof platformTheme;
+type PlatformTheme = PaletaDaMoldura;
 
 export interface BrandThemeInput {
   background: string;
@@ -97,3 +97,30 @@ export function brandCssVars(theme: BrandThemeInput): CSSProperties {
  * produto precisa manter. Agora só há dois namespaces, e escolher entre eles
  * é obrigatório.
  */
+
+/** Onde a escolha de tema de quem usa fica guardada — só no navegador dela. */
+export const CHAVE_DO_TEMA = "brennimark:tema";
+
+/**
+ * A folha de estilo dos DOIS temas da moldura — fatia 6.
+ *
+ * O claro vale em `:root`; o escuro, em `:root[data-tema="escuro"]`. Antes a
+ * paleta ia como estilo em linha no `<html>`, que nenhum seletor vence: com
+ * dois temas, ela passa a ser CSS gerado daqui, e `identity.ts` continua sendo
+ * a fonte única dos valores. `color-scheme` faz os controles nativos
+ * (checkbox, seleção, barra de rolagem) acompanharem o tema.
+ */
+export function platformThemeCss(): string {
+  const bloco = (tema: PlatformTheme) =>
+    Object.entries(platformCssVars(tema)).map(([nome, valor]) => `${nome}:${valor}`).join(";");
+  return `:root{${bloco(platformTheme)};color-scheme:light}`
+    + `:root[data-tema="escuro"]{${bloco(platformThemeEscuro)};color-scheme:dark}`;
+}
+
+/**
+ * Aplica o tema guardado ANTES da primeira pintura: sem isto, quem escolheu o
+ * escuro veria um clarão a cada página. Script mínimo, sem dependência, e que
+ * nunca quebra a página — armazenamento bloqueado é só o tema padrão.
+ */
+export const SCRIPT_DO_TEMA =
+  `try{if(localStorage.getItem(${JSON.stringify(CHAVE_DO_TEMA)})==="escuro")document.documentElement.dataset.tema="escuro"}catch(e){}`;

@@ -3,7 +3,7 @@
  *
  * A distinção que este módulo existe para manter: o Brennimark tem um idioma,
  * e cada manual tem o seu. Eram a mesma coisa — 33 pontos decidiam a microcópia
- * da plataforma por `brandvilleInstance.metadata.language`, então importar um
+ * da plataforma por `brennimarkInstance.metadata.language`, então importar um
  * manual em inglês passava login, navegação, administração e mensagens de erro
  * para o inglês. A pessoa não pediu isso; a marca do cliente dela pediu.
  *

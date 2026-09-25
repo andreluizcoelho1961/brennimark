@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
+import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { idDeConversa } from "@/lib/ai/conversas";
 import { createClient } from "@/lib/supabase/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";

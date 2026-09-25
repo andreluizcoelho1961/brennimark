@@ -104,12 +104,12 @@ Observar especialmente hierarquia, densidade, busca, navegação, estados vazios
 Arquivos envolvidos:
 
 - `src/app/docs/page.tsx`
-- `src/brandville/config.ts`
-- `src/lib/brandville/server.ts`
+- `src/brennimark/config.ts`
+- `src/lib/brennimark/server.ts`
 
 Problema:
 
-`/docs` usa `hasBrand`, calculado a partir de `brandvilleInstance`. Uma marca pode existir em `brands` e a interface continuar mostrando “Nenhuma marca por aqui ainda”.
+`/docs` usa `hasBrand`, calculado a partir de `brennimarkInstance`. Uma marca pode existir em `brands` e a interface continuar mostrando “Nenhuma marca por aqui ainda”.
 
 Correção necessária:
 
@@ -125,7 +125,7 @@ Arquivos envolvidos:
 - `src/components/BrandCanvas.tsx`
 - `src/components/shell/WorkspaceIdentity.tsx`
 - `src/app/layout.tsx`
-- `src/brandville/config.ts`
+- `src/brennimark/config.ts`
 
 Problema:
 
@@ -137,7 +137,7 @@ Correção necessária:
 - `WorkspaceIdentity` deve receber nome e descriptor como propriedades;
 - componentes não devem importar uma marca global para descobrir o contexto atual;
 - metadados do produto e idioma da interface devem ser separados dos metadados do manual;
-- nenhum componente de plataforma deve depender de `brandvilleInstance.metadata.language`.
+- nenhum componente de plataforma deve depender de `brennimarkInstance.metadata.language`.
 
 ### P1 — A administração grava em um modelo que a leitura nova não consulta
 
@@ -262,7 +262,7 @@ Arquivos envolvidos:
 - `src/components/shell/CommandPalette.tsx`
 - `src/app/login/page.tsx`
 - `src/app/onboarding/page.tsx`
-- outros componentes que calculam `isEnglish` por `brandvilleInstance.metadata.language`.
+- outros componentes que calculam `isEnglish` por `brennimarkInstance.metadata.language`.
 
 Correção necessária:
 
@@ -303,7 +303,7 @@ Contratos mínimos esperados:
 - busca: documentos e destinos da marca ativa;
 - navegação: destinos filtrados por capacidades e locale da interface.
 
-Não fazer componentes de apresentação importarem `brandvilleInstance` diretamente.
+Não fazer componentes de apresentação importarem `brennimarkInstance` diretamente.
 
 ### 5.3 Fonte única para leitura e escrita
 

@@ -11,7 +11,7 @@
 ## 1. Por que reabrir
 
 O ADR-0001 recomendou uma instalação isolada por marca: projeto, domínio, banco e chaves
-próprios. Foi aprovado e continua descrito em `docs/BRANDVILLE_MATRIX.md`.
+próprios. Foi aprovado e continua descrito em `docs/BRENNIMARK_MATRIX.md`.
 
 Desde então a definição do produto mudou. Não é mais "entregar um brand book digital excelente
 para um cliente". É uma startup vendendo a agências que gerenciam carteiras de marcas, com o lado
@@ -29,12 +29,12 @@ de quem opera. Hoje a resposta é não, e a arquitetura atual garante que contin
 
 ## 3. O obstáculo real, e ele não é o banco
 
-O conteúdo da marca **é código**. `src/brandville/instances/hairline.ts` tem 43 KB de TypeScript
+O conteúdo da marca **é código**. `src/brennimark/instances/hairline.ts` tem 43 KB de TypeScript
 versionado no repositório. `getResolvedBrandDocs` percorre esse registro e procura sobreposições no
 banco — ou seja, `brand_documents` é camada de override, não fonte.
 
 Adicionar um cliente exige escrever manifesto, rodar gerador, commitar e publicar. O próprio
-gerador encerra dizendo: *configure `NEXT_PUBLIC_BRANDVILLE_INSTANCE` no projeto exclusivo do
+gerador encerra dizendo: *configure `NEXT_PUBLIC_BRENNIMARK_INSTANCE` no projeto exclusivo do
 cliente.*
 
 **Isso é independente da topologia.** Mesmo com banco compartilhado, não daria para cadastrar um
@@ -71,7 +71,7 @@ o padrão distribuído a todos.
 | # | Migração | Por que nesta posição |
 | --- | --- | --- |
 | 1 | **Conteúdo da marca: de código para dado** | Enquanto o manual for arquivo `.ts`, nada mais importa. Destrava autoatendimento, importador e carteira ao mesmo tempo. |
-| 2 | **Instância: de build-time para runtime** | `brandvilleInstance` é constante de módulo importada por 45 arquivos em 136 lugares. Enquanto for assim, um deploy serve uma marca. Necessária inclusive para a carteira. |
+| 2 | **Instância: de build-time para runtime** | `brennimarkInstance` é constante de módulo importada por 45 arquivos em 136 lugares. Enquanto for assim, um deploy serve uma marca. Necessária inclusive para a carteira. |
 | 3 | **Banco: silo → compartilhado** | Depois de 1 e 2, fica pequena. |
 
 As migrações 1 e 2 valem **mesmo que a topologia permanecesse em silo**. Podem começar sem que a 3
@@ -97,7 +97,7 @@ mensagem para o diretor de arte.
 
 Três coisas que já existem no repositório e sustentam essa oferta:
 
-- `brandville:import` converte PDF em rascunho estruturado e curável — é a porta de entrada, e vem
+- `brennimark:import` converte PDF em rascunho estruturado e curável — é a porta de entrada, e vem
   sendo tratado como script de bastidor;
 - status governado (`ready | draft | pending`) atravessa modelo, contexto de IA e citações;
 - a IA cita fonte, status e caminho, e é instruída a não afirmar o que não está documentado.

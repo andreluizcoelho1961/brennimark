@@ -5,8 +5,8 @@ import * as config from "./config";
 /**
  * A instância global não existe mais.
  *
- * Este arquivo testava um REGISTRO de instâncias em código: `brandvilleInstance`
- * era resolvida por `NEXT_PUBLIC_BRANDVILLE_INSTANCE` na inicialização do
+ * Este arquivo testava um REGISTRO de instâncias em código: `brennimarkInstance`
+ * era resolvida por `NEXT_PUBLIC_BRENNIMARK_INSTANCE` na inicialização do
  * processo, e o produto inteiro lia dali qual marca mostrar. Era global por
  * processo — duas contas servidas pelo mesmo processo veriam a mesma marca.
  *

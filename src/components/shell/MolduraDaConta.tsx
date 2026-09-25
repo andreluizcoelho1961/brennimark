@@ -1,7 +1,7 @@
 import { LocaleProvider } from "@/platform/locale-client";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/SignOutButton";
-import type { WorkspaceContext } from "@/lib/brandville/context";
+import type { WorkspaceContext } from "@/lib/brennimark/context";
 import { AppShellV2 } from "./AppShellV2";
 import { colunaDaPlataforma } from "./coluna";
 

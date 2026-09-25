@@ -6,7 +6,7 @@ import { PRODUCT_LOCALE, inEnglish, isProductLocale, resolveInterfaceLocale } fr
  * O idioma da interface pertence ao produto e à pessoa; nunca ao manual.
  *
  * O defeito que isto protege era generalizado: 33 pontos decidiam a microcópia
- * da plataforma por `brandvilleInstance.metadata.language`. Importar um manual
+ * da plataforma por `brennimarkInstance.metadata.language`. Importar um manual
  * em inglês passava login, navegação, administração e mensagens de erro para o
  * inglês — a pessoa não pediu isso, a marca do cliente dela pediu.
  */

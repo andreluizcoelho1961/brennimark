@@ -299,7 +299,7 @@ end $$;
 -- 5. O seletor da moldura — a consulta que lista o que a pessoa alcança
 -- ════════════════════════════════════════════════════════════════════════
 --
--- Réplica do que `listarDisponiveis` faz em src/lib/brandville/server.ts:
+-- Réplica do que `listarDisponiveis` faz em src/lib/brennimark/server.ts:
 -- parte de `workspace_members` e traz as marcas por dentro. Se a RLS de
 -- `brands` não valesse nessa junção, o seletor listaria a marca que a pessoa
 -- não alcança — e o nome de um cliente apareceria para outro fornecedor,
