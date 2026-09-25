@@ -174,7 +174,7 @@ export async function POST(request: Request) {
       dispatch: (attempt, abortSignal, tetoDeSaida) => {
         const result = streamText({
           model: getModel(attempt.config),
-          system: buildChatSystemPrompt(trechos, brandPrompt),
+          system: buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages)),
           messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,

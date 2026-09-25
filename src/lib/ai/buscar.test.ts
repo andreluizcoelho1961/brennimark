@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buscarTrechos, perguntaDasMensagens } from "./buscar";
+import { LIMITES_DE_IA } from "./recuperacao";
 
 /**
  * Um Supabase de mentira, só com o que a busca usa.
@@ -81,7 +82,7 @@ test("a busca vai com o brand_id e com o teto de fontes", async () => {
   await buscarTrechos(cliente, "marca-42", "qual a cor?");
   assert.equal(chamadas[0].fn, "buscar_trechos");
   assert.equal(chamadas[0].args.p_brand_id, "marca-42");
-  assert.equal(chamadas[0].args.p_limite, 8);
+  assert.equal(chamadas[0].args.p_limite, LIMITES_DE_IA.maxTrechos);
 });
 
 test("a linha do banco vira trecho com procedência completa", async () => {

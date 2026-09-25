@@ -75,3 +75,10 @@ test("marcador sem par não engole a frase", () => {
   assert.deepEqual(enfases("5 * 3 e um ** perdido"), [{ tipo: "texto", valor: "5 * 3 e um ** perdido" }]);
   assert.deepEqual(enfases("nome_de_arquivo_final.pdf"), [{ tipo: "texto", valor: "nome_de_arquivo_final.pdf" }]);
 });
+
+test("negrito dentro de itálico não deixa asterisco cru (ensaio de 25/09/2026)", () => {
+  assert.deepEqual(
+    enfases("*Nota: consta num documento com status de **RASCUNHO**, orientação provisória.*"),
+    [{ tipo: "italico", valor: "Nota: consta num documento com status de RASCUNHO, orientação provisória." }],
+  );
+});
