@@ -34,6 +34,7 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
       deletedPages={excluidas}
       groups={brand.navigation.groups}
       theme={brand.theme}
+      marca={{ id: brand.id, nome: brand.brand.name }}
     />
   );
 }

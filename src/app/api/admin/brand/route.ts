@@ -3,6 +3,7 @@ import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { parseTheme } from "@/lib/brennimark/brand-row";
+import { NOME_MAXIMO, normalizarNomeDaMarca } from "@/lib/brennimark/nome-da-marca";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
@@ -39,10 +40,14 @@ export async function DELETE(request: Request) {
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const auth = resolvido.ok ? resolvido.auth : null;
   if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
+  const marcaDoEndereco = resolvido.ok ? resolvido.brand : null;
 
   const entrada = await request.json().catch(() => null);
   const brandId = typeof entrada?.brandId === "string" ? entrada.brandId : "";
-  if (!brandId) {
+  // A marca apagada é a do endereço, e o corpo tem de nomear a MESMA. Um
+  // botão numa marca não pode apagar outra por um id trocado no corpo — a
+  // função do banco confere a capacidade, e esta conferência fecha o resto.
+  if (!brandId || brandId !== marcaDoEndereco?.id) {
     return NextResponse.json(
       { message: isEnglish ? "Invalid brand." : "Marca inválida." },
       { status: 400 },
@@ -125,6 +130,35 @@ export async function PATCH(request: Request) {
   if (!contexto) return NextResponse.json(SEM_PERMISSAO_TEMA, { status: 403 });
 
   const input = await request.json().catch(() => null);
+
+  // O nome da marca (25/09/2026). Até aqui só a importação escrevia o nome, e
+  // um arquivo chamado "AF_HEINEKEN_Guia-de-marca_2022" virava o nome da marca
+  // para sempre. O endereço (`key`) não muda junto: link guardado não quebra.
+  if (input && "name" in input) {
+    const nome = normalizarNomeDaMarca(input.name);
+    if (!nome) {
+      return NextResponse.json(
+        {
+          message: isEnglish
+            ? `The name must have between 1 and ${NOME_MAXIMO} characters.`
+            : `O nome precisa ter entre 1 e ${NOME_MAXIMO} caracteres.`,
+        },
+        { status: 400 },
+      );
+    }
+    const { error } = await contexto.auth.supabase
+      .from("brands")
+      .update({ name: nome, short_name: nome.slice(0, 60) })
+      .eq("id", contexto.brand.id);
+    if (error) {
+      return NextResponse.json(
+        { message: isEnglish ? "Couldn't save the name." : "Não foi possível salvar o nome." },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({ ok: true, name: nome });
+  }
+
   const tema = parseTheme(input?.theme);
   if (!tema) return NextResponse.json(TEMA_INVALIDO, { status: 400 });
 
