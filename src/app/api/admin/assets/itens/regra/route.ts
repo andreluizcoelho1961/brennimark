@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
-import { marcaDaRota } from "@/lib/brandville/contexto-da-rota";
+import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { normalizarPaginasDaRegra, MAXIMO_DE_PAGINAS_DA_REGRA } from "@/lib/assets/regra";
 import { citarPaginas, lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 

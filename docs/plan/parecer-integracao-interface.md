@@ -20,7 +20,7 @@ Verifiquei os sete bloqueadores no código. **Todos confirmados.** Números medi
 | Administração grava por `workspace_id + instance_key` | confirmado, `route.ts:44` |
 | V2 sem mobile | confirmado — `AppShellV2` renderiza `DesktopSidebar` incondicionalmente |
 | Idioma acoplado ao manual | **35 ocorrências** de `metadata.language` |
-| `brandvilleInstance` importado direto | **127 ocorrências em 39 arquivos** |
+| `brennimarkInstance` importado direto | **127 ocorrências em 39 arquivos** |
 
 As duas divergências numéricas são para mais, não para menos.
 
@@ -28,13 +28,13 @@ As duas divergências numéricas são para mais, não para menos.
 
 **1.1 — A administração não está desalinhada; está morta.**
 
-`activeDocsRegistry` é `[...brandvilleInstance.docs]`, e a instância resolvida é
+`activeDocsRegistry` é `[...brennimarkInstance.docs]`, e a instância resolvida é
 `unconfigured`, cujo `docs` é `[]`. Consequência hoje, em produção:
 
 - `PUT /api/admin/content` procura `base` no registro vazio → **400 sempre**. Ninguém
   consegue editar página nenhuma.
 - `DELETE` valida o slug contra o registro vazio → **400 sempre**.
-- `brandvilleUtilityLinks` também sai do registro vazio → a seção "Inteligência" da
+- `brennimarkUtilityLinks` também sai do registro vazio → a seção "Inteligência" da
   navegação V2 **não tem destino nenhum**.
 
 O briefing trata isso como incoerência de modelo. É indisponibilidade. A correção é a
@@ -49,8 +49,8 @@ ainda grava a ação com o nome `restored_to_matrix`, e esse nome está preso em
 
 **1.3 — `.env.example` derruba um clone novo.**
 
-`NEXT_PUBLIC_BRANDVILLE_INSTANCE=the-bluesmaker`, e `generatedBrandvilleInstances` está
-vazio. `resolveBrandvilleInstance` **lança exceção** para chave desconhecida. Quem clonar
+`NEXT_PUBLIC_BRENNIMARK_INSTANCE=the-bluesmaker`, e `generatedBrennimarkInstances` está
+vazio. `resolveBrennimarkInstance` **lança exceção** para chave desconhecida. Quem clonar
 o repositório e seguir o exemplo não sobe a aplicação. Correção de uma linha, mas é a
 primeira coisa que um desenvolvedor novo encontra.
 
@@ -62,7 +62,7 @@ primeira coisa que um desenvolvedor novo encontra.
 
 | Camada | Arquivos | Natureza |
 |---|---|---|
-| Resolução da marca | `src/lib/brandville/server.ts`, `src/brandville/config.ts`, `src/app/docs/page.tsx`, `src/app/docs/layout.tsx`, `src/app/docs/[...slug]/page.tsx` | reescrita do contrato |
+| Resolução da marca | `src/lib/brennimark/server.ts`, `src/brennimark/config.ts`, `src/app/docs/page.tsx`, `src/app/docs/layout.tsx`, `src/app/docs/[...slug]/page.tsx` | reescrita do contrato |
 | Escrita e histórico | `src/app/api/admin/content/route.ts`, `.../history/route.ts`, `src/app/docs/admin/page.tsx` | reescrita da chave |
 | Fronteiras visuais | `BrandCanvas.tsx`, `WorkspaceIdentity.tsx`, `AppShellV2.tsx`, `app/layout.tsx` | props em vez de import |
 | Locale | 35 pontos em 30 arquivos | substituição mecânica |
@@ -141,7 +141,7 @@ permanente, e o briefing a pressupõe sem nomear.
 ### 5.2 — Um critério de aceite pertence a outra migração
 
 "Trocar de marca não exige rebuild" (§13) depende de a marca ativa deixar de vir de
-`NEXT_PUBLIC_BRANDVILLE_INSTANCE`. Isso é a migração 2 do plano existente — 45 arquivos,
+`NEXT_PUBLIC_BRENNIMARK_INSTANCE`. Isso é a migração 2 do plano existente — 45 arquivos,
 127 ocorrências. O briefing a absorve sem dizer, e ela é maior que qualquer patch listado.
 
 Proposta: o patch 1 entrega a **resolução por requisição** com a variável de ambiente

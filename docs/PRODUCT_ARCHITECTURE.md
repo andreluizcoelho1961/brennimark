@@ -9,10 +9,10 @@
 
 ---
 
-# Brandville Product Architecture v1.0
+# Brennimark Product Architecture v1.0
 
 **Document type:** Product architecture specification  
-**Product:** Brandville  
+**Product:** Brennimark  
 **Version:** 1.0  
 **Status:** Strategic baseline  
 **Pilot implementation:** The BluesMaker  
@@ -31,7 +31,7 @@
 
 # 0. Executive Summary
 
-Brandville is a multi-brand, multi-workspace platform for documenting, governing, consulting, evaluating, and exporting brand knowledge.
+Brennimark is a multi-brand, multi-workspace platform for documenting, governing, consulting, evaluating, and exporting brand knowledge.
 
 The product transforms conventional brand-guideline documentation into a structured operational system. It combines:
 
@@ -51,7 +51,7 @@ The BluesMaker is the first full implementation and pilot case. It must validate
 
 The central architectural principle is:
 
-> **Brandville is the reusable product. Each client brand is a configurable instance.**
+> **Brennimark is the reusable product. Each client brand is a configurable instance.**
 
 The platform must separate five concerns:
 
@@ -69,7 +69,7 @@ This separation is mandatory for scalability.
 
 ## 1.1 Product name
 
-**Brandville**
+**Brennimark**
 
 ## 1.2 Product category
 
@@ -77,7 +77,7 @@ Brand governance and brand knowledge platform.
 
 ## 1.3 Core job to be done
 
-Brandville helps studios, consultants, companies, cultural organizations, and creative teams turn brand strategy and identity into a living, searchable, governable, and AI-assisted system.
+Brennimark helps studios, consultants, companies, cultural organizations, and creative teams turn brand strategy and identity into a living, searchable, governable, and AI-assisted system.
 
 ## 1.4 Primary product promise
 
@@ -85,7 +85,7 @@ Brandville helps studios, consultants, companies, cultural organizations, and cr
 
 ## 1.5 Product scope
 
-Brandville must support the complete lifecycle of a brand system:
+Brennimark must support the complete lifecycle of a brand system:
 
 - discovery;
 - briefing;
@@ -102,7 +102,7 @@ Brandville must support the complete lifecycle of a brand system:
 
 ## 1.6 Non-goals
 
-Brandville is not primarily:
+Brennimark is not primarily:
 
 - a generic website builder;
 - a project-management platform;
@@ -122,7 +122,7 @@ It may integrate with such systems, but its core function is structured brand in
 ## 2.1 System hierarchy
 
 ```text
-BRANDVILLE
+BRENNIMARK
 Reusable product platform
 
     ├── Workspaces
@@ -252,7 +252,7 @@ Defines machine-readable reasoning context:
 
 ## 3.1 Structured before decorative
 
-Brandville must prioritize data structure, clarity, traceability, and consistency before visual customization.
+Brennimark must prioritize data structure, clarity, traceability, and consistency before visual customization.
 
 ## 3.2 Honest status
 
@@ -296,7 +296,7 @@ AI must:
 
 ## 3.5 Product and client identity remain distinct
 
-The Brandville interface must remain usable even when the client brand has:
+The Brennimark interface must remain usable even when the client brand has:
 
 - dark colors;
 - low contrast accent colors;
@@ -1315,7 +1315,7 @@ The command palette should combine:
 
 ## 14.1 Product tokens
 
-Brandville product tokens must remain stable.
+Brennimark product tokens must remain stable.
 
 Examples:
 
@@ -1623,7 +1623,7 @@ API keys must:
 
 # 20. Accessibility
 
-Brandville must target WCAG 2.2 AA for the product interface.
+Brennimark must target WCAG 2.2 AA for the product interface.
 
 Requirements include:
 
@@ -1727,7 +1727,7 @@ Do not log confidential prompt content without explicit policy.
 
 # 24. Portfolio Architecture
 
-The portfolio case should frame Brandville as:
+The portfolio case should frame Brennimark as:
 
 > A reusable brand-governance platform developed from a real independent music project and designed to scale to future studio clients.
 
@@ -1811,7 +1811,7 @@ src/
 
 ## Product
 
-Brandville
+Brennimark
 
 ## Workspace
 
@@ -1929,7 +1929,7 @@ The first scalable MVP is complete when a studio owner can:
 
 # 30. Definition of Done
 
-Brandville Product Architecture v1.0 is correctly implemented when:
+Brennimark Product Architecture v1.0 is correctly implemented when:
 
 - The BluesMaker is stored as an instance, not product logic.
 - Multiple brands can coexist.
@@ -1946,7 +1946,7 @@ Brandville Product Architecture v1.0 is correctly implemented when:
 
 # 31. Final Principle
 
-> **Brandville must not merely display brand guidelines. It must preserve, operationalize, and govern brand intelligence over time.**
+> **Brennimark must not merely display brand guidelines. It must preserve, operationalize, and govern brand intelligence over time.**
 
 The BluesMaker proves the concept.
 

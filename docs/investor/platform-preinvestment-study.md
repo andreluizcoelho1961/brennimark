@@ -6,7 +6,7 @@
 JSON são fontes oficiais complementares. O HTML é uma saída gerada e não deve ser editado
 manualmente.
 
-> `Brandville` é apenas o codinome técnico usado durante o desenvolvimento. O nome comercial da startup será definido posteriormente; a mudança de nome não altera as premissas econômicas deste estudo.
+> `Brennimark` é apenas o codinome técnico usado durante o desenvolvimento. O nome comercial da startup será definido posteriormente; a mudança de nome não altera as premissas econômicas deste estudo.
 
 ## Executive Summary
 
@@ -22,9 +22,9 @@ manualmente.
 | Fundador pós-pré-seed — sem diluição extra | 72,0% | Participação ilustrativa se o cheque de validação for incluído; instrumento separado acrescenta diluição. |
 | MOIC base a 3x | 3,87 | Múltiplo bruto ilustrativo com ARR base e múltiplo comprimido de 3x; não é forecast nem garantia. |
 
-> Fonte: Modelo de capital inicial Brandville — cenários e marcos.
+> Fonte: Modelo de capital inicial Brennimark — cenários e marcos.
 
-> Fonte: [Modelo ilustrativo de retorno e cap table Brandville](https://www.saas-capital.com/the-saas-capital-index/)
+> Fonte: [Modelo ilustrativo de retorno e cap table Brennimark](https://www.saas-capital.com/the-saas-capital-index/)
 
 ## A tese investível é infraestrutura recorrente de marca — ainda não comprovada
 
@@ -44,19 +44,19 @@ O investimento em publicidade digital atingiu R$ 37,9 bilhões em 2024, com 67% 
 
 Na base do mercado, marcas podem ser entregues como PDF, apresentação e pasta de arquivos. No topo, plataformas internacionais oferecem DAM, guidelines, templates e integrações, normalmente com maior complexidade de implantação e preço orientado ao mid-market global ou enterprise.
 
-A hipótese do Brandville é atender o intervalo entre esses extremos com implantação em português, regras rastreáveis e governança humana. Ainda não há comparação observada de win rate, preço ou retenção que prove a existência econômica desse espaço.
+A hipótese do Brennimark é atender o intervalo entre esses extremos com implantação em português, regras rastreáveis e governança humana. Ainda não há comparação observada de win rate, preço ou retenção que prove a existência econômica desse espaço.
 
 **Implicação:** a validação precisa testar se clientes pagam mais pelo ciclo fonte → análise → decisão → release do que por hospedagem e apresentação.
 
 ## Os concorrentes demonstram oferta existente; a abertura local ainda é hipótese
 
-Frontify oferece uma plataforma unificada; Standards trabalha com diretrizes legíveis por máquinas; Corebook e Brandpad atendem designers e agências. A presença desses produtos comprova oferta, não demanda específica pelo Brandville no Brasil. A diferenciação proposta — português, inteligência com fontes e governança humana — precisa ser testada em comparação de compra e uso.
+Frontify oferece uma plataforma unificada; Standards trabalha com diretrizes legíveis por máquinas; Corebook e Brandpad atendem designers e agências. A presença desses produtos comprova oferta, não demanda específica pelo Brennimark no Brasil. A diferenciação proposta — português, inteligência com fontes e governança humana — precisa ser testada em comparação de compra e uso.
 
 ### Mapa competitivo
 
 *Posicionamento observado nas ofertas públicas em agosto de 2026.*
 
-| Plataforma | Força principal | Comprador típico | Espaço para o Brandville |
+| Plataforma | Força principal | Comprador típico | Espaço para o Brennimark |
 | --- | --- | --- | --- |
 | Frontify | DAM, guidelines, templates, portais e IA | Mid-market e enterprise | Implantação e preço localizados para estúdios independentes |
 | Corebook | Criação e handoff de guidelines digitais | Designers e agências | Governança, análise ligada a regras e evolução decisória |
@@ -82,7 +82,7 @@ A sensibilidade é ampla: combinando as premissas inferiores, o TAM cai para apr
 | SAM base | R$ 221.000.000 | Receita recorrente anual do segmento inicial atendível no cenário base. |
 | SOM base — ano 5 | R$ 22.560.000 | Meta de ARR no quinto ano do cenário base; não é previsão de receita atual. |
 
-> Fonte: Modelo bottom-up Brandville — hipóteses de planejamento.
+> Fonte: Modelo bottom-up Brennimark — hipóteses de planejamento.
 
 ### Premissas do sizing
 
@@ -98,7 +98,7 @@ A sensibilidade é ampla: combinando as premissas inferiores, o TAM cai para apr
 | ARR por parceiro | R$ 9,6 mil | R$ 6–18 mil | Baixa |
 | Concentração regional do SAM | 65% | 55%–75% | Média |
 
-> Fonte: Modelo bottom-up Brandville — hipóteses de planejamento.
+> Fonte: Modelo bottom-up Brennimark — hipóteses de planejamento.
 
 ## O mercado atendível inicial é propositalmente menor
 
@@ -116,7 +116,7 @@ A meta do quinto ano não pressupõe domínio nacional: o cenário base precisa 
 | SAM — marcas iniciais | 14.081 | 65% de concentração regional × 25% de alcance inicial |
 | SOM base — ano 5 | 1.400 | 1.250 marcas via parceiros + 150 diretas |
 
-> Fonte: Modelo bottom-up Brandville — hipóteses de planejamento.
+> Fonte: Modelo bottom-up Brennimark — hipóteses de planejamento.
 
 ## A hipótese de escala exige várias marcas por agência
 
@@ -134,7 +134,7 @@ A variável decisiva no modelo é marcas ativas por agência. Uma implantação 
 | Base | R$ 22,56 milhões | 250 | 1.400 |
 | Expansão | R$ 74,40 milhões | 500 | 3.800 |
 
-> Fonte: Modelo bottom-up Brandville — hipóteses de planejamento.
+> Fonte: Modelo bottom-up Brennimark — hipóteses de planejamento.
 
 ## Uma coorte de 10 agências poderia testar a tese; hoje ela é apenas simulada
 
@@ -146,17 +146,17 @@ Não há coorte observada neste documento. A simulação supõe 10 agências con
 
 *Resultado no final de 12 meses; preços, conversão e custos são hipóteses a validar.*
 
-| Cenário | Agências ativas | Marcas ativas | Marcas/agência | MRR Brandville | ARR run-rate | Margem bruta |
+| Cenário | Agências ativas | Marcas ativas | Marcas/agência | MRR Brennimark | ARR run-rate | Margem bruta |
 | --- | --- | --- | --- | --- | --- | --- |
 | Conservador | 5 | 8 | 1,60 | R$ 8.587 | R$ 103.044 | 83,0% |
 | Base | 8 | 24 | 3 | R$ 21.568 | R$ 258.816 | 82,9% |
 | Expansão | 9 | 45 | 5 | R$ 36.846 | R$ 442.152 | 82,9% |
 
-> Fonte: Simulação de coorte Brandville — 10 agências.
+> Fonte: Simulação de coorte Brennimark — 10 agências.
 
 ## Cinco marcas podem superar um projeto avulso — se as premissas se confirmarem
 
-Nos preços simulados, uma agência com cinco marcas pagaria R$ 4.094/mês ao Brandville e cobraria R$ 10.450/mês dos clientes. Depois de dez horas de governança a R$ 120/h, a contribuição modelada seria R$ 5.156/mês, ou R$ 61.872 em 12 meses, antes de impostos, venda, inadimplência e overhead. Isso supera em R$ 11.872 um projeto avulso hipotético de R$ 50 mil, mas exige cinco clientes ativos, execução contínua e retenção anual.
+Nos preços simulados, uma agência com cinco marcas pagaria R$ 4.094/mês ao Brennimark e cobraria R$ 10.450/mês dos clientes. Depois de dez horas de governança a R$ 120/h, a contribuição modelada seria R$ 5.156/mês, ou R$ 61.872 em 12 meses, antes de impostos, venda, inadimplência e overhead. Isso supera em R$ 11.872 um projeto avulso hipotético de R$ 50 mil, mas exige cinco clientes ativos, execução contínua e retenção anual.
 
 **Bloqueador comercial:** não há evidência de que agências prefiram essa troca. Antes da rodada institucional, pelo menos três agências reais devem apresentar faturamento e esforço dos dois modelos, aceitar preço e declarar escolha por revenda recorrente em piloto pago.
 
@@ -167,12 +167,12 @@ Nos preços simulados, uma agência com cinco marcas pagaria R$ 4.094/mês ao Br
 | Item | Valor mensal | Interpretação |
 | --- | --- | --- |
 | Receita cobrada dos clientes | R$ 10.450 | Cinco marcas × R$ 2.090, somando software e governança |
-| Pagamento mensal ao Brandville | R$ 4.094 | Studio de R$ 599 + cinco licenças de R$ 699 |
-| Margem antes do trabalho humano | R$ 6.356 | Receita da carteira menos o pagamento ao Brandville |
+| Pagamento mensal ao Brennimark | R$ 4.094 | Studio de R$ 599 + cinco licenças de R$ 699 |
+| Margem antes do trabalho humano | R$ 6.356 | Receita da carteira menos o pagamento ao Brennimark |
 | Custo humano estimado | R$ 1.200 | Dez horas mensais a R$ 120 por hora |
 | Contribuição mensal da agência | R$ 5.156 | Antes de impostos, vendas e despesas gerais |
 
-> Fonte: Simulação de coorte Brandville — 10 agências.
+> Fonte: Simulação de coorte Brennimark — 10 agências.
 
 ## A compressão de múltiplo reduz o retorno antes mesmo de alterar o ARR
 
@@ -193,7 +193,7 @@ Com ARR hipotético de R$ 22,56 milhões, 3x produziria valor empresarial de R$ 
 | Base — referência | 5,16x | R$ 22.560.000 | 4x | R$ 90.240.000 | R$ 10.828.800 | R$ 38.983.680 |
 | Expansão | 25,51x | R$ 74.400.000 | 6x | R$ 446.400.000 | R$ 53.568.000 | R$ 192.844.800 |
 
-> Fonte: [Modelo ilustrativo de retorno e cap table Brandville](https://www.saas-capital.com/the-saas-capital-index/)
+> Fonte: [Modelo ilustrativo de retorno e cap table Brennimark](https://www.saas-capital.com/the-saas-capital-index/)
 
 ### Economia do retorno no ano 5
 
@@ -206,7 +206,7 @@ Com ARR hipotético de R$ 22,56 milhões, 3x produziria valor empresarial de R$ 
 | Base — referência | R$ 22.560.000 | 4 | R$ 90.240.000 | R$ 10.828.800 | 5,16 | 38,8% |
 | Expansão | R$ 74.400.000 | 6 | R$ 446.400.000 | R$ 53.568.000 | 25,51 | 91,1% |
 
-> Fonte: [Modelo ilustrativo de retorno e cap table Brandville](https://www.saas-capital.com/the-saas-capital-index/)
+> Fonte: [Modelo ilustrativo de retorno e cap table Brennimark](https://www.saas-capital.com/the-saas-capital-index/)
 
 ## Cenário de fracasso e proteção do capital
 
@@ -224,7 +224,7 @@ Dados de piloto, código e aprendizado recebem valor zero no piso porque não ex
 | Mês 8 — encerramento | R$ 1.200.000 | R$ 257,6–277,6 mil | +0,25x ARR transferível; exemplo de R$ 180 mil a R$ 60 mil MRR | R$ 742,4–762,4 mil (62%–64%) no exemplo; 77%–79% sem ARR | Código e contratos só recebem valor se houver receita verificável e comprador |
 | Mês 15 — encerramento | R$ 2.100.000 | R$ 278–298 mil | +0,25x–0,75x ARR; exemplo de R$ 300–900 mil a R$ 100 mil MRR | R$ 902 mil–1,522 mi (43%–72%) no exemplo | Faixa altamente incerta; churn, concentração, IP e transferência podem reduzir o valor a zero |
 
-> Fonte: Modelo de downside Brandville — encerramento, liquidação e rota direta.
+> Fonte: Modelo de downside Brennimark — encerramento, liquidação e rota direta.
 
 ## Se o produto funcionar e o canal falhar, a rota direta existe — com escala menor
 
@@ -243,13 +243,13 @@ Como plano operacional sem agências, 100–300 marcas diretas no ano 5 represen
 | Rota direta — 100 marcas no ano 5 | 100 | R$ 14.400 | R$ 1.440.000 | Meta de planejamento, não forecast |
 | Rota direta — 300 marcas no ano 5 | 300 | R$ 14.400 | R$ 4.320.000 | Meta de planejamento, não forecast |
 
-> Fonte: Modelo de downside Brandville — encerramento, liquidação e rota direta.
+> Fonte: Modelo de downside Brennimark — encerramento, liquidação e rota direta.
 
 ## O modelo comercial deve combinar SaaS, implantação e expansão
 
 A arquitetura recomendada tem três camadas:
 
-1. **Brandville Studio:** assinatura da agência para templates, carteira, instalações e governança.
+1. **Brennimark Studio:** assinatura da agência para templates, carteira, instalações e governança.
 2. **Licença por marca ativa:** receita recorrente que cresce com a carteira implantada.
 3. **Serviços de implantação e curadoria:** receita não recorrente para migração, estruturação do Brand Core e personalização.
 
@@ -310,7 +310,7 @@ Para a rodada posterior, permanecem indicativas preferência de liquidação nã
 | Demais condições precedentes | Sociedade, cap table, cessão de IP, acordo do fundador, orçamento, segurança e data room | Capital entra apenas quando propriedade, operação técnica e obrigações estiverem verificáveis |
 | Natureza | Não vinculante, exceto cláusulas expressamente negociadas como confidencialidade, exclusividade e custos | Mantém espaço para diligência e documentos finais |
 
-> Fonte: Proposta indicativa Brandville — termos, KPIs e governança.
+> Fonte: Proposta indicativa Brennimark — termos, KPIs e governança.
 
 ## O cap table de 72%/8%/20% omite o instrumento de validação
 
@@ -328,11 +328,11 @@ Esses percentuais só fecham se o cheque de validação for creditado ou incorpo
 | Após pré-seed integral | 72,0% | 8,0% | 20,0% | 0,0% |
 | Após diluição futura ilustrativa de 40% | 43,2% | 4,8% | 12,0% | 40,0% |
 
-> Fonte: [Modelo ilustrativo de retorno e cap table Brandville](https://www.saas-capital.com/the-saas-capital-index/)
+> Fonte: [Modelo ilustrativo de retorno e cap table Brennimark](https://www.saas-capital.com/the-saas-capital-index/)
 
 ## O instrumento deve preservar simplicidade sem criar passivo oculto
 
-O Marco Legal das Startups admite aportes por instrumentos diretos e conversíveis. Para o Brandville, a escolha entre participação imediata, mútuo conversível ou estrutura equivalente deve ser feita somente após comparar efeitos societários, tributários, contábeis e de governança.
+O Marco Legal das Startups admite aportes por instrumentos diretos e conversíveis. Para o Brennimark, a escolha entre participação imediata, mútuo conversível ou estrutura equivalente deve ser feita somente após comparar efeitos societários, tributários, contábeis e de governança.
 
 Antes do fechamento, os documentos precisam definir claramente: valuation ou fórmula de conversão, aquisição proporcional por tranche, direitos de informação, preferência de liquidação, antidiluição, pro rata, vesting, propriedade intelectual, condições precedentes, inadimplemento e destino das parcelas não desembolsadas. Esta proposta é indicativa e não substitui documentação jurídica.
 
@@ -354,11 +354,11 @@ O orçamento atual de R$ 2,1 milhões contém R$ 1,702 milhão de operação, R$
 | 2 — Rodada institucional condicional | Até R$ 2,1 mi; reorçar após validação | 15 | Somente após Go: repetibilidade, 20–30 agências e 100–150 marcas |
 | 3 — Estrutura completa | R$ 2,8 mi–R$ 4,5 mi | 18 | Somente após tração: equipe maior, escala e requisitos enterprise |
 
-> Fonte: Modelo de capital inicial Brandville — cenários e marcos.
+> Fonte: Modelo de capital inicial Brennimark — cenários e marcos.
 
 ## O benchmark não justifica antecipar o cheque institucional
 
-No Mapeamento do Ecossistema Brasileiro de Startups 2025, 34,8% das startups mapeadas declararam investimento; o valor médio informado foi de R$ 1 milhão e 26,5% das investidas haviam captado mais de R$ 1 milhão. Isso não torna R$ 2,1 milhões adequado ao Brandville: estágio, instrumento, amostra e tração não são diretamente comparáveis.
+No Mapeamento do Ecossistema Brasileiro de Startups 2025, 34,8% das startups mapeadas declararam investimento; o valor médio informado foi de R$ 1 milhão e 26,5% das investidas haviam captado mais de R$ 1 milhão. Isso não torna R$ 2,1 milhões adequado ao Brennimark: estágio, instrumento, amostra e tração não são diretamente comparáveis.
 
 A leitura conservadora é inversa: como o valor institucional está acima da média informada e não existem coortes auditáveis, o cheque inicial deve ser menor. O benchmark contextualiza a ambição de capital; não valida valuation, canal ou retorno.
 
@@ -378,7 +378,7 @@ Somente um memo de gate com evidências permite abrir a rodada institucional. A 
 | Gate institucional | R$ 0 | Fim da Fase 0 | Três agências escolhem recorrência com números próprios; pilotos pagos, 20–30 marcas, telemetria e memo Go/Hold/Stop |
 | Rodada institucional potencial | R$ 2.100.000 | Até 15 meses após Go | Valor e parcelas reorçados com caixa, ativos, receita, equipe e métricas observados na Fase 0 |
 
-> Fonte: Modelo de capital inicial Brandville — cenários e marcos.
+> Fonte: Modelo de capital inicial Brennimark — cenários e marcos.
 
 ## O orçamento de 15 meses fecha; o cronograma de financiamento não está aprovado
 
@@ -396,7 +396,7 @@ No conjunto, o modelo usa **R$ 1,852 milhão** e encerra com **R$ 248 mil de cai
 | 2 — repetibilidade | 5–8 | R$ 451.200 | R$ 70.000 | R$ 700.000 | R$ 178.800 | R$ 207.600 | 15–20 agências, 60–80 marcas, onboarding <14 dias e margem >75% |
 | 3 — escala controlada | 9–15 | R$ 859.600 | R$ 0 | R$ 900.000 | R$ 40.400 | R$ 248.000 | Segunda marca em 90 dias, 100–150 marcas e <6 horas manuais por implantação |
 
-> Fonte: [Modelo operacional Brandville — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
+> Fonte: [Modelo operacional Brennimark — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
 
 ### Sensibilidade do caixa
 
@@ -408,7 +408,7 @@ No conjunto, o modelo usa **R$ 1,852 milhão** e encerra com **R$ 248 mil de cai
 | Custos 10% acima | 10,0% | R$ 2.037.200 | R$ 62.800 | Runway preservado, mas com proteção mínima |
 | Custos 15% acima | 15,0% | R$ 2.129.800 | R$ -29.800 | Exige corte imediato, receita ou extensão de capital |
 
-> Fonte: [Modelo operacional Brandville — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
+> Fonte: [Modelo operacional Brennimark — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
 
 ## Capital adicional só entra quando a evidência melhora
 
@@ -435,7 +435,7 @@ Os alvos de CAC payback e retenção ainda são provisórios porque não há his
 | Respostas de IA com fonte | Decisões sobre regras que exibem fonte, versão e trecho aplicável | 100% | 100% | 100% |
 | Continuidade de caixa | Caixa dividido pelo burn atualizado, sem receita não contratada | Gate Go/Hold/Stop e plano de caixa aprovados até o dia 75 | ≥6 meses após eventual rodada | Plano da próxima fase antes de caixa <6 meses |
 
-> Fonte: Proposta indicativa Brandville — termos, KPIs e governança.
+> Fonte: Proposta indicativa Brennimark — termos, KPIs e governança.
 
 ## Governança humana é parte do produto e da empresa
 
@@ -458,7 +458,7 @@ O investidor acompanha o negócio por informação e matérias reservadas, sem a
 | Governança de regras | A cada release de marca | Aprovação humana, versão, justificativa, fonte e rollback | Brand owner autorizado |
 | Partes relacionadas | Antes da contratação | Documentar preço, conflito e aprovação aplicável | Fundador + governança |
 
-> Fonte: Proposta indicativa Brandville — termos, KPIs e governança.
+> Fonte: Proposta indicativa Brennimark — termos, KPIs e governança.
 
 ## Segurança e LGPD precisam anteceder dados sensíveis
 
@@ -486,7 +486,7 @@ O escritório híbrido completo está estimado em **R$ 6,1 mil/mês**; IA/cloud/
 | Estrutura corporativa | R$ 6.200 | R$ 93.000 | Contabilidade, jurídico, seguros, banco e treinamento |
 | Escritório | R$ 6.100 | R$ 91.500 | Sala de 50 m² com todas as despesas físicas |
 
-> Fonte: [Modelo operacional Brandville — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
+> Fonte: [Modelo operacional Brennimark — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
 
 ### Custo mensal de uma operação real em Porto Alegre
 
@@ -525,7 +525,7 @@ O escritório híbrido completo está estimado em **R$ 6,1 mil/mês**; IA/cloud/
 | Mercado | Eventos, viagens e deslocamentos | R$ 3.000 | Visitas a agências e presença setorial |
 | Mercado | Demonstrações, brindes e recepção de clientes | R$ 1.000 | Pilotos e reuniões presenciais |
 
-> Fonte: [Modelo operacional Brandville — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
+> Fonte: [Modelo operacional Brennimark — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
 
 ## A energia pode ficar mais cara durante o runway
 
@@ -571,7 +571,7 @@ O desenho pressupõe fundador em produto e direção criativa, liderança técni
 | Equipamentos e implantação | R$ 150.000 | 7,1% |
 | Reserva financeira | R$ 248.000 | 11,8% |
 
-> Fonte: [Modelo operacional Brandville — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
+> Fonte: [Modelo operacional Brennimark — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
 
 ## Equipamentos e IA são envelopes de capacidade ainda não cotados
 
@@ -601,13 +601,13 @@ A participação de 43,2% e o valor teórico de R$ 39 milhões no cenário base 
 | Participação residual no ano 5 | 43,2% | Depois de diluição relativa adicional hipotética de 40% |
 | Valor teórico — base a 4x | R$ 39,0 milhões | 43,2% de R$ 90,24 milhões; exclui instrumento inicial e não é caixa |
 
-> Fonte: [Modelo ilustrativo de retorno e cap table Brandville](https://www.saas-capital.com/the-saas-capital-index/)
+> Fonte: [Modelo ilustrativo de retorno e cap table Brennimark](https://www.saas-capital.com/the-saas-capital-index/)
 
 ## O ponto de equilíbrio aparece perto de 34 agências maduras
 
-No modelo atual, uma agência com cinco marcas gera R$ 4.094 de MRR para o Brandville. Descontando R$ 700 de custo direto estimado, a contribuição bruta é de R$ 3.394 por mês. Para cobrir uma operação de aproximadamente R$ 113,5 mil/mês, seriam necessárias **cerca de 34 agências equivalentes**, ou 170 marcas ativas.
+No modelo atual, uma agência com cinco marcas gera R$ 4.094 de MRR para o Brennimark. Descontando R$ 700 de custo direto estimado, a contribuição bruta é de R$ 3.394 por mês. Para cobrir uma operação de aproximadamente R$ 113,5 mil/mês, seriam necessárias **cerca de 34 agências equivalentes**, ou 170 marcas ativas.
 
-Nesse ponto, o Brandville teria aproximadamente R$ 139,2 mil de MRR e R$ 115,4 mil de contribuição bruta mensal. A conta é um teto operacional conservador, não um break-even contábil definitivo: a contribuição já desconta custos diretos, enquanto o burn de referência contém um envelope de IA, cloud e software que pode incluir parte desses mesmos custos. Depois dos pilotos, o cálculo deve separar opex fixo, custo variável por agência, custo variável por marca e suporte atribuível para eliminar qualquer dupla contagem.
+Nesse ponto, o Brennimark teria aproximadamente R$ 139,2 mil de MRR e R$ 115,4 mil de contribuição bruta mensal. A conta é um teto operacional conservador, não um break-even contábil definitivo: a contribuição já desconta custos diretos, enquanto o burn de referência contém um envelope de IA, cloud e software que pode incluir parte desses mesmos custos. Depois dos pilotos, o cálculo deve separar opex fixo, custo variável por agência, custo variável por marca e suporte atribuível para eliminar qualquer dupla contagem.
 
 ### Ponto de equilíbrio simulado
 
@@ -617,11 +617,11 @@ Nesse ponto, o Brandville teria aproximadamente R$ 139,2 mil de MRR e R$ 115,4 m
 | --- | --- | --- |
 | Agências maduras equivalentes | 34 | Cada parceiro mantém cinco marcas ativas |
 | Marcas ativas | 170 | 34 agências × cinco marcas |
-| MRR Brandville | R$ 139.196 | 34 × R$ 4.094 |
+| MRR Brennimark | R$ 139.196 | 34 × R$ 4.094 |
 | Contribuição bruta mensal | R$ 115.396 | Após aproximadamente R$ 23,8 mil de custos diretos |
 | Custo operacional de referência | R$ 113.500/mês | Burn médio planejado, excluindo implantação e reserva |
 
-> Fonte: Modelo de capital inicial Brandville — cenários e marcos.
+> Fonte: Modelo de capital inicial Brennimark — cenários e marcos.
 
 ## Antes do Dia 0, outra pessoa precisa conseguir operar o produto
 
@@ -640,7 +640,7 @@ Ao fim do período, o comitê deve ter dados sobre custo e tempo por marca, esco
 | Dias 31–60 | Publicar marcas; testar preços; medir horas, IA e suporte; executar onboarding por terceiro | Pilotos pagos, custo por marca e documentação operada sem o fundador | Fundador + liderança técnica + apoio de implantação |
 | Dias 61–100 | Chegar a 20–30 marcas; medir segunda marca e preferência do canal; preparar reforecast | Memo Go/Hold/Stop com dados exportáveis, caixa, perda máxima e decisão sobre rodada institucional | Fundador + investidor do cheque inicial |
 
-> Fonte: Proposta indicativa Brandville — termos, KPIs e governança.
+> Fonte: Proposta indicativa Brennimark — termos, KPIs e governança.
 
 ## A rodada só fecha com propriedade, obrigações e riscos visíveis
 
@@ -663,7 +663,7 @@ Como esses documentos não foram apresentados nesta análise, o status abaixo é
 | Pessoas | Contratos, remuneração, confidencialidade, IP, benefícios, vesting e compromisso da liderança técnica | Pendente; liderança técnica é condição precedente | Relações formalizadas e custo compatível com o cheque de validação |
 | Rodada | Term sheet, instrumento definitivo, disclosure schedule e aprovações societárias | Proposta indicativa | Negociação, diligência e pareceres concluídos |
 
-> Fonte: Proposta indicativa Brandville — termos, KPIs e governança.
+> Fonte: Proposta indicativa Brennimark — termos, KPIs e governança.
 
 ## A aritmética pode ser auditada; a decisão institucional ainda não pode
 
@@ -716,7 +716,7 @@ Custos físicos têm referências públicas e os subtotais foram reconciliados. 
 - Quem é titular de cada linha de código, domínio, marca e ativo produzido antes da sociedade?
 - Como uma marca prova que seus dados não treinaram, contaminaram ou ficaram acessíveis a outra marca?
 - Quanto da participação de 72% do fundador sobra depois da conversão do cheque inicial, pool e próxima rodada?
-- Qual comprador plausível pagaria 3x–4x ARR e quais métricas o Brandville precisaria demonstrar para ser comparável?
+- Qual comprador plausível pagaria 3x–4x ARR e quais métricas o Brennimark precisaria demonstrar para ser comparável?
 
 ## Caveats e premissas
 
@@ -740,18 +740,18 @@ As fontes abaixo sustentam os dados públicos, benchmarks e premissas externas. 
 - [IAB Brasil / Kantar IBOPE Media — Digital AdSpend 2025](https://iabbrasil.com.br/wp-content/uploads/2025/04/IAB_Digital_Adspend_2025_anobase2024_AF.pdf)
 - [ABES / IDC — Mercado Brasileiro de Software 2026](https://abes.org.br/mercado-de-ti-no-brasil-cresce-185-em-2025-e-pais-segue-lider-na-america-latina/)
 - [Páginas oficiais dos competidores](https://www.frontify.com/en/product-overview)
-- Modelo bottom-up Brandville — hipóteses de planejamento
-- Simulação de coorte Brandville — 10 agências
-- Modelo de capital inicial Brandville — cenários e marcos
-- [Modelo ilustrativo de retorno e cap table Brandville](https://www.saas-capital.com/the-saas-capital-index/)
-- Modelo de downside Brandville — encerramento, liquidação e rota direta
+- Modelo bottom-up Brennimark — hipóteses de planejamento
+- Simulação de coorte Brennimark — 10 agências
+- Modelo de capital inicial Brennimark — cenários e marcos
+- [Modelo ilustrativo de retorno e cap table Brennimark](https://www.saas-capital.com/the-saas-capital-index/)
+- Modelo de downside Brennimark — encerramento, liquidação e rota direta
 - [Software Equity Group — 2026 Annual SaaS Report](https://sandhill.com/wp-content/uploads/2026/03/SEG-Research-2026-Annual-SaaS-Report.pdf)
-- [Orçamento Brandville — equipamentos, IA e infraestrutura](https://www.apple.com/br/shop/buy-mac)
+- [Orçamento Brennimark — equipamentos, IA e infraestrutura](https://www.apple.com/br/shop/buy-mac)
 - [ABStartups — Mapeamento do Ecossistema Brasileiro de Startups 2025](https://abstartups.com.br/wp-content/uploads/Mapeamento-do-Ecossistema-de-Startups-2025.pdf)
-- [Modelo operacional Brandville — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
+- [Modelo operacional Brennimark — escritório enxuto em Porto Alegre](https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf)
 - [Referências operacionais de Porto Alegre — energia, internet, coworking e limpeza](https://coworkingpoa.com.br/planos)
 - [ANEEL — Consulta Pública da revisão tarifária da CEEE-D](https://www.gov.br/aneel/pt-br/assuntos/noticias/2026-defeso-eleitoral/aprovada-consulta-publica-para-debater-revisao-tarifariadaceee-d/)
 - Auditoria interna de coerência — orçamento, runway e retorno
 - [Planalto — Marco Legal das Startups (LC 182/2021)](https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp182.htm)
 - [ANPD — Segurança da informação para agentes de pequeno porte](https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-guia-de-seguranca-para-agentes-de-tratamento-de-pequeno-porte)
-- Proposta indicativa Brandville — termos, KPIs e governança
+- Proposta indicativa Brennimark — termos, KPIs e governança

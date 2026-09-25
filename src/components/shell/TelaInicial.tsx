@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { platformIdentity } from "@/platform/identity";
-import { destinoAoTrocarDeMarca } from "@/lib/brandville/selecao";
+import { destinoAoTrocarDeMarca } from "@/lib/brennimark/selecao";
 
 /**
  * A porta do produto: onde a pessoa chega depois do login.

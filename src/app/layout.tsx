@@ -18,7 +18,7 @@ const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variabl
  * Metadados do PRODUTO, não do manual.
  *
  * Antes o título da aba e o idioma do documento vinham de
- * `brandvilleInstance.metadata` — a marca do cliente batizava a janela do
+ * `brennimarkInstance.metadata` — a marca do cliente batizava a janela do
  * Brennimark, e um manual em inglês fazia o aplicativo inteiro se declarar em
  * inglês para o leitor de tela. São dois metadados diferentes: a página do
  * manual descreve a marca; a aplicação descreve a si mesma.

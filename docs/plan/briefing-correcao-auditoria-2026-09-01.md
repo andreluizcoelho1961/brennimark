@@ -7,7 +7,7 @@
 ## 0. Estado verificado
 
 - `lint`, `typecheck`, build, 181 testes unitários e 71 testes Playwright passam.
-- O verde atual não valida Supabase, RLS, Storage, login real nem importação autenticada: a suíte de navegador usa `BRANDVILLE_DEV_SKIP_AUTH` e Chromium apenas.
+- O verde atual não valida Supabase, RLS, Storage, login real nem importação autenticada: a suíte de navegador usa `BRENNIMARK_DEV_SKIP_AUTH` e Chromium apenas.
 - O banco de produção tem um usuário/workspace, mas nenhuma marca, documento, asset ou importação publicada.
 - O PDF fornecido (`GE_ID000.PDF`) tem 743 páginas. Portanto é caso obrigatório de aceite, não um cenário excepcional.
 
@@ -115,14 +115,14 @@ O primeiro é diretamente crítico: Brennimark abre PDFs enviados por usuários 
 
 ### Defeito
 
-`resolveActiveBrand` filtra opcionalmente por `NEXT_PUBLIC_BRANDVILLE_INSTANCE` e, sem a variável, seleciona a primeira marca por `created_at`. Não existe uma escolha de marca por pessoa, URL ou sessão. `getBrandvilleAuthContext` e `getCurrentWorkspaceId` fazem o mesmo com workspace: usam `.limit(1)` sem seleção determinística.
+`resolveActiveBrand` filtra opcionalmente por `NEXT_PUBLIC_BRENNIMARK_INSTANCE` e, sem a variável, seleciona a primeira marca por `created_at`. Não existe uma escolha de marca por pessoa, URL ou sessão. `getBrennimarkAuthContext` e `getCurrentWorkspaceId` fazem o mesmo com workspace: usam `.limit(1)` sem seleção determinística.
 
 Isso não atende a premissa de que uma mesma conta/agência pode operar várias marcas.
 
 ### Entrega
 
 1. Definir o modelo de contexto ativo: workspace e marca precisam ser escolhas explícitas e persistentes ou parte da rota.
-2. Remover `NEXT_PUBLIC_BRANDVILLE_INSTANCE` do caminho normal de produção; manter somente migração temporária, se inevitável, com prazo de remoção.
+2. Remover `NEXT_PUBLIC_BRENNIMARK_INSTANCE` do caminho normal de produção; manter somente migração temporária, se inevitável, com prazo de remoção.
 3. Rejeitar contexto ambíguo: nunca escolher “a primeira linha” silenciosamente.
 4. Criar seletor de marca na moldura, sem permitir que a marca invada os tokens da plataforma.
 5. Todo acesso a documento, asset, IA, importação e relatório recebe `brand_id` resolvido no mesmo contexto de requisição.
@@ -140,7 +140,7 @@ Isso não atende a premissa de que uma mesma conta/agência pode operar várias 
 
 ### Defeito
 
-As APIs de assets ainda importam `brandvilleInstance`, gravam e consultam por `instance_key`. O relatório de análise também usa tema e nome globais e gera arquivo `brandville-*.pdf`.
+As APIs de assets ainda importam `brennimarkInstance`, gravam e consultam por `instance_key`. O relatório de análise também usa tema e nome globais e gera arquivo `brennimark-*.pdf`.
 
 Isso mistura marcas da mesma conta e mantém o nome anterior no artefato entregue ao cliente.
 
@@ -149,13 +149,13 @@ Isso mistura marcas da mesma conta e mantém o nome anterior no artefato entregu
 1. Migrar APIs e Storage de assets para `brand_id`; tornar `brand_assets.brand_id` obrigatório quando não houver mais dependência legada.
 2. Caminho de Storage inclui workspace + brand + identificador imutável; nunca apenas `instance_key`.
 3. Gerador de relatório recebe a marca resolvida da requisição, inclusive tema, nome, idioma e identidade `Brennimark`.
-4. Remover toda importação de `brandville/config` das rotas de assets e relatório.
+4. Remover toda importação de `brennimark/config` das rotas de assets e relatório.
 
 ### Aceite
 
 - Assets de duas marcas do mesmo workspace não aparecem, assinam URL nem podem ser apagados entre si.
-- PDF exportado mostra a marca correta e tem nome de arquivo Brennimark, não Brandville.
-- Guardas estruturais impedem `brandvilleInstance` nesses caminhos.
+- PDF exportado mostra a marca correta e tem nome de arquivo Brennimark, não Brennimark.
+- Guardas estruturais impedem `brennimarkInstance` nesses caminhos.
 
 ## 6. Patch A1 — IA com retrieval e limites de custo
 
@@ -215,11 +215,11 @@ Enquanto não existir papel granular, tratar configurações e roteamento como `
 4. Tornar locale realmente por pessoa antes de prometer interface personalizada; hoje é só padrão do produto.
 5. Ativar proteção contra senha vazada no Supabase Auth.
 
-## 9. Patch V1 — remover herança visual Brandville/Hairline
+## 9. Patch V1 — remover herança visual Brennimark/Hairline
 
 **Severidade: P2, mas requisito estratégico de marca.**
 
-Ainda existem 301 ocorrências de `release-analog-*` em 26 arquivos. Login, onboarding e tokens globais continuam nomeando “Call Me Analog Man”. Scripts e documentos ainda propõem um projeto exclusivo por cliente e `NEXT_PUBLIC_BRANDVILLE_INSTANCE`.
+Ainda existem 301 ocorrências de `release-analog-*` em 26 arquivos. Login, onboarding e tokens globais continuam nomeando “Call Me Analog Man”. Scripts e documentos ainda propõem um projeto exclusivo por cliente e `NEXT_PUBLIC_BRENNIMARK_INSTANCE`.
 
 ### Entrega
 
@@ -230,9 +230,9 @@ Ainda existem 301 ocorrências de `release-analog-*` em 26 arquivos. Login, onbo
 
 ### Aceite
 
-- `rg 'release-analog|Call Me Analog Man|brandvilleInstance' src` não retorna uso de runtime fora de compatibilidade explicitamente temporária e testada.
+- `rg 'release-analog|Call Me Analog Man|brennimarkInstance' src` não retorna uso de runtime fora de compatibilidade explicitamente temporária e testada.
 - As quatro fixtures de marcas opostas preservam a moldura idêntica.
-- Nenhum PDF, e-mail, título, download ou mensagem ao usuário exibe “Brandville”.
+- Nenhum PDF, e-mail, título, download ou mensagem ao usuário exibe “Brennimark”.
 
 ## 10. Testes e CI — condição para encerrar os patches
 

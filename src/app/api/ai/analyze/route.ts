@@ -8,13 +8,13 @@ import { getModel, supportsVision, getAnalysisProviderOptions } from "@/lib/ai/p
 import type { ModelPricing } from "@/lib/ai/catalogo";
 import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
-import { brandPromptContext } from "@/lib/brandville/context";
+import { brandPromptContext } from "@/lib/brennimark/context";
 import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { persistAnalysisRun, type AnalysisAuthContext } from "@/lib/analysis/server";
-import { portaoDeIA } from "@/lib/brandville/contexto-da-rota";
+import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import type { Trecho } from "@/lib/ai/recuperacao";

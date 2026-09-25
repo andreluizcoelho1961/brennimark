@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import process from "node:process";
-import { writeVisualReferenceFiles } from "./brandville-visual-references.mjs";
+import { writeVisualReferenceFiles } from "./brennimark-visual-references.mjs";
 
 function parse(argv) {
   const result = { manifestPath: "", pagesDirectory: "", outputJson: "", outputReport: "" };

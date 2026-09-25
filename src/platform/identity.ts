@@ -7,7 +7,7 @@
  * trabalho. Segue marcado como provisório até a decisão final; a troca continua
  * sendo uma linha.
  *
- * `Brandville` era codinome técnico legado e não pode voltar a aparecer em
+ * `Brennimark` era codinome técnico legado e não pode voltar a aparecer em
  * interface, venda, domínio ou contrato.
  */
 export const platformIdentity = {

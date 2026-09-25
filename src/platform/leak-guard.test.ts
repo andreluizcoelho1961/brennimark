@@ -8,7 +8,7 @@ import path from "node:path";
  *
  * Um componente da moldura não pode referenciar token batizado com o nome de um
  * release de cliente (`release-analog-*`), nem decidir comportamento a partir da
- * identidade da instância (`brandvilleInstance.key ===`), nem ler token da marca.
+ * identidade da instância (`brennimarkInstance.key ===`), nem ler token da marca.
  *
  * `src/platform/tokens.ts` fica de fora de propósito: ele É a camada de
  * compatibilidade, e centralizar ali os nomes legados num lugar só é justamente
@@ -55,7 +55,7 @@ test("nenhum componente migrado decide por identidade de instância", () => {
   for (const arquivo of [...MOLDURA, ...BOUNDARY]) {
     assert.doesNotMatch(
       ler(arquivo),
-      /brandvilleInstance\.key\s*===/,
+      /brennimarkInstance\.key\s*===/,
       `${arquivo} ramifica por instância; isso é conteúdo, não regra de produto`,
     );
   }
@@ -125,7 +125,7 @@ test("nenhum componente da V2 usa alias legado de cor", () => {
 test("a V2 não veste a marca nem ramifica por instância", () => {
   for (const arquivo of V2) {
     assert.doesNotMatch(ler(arquivo), /--brand-|bg-brand-|text-brand-/, `${arquivo} veste a marca`);
-    assert.doesNotMatch(ler(arquivo), /brandvilleInstance\.key\s*===/, `${arquivo} ramifica por instância`);
+    assert.doesNotMatch(ler(arquivo), /brennimarkInstance\.key\s*===/, `${arquivo} ramifica por instância`);
   }
 });
 
@@ -246,7 +246,7 @@ test("nenhum código de produto decide capacidade lendo brand_members", () => {
       `${arquivo} lê capacidades de brand_members à mão — use tem_capacidade_na_marca`,
     );
   }
-  assert.match(lerCodigo("src/lib/brandville/server.ts"), /rpc\(["']tem_capacidade_na_marca["']/,
+  assert.match(lerCodigo("src/lib/brennimark/server.ts"), /rpc\(["']tem_capacidade_na_marca["']/,
     "capacidadesNaMarca precisa perguntar à regra do banco");
 });
 
@@ -289,15 +289,15 @@ test("a V2 não tem texto de interface fixo em um idioma", () => {
 
 /**
  * Patch 1. Estes arquivos resolvem ou exibem a marca ativa, e a marca ativa
- * pertence à requisição. Importar `brandvilleInstance` aqui devolveria um
+ * pertence à requisição. Importar `brennimarkInstance` aqui devolveria um
  * objeto global por processo — a marca de uma conta apareceria para outra sob
  * concorrência, e o defeito só se manifestaria com duas contas simultâneas.
  */
 const CAMINHO_DA_MARCA = [
   "src/components/BrandCanvas.tsx",
   "src/components/shell/WorkspaceIdentity.tsx",
-  "src/lib/brandville/context.ts",
-  "src/lib/brandville/workspace-context.ts",
+  "src/lib/brennimark/context.ts",
+  "src/lib/brennimark/workspace-context.ts",
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/page.tsx",
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/page.tsx",
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
@@ -308,7 +308,7 @@ test("o caminho da marca ativa não importa a instância global", () => {
   for (const arquivo of CAMINHO_DA_MARCA) {
     assert.doesNotMatch(
       ler(arquivo),
-      /^\s*import\s.*brandvilleInstance.*$/m,
+      /^\s*import\s.*brennimarkInstance.*$/m,
       `${arquivo} lê a marca de um objeto de módulo; a marca ativa é da requisição`,
     );
   }
@@ -328,7 +328,7 @@ test("os metadados da aplicação são do produto, não do manual", () => {
   assert.match(codigo, /platformIdentity/, "o título da aba precisa vir da plataforma");
   assert.doesNotMatch(
     codigo,
-    /brandvilleInstance\.metadata/,
+    /brennimarkInstance\.metadata/,
     "a marca do cliente não batiza a janela do Brennimark",
   );
 });
@@ -342,14 +342,14 @@ test("o layout de /docs não autentica por conta própria", () => {
   const codigo = lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx");
   assert.doesNotMatch(
     codigo,
-    /getBrandvilleAuthContext/,
+    /getBrennimarkAuthContext/,
     "o layout autenticava e o contexto autenticava de novo: duas idas à Auth API",
   );
   assert.doesNotMatch(codigo, /from\("profiles"\)/, "o perfil pertence à resolução da requisição");
 });
 
 test("a consulta de documentos não descobre a marca", () => {
-  const servidor = lerCodigo("src/lib/brandville/server.ts");
+  const servidor = lerCodigo("src/lib/brennimark/server.ts");
   const corpo = servidor.slice(servidor.indexOf("export async function getBrandDocs"));
   assert.doesNotMatch(
     corpo.slice(0, corpo.indexOf("export async function getProfileSummary")),
@@ -361,11 +361,11 @@ test("a consulta de documentos não descobre a marca", () => {
 test("não voltou um caminho paralelo de documento por slug", () => {
   // getResolvedBrandDoc refazia autenticação, marca e documentos fora do
   // contexto da requisição. Foi removida no patch 1.1.
-  assert.doesNotMatch(lerCodigo("src/lib/brandville/server.ts"), /getResolvedBrandDoc\b/);
+  assert.doesNotMatch(lerCodigo("src/lib/brennimark/server.ts"), /getResolvedBrandDoc\b/);
 });
 
 test("nenhum papel é presumido quando não há sessão", () => {
-  const codigo = lerCodigo("src/lib/brandville/context.ts");
+  const codigo = lerCodigo("src/lib/brennimark/context.ts");
   assert.doesNotMatch(
     codigo,
     /\?\?\s*"member"/,
@@ -408,7 +408,7 @@ test("a escrita não se identifica por instance_key", () => {
 test("a administração não veste a marca por instância global", () => {
   assert.doesNotMatch(
     lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"),
-    /brandvilleInstance/,
+    /brennimarkInstance/,
     "as seções válidas são as da marca resolvida",
   );
 });
@@ -513,7 +513,7 @@ test("nenhum instrumento do produto decide microcópia pelo idioma do manual", (
 test("o selo de status recebe o vocabulário da marca, sem buscá-lo", () => {
   const selo = lerCodigo("src/components/docs/StatusBadge.tsx");
   assert.match(selo, /statusLabels/, "o vocabulário editorial chega por propriedade");
-  assert.doesNotMatch(selo, /brandvilleInstance/, "e não de um objeto global de processo");
+  assert.doesNotMatch(selo, /brennimarkInstance/, "e não de um objeto global de processo");
 });
 
 test("resolveInterfaceLocale não aceita o idioma do manual", () => {
@@ -529,7 +529,7 @@ test("resolveInterfaceLocale não aceita o idioma do manual", () => {
  */
 test("o prompt não conhece marca global nem registro em código", () => {
   const modulo = lerCodigo("src/lib/ai/brand-context.ts");
-  assert.doesNotMatch(modulo, /brandvilleInstance/, "idioma e papéis chegam por parâmetro");
+  assert.doesNotMatch(modulo, /brennimarkInstance/, "idioma e papéis chegam por parâmetro");
   assert.doesNotMatch(
     modulo,
     /activeDocsRegistry/,
@@ -599,7 +599,7 @@ test("nenhum nome de seção de cliente sobrou no reconhecimento de citação", 
  * sozinha; o tipo descobre.
  */
 test("o adaptador encaminha todo o contrato do prompt", () => {
-  const contexto = lerCodigo("src/lib/brandville/context.ts");
+  const contexto = lerCodigo("src/lib/brennimark/context.ts");
   const corpo = contexto.slice(contexto.indexOf("export function brandPromptContext"));
   const adaptador = corpo.slice(0, corpo.indexOf("\n}"));
 
@@ -736,7 +736,7 @@ test("não existe uma segunda navegação de documentos", () => {
 
 /**
  * Patch 5.1. A moldura não conhece marca global. Este era o último fio: a
- * seleção das funcionalidades vinha de `brandvilleUtilityLinks`, que lia a
+ * seleção das funcionalidades vinha de `brennimarkUtilityLinks`, que lia a
  * instância — e a instância é `unconfigured`, com zero utilidades. A seção
  * "Inteligência" ficava permanentemente vazia, em qualquer marca.
  */
@@ -755,7 +755,7 @@ const MOLDURA_SEM_MARCA_GLOBAL = [
 test("a moldura não importa a configuração global de marca", () => {
   for (const arquivo of MOLDURA_SEM_MARCA_GLOBAL) {
     const codigo = lerCodigo(arquivo);
-    for (const proibido of [/brandvilleInstance/, /brandvilleUtilityLinks/, /brandville\/config/]) {
+    for (const proibido of [/brennimarkInstance/, /brennimarkUtilityLinks/, /brennimark\/config/]) {
       assert.doesNotMatch(
         codigo,
         proibido,
@@ -767,7 +767,7 @@ test("a moldura não importa a configuração global de marca", () => {
 
 test("as funcionalidades chegam por parâmetro", () => {
   const navegacao = lerCodigo("src/components/shell/navigation.ts");
-  assert.match(navegacao, /utilityLinks\?: readonly BrandvilleUtilityKey\[\]/);
+  assert.match(navegacao, /utilityLinks\?: readonly BrennimarkUtilityKey\[\]/);
   // O catálogo é da plataforma; a seleção é da marca.
   assert.match(navegacao, /CATALOGO_DE_UTILIDADES/);
 });
@@ -1004,7 +1004,7 @@ test("todo arquivo sem destino é relatado ao servidor, não só ao console", ()
  * Laço fechado, e o cadastro que criaria a conta era inalcançável.
  */
 test("sessão sem conta é distinguida de visitante", () => {
-  const contexto = lerCodigo("src/lib/brandville/context.ts");
+  const contexto = lerCodigo("src/lib/brennimark/context.ts");
   assert.match(contexto, /temSessao/, "getAuth nulo não separa os dois casos");
   assert.match(contexto, /"onboarding"/);
 });
@@ -1166,7 +1166,7 @@ test("rotas de servidor não importam constantes de módulos de cliente", () => 
  */
 test("nenhuma consulta decide workspace pela primeira linha", () => {
   const arquivos = [
-    "src/lib/brandville/server.ts",
+    "src/lib/brennimark/server.ts",
     "src/lib/ai/settings.ts",
     "src/lib/analysis/server.ts",
   ];
@@ -1187,10 +1187,10 @@ test("nenhuma consulta decide workspace pela primeira linha", () => {
 });
 
 test("a marca ativa não vem de variável de ambiente", () => {
-  const codigo = lerCodigo("src/lib/brandville/server.ts");
+  const codigo = lerCodigo("src/lib/brennimark/server.ts");
   assert.doesNotMatch(
     codigo,
-    /NEXT_PUBLIC_BRANDVILLE_INSTANCE/,
+    /NEXT_PUBLIC_BRENNIMARK_INSTANCE/,
     "escolher marca por variável de build amarra um processo a um cliente e exige rebuild para trocar",
   );
 });
@@ -1198,7 +1198,7 @@ test("a marca ativa não vem de variável de ambiente", () => {
 test("a regra de seleção não conhece Supabase, React nem ambiente", () => {
   // Se ela conhecesse, deixaria de ser verificável sem subir a aplicação — e
   // é a regra que decide qual cliente aparece na tela.
-  const codigo = lerCodigo("src/lib/brandville/selecao.ts");
+  const codigo = lerCodigo("src/lib/brennimark/selecao.ts");
   for (const proibido of ["supabase", "process.env", 'from "react"']) {
     assert.ok(!codigo.includes(proibido), `selecao.ts não deve conhecer ${proibido}`);
   }
@@ -1240,7 +1240,7 @@ test("as telas da marca não usam endereços absolutos de /docs", () => {
 /**
  * M2. Assets, análise e exportação não conhecem a instância global.
  *
- * `brandvilleInstance` é resolvido uma vez na inicialização do processo, a
+ * `brennimarkInstance` é resolvido uma vez na inicialização do processo, a
  * partir de uma variável de build. Num produto multimarca, cada leitura dele
  * num caminho de conteúdo é uma marca escolhida por outra pessoa em outro
  * momento — e nestes caminhos o resultado sai do produto: um arquivo listado,
@@ -1261,7 +1261,7 @@ test("nenhum caminho de assets, análise ou exportação lê a instância global
   for (const arquivo of CAMINHOS_DE_CONTEUDO) {
     assert.doesNotMatch(
       lerCodigo(arquivo),
-      /brandvilleInstance|brandville\/config/,
+      /brennimarkInstance|brennimark\/config/,
       `${arquivo} decide por instância de build, não pela marca da requisição`,
     );
   }
@@ -1645,21 +1645,21 @@ test("o canvas fala brand-*, e a moldura fala platform-*", () => {
 });
 
 test("não existe instância global de marca em runtime", () => {
-  // `brandvilleInstance` era resolvida por variável de build na inicialização
+  // `brennimarkInstance` era resolvida por variável de build na inicialização
   // do processo: duas contas servidas pelo mesmo processo viam a mesma marca.
   const arquivos = [
     ...listarArquivos("src/app"),
     ...listarArquivos("src/components"),
     ...listarArquivos("src/lib"),
-    ...listarArquivos("src/brandville"),
+    ...listarArquivos("src/brennimark"),
   ].filter((c) => /\.tsx?$/.test(c) && !c.includes(".test."));
 
   for (const arquivo of arquivos) {
     const codigo = lerCodigo(arquivo);
-    assert.doesNotMatch(codigo, /brandvilleInstance/, `${arquivo}: lê a instância global`);
+    assert.doesNotMatch(codigo, /brennimarkInstance/, `${arquivo}: lê a instância global`);
     assert.doesNotMatch(
       codigo,
-      /NEXT_PUBLIC_BRANDVILLE_INSTANCE/,
+      /NEXT_PUBLIC_BRENNIMARK_INSTANCE/,
       `${arquivo}: escolhe marca por variável de build`,
     );
   }
@@ -1677,7 +1677,7 @@ test("o codinome legado não sobra em nome que roda", () => {
 
   for (const arquivo of arquivos) {
     const codigo = lerCodigo(arquivo);
-    assert.doesNotMatch(codigo, /BRANDVILLE_DEV_SKIP_AUTH/, `${arquivo}: variável com o codinome`);
+    assert.doesNotMatch(codigo, /BRENNIMARK_DEV_SKIP_AUTH/, `${arquivo}: variável com o codinome`);
     assert.doesNotMatch(codigo, /Call Me Analog/, `${arquivo}: nome de release de cliente`);
   }
 });

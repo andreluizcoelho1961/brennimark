@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { LocaleProvider } from "@/platform/locale-client";
 import { VisualizadorDePdf } from "@/components/documento-fonte/VisualizadorDePdf";
 import { VisualizadorDesmontavel } from "./Desmontavel";

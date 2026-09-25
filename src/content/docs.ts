@@ -10,7 +10,7 @@ export interface DocPageImage {
    * starts with "/" — or a `brand-assets` Storage object path
    * ("workspaceId/brandId/...", no leading slash). Storage paths are resolved
    * to a signed URL server-side, fresh per render (see resolverImagensDeStorage
-   * in lib/brandville/server.ts) before this type reaches any renderer; the
+   * in lib/brennimark/server.ts) before this type reaches any renderer; the
    * leading-slash check is what tells the two apart.
    */
   src: string;

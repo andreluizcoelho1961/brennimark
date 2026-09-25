@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { TelaInicial } from "@/components/shell/TelaInicial";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
 import { MolduraDaConta } from "@/components/shell/MolduraDaConta";

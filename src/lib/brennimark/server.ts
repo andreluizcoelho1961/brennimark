@@ -12,7 +12,7 @@ import {
 
 const SKIP_AUTH = process.env.BRENNIMARK_DEV_SKIP_AUTH === "true";
 
-export type BrandvilleAuthContext = {
+export type BrennimarkAuthContext = {
   supabase: SupabaseClient;
   user: User;
   workspaceId: string;
@@ -28,8 +28,8 @@ export type BrandvilleAuthContext = {
  * rota que precisasse do cliente Supabase abriria outra chamada à Auth API,
  * que é justamente a duplicação que o patch 1.1 removeu do layout.
  */
-export const getBrandvilleAuthContext = cache(
-  async (workspaceSlug?: string): Promise<BrandvilleAuthContext | null> => {
+export const getBrennimarkAuthContext = cache(
+  async (workspaceSlug?: string): Promise<BrennimarkAuthContext | null> => {
     if (SKIP_AUTH) return null;
 
     const resolucao = await resolverWorkspaceAtivo(workspaceSlug);
@@ -92,7 +92,7 @@ export const temPerfilCompleto = cache(async (): Promise<boolean> => {
 /**
  * Só a sessão, sem exigir conta.
  *
- * `getBrandvilleAuthContext` devolve null tanto para quem não entrou quanto
+ * `getBrennimarkAuthContext` devolve null tanto para quem não entrou quanto
  * para quem entrou e ainda não tem workspace — e essa ambiguidade prendia o
  * primeiro usuário do produto num laço de redirecionamento.
  */
@@ -178,7 +178,7 @@ export const listarDisponiveis = cache(async (): Promise<readonly WorkspaceDispo
  * workspaces da mesma pessoa.
  */
 export async function carregarMarca(
-  auth: BrandvilleAuthContext,
+  auth: BrennimarkAuthContext,
   brandId: string,
 ): Promise<ActiveBrand | null> {
   const { data, error } = await auth.supabase
@@ -206,7 +206,7 @@ export async function carregarMarca(
  * valendo o ADR-0002 §4: isto decide o que APARECE; o que é PERMITIDO é a RLS.
  */
 export async function capacidadesNaMarca(
-  auth: BrandvilleAuthContext,
+  auth: BrennimarkAuthContext,
   brandId: string,
 ): Promise<BrandCapability[]> {
   /*
@@ -241,7 +241,7 @@ export async function capacidadesNaMarca(
  * enxergarem marcas diferentes.
  */
 export async function getBrandDocs(
-  auth: BrandvilleAuthContext,
+  auth: BrennimarkAuthContext,
   brandId: string,
 ): Promise<DocPageEntry[]> {
   const { data, error } = await auth.supabase
@@ -313,7 +313,7 @@ async function resolverImagensDeStorage(
  * refaria um cadastro que já existe.
  */
 export async function getProfileSummary(
-  auth: BrandvilleAuthContext,
+  auth: BrennimarkAuthContext,
 ): Promise<{ fullName: string } | null> {
   const { data, error } = await auth.supabase
     .from("profiles")
@@ -345,7 +345,7 @@ export async function getProfileSummary(
  * prática é pequeno: exclusões são raras.
  */
 export async function getDeletedPages(
-  auth: BrandvilleAuthContext,
+  auth: BrennimarkAuthContext,
   brandId: string,
   slugsVivos: readonly string[],
 ): Promise<{ slug: string; title: string; deletedAt: string }[]> {

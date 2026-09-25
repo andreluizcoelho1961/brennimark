@@ -55,12 +55,12 @@ e 2 novos:
  M src/components/shell/DesktopSidebar.tsx
  M src/components/shell/documentos.test.ts
  M src/components/shell/navigation.ts
- M src/lib/brandville/selecao.test.ts
- M src/lib/brandville/selecao.ts
- M src/lib/brandville/server.ts
+ M src/lib/brennimark/selecao.test.ts
+ M src/lib/brennimark/selecao.ts
+ M src/lib/brennimark/server.ts
  M src/platform/capabilities.test.ts
-?? src/lib/brandville/rotas-antigas.test.ts
-?? src/lib/brandville/rotas-antigas.ts
+?? src/lib/brennimark/rotas-antigas.test.ts
+?? src/lib/brennimark/rotas-antigas.ts
 ```
 
 Nada nessa lista é commitado, descartado ou sobrescrito. Ela espera a

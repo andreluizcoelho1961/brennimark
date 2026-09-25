@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { getBrandvilleAuthContext } from "@/lib/brandville/server";
-import { resolveWorkspaceContext } from "@/lib/brandville/workspace-context";
+import { getBrennimarkAuthContext } from "@/lib/brennimark/server";
+import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { BrandImporter } from "@/components/import/BrandImporter";
 import { capabilitiesForRole } from "@/platform/capabilities";
 import { MolduraDaConta } from "@/components/shell/MolduraDaConta";
@@ -26,7 +26,7 @@ export default async function ImportarPage({
   const { workspaceSlug } = await params;
   const [contexto, auth] = await Promise.all([
     resolveWorkspaceContext(),
-    getBrandvilleAuthContext(workspaceSlug),
+    getBrennimarkAuthContext(workspaceSlug),
   ]);
 
   if (contexto.access === "anonymous") redirect("/login");

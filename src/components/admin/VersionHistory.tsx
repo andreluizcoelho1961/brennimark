@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
 import { useIsEnglish } from "@/platform/locale-client";
-import { historyActionLabel } from "@/lib/brandville/history-action";
+import { historyActionLabel } from "@/lib/brennimark/history-action";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 
 

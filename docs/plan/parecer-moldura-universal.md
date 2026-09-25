@@ -40,7 +40,7 @@ individual a favor de toda a proposta.
 O mesmo arquivo de 33 linhas carrega um segundo vazamento, de instância:
 
 ```ts
-brandvilleInstance.key === "hairline" ? LABEL_CASE : ...
+brennimarkInstance.key === "hairline" ? LABEL_CASE : ...
 ```
 
 Um componente genérico de governança com lógica de um cliente específico — o que a regra §2.4 do

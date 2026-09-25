@@ -3,7 +3,7 @@
   "manifest": {
     "version": 1,
     "surface": "report",
-    "title": "Brandville — proposta de pré-investimento",
+    "title": "Brennimark — proposta de pré-investimento",
     "description": "Versão 1.1. Proposta indicativa, tese, mercado, termos, governança, plano de caixa, marcos, diligência e retorno ilustrativo.",
     "generatedAt": "2026-08-27T15:05:17-03:00",
     "sources": [
@@ -25,8 +25,8 @@
         }
       },
       {
-        "id":"modelo-brandville",
-        "label":"Modelo bottom-up Brandville — hipóteses de planejamento",
+        "id":"modelo-brennimark",
+        "label":"Modelo bottom-up Brennimark — hipóteses de planejamento",
         "query":{
           "engine":"Modelo financeiro de cenários",
           "sql":"SELECT 1329000000 AS tam_base, 221000000 AS sam_base, 22560000 AS som_base_ano_5;",
@@ -43,24 +43,24 @@
       },
       {
         "id":"simulacao-canal",
-        "label":"Simulação de coorte Brandville — 10 agências",
+        "label":"Simulação de coorte Brennimark — 10 agências",
         "query":{
           "engine":"Modelo unit economics de cenários",
-          "sql":"SELECT 'Conservador' AS scenario, 10 AS signed_agencies, 5 AS active_agencies, 8 AS active_brands, 8587 AS brandville_mrr, 103044 AS brandville_arr, 0.8300 AS gross_margin UNION ALL SELECT 'Base', 10, 8, 24, 21568, 258816, 0.8294 UNION ALL SELECT 'Expansão', 10, 9, 45, 36846, 442152, 0.8290;",
+          "sql":"SELECT 'Conservador' AS scenario, 10 AS signed_agencies, 5 AS active_agencies, 8 AS active_brands, 8587 AS brennimark_mrr, 103044 AS brennimark_arr, 0.8300 AS gross_margin UNION ALL SELECT 'Base', 10, 8, 24, 21568, 258816, 0.8294 UNION ALL SELECT 'Expansão', 10, 9, 45, 36846, 442152, 0.8290;",
           "description":"Coorte hipotética de 10 agências durante 12 meses. Os valores não representam clientes, preços ou receita observados.",
           "executed_at":"2026-08-25",
           "filters":["assinatura Studio de R$ 599/mês","licença por marca de R$ 699/mês","custo de R$ 100 por agência e R$ 120 por marca/mês"],
           "metric_definitions":[
-            "MRR Brandville = agências ativas × R$ 599 + marcas ativas × R$ 699.",
+            "MRR Brennimark = agências ativas × R$ 599 + marcas ativas × R$ 699.",
             "ARR run-rate = MRR × 12.",
-            "Margem bruta = (receita Brandville − custo direto estimado) ÷ receita Brandville.",
+            "Margem bruta = (receita Brennimark − custo direto estimado) ÷ receita Brennimark.",
             "Economia da agência base: cliente paga R$ 1.290/mês de software e R$ 800/mês de governança; a agência paga R$ 699 por marca e R$ 599/mês pelo Studio."
           ]
         }
       },
       {
         "id":"modelo-investimento",
-        "label":"Modelo de capital inicial Brandville — cenários e marcos",
+        "label":"Modelo de capital inicial Brennimark — cenários e marcos",
         "query":{
           "engine":"Modelo financeiro de runway e unit economics",
           "sql":"SELECT 'Validação enxuta' AS stage, 300000 AS low_capital, 500000 AS reference_capital, 600000 AS high_capital, 4 AS runway_months UNION ALL SELECT 'Rodada institucional condicional', 1900000, 2100000, 2300000, 15 UNION ALL SELECT 'Estrutura completa', 2800000, 3500000, 4500000, 18;",
@@ -71,14 +71,14 @@
             "Runway é o número de meses financiados antes de considerar receita futura ou nova rodada.",
             "A sequência recomendada começa com R$ 300–600 mil por quatro meses; o teto institucional de R$ 2,1 milhões só é reorçado após o gate.",
             "O orçamento institucional de referência pressupõe burn operacional médio próximo de R$ 113,5 mil/mês, R$ 150 mil de implantação/equipamentos e reserva financeira.",
-            "Ponto de equilíbrio simulado usa uma agência madura com cinco marcas, R$ 4.094 de MRR e R$ 3.394 de contribuição bruta mensal para o Brandville.",
+            "Ponto de equilíbrio simulado usa uma agência madura com cinco marcas, R$ 4.094 de MRR e R$ 3.394 de contribuição bruta mensal para o Brennimark.",
             "Todas as metas de clientes, receita, custos e margem são hipóteses a validar em pilotos pagos."
           ]
         }
       },
       {
         "id":"modelo-retorno",
-        "label":"Modelo ilustrativo de retorno e cap table Brandville",
+        "label":"Modelo ilustrativo de retorno e cap table Brennimark",
         "href":"https://www.saas-capital.com/the-saas-capital-index/",
         "query":{
           "engine":"Modelo de cenários de retorno sobre capital",
@@ -98,7 +98,7 @@
       },
       {
         "id":"modelo-downside",
-        "label":"Modelo de downside Brandville — encerramento, liquidação e rota direta",
+        "label":"Modelo de downside Brennimark — encerramento, liquidação e rota direta",
         "query":{
           "engine":"Modelo interno de proteção de capital",
           "sql":"SELECT 4 AS month, 500000 AS capital_received, 471200 AS cash_spent, 28800 AS ending_cash, 48000 AS tangible_low, 60000 AS tangible_high, 0 AS conditional_arr UNION ALL SELECT 8, 1200000, 992400, 207600, 50000, 70000, 720000 UNION ALL SELECT 15, 2100000, 1852000, 248000, 30000, 50000, 1200000;",
@@ -124,7 +124,7 @@
       },
       {
         "id":"equipamentos-ai",
-        "label":"Orçamento Brandville — equipamentos, IA e infraestrutura",
+        "label":"Orçamento Brennimark — equipamentos, IA e infraestrutura",
         "href":"https://www.apple.com/br/shop/buy-mac",
         "query":{
           "engine":"Orçamento operacional por envelope",
@@ -145,7 +145,7 @@
       },
       {
         "id":"opex-porto-alegre",
-        "label":"Modelo operacional Brandville — escritório enxuto em Porto Alegre",
+        "label":"Modelo operacional Brennimark — escritório enxuto em Porto Alegre",
         "href":"https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf",
         "query":{
           "engine":"Modelo mensal de custos por envelope",
@@ -185,7 +185,7 @@
         }
       },
       {
-        "id":"auditoria-brandville",
+        "id":"auditoria-brennimark",
         "label":"Auditoria interna de coerência — orçamento, runway e retorno",
         "query":{
           "engine":"Recomputação independente das premissas do relatório",
@@ -223,7 +223,7 @@
       },
       {
         "id":"proposta-preinvestimento",
-        "label":"Proposta indicativa Brandville — termos, KPIs e governança",
+        "label":"Proposta indicativa Brennimark — termos, KPIs e governança",
         "query":{
           "engine":"Modelo interno de pré-investimento",
           "sql":"SELECT 300000 AS validation_low, 500000 AS validation_reference, 600000 AS validation_high, 4 AS validation_months, 2100000 AS later_institutional_ceiling, 8400000 AS hypothetical_pre_money, 10500000 AS hypothetical_post_money, 0.20 AS hypothetical_investor_fully_diluted, 0.75 AS gross_margin_gate, 6 AS runway_floor_months;",
@@ -239,17 +239,17 @@
     ],
     "cards": [
       {
-        "id":"card-tam","dataset":"headline","sourceId":"modelo-brandville",
+        "id":"card-tam","dataset":"headline","sourceId":"modelo-brennimark",
         "description":"Receita recorrente anual do mercado total endereçável no cenário base; hipótese, não dado observado.",
         "metrics":[{"label":"TAM base","field":"tam_base","format":"currency"}]
       },
       {
-        "id":"card-sam","dataset":"headline","sourceId":"modelo-brandville",
+        "id":"card-sam","dataset":"headline","sourceId":"modelo-brennimark",
         "description":"Receita recorrente anual do segmento inicial atendível no cenário base.",
         "metrics":[{"label":"SAM base","field":"sam_base","format":"currency"}]
       },
       {
-        "id":"card-som","dataset":"headline","sourceId":"modelo-brandville",
+        "id":"card-som","dataset":"headline","sourceId":"modelo-brennimark",
         "description":"Meta de ARR no quinto ano do cenário base; não é previsão de receita atual.",
         "metrics":[{"label":"SOM base — ano 5","field":"som_base","format":"currency"}]
       },
@@ -284,7 +284,7 @@
         "question":"Qual é a faixa plausível de receita recorrente no quinto ano sob diferentes níveis de distribuição?",
         "rationale":"Barras horizontais facilitam a comparação direta entre três cenários nominais.",
         "dataset":"som_scenarios",
-        "sourceId":"modelo-brandville",
+        "sourceId":"modelo-brennimark",
         "encodings":{
           "x":{"field":"scenario","type":"nominal","label":"Cenário"},
           "y":{"field":"arr_millions","type":"quantitative","format":"number","label":"ARR","unit":"R$ milhões"},
@@ -305,7 +305,7 @@
         "question":"Como o universo potencial se reduz até a meta operacional de cinco anos?",
         "rationale":"Barras mostram magnitude sem usar geometria de funil, que distorceria as diferenças.",
         "dataset":"market_funnel",
-        "sourceId":"modelo-brandville",
+        "sourceId":"modelo-brennimark",
         "encodings":{
           "x":{"field":"stage","type":"ordinal","label":"Escopo"},
           "y":{"field":"accounts","type":"quantitative","format":"compact","label":"Contas"},
@@ -322,7 +322,7 @@
         "subtitle":"MOIC no ano 5; o mesmo ARR base aparece a 3x e 4x para isolar compressão de múltiplo.",
         "type":"horizontalBar",
         "intent":"comparison",
-        "question":"Como o retorno potencial varia entre os cenários operacionais do Brandville?",
+        "question":"Como o retorno potencial varia entre os cenários operacionais do Brennimark?",
         "rationale":"Barras horizontais comparam quatro resultados discretos, incluindo sensibilidade de múltiplo, sem sugerir probabilidade.",
         "dataset":"investor_returns",
         "sourceId":"modelo-retorno",
@@ -345,7 +345,7 @@
         "subtitle":"Operação híbrida em Porto Alegre; média mensal dos 15 meses, excluindo investimentos iniciais e reserva.",
         "type":"horizontalBar",
         "intent":"comparison",
-        "question":"Quais categorias concentram o caixa mensal necessário para operar o Brandville?",
+        "question":"Quais categorias concentram o caixa mensal necessário para operar o Brennimark?",
         "rationale":"Barras horizontais deixam explícito que pessoas, e não aluguel ou café, são o principal componente do burn.",
         "dataset":"monthly_burn_categories",
         "sourceId":"opex-porto-alegre",
@@ -370,13 +370,13 @@
           {"field":"competitor","label":"Plataforma","type":"text"},
           {"field":"core","label":"Força principal","type":"text"},
           {"field":"buyer","label":"Comprador típico","type":"text"},
-          {"field":"gap","label":"Espaço para o Brandville","type":"text"}
+          {"field":"gap","label":"Espaço para o Brennimark","type":"text"}
         ]
       },
       {
         "id":"table-assumptions","title":"Premissas do sizing",
         "subtitle":"Valores ajustáveis que mais alteram o resultado do modelo.",
-        "dataset":"assumptions","sourceId":"modelo-brandville","density":"spacious","layout":"full",
+        "dataset":"assumptions","sourceId":"modelo-brennimark","density":"spacious","layout":"full",
         "columns":[
           {"field":"input","label":"Premissa","type":"text"},
           {"field":"base","label":"Cenário base","type":"text"},
@@ -393,8 +393,8 @@
           {"field":"active_agencies","label":"Agências ativas","type":"number"},
           {"field":"active_brands","label":"Marcas ativas","type":"number"},
           {"field":"brands_per_active_agency","label":"Marcas/agência","type":"number"},
-          {"field":"brandville_mrr","label":"MRR Brandville","format":"currency"},
-          {"field":"brandville_arr","label":"ARR run-rate","format":"currency"},
+          {"field":"brennimark_mrr","label":"MRR Brennimark","format":"currency"},
+          {"field":"brennimark_arr","label":"ARR run-rate","format":"currency"},
           {"field":"gross_margin","label":"Margem bruta","format":"percent"}
         ]
       },
@@ -551,7 +551,7 @@
       {
         "id":"table-evidence-confidence","title":"Matriz de confiança das evidências",
         "subtitle":"Grau de confiança para a decisão atual; não mede a qualidade futura do negócio.",
-        "dataset":"evidence_confidence","sourceId":"auditoria-brandville","density":"spacious","layout":"full",
+        "dataset":"evidence_confidence","sourceId":"auditoria-brennimark","density":"spacious","layout":"full",
         "columns":[
           {"field":"area","label":"Área","type":"text"},
           {"field":"evidence","label":"Base atual","type":"text"},
@@ -628,7 +628,7 @@
       }
     ],
     "blocks": [
-      {"id":"title","type":"markdown","body":"# Brandville — proposta de pré-investimento"},
+      {"id":"title","type":"markdown","body":"# Brennimark — proposta de pré-investimento"},
       {
         "id":"executive-summary","type":"markdown","layout":"full",
         "body":"## Executive Summary\n\n- **Recomendação: não pedir R$ 2,1 milhões como primeiro cheque.** O caminho mais defensável é captar R$ 300–600 mil — referência de R$ 500 mil e quatro meses — para resolver dois bloqueadores: liderança técnica formal além do fundador e evidência de que ao menos três agências preferem revenda recorrente a projetos avulsos. Só depois dessas provas deve ser negociada uma rodada institucional de até R$ 2,1 milhões, reorçada com os dados da validação.\n- **O risco do cheque inicial continua alto.** Se os gates falharem no mês 4, o modelo estima R$ 28,8 mil de caixa e R$ 48–60 mil de revenda de equipamentos. Sem atribuir valor ao código, marca ou aprendizado, R$ 411–423 mil — 82%–85% do cheque de R$ 500 mil — podem não ser recuperados. A proteção principal não é colateral; é parar cedo.\n- **A evidência atual é insuficiente para underwriting institucional.** A Guitar Garage é uma amostra de uma entrega conduzida pelo fundador. Não comprova repetibilidade por terceiros, retenção, CAC, margem de IA ou adesão do canal. Esses itens permanecem hipóteses de baixa confiança até existirem contratos, coortes e telemetria.\n- **O retorno foi testado contra compressão.** Com ARR hipotético de R$ 22,56 milhões no ano 5, múltiplo de 3x produziria valor empresarial de R$ 67,68 milhões e retorno bruto de R$ 8,12 milhões: 3,87x e IRR anualizada de 31,1%. A 4x, seriam 5,16x e 38,8%. Nenhum cenário contém probabilidade, garantia de liquidez ou valor assegurado para o investidor."
@@ -644,11 +644,11 @@
       },
       {
         "id":"category","type":"markdown","layout":"full",
-        "body":"## A hipótese de posicionamento está entre o PDF e a plataforma enterprise\n\nNa base do mercado, marcas podem ser entregues como PDF, apresentação e pasta de arquivos. No topo, plataformas internacionais oferecem DAM, guidelines, templates e integrações, normalmente com maior complexidade de implantação e preço orientado ao mid-market global ou enterprise.\n\nA hipótese do Brandville é atender o intervalo entre esses extremos com implantação em português, regras rastreáveis e governança humana. Ainda não há comparação observada de win rate, preço ou retenção que prove a existência econômica desse espaço.\n\n**Implicação:** a validação precisa testar se clientes pagam mais pelo ciclo fonte → análise → decisão → release do que por hospedagem e apresentação."
+        "body":"## A hipótese de posicionamento está entre o PDF e a plataforma enterprise\n\nNa base do mercado, marcas podem ser entregues como PDF, apresentação e pasta de arquivos. No topo, plataformas internacionais oferecem DAM, guidelines, templates e integrações, normalmente com maior complexidade de implantação e preço orientado ao mid-market global ou enterprise.\n\nA hipótese do Brennimark é atender o intervalo entre esses extremos com implantação em português, regras rastreáveis e governança humana. Ainda não há comparação observada de win rate, preço ou retenção que prove a existência econômica desse espaço.\n\n**Implicação:** a validação precisa testar se clientes pagam mais pelo ciclo fonte → análise → decisão → release do que por hospedagem e apresentação."
       },
       {
         "id":"competition-intro","type":"markdown","layout":"full",
-        "body":"## Os concorrentes demonstram oferta existente; a abertura local ainda é hipótese\n\nFrontify oferece uma plataforma unificada; Standards trabalha com diretrizes legíveis por máquinas; Corebook e Brandpad atendem designers e agências. A presença desses produtos comprova oferta, não demanda específica pelo Brandville no Brasil. A diferenciação proposta — português, inteligência com fontes e governança humana — precisa ser testada em comparação de compra e uso."
+        "body":"## Os concorrentes demonstram oferta existente; a abertura local ainda é hipótese\n\nFrontify oferece uma plataforma unificada; Standards trabalha com diretrizes legíveis por máquinas; Corebook e Brandpad atendem designers e agências. A presença desses produtos comprova oferta, não demanda específica pelo Brennimark no Brasil. A diferenciação proposta — português, inteligência com fontes e governança humana — precisa ser testada em comparação de compra e uso."
       },
       {"id":"competition-table","type":"table","tableId":"table-competition"},
       {
@@ -674,7 +674,7 @@
       {"id":"channel-simulation-table","type":"table","tableId":"table-channel-simulation"},
       {
         "id":"partner-economics-intro","type":"markdown","layout":"full","sourceId":"simulacao-canal",
-        "body":"## Cinco marcas podem superar um projeto avulso — se as premissas se confirmarem\n\nNos preços simulados, uma agência com cinco marcas pagaria R$ 4.094/mês ao Brandville e cobraria R$ 10.450/mês dos clientes. Depois de dez horas de governança a R$ 120/h, a contribuição modelada seria R$ 5.156/mês, ou R$ 61.872 em 12 meses, antes de impostos, venda, inadimplência e overhead. Isso supera em R$ 11.872 um projeto avulso hipotético de R$ 50 mil, mas exige cinco clientes ativos, execução contínua e retenção anual.\n\n**Bloqueador comercial:** não há evidência de que agências prefiram essa troca. Antes da rodada institucional, pelo menos três agências reais devem apresentar faturamento e esforço dos dois modelos, aceitar preço e declarar escolha por revenda recorrente em piloto pago."
+        "body":"## Cinco marcas podem superar um projeto avulso — se as premissas se confirmarem\n\nNos preços simulados, uma agência com cinco marcas pagaria R$ 4.094/mês ao Brennimark e cobraria R$ 10.450/mês dos clientes. Depois de dez horas de governança a R$ 120/h, a contribuição modelada seria R$ 5.156/mês, ou R$ 61.872 em 12 meses, antes de impostos, venda, inadimplência e overhead. Isso supera em R$ 11.872 um projeto avulso hipotético de R$ 50 mil, mas exige cinco clientes ativos, execução contínua e retenção anual.\n\n**Bloqueador comercial:** não há evidência de que agências prefiram essa troca. Antes da rodada institucional, pelo menos três agências reais devem apresentar faturamento e esforço dos dois modelos, aceitar preço e declarar escolha por revenda recorrente em piloto pago."
       },
       {"id":"partner-economics-table","type":"table","tableId":"table-partner-economics"},
       {
@@ -695,7 +695,7 @@
       {"id":"direct-fallback-table","type":"table","tableId":"table-direct-fallback"},
       {
         "id":"business-model","type":"markdown","layout":"full",
-        "body":"## O modelo comercial deve combinar SaaS, implantação e expansão\n\nA arquitetura recomendada tem três camadas:\n\n1. **Brandville Studio:** assinatura da agência para templates, carteira, instalações e governança.\n2. **Licença por marca ativa:** receita recorrente que cresce com a carteira implantada.\n3. **Serviços de implantação e curadoria:** receita não recorrente para migração, estruturação do Brand Core e personalização.\n\nUma faixa inicial a validar é R$ 249–399/mês para Guide, R$ 699–999/mês para Intelligence e R$ 1.490–2.490/mês para Governance, com preço de parceiro e franquias de IA. Implantação pode variar de R$ 2,5 mil a R$ 15 mil conforme complexidade. Esses valores são hipóteses comerciais, não preços finais.\n\nOs cenários de longo prazo não usam um único preço. O conservador pressupõe ARPA anual de R$ 12 mil por marca e R$ 6 mil por agência; o base, R$ 14,4 mil e R$ 9,6 mil; e o de expansão, R$ 18 mil e R$ 12 mil. Já os pilotos usam preço de entrada de R$ 699 por marca e R$ 599 por Studio. A diferença precisa vir de mix de planos, expansão de uso, franquias, reajustes e clientes em níveis superiores — e só deve ser mantida no forecast se as coortes demonstrarem essa evolução.\n\n**Disciplina de margem:** uso de IA precisa de limites, medição e opção BYOK. Serviços devem acelerar ativação, não transformar a empresa em consultoria dependente de horas."
+        "body":"## O modelo comercial deve combinar SaaS, implantação e expansão\n\nA arquitetura recomendada tem três camadas:\n\n1. **Brennimark Studio:** assinatura da agência para templates, carteira, instalações e governança.\n2. **Licença por marca ativa:** receita recorrente que cresce com a carteira implantada.\n3. **Serviços de implantação e curadoria:** receita não recorrente para migração, estruturação do Brand Core e personalização.\n\nUma faixa inicial a validar é R$ 249–399/mês para Guide, R$ 699–999/mês para Intelligence e R$ 1.490–2.490/mês para Governance, com preço de parceiro e franquias de IA. Implantação pode variar de R$ 2,5 mil a R$ 15 mil conforme complexidade. Esses valores são hipóteses comerciais, não preços finais.\n\nOs cenários de longo prazo não usam um único preço. O conservador pressupõe ARPA anual de R$ 12 mil por marca e R$ 6 mil por agência; o base, R$ 14,4 mil e R$ 9,6 mil; e o de expansão, R$ 18 mil e R$ 12 mil. Já os pilotos usam preço de entrada de R$ 699 por marca e R$ 599 por Studio. A diferença precisa vir de mix de planos, expansão de uso, franquias, reajustes e clientes em níveis superiores — e só deve ser mantida no forecast se as coortes demonstrarem essa evolução.\n\n**Disciplina de margem:** uso de IA precisa de limites, medição e opção BYOK. Serviços devem acelerar ativação, não transformar a empresa em consultoria dependente de horas."
       },
       {
         "id":"moat","type":"markdown","layout":"full",
@@ -721,7 +721,7 @@
       {"id":"cap-table-table","type":"table","tableId":"table-cap-table"},
       {
         "id":"legal-structure","type":"markdown","layout":"full","sourceId":"marco-legal-startups",
-        "body":"## O instrumento deve preservar simplicidade sem criar passivo oculto\n\nO Marco Legal das Startups admite aportes por instrumentos diretos e conversíveis. Para o Brandville, a escolha entre participação imediata, mútuo conversível ou estrutura equivalente deve ser feita somente após comparar efeitos societários, tributários, contábeis e de governança.\n\nAntes do fechamento, os documentos precisam definir claramente: valuation ou fórmula de conversão, aquisição proporcional por tranche, direitos de informação, preferência de liquidação, antidiluição, pro rata, vesting, propriedade intelectual, condições precedentes, inadimplemento e destino das parcelas não desembolsadas. Esta proposta é indicativa e não substitui documentação jurídica."
+        "body":"## O instrumento deve preservar simplicidade sem criar passivo oculto\n\nO Marco Legal das Startups admite aportes por instrumentos diretos e conversíveis. Para o Brennimark, a escolha entre participação imediata, mútuo conversível ou estrutura equivalente deve ser feita somente após comparar efeitos societários, tributários, contábeis e de governança.\n\nAntes do fechamento, os documentos precisam definir claramente: valuation ou fórmula de conversão, aquisição proporcional por tranche, direitos de informação, preferência de liquidação, antidiluição, pro rata, vesting, propriedade intelectual, condições precedentes, inadimplemento e destino das parcelas não desembolsadas. Esta proposta é indicativa e não substitui documentação jurídica."
       },
       {
         "id":"investment-recommendation","type":"markdown","layout":"full","sourceId":"modelo-investimento",
@@ -730,7 +730,7 @@
       {"id":"investment-scenarios-table","type":"table","tableId":"table-investment-scenarios"},
       {
         "id":"funding-benchmark","type":"markdown","layout":"full","sourceId":"abstartups-investimento",
-        "body":"## O benchmark não justifica antecipar o cheque institucional\n\nNo Mapeamento do Ecossistema Brasileiro de Startups 2025, 34,8% das startups mapeadas declararam investimento; o valor médio informado foi de R$ 1 milhão e 26,5% das investidas haviam captado mais de R$ 1 milhão. Isso não torna R$ 2,1 milhões adequado ao Brandville: estágio, instrumento, amostra e tração não são diretamente comparáveis.\n\nA leitura conservadora é inversa: como o valor institucional está acima da média informada e não existem coortes auditáveis, o cheque inicial deve ser menor. O benchmark contextualiza a ambição de capital; não valida valuation, canal ou retorno."
+        "body":"## O benchmark não justifica antecipar o cheque institucional\n\nNo Mapeamento do Ecossistema Brasileiro de Startups 2025, 34,8% das startups mapeadas declararam investimento; o valor médio informado foi de R$ 1 milhão e 26,5% das investidas haviam captado mais de R$ 1 milhão. Isso não torna R$ 2,1 milhões adequado ao Brennimark: estágio, instrumento, amostra e tração não são diretamente comparáveis.\n\nA leitura conservadora é inversa: como o valor institucional está acima da média informada e não existem coortes auditáveis, o cheque inicial deve ser menor. O benchmark contextualiza a ambição de capital; não valida valuation, canal ou retorno."
       },
       {
         "id":"tranches-intro","type":"markdown","layout":"full","sourceId":"modelo-investimento",
@@ -738,7 +738,7 @@
       },
       {"id":"funding-tranches-table","type":"table","tableId":"table-funding-tranches"},
       {
-        "id":"cash-control-intro","type":"markdown","layout":"full","sourceId":"auditoria-brandville",
+        "id":"cash-control-intro","type":"markdown","layout":"full","sourceId":"auditoria-brennimark",
         "body":"## O orçamento de 15 meses fecha; o cronograma de financiamento não está aprovado\n\nO modelo original divide R$ 2,1 milhões em R$ 500 mil, R$ 700 mil e R$ 900 mil. As fases consomem R$ 471,2 mil, R$ 521,2 mil e R$ 859,6 mil, respectivamente. Essa reconciliação demonstra consistência aritmética do orçamento, não autorização das parcelas nem sequência recomendada de captação.\n\nNo conjunto, o modelo usa **R$ 1,852 milhão** e encerra com **R$ 248 mil de caixa** sem receita. Ele tolera cerca de 13,4% de aumento; a 15%, haveria déficit de R$ 29,8 mil. Depois da Fase 0, todos os valores devem ser reorçados e o caixa remanescente deduzido do pedido institucional."
       },
       {"id":"cash-phases-table","type":"table","tableId":"table-cash-phases"},
@@ -788,7 +788,7 @@
       {"id":"founder-economics-table","type":"table","tableId":"table-founder-economics"},
       {
         "id":"break-even-intro","type":"markdown","layout":"full","sourceId":"modelo-investimento",
-        "body":"## O ponto de equilíbrio aparece perto de 34 agências maduras\n\nNo modelo atual, uma agência com cinco marcas gera R$ 4.094 de MRR para o Brandville. Descontando R$ 700 de custo direto estimado, a contribuição bruta é de R$ 3.394 por mês. Para cobrir uma operação de aproximadamente R$ 113,5 mil/mês, seriam necessárias **cerca de 34 agências equivalentes**, ou 170 marcas ativas.\n\nNesse ponto, o Brandville teria aproximadamente R$ 139,2 mil de MRR e R$ 115,4 mil de contribuição bruta mensal. A conta é um teto operacional conservador, não um break-even contábil definitivo: a contribuição já desconta custos diretos, enquanto o burn de referência contém um envelope de IA, cloud e software que pode incluir parte desses mesmos custos. Depois dos pilotos, o cálculo deve separar opex fixo, custo variável por agência, custo variável por marca e suporte atribuível para eliminar qualquer dupla contagem."
+        "body":"## O ponto de equilíbrio aparece perto de 34 agências maduras\n\nNo modelo atual, uma agência com cinco marcas gera R$ 4.094 de MRR para o Brennimark. Descontando R$ 700 de custo direto estimado, a contribuição bruta é de R$ 3.394 por mês. Para cobrir uma operação de aproximadamente R$ 113,5 mil/mês, seriam necessárias **cerca de 34 agências equivalentes**, ou 170 marcas ativas.\n\nNesse ponto, o Brennimark teria aproximadamente R$ 139,2 mil de MRR e R$ 115,4 mil de contribuição bruta mensal. A conta é um teto operacional conservador, não um break-even contábil definitivo: a contribuição já desconta custos diretos, enquanto o burn de referência contém um envelope de IA, cloud e software que pode incluir parte desses mesmos custos. Depois dos pilotos, o cálculo deve separar opex fixo, custo variável por agência, custo variável por marca e suporte atribuível para eliminar qualquer dupla contagem."
       },
       {"id":"break-even-table","type":"table","tableId":"table-break-even"},
       {
@@ -802,7 +802,7 @@
       },
       {"id":"diligence-table","type":"table","tableId":"table-diligence"},
       {
-        "id":"evidence-confidence-intro","type":"markdown","layout":"full","sourceId":"auditoria-brandville",
+        "id":"evidence-confidence-intro","type":"markdown","layout":"full","sourceId":"auditoria-brennimark",
         "body":"## A aritmética pode ser auditada; a decisão institucional ainda não pode\n\nCustos físicos têm referências públicas e os subtotais foram reconciliados. Mercado, valuation, liquidação e retorno continuam sensíveis a hipóteses. Não foram apresentados contratos, coortes, telemetria, responsável técnico formal ou preferência observada das agências.\n\n**Avaliação de confiança:** o documento suporta discussão de um cheque de validação e roteiro de diligência. Não suporta underwriting ou compromisso institucional de R$ 2,1 milhões. Essa conclusão só muda com os bloqueadores resolvidos e resultados verificáveis."
       },
       {"id":"evidence-confidence-table","type":"table","tableId":"table-evidence-confidence"},
@@ -812,7 +812,7 @@
       },
       {
         "id":"further-questions","type":"markdown","layout":"full",
-        "body":"## O interrogatório provável de um investidor cético\n\n- Por que eu deveria acreditar que uma agência vai preferir aproximadamente R$ 4 mil/mês recorrentes a um projeto de R$ 50 mil avulso? Onde estão três decisões reais com margem e horas comparadas?\n- Quem, além do fundador, pode operar tecnicamente o produto amanhã se ele ficar indisponível? Essa pessoa já assinou compromisso, revisou o código e testou recuperação?\n- Por que pedir R$ 2,1 milhões antes de provar as duas maiores incógnitas com R$ 300–600 mil?\n- O que exatamente recebo se o negócio parar no mês 4? Quem compraria código, marca ou contratos e por qual evidência de preço?\n- A Guitar Garage prova algo além da capacidade do fundador de produzir uma boa entrega?\n- Quantas marcas pagaram, renovaram e ativaram uma segunda marca sem intervenção técnica do criador?\n- Qual parcela da receita é software repetível e qual é serviço do estúdio disfarçado de SaaS?\n- O CAC inclui tempo do fundador, conteúdo, viagens, implantação e comissão? Qual é o payback observado, não modelado?\n- Por que um cliente não usaria Notion, PDF, Figma ou uma plataforma internacional? Há win/loss documentado?\n- Quem é titular de cada linha de código, domínio, marca e ativo produzido antes da sociedade?\n- Como uma marca prova que seus dados não treinaram, contaminaram ou ficaram acessíveis a outra marca?\n- Quanto da participação de 72% do fundador sobra depois da conversão do cheque inicial, pool e próxima rodada?\n- Qual comprador plausível pagaria 3x–4x ARR e quais métricas o Brandville precisaria demonstrar para ser comparável?"
+        "body":"## O interrogatório provável de um investidor cético\n\n- Por que eu deveria acreditar que uma agência vai preferir aproximadamente R$ 4 mil/mês recorrentes a um projeto de R$ 50 mil avulso? Onde estão três decisões reais com margem e horas comparadas?\n- Quem, além do fundador, pode operar tecnicamente o produto amanhã se ele ficar indisponível? Essa pessoa já assinou compromisso, revisou o código e testou recuperação?\n- Por que pedir R$ 2,1 milhões antes de provar as duas maiores incógnitas com R$ 300–600 mil?\n- O que exatamente recebo se o negócio parar no mês 4? Quem compraria código, marca ou contratos e por qual evidência de preço?\n- A Guitar Garage prova algo além da capacidade do fundador de produzir uma boa entrega?\n- Quantas marcas pagaram, renovaram e ativaram uma segunda marca sem intervenção técnica do criador?\n- Qual parcela da receita é software repetível e qual é serviço do estúdio disfarçado de SaaS?\n- O CAC inclui tempo do fundador, conteúdo, viagens, implantação e comissão? Qual é o payback observado, não modelado?\n- Por que um cliente não usaria Notion, PDF, Figma ou uma plataforma internacional? Há win/loss documentado?\n- Quem é titular de cada linha de código, domínio, marca e ativo produzido antes da sociedade?\n- Como uma marca prova que seus dados não treinaram, contaminaram ou ficaram acessíveis a outra marca?\n- Quanto da participação de 72% do fundador sobra depois da conversão do cheque inicial, pool e próxima rodada?\n- Qual comprador plausível pagaria 3x–4x ARR e quais métricas o Brennimark precisaria demonstrar para ser comparável?"
       },
       {
         "id":"caveats","type":"markdown","layout":"full",
@@ -853,14 +853,14 @@
         {"input":"Concentração regional do SAM","base":"65%","range":"55%–75%","confidence":"Média"}
       ],
       "channel_simulation":[
-        {"scenario":"Conservador","signed_agencies":10,"active_agencies":5,"active_brands":8,"brands_per_active_agency":1.6,"brandville_mrr":8587,"brandville_arr":103044,"direct_cost":1460,"gross_margin":0.83},
-        {"scenario":"Base","signed_agencies":10,"active_agencies":8,"active_brands":24,"brands_per_active_agency":3,"brandville_mrr":21568,"brandville_arr":258816,"direct_cost":3680,"gross_margin":0.8294},
-        {"scenario":"Expansão","signed_agencies":10,"active_agencies":9,"active_brands":45,"brands_per_active_agency":5,"brandville_mrr":36846,"brandville_arr":442152,"direct_cost":6300,"gross_margin":0.829}
+        {"scenario":"Conservador","signed_agencies":10,"active_agencies":5,"active_brands":8,"brands_per_active_agency":1.6,"brennimark_mrr":8587,"brennimark_arr":103044,"direct_cost":1460,"gross_margin":0.83},
+        {"scenario":"Base","signed_agencies":10,"active_agencies":8,"active_brands":24,"brands_per_active_agency":3,"brennimark_mrr":21568,"brennimark_arr":258816,"direct_cost":3680,"gross_margin":0.8294},
+        {"scenario":"Expansão","signed_agencies":10,"active_agencies":9,"active_brands":45,"brands_per_active_agency":5,"brennimark_mrr":36846,"brennimark_arr":442152,"direct_cost":6300,"gross_margin":0.829}
       ],
       "partner_economics":[
         {"item":"Receita cobrada dos clientes","monthly_value":10450,"meaning":"Cinco marcas × R$ 2.090, somando software e governança"},
-        {"item":"Pagamento mensal ao Brandville","monthly_value":4094,"meaning":"Studio de R$ 599 + cinco licenças de R$ 699"},
-        {"item":"Margem antes do trabalho humano","monthly_value":6356,"meaning":"Receita da carteira menos o pagamento ao Brandville"},
+        {"item":"Pagamento mensal ao Brennimark","monthly_value":4094,"meaning":"Studio de R$ 599 + cinco licenças de R$ 699"},
+        {"item":"Margem antes do trabalho humano","monthly_value":6356,"meaning":"Receita da carteira menos o pagamento ao Brennimark"},
         {"item":"Custo humano estimado","monthly_value":1200,"meaning":"Dez horas mensais a R$ 120 por hora"},
         {"item":"Contribuição mensal da agência","monthly_value":5156,"meaning":"Antes de impostos, vendas e despesas gerais"}
       ],
@@ -881,7 +881,7 @@
       "break_even":[
         {"metric":"Agências maduras equivalentes","value":"34","interpretation":"Cada parceiro mantém cinco marcas ativas"},
         {"metric":"Marcas ativas","value":"170","interpretation":"34 agências × cinco marcas"},
-        {"metric":"MRR Brandville","value":"R$ 139.196","interpretation":"34 × R$ 4.094"},
+        {"metric":"MRR Brennimark","value":"R$ 139.196","interpretation":"34 × R$ 4.094"},
         {"metric":"Contribuição bruta mensal","value":"R$ 115.396","interpretation":"Após aproximadamente R$ 23,8 mil de custos diretos"},
         {"metric":"Custo operacional de referência","value":"R$ 113.500/mês","interpretation":"Burn médio planejado, excluindo implantação e reserva"}
       ],
@@ -1053,20 +1053,20 @@
     {"id":"iab-adspend","label":"IAB Brasil / Kantar IBOPE Media — Digital AdSpend 2025","href":"https://iabbrasil.com.br/wp-content/uploads/2025/04/IAB_Digital_Adspend_2025_anobase2024_AF.pdf"},
     {"id":"abes-ti","label":"ABES / IDC — Mercado Brasileiro de Software 2026","href":"https://abes.org.br/mercado-de-ti-no-brasil-cresce-185-em-2025-e-pais-segue-lider-na-america-latina/"},
     {"id":"competidores","label":"Páginas oficiais dos competidores","href":"https://www.frontify.com/en/product-overview"},
-    {"id":"modelo-brandville","label":"Modelo bottom-up Brandville — hipóteses de planejamento"},
-    {"id":"simulacao-canal","label":"Simulação de coorte Brandville — 10 agências"},
-    {"id":"modelo-investimento","label":"Modelo de capital inicial Brandville — cenários e marcos"},
-    {"id":"modelo-retorno","label":"Modelo ilustrativo de retorno e cap table Brandville","href":"https://www.saas-capital.com/the-saas-capital-index/"},
-    {"id":"modelo-downside","label":"Modelo de downside Brandville — encerramento, liquidação e rota direta"},
+    {"id":"modelo-brennimark","label":"Modelo bottom-up Brennimark — hipóteses de planejamento"},
+    {"id":"simulacao-canal","label":"Simulação de coorte Brennimark — 10 agências"},
+    {"id":"modelo-investimento","label":"Modelo de capital inicial Brennimark — cenários e marcos"},
+    {"id":"modelo-retorno","label":"Modelo ilustrativo de retorno e cap table Brennimark","href":"https://www.saas-capital.com/the-saas-capital-index/"},
+    {"id":"modelo-downside","label":"Modelo de downside Brennimark — encerramento, liquidação e rota direta"},
     {"id":"seg-saas-2026","label":"Software Equity Group — 2026 Annual SaaS Report","href":"https://sandhill.com/wp-content/uploads/2026/03/SEG-Research-2026-Annual-SaaS-Report.pdf"},
     {"id":"equipamentos-ai","label":"Apple Brasil — referência de preços de computadores","href":"https://www.apple.com/br/shop/buy-mac"},
     {"id":"abstartups-investimento","label":"ABStartups — Mapeamento do Ecossistema Brasileiro de Startups 2025","href":"https://abstartups.com.br/wp-content/uploads/Mapeamento-do-Ecossistema-de-Startups-2025.pdf"},
-    {"id":"opex-porto-alegre","label":"Modelo operacional Brandville — escritório enxuto em Porto Alegre","href":"https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf"},
+    {"id":"opex-porto-alegre","label":"Modelo operacional Brennimark — escritório enxuto em Porto Alegre","href":"https://downloads.fipe.org.br/indices/fipezap/fipezap-202606-comercial.pdf"},
     {"id":"infra-porto-alegre","label":"Referências operacionais de Porto Alegre — energia, internet, coworking e limpeza","href":"https://coworkingpoa.com.br/planos"},
     {"id":"aneel-ceee-2026","label":"ANEEL — Consulta Pública da revisão tarifária da CEEE-D","href":"https://www.gov.br/aneel/pt-br/assuntos/noticias/2026-defeso-eleitoral/aprovada-consulta-publica-para-debater-revisao-tarifariadaceee-d/"},
-    {"id":"auditoria-brandville","label":"Auditoria interna de coerência — orçamento, runway e retorno"},
+    {"id":"auditoria-brennimark","label":"Auditoria interna de coerência — orçamento, runway e retorno"},
     {"id":"marco-legal-startups","label":"Planalto — Marco Legal das Startups (LC 182/2021)","href":"https://www.planalto.gov.br/ccivil_03/leis/lcp/lcp182.htm"},
     {"id":"anpd-seguranca","label":"ANPD — Segurança da informação para agentes de pequeno porte","href":"https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-publica-guia-de-seguranca-para-agentes-de-tratamento-de-pequeno-porte"},
-    {"id":"proposta-preinvestimento","label":"Proposta indicativa Brandville — termos, KPIs e governança"}
+    {"id":"proposta-preinvestimento","label":"Proposta indicativa Brennimark — termos, KPIs e governança"}
   ]
 }

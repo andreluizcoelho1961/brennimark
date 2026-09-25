@@ -1,4 +1,4 @@
-import type { BrandvilleUtilityKey } from "../../brandville/types";
+import type { BrennimarkUtilityKey } from "../../brennimark/types";
 import type { ProductLocale } from "../../platform/locale";
 import { can, type BrandCapability } from "../../platform/capabilities";
 
@@ -30,13 +30,13 @@ export interface ShellSection {
  * Quais delas existem é da MARCA. Uma conta pode ter contratado o assistente e
  * não a análise de peças, e essa escolha é da instalação, não do produto.
  *
- * A seleção vinha de `brandvilleUtilityLinks`, que lia a instância global — e
+ * A seleção vinha de `brennimarkUtilityLinks`, que lia a instância global — e
  * a instância global é `unconfigured`, com zero utilidades. A seção
  * "Inteligência" ficava permanentemente vazia, e a promoção da V2 levou esse
  * fio junto.
  */
 const CATALOGO_DE_UTILIDADES: Record<
-  BrandvilleUtilityKey,
+  BrennimarkUtilityKey,
   { href: string; pt: string; en: string }
 > = {
   chat: { href: "/docs/chat", pt: "Chat da marca", en: "Brand assistant" },
@@ -73,7 +73,7 @@ export function shellSections({
   locale: ProductLocale;
   /** As funcionalidades desta MARCA, vindas da requisição. Ausente = nenhuma,
    *  que é o estado de quem ainda não tem marca. */
-  utilityLinks?: readonly BrandvilleUtilityKey[];
+  utilityLinks?: readonly BrennimarkUtilityKey[];
 }): ShellSection[] {
   const t = (pt: string, en: string) => (locale === "en" ? en : pt);
   const utilities = utilityLinks
@@ -100,7 +100,7 @@ export function shellSections({
    * marca — nenhuma das duas pertence à marca aberta. Deixá-las na hierarquia
    * dela sugeria que configurar IA fosse configurar aquela marca.
    */
-  const porChave = (chave: BrandvilleUtilityKey) =>
+  const porChave = (chave: BrennimarkUtilityKey) =>
     utilities.filter((u) => u.href === CATALOGO_DE_UTILIDADES[chave].href);
 
   const sections: ShellSection[] = [
