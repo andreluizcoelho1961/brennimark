@@ -101,7 +101,10 @@ export function PlatformTopBar({
       */}
       <div id="acoes-da-tela" data-acoes-da-tela className="hidden min-w-0 items-center xl:flex" />
 
-      <div className="ml-auto flex items-center gap-[var(--space-shell-3)]">
+      {/* Em 320 px o grupo da direita (busca, tema, sair) cabia com 7 px de folga
+          no Mac e estourava 3 px no Linux do CI, onde o texto sai mais largo.
+          Abaixo de `sm` os vãos encolhem de 12 para 8 px: 12 px a mais de folga. */}
+      <div className="ml-auto flex items-center gap-[var(--space-shell-2)] sm:gap-[var(--space-shell-3)]">
         <button
           type="button"
           onClick={onOpenSearch}
