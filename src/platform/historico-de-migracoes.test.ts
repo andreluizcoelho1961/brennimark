@@ -80,6 +80,9 @@ const PENDENTES_ESPERADAS: string[] = [
    * `scripts/prova-limpeza-de-material-orfao.sh`.
    */
   "limpeza_de_material_orfao",
+  // `conta_removida` saiu daqui em 24/09/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20260924204551`; impressão digital
+  // igual à do local (chaves, nulidade, checks, índices, funções, gatilho).
   // `materiais_regra_e_miniatura` saiu daqui em 24/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260924183637`;
   // impressão digital igual à do local (colunas, constraints, índice, gatilho

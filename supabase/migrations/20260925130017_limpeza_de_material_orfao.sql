@@ -37,10 +37,12 @@
 --   6. a conta da pasta existe, e a marca da pasta, se existe, é DESSA conta.
 --      Pasta com conta inexistente ou marca de outra conta não tem forma de
 --      material do produto, tem forma de acidente: fica;
---   7. há alguém para constar como quem pediu — `requested_by` não aceita nulo.
---      Primeiro quem enviou o arquivo (o dono do objeto, se o login ainda
---      existe); senão, quem administra a conta há mais tempo. Inventar um
---      usuário seria pior que não enfileirar.
+--   7. há alguém para constar como quem pediu. Desde `conta_removida` a coluna
+--      `requested_by` aceita nulo (o login apagado vira nulo), mas uma pendência
+--      NOVA nasce com autor: primeiro quem enviou o arquivo (o dono do objeto,
+--      se o login ainda existe); senão, quem administra a conta há mais tempo.
+--      Sem nenhum dos dois, a conta não tem quem responda pela exclusão, e o
+--      arquivo fica.
 --
 -- Na dúvida, não enfileira. Um órfão que sobra custa espaço; um arquivo vivo
 -- apagado custa o material do cliente.
