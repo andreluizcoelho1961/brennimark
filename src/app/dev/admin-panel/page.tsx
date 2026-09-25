@@ -29,6 +29,8 @@ const TEMA_FIXO: BrennimarkTheme = {
  *
  * Fora de produção por construção.
  */
+const MARCA_FIXA = { id: "00000000-0000-4000-8000-000000000001", nome: "Marca de Bancada" };
+
 const VIVAS: DocPageEntry[] = [
   {
     slug: "cores",
@@ -61,7 +63,7 @@ export default async function AdminPanelLab({
 
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
-      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} />
+      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} marca={MARCA_FIXA} />
     </LocaleProvider>
   );
 }

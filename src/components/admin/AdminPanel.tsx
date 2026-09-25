@@ -7,6 +7,7 @@ import type { BrennimarkTheme } from "@/brennimark/types";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { VersionHistory } from "@/components/admin/VersionHistory";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
+import { ApagarMarca, NomeDaMarca } from "@/components/admin/ConfiguracoesDaMarca";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { criarPedidoDeEdicao } from "@/lib/brennimark/edicao-de-conteudo";
@@ -23,6 +24,7 @@ export function AdminPanel({
   deletedPages = [],
   groups,
   theme,
+  marca,
 }: {
   initialDocs: DocPageEntry[];
   /** Páginas sem linha viva que ainda têm histórico. Elas continuam
@@ -30,6 +32,8 @@ export function AdminPanel({
   deletedPages?: DeletedPage[];
   groups: readonly string[];
   theme: BrennimarkTheme;
+  /** A marca desta tela: o nome é editável e a marca pode ser apagada. */
+  marca: { id: string; nome: string };
 }) {
   // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
   // saberia qual, e responderia 409 numa conta com mais de uma.
@@ -189,12 +193,14 @@ export function AdminPanel({
         <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Administration" : "Administração"}</p>
         <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-platform-text md:text-6xl">{isEnglish ? "No pages yet" : "Nenhuma página ainda"}</h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-platform-text-muted">{isEnglish ? "This brand has no published pages. Pages arrive when a brand manual is imported." : "Esta marca ainda não tem páginas publicadas. As páginas chegam quando um manual é importado."}</p>
+        <NomeDaMarca nome={marca.nome} />
         <ThemeEditor theme={theme} />
         <div className="mt-16 border-t border-platform-border pt-12">
           <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>
           <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Brand materials" : "Materiais da marca"}</h2>
           <div className="mt-8"><AssetLibrary canManage /></div>
         </div>
+        <ApagarMarca id={marca.id} nome={marca.nome} />
       </div>
     );
   }
@@ -204,6 +210,8 @@ export function AdminPanel({
       <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Administration" : "Administração"}</p>
       <h1 className="mt-3 font-display text-4xl font-black uppercase leading-none text-platform-text md:text-6xl">{isEnglish ? "Content and assets" : "Conteúdo e assets"}</h1>
       <p className="mt-5 max-w-3xl text-base leading-relaxed text-platform-text-muted">{isEnglish ? "Update the guide without touching code. Every save is recorded in the version history, and also feeds the assistant." : "Atualize o guia sem alterar o código. Cada salvamento entra no histórico de versões e passa a orientar também o assistente."}</p>
+
+      <NomeDaMarca nome={marca.nome} />
 
       <section className="mt-12 grid gap-8 xl:grid-cols-[18rem_minmax(0,1fr)]">
         <aside className="border border-platform-border bg-platform-panel p-3">
@@ -256,6 +264,8 @@ export function AdminPanel({
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-platform-text-muted">{isEnglish ? "Upload logos, images, PDFs, fonts, and ZIP packages. Files stay private and download links expire automatically." : "Envie logos, imagens, PDFs, fontes e pacotes ZIP. Os arquivos ficam privados e os links de download expiram automaticamente."}</p>
         <div className="mt-8"><AssetLibrary canManage /></div>
       </section>
+
+      <ApagarMarca id={marca.id} nome={marca.nome} />
     </div>
   );
 }
