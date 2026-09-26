@@ -457,7 +457,9 @@ export function Folio({
       }}
       className="flex h-9 flex-none items-center gap-[var(--space-shell-2)] border-t border-platform-border bg-platform-panel px-[var(--space-shell-3)] text-[12px] text-platform-text-muted"
     >
-      <span className="flex items-center gap-1">
+      {/* O número e o "de 47" não quebram: no celular o nome do arquivo é que
+          cede (truncado), não o fólio (ensaio de 26/09/2026). */}
+      <span className="flex flex-none items-center gap-1 whitespace-nowrap">
         <label htmlFor="pagina-atual" className="sr-only">{t("Ir para a página", "Go to page")}</label>
         <input
           id="pagina-atual"
@@ -469,7 +471,7 @@ export function Folio({
         <span className="font-mono tabular-nums">{t("de", "of")} {total || "—"}</span>
       </span>
       <span aria-hidden>·</span>
-      <span className="font-mono tabular-nums">
+      <span className="flex-none whitespace-nowrap font-mono tabular-nums">
         {ajustadoALargura ? t("ajustado", "fit") : `${Math.round(escalaEfetiva * 100)}%`}
       </span>
       {nomeDoArquivo && (
