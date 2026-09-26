@@ -29,6 +29,10 @@ export function PessoasEAcesso() {
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [mensagem, setMensagem] = useState("");
+  // O resultado de "Copiar". Antes o botão chamava a área de transferência sem
+  // esperar nem avisar: se copiava, ninguém sabia; se o navegador recusava, o
+  // erro sumia (ensaio de 26/09/2026, "o botão copiar não funciona").
+  const [copia, setCopia] = useState<"" | "copiada" | "recusada">("");
   const [enviando, setEnviando] = useState(false);
   const [papel, setPapel] = useState<Papel>("consulta");
   const [nome, setNome] = useState("");
@@ -106,6 +110,7 @@ export function PessoasEAcesso() {
       ? textoDoResultado(String(dados.resultado ?? ""), isEnglish)
       : (dados.message ?? (isEnglish ? "Couldn't grant access." : "Não foi possível conceder o acesso.")));
     if (resposta.ok && typeof dados.senha === "string") {
+      setCopia("");
       setSenhaNova({ email: conferido.concessao.email, senha: dados.senha, validaAte: String(dados.validaAte ?? "") });
     }
     if (resposta.ok) { setNome(""); setEmail(""); setEscolhidas([]); await carregar(); }
@@ -126,8 +131,32 @@ export function PessoasEAcesso() {
       ? textoDoResultado(String(dados.resultado ?? ""), isEnglish)
       : (dados.message ?? (isEnglish ? "Couldn't generate a new password." : "Não foi possível gerar outra senha.")));
     if (resposta.ok && typeof dados.senha === "string") {
+      setCopia("");
       setSenhaNova({ email: pessoa.email, senha: dados.senha, validaAte: String(dados.validaAte ?? "") });
       await carregar();
+    }
+  }
+
+  /**
+   * Copia a senha e DIZ o que aconteceu. Se o navegador recusar a área de
+   * transferência (permissão, aba sem foco, política da página), a senha fica
+   * selecionada na tela: ⌘C resolve, e a pessoa sabe que precisa fazer isso.
+   */
+  async function copiarSenha(senha: string) {
+    try {
+      if (!navigator.clipboard) throw new Error("sem área de transferência");
+      await navigator.clipboard.writeText(senha);
+      setCopia("copiada");
+    } catch {
+      const alvo = document.querySelector("[data-senha-provisoria] [data-senha]");
+      const selecao = window.getSelection();
+      if (alvo && selecao) {
+        const faixa = document.createRange();
+        faixa.selectNodeContents(alvo);
+        selecao.removeAllRanges();
+        selecao.addRange(faixa);
+      }
+      setCopia("recusada");
     }
   }
 
@@ -239,17 +268,23 @@ export function PessoasEAcesso() {
             {isEnglish ? "Temporary password for" : "Senha provisória de"} {senhaNova.email}
           </p>
           <p data-senha className="mt-3 select-all font-mono text-2xl tracking-wider text-platform-text">{senhaNova.senha}</p>
+          {copia === "recusada" && (
+            <p role="alert" className="mt-2 text-[12px] text-platform-warning">
+              {isEnglish
+                ? "The browser didn't allow copying. The password is selected — press ⌘C (Ctrl+C)."
+                : "O navegador não permitiu copiar. A senha está selecionada — use ⌘C (Ctrl+C)."}
+            </p>
+          )}
           <p className="mt-3 text-[12px] leading-relaxed text-platform-text-muted">
             {isEnglish
               ? `Shown only now — it isn't stored anywhere readable. Valid until ${quando(senhaNova.validaAte)}.`
               : `Mostrada só agora — não fica guardada em lugar legível. Vale até ${quando(senhaNova.validaAte)}.`}
           </p>
           <div className="mt-4 flex gap-3">
-            <button type="button" className={botaoSecundario}
-              onClick={() => { void navigator.clipboard?.writeText(senhaNova.senha); }}>
-              {isEnglish ? "Copy" : "Copiar"}
+            <button type="button" className={botaoSecundario} onClick={() => { void copiarSenha(senhaNova.senha); }}>
+              {copia === "copiada" ? (isEnglish ? "Copied ✓" : "Copiada ✓") : (isEnglish ? "Copy" : "Copiar")}
             </button>
-            <button type="button" className={botaoSecundario} onClick={() => setSenhaNova(null)}>
+            <button type="button" className={botaoSecundario} onClick={() => { setSenhaNova(null); setCopia(""); }}>
               {isEnglish ? "I've handed it over" : "Já entreguei"}
             </button>
           </div>
