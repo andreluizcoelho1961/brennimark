@@ -19,12 +19,15 @@
 export type Bloco =
   | { tipo: "titulo"; nivel: number; texto: string }
   | { tipo: "lista"; ordenada: boolean; itens: string[] }
-  | { tipo: "paragrafo"; texto: string };
+  | { tipo: "paragrafo"; texto: string }
+  | { tipo: "separador" };
 
 export type Enfase = { tipo: "texto" | "negrito" | "italico"; valor: string };
 
 const TITULO = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/;
 const ITEM = /^\s{0,3}(?:([-*+])|(\d{1,3})[.)])\s+(.*)$/;
+/** `---`, `***`, `___` (com ou sem espaços): a linha separadora do Markdown. */
+const SEPARADOR = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 
 export function blocosDeMarkdown(texto: string): Bloco[] {
   const blocos: Bloco[] = [];
@@ -44,6 +47,14 @@ export function blocosDeMarkdown(texto: string): Bloco[] {
     if (linha.trim() === "") {
       fecharParagrafo();
       fecharLista();
+      continue;
+    }
+    // Antes do item: `* * *` também casaria com item de lista. Ensaio de
+    // 26/09/2026: o "---" do Vini aparecia cru no meio da resposta.
+    if (SEPARADOR.test(linha)) {
+      fecharParagrafo();
+      fecharLista();
+      blocos.push({ tipo: "separador" });
       continue;
     }
     const titulo = TITULO.exec(linha);

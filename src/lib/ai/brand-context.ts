@@ -151,12 +151,16 @@ function regrasDeRaciocinio(language: string, modo: ModoDoContexto): string {
 - Reason over the manual like someone who knows it: count, compare, combine pages, and draw conclusions that FOLLOW from what is documented (e.g. "how many colors?" → count the documented palette and answer the number, listing them).
 - When the answer is a conclusion rather than a sentence of the manual, say so plainly ("By the palette on p. 21–22, …") and cite every page it comes from. Never fill a gap with general knowledge about the brand or about design.
 - Answer the person's real question in plain language. If they aren't technical, explain the term (e.g. what CMYK is for) in one short sentence; keep the exact documented values.
-- Be conversational and direct: start with the answer, then only what helps apply it. No filler, no repeating the question.`
+- Be conversational and direct: start with the answer, then only what helps apply it. No filler, no repeating the question.
+- When you count, list the items you counted and check that the total equals the list. Never round or estimate a count.
+- Cite a page ONCE per block or list that comes from it — not on every line.`
     : `${escopo}
 - Raciocine sobre o manual como quem o conhece: conte, compare, junte páginas e tire conclusões que DECORREM do que está documentado (ex.: "quantas cores?" → conte a paleta documentada e responda o número, listando as cores).
 - Quando a resposta for uma conclusão, e não uma frase do manual, diga isso com naturalidade ("Pela paleta das pp. 21–22, …") e cite todas as páginas de onde ela vem. Nunca preencha lacuna com conhecimento geral sobre a marca ou sobre design.
 - Responda à pergunta real da pessoa, em linguagem simples. Se ela não for técnica, explique o termo em uma frase curta (ex.: para que serve o CMYK), mantendo os valores exatos documentados.
-- Converse de forma direta: comece pela resposta, depois só o que ajuda a aplicar. Sem enrolação, sem repetir a pergunta.`;
+- Converse de forma direta: comece pela resposta, depois só o que ajuda a aplicar. Sem enrolação, sem repetir a pergunta.
+- Ao contar, liste os itens contados e confira que o total é igual à lista. Nunca arredonde nem estime uma contagem.
+- Cite a página UMA vez por bloco ou lista que vem dela — não em cada linha.`;
 }
 
 /**
@@ -187,7 +191,8 @@ export function buildChatSystemPrompt(
     return `${brand.chatRole} Your role is to give direct, useful, verifiable answers for teams and vendors — people who design, and who need the exact value, not a pointer to it.
 
 Grounding rules:${regras}${raciocinio}
-- When the material contains technical values — color codes (Pantone, CMYK, RGB, HEX), measurements, clear space, typeface names and weights, proportions — the answer GIVES the values, complete and exactly as documented, organized as a list. Never replace a value with "see page X": the citation goes next to the value, not instead of it.
+- When the question ASKS for technical values — a color code (Pantone, CMYK, RGB, HEX), a measurement, clear space, a typeface and its weights, a proportion — the answer GIVES them, complete and exactly as documented. Never replace a value with "see page X": the citation goes next to the value, not instead of it.
+- Answer to the size of the question. "How many…?" or an overview → the number and the names, without every code; then offer the codes ("want the codes for any of them?"). Full codes for many items at once make the answer too long to finish.
 - If the material seems cut ("…") before the value asked for, say that the value is on the cited pages and was not in the excerpt you received. Never complete it from memory.
 
 Recommended format:
@@ -203,7 +208,8 @@ ${conhecimento}
   return `${brand.chatRole} Sua função é dar respostas diretas, úteis e verificáveis para equipes e fornecedores — gente que desenha, e que precisa do valor exato, não de um ponteiro para ele.
 
 Regras de fundamentação:${regras}${raciocinio}
-- Quando o material traz valores técnicos — códigos de cor (Pantone, CMYK, RGB, HEX), medidas, área de proteção, nomes e pesos de fonte, proporções —, a resposta DÁ os valores, completos e exatos como documentados, organizados em lista. Nunca troque um valor por "veja a página X": a citação vem junto do valor, não no lugar dele.
+- Quando a pergunta PEDE valores técnicos — o código de uma cor (Pantone, CMYK, RGB, HEX), uma medida, a área de proteção, uma fonte e seus pesos, uma proporção —, a resposta DÁ os valores, completos e exatos como documentados. Nunca troque um valor por "veja a página X": a citação vem junto do valor, não no lugar dele.
+- Responda na medida da pergunta. "Quantas…?" ou uma visão geral → o número e os nomes, sem todos os códigos; no fim, ofereça os códigos ("quer os códigos de alguma?"). Códigos completos de muitos itens de uma vez deixam a resposta longa demais para terminar.
 - Se o material parecer cortado ("…") antes do valor pedido, diga que o valor está nas páginas citadas e não veio no trecho recebido. Nunca complete de memória.
 
 Formato recomendado:
