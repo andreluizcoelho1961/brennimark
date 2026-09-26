@@ -316,7 +316,13 @@ export function PaginaDoItem({ itemId, podeEditar, raiz }: { itemId: string; pod
             {podeEditar && <EditorDaRegra t={t} itemId={item.id} atuais={item.regra.map((c) => c.pagina)} manual={manual} aoSalvar={recarregar} />}
           </section>
 
-          <button type="button" data-baixar-kit disabled={emUso.length === 0 || Boolean(baixando)} onClick={() => void baixar(null)}
+          {/*
+            Um arquivo em uso baixa DIRETO, pela rota que registra — sem ZIP
+            (spec §5-A.1). O botão já dizia "Baixar o arquivo" e entregava um
+            ZIP com três pastas até um `.ai` só (ensaio de 26/09/2026).
+          */}
+          <button type="button" data-baixar-kit disabled={emUso.length === 0 || Boolean(baixando)}
+            onClick={() => void baixar(emUso.length === 1 ? [emUso[0].id] : null)}
             className="flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-platform-text px-[var(--space-shell-4)] text-[14px] font-semibold text-platform-bg hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40">
             {baixando || (emUso.length === 1
               ? t("Baixar o arquivo", "Download the file")
@@ -324,10 +330,14 @@ export function PaginaDoItem({ itemId, podeEditar, raiz }: { itemId: string; pod
           </button>
           {aviso && <p role="alert" data-aviso-do-kit className="text-[12px] text-platform-text">{aviso}</p>}
 
-          <button type="button" onClick={() => setEscolhendo((v) => !v)} aria-expanded={escolhendo} data-escolher-arquivos
-            className="self-start text-[12px] text-platform-text-muted underline-offset-2 hover:text-platform-text hover:underline">
-            {escolhendo ? t("Fechar a lista", "Close the list") : t("Escolher arquivos", "Choose files")}
-          </button>
+          {/* Com um arquivo só não há o que escolher. Com um em uso e outros
+              fora de uso, a lista continua: é por ela que se chega aos antigos. */}
+          {doItem.length > 1 && (
+            <button type="button" onClick={() => setEscolhendo((v) => !v)} aria-expanded={escolhendo} data-escolher-arquivos
+              className="self-start text-[12px] text-platform-text-muted underline-offset-2 hover:text-platform-text hover:underline">
+              {escolhendo ? t("Fechar a lista", "Close the list") : t("Escolher arquivos", "Choose files")}
+            </button>
+          )}
         </aside>
       </div>
 
