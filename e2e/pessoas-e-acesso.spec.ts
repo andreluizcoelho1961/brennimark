@@ -175,3 +175,41 @@ test("gerar nova senha pede confirmação, manda só o e-mail e mostra a senha n
   expect(avisos[0]).toMatch(/A atual deixa de valer/);
   await expect(page.locator("[data-senha-provisoria] [data-senha]")).toHaveText("Wxyz-2345-abcd-EFGH");
 });
+
+test("copiar a senha diz que copiou, e o que copiou é a senha", async ({ page, context, browserName }) => {
+  test.skip(browserName !== "chromium", "permissão de área de transferência só se concede no Chromium");
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await comAcesso(page, [], { resultado: "senha-provisoria", senha: "Abcd-2345-efgh-JKLM", validaAte: "2099-09-21T12:00:00Z" });
+  await page.goto("/dev/pessoas");
+
+  await page.getByLabel("Nome").fill("Gráfica Nova");
+  await page.getByLabel("E-mail").fill("nova@grafica.test");
+  await page.getByRole("checkbox", { name: "Solara" }).check();
+  await page.getByRole("button", { name: "Conceder acesso" }).click();
+
+  const aviso = page.locator("[data-senha-provisoria]");
+  await aviso.getByRole("button", { name: "Copiar" }).click();
+  await expect(aviso.getByRole("button", { name: "Copiada ✓" })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("Abcd-2345-efgh-JKLM");
+});
+
+test("se o navegador recusa copiar, a senha fica selecionada e o aviso diz o que fazer", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText: () => Promise.reject(new Error("negado")) },
+    });
+  });
+  await comAcesso(page, [], { resultado: "senha-provisoria", senha: "Abcd-2345-efgh-JKLM", validaAte: "2099-09-21T12:00:00Z" });
+  await page.goto("/dev/pessoas");
+
+  await page.getByLabel("Nome").fill("Gráfica Nova");
+  await page.getByLabel("E-mail").fill("nova@grafica.test");
+  await page.getByRole("checkbox", { name: "Solara" }).check();
+  await page.getByRole("button", { name: "Conceder acesso" }).click();
+
+  const aviso = page.locator("[data-senha-provisoria]");
+  await aviso.getByRole("button", { name: "Copiar" }).click();
+  await expect(aviso.getByRole("alert")).toContainText("use ⌘C");
+  expect(await page.evaluate(() => window.getSelection()?.toString())).toBe("Abcd-2345-efgh-JKLM");
+});
