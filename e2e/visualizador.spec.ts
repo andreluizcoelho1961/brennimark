@@ -114,7 +114,9 @@ test("o salto para uma página distante cai na página pedida", async ({ page })
  */
 test("o zoom anda nos dois sentidos", async ({ page }) => {
   await abrir(page);
-  const largura = () => page.evaluate(() => document.querySelector("canvas")!.width);
+  // O tamanho NA TELA, não os pixels do desenho: em tela 2× a página já nasce
+  // no teto de pixels, e o zoom cresce na tela sem ganhar pixels.
+  const largura = () => page.evaluate(() => document.querySelector("canvas")!.getBoundingClientRect().width);
 
   const inicial = await largura();
 
@@ -323,4 +325,42 @@ test("fechar no meio do carregamento para todos os pedidos", async ({ page }) =>
   await page.waitForTimeout(3_000);
   expect(depoisDeFechar, "o carregamento seguiu pedindo pedaços depois de a tela sair").toBe(0);
   expect(erros).toEqual([]);
+});
+
+/**
+ * Nitidez em tela de alta densidade (ensaio de 26/09/2026): o desenho da
+ * página tinha 1 pixel por pixel de CSS, e o iPhone (3×) e a Retina (2×)
+ * esticavam — texto borrado. Agora o canvas tem a densidade da tela, e o
+ * tamanho na tela não muda. O teto de pixels por página continua: numa página
+ * grande de computador ele limita a densidade, e a página sai inteira.
+ */
+async function proporcaoDoDesenho(page: Page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector("canvas")!;
+    return { razao: canvas.width / canvas.getBoundingClientRect().width, pixels: canvas.width * canvas.height };
+  });
+}
+
+for (const densidade of [2, 3]) {
+  test.describe(`celular ${densidade}×`, () => {
+    test.use({ viewport: { width: 390, height: 844 }, deviceScaleFactor: densidade });
+
+    test(`o desenho tem ${densidade}× os pixels do tamanho na tela`, async ({ page }) => {
+      await abrir(page);
+      const { razao } = await proporcaoDoDesenho(page);
+      expect(razao).toBeGreaterThan(densidade * 0.97);
+      expect(razao).toBeLessThan(densidade * 1.03);
+    });
+  });
+}
+
+test.describe("computador 2×, página grande", () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test("mais nítido que 1×, sem furar o teto de pixels", async ({ page }) => {
+    await abrir(page);
+    const { razao, pixels } = await proporcaoDoDesenho(page);
+    expect(razao).toBeGreaterThan(1.4);
+    expect(pixels).toBeLessThanOrEqual(4_000_000 + 5_000);
+  });
 });
