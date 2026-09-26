@@ -300,3 +300,21 @@ p, blockquote, li {
 :root:has([data-aba-de-capitulo]) [data-vini] {
   right: calc(max(env(safe-area-inset-right), 1rem) + 1.75rem);
 }
+
+/*
+ * Campo de texto em tela de toque: letra de 16 px, no mínimo.
+ *
+ * Abaixo de 16 px o Safari do iPhone dá zoom sozinho na página ao tocar no
+ * campo — a página fica ampliada e cortada nas bordas, e não volta sozinha
+ * (ensaio de 26/09/2026, campo do Vini com 14 px). Fora de camada de propósito:
+ * CSS sem camada vence as utilidades do Tailwind, então nenhum campo escapa por
+ * ter `text-[12px]` na própria classe. No computador (ponteiro fino) nada muda.
+ */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+

@@ -362,7 +362,7 @@ export function JanelaDoVini({
                     // Enter envia; Shift+Enter quebra linha — o gesto de todo chat.
                     if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); enviar(); }
                   }}
-                  placeholder={t("Pergunte sobre a marca…", "Ask about the brand…")}
+                  placeholder={t("Pergunte ao Vini…", "Ask Vini…")}
                   aria-label={t("Pergunta para o Vini", "Question for Vini")}
                   className="max-h-32 min-h-10 min-w-0 flex-1 resize-none border border-platform-border bg-transparent px-3 py-2 text-[14px] text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal focus:outline-none"
                 />
