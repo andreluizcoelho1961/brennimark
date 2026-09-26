@@ -72,14 +72,9 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * Sinônimos de manual de marca na busca de trechos (ensaio de 26/09/2026:
-   * "logotipo principal" não achava "logo preferencial"). Só substitui a
-   * função `buscar_trechos`; não altera tabela nem dado. NÃO aplicada em
-   * produção: aplicar é autorização nominal do André. Prova em
-   * `scripts/prova-sinonimos-na-busca.sh`.
-   */
-  "sinonimos_na_busca",
+  // `sinonimos_na_busca` saiu daqui em 26/09/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20260926115535`; impressão
+  // digital igual à do local (definição e grants de `buscar_trechos`).
   // `limpeza_de_material_orfao` saiu daqui em 25/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260925171853`;
   // impressão digital igual à do local (definição, grants e comentário).

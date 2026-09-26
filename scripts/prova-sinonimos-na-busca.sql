@@ -3,7 +3,7 @@
 -- Nasce do ensaio: "Qual é o logotipo principal?" no manual do Bradesco, que
 -- responde na página 4 com LOGO e versão PREFERENCIAL. A busca procurava as
 -- palavras da pergunta, não achava a página, e a IA afirmava que a marca não
--- documentava. Ver a migration 20260926113344_sinonimos_na_busca.
+-- documentava. Ver a migration 20260926115535_sinonimos_na_busca.
 --
 -- Mesmo método da `prova-busca-tolerante`: mundo próprio (conteúdo FICTÍCIO),
 -- a busca chamada COMO USUÁRIO, preparação que falha REPROVA, `rollback`.
