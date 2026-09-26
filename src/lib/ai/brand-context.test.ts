@@ -387,3 +387,12 @@ test("as regras de raciocínio (26/09): somar, concluir com as páginas, linguag
   assert.match(buildChatSystemPrompt([], MARCA, "", "inteiro"), /manual INTEIRO/);
   assert.match(buildChatSystemPrompt([], MARCA, "", "trechos"), /não afirme que não está documentado/);
 });
+
+test("na medida da pergunta (26/09): quantidade → número e nomes; conta conferida; citação uma vez por bloco", () => {
+  const pt = buildChatSystemPrompt([], MARCA, "", "inteiro");
+  assert.match(pt, /Responda na medida da pergunta/);
+  assert.match(pt, /confira que o total é igual à lista/);
+  assert.match(pt, /Cite a página UMA vez por bloco/);
+  // A regra dos valores continua, agora quando a pergunta os PEDE.
+  assert.match(pt, /Quando a pergunta PEDE valores técnicos/);
+});

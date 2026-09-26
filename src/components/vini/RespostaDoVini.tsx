@@ -78,7 +78,9 @@ export function RespostaDoVini({
   return (
     <div data-resposta-do-vini className="space-y-3 text-[14px] leading-relaxed text-platform-text">
       {blocosDeMarkdown(conteudo).map((bloco, i) =>
-        bloco.tipo === "titulo" ? (
+        bloco.tipo === "separador" ? (
+          <hr key={i} className="border-platform-border" />
+        ) : bloco.tipo === "titulo" ? (
           <p key={i} role="heading" aria-level={Math.min(bloco.nivel + 2, 6)}
             className="pt-1 font-display text-[11px] font-bold uppercase tracking-wide text-platform-text-muted">
             {linha(bloco.texto, `t${i}`)}

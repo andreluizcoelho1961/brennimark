@@ -82,3 +82,17 @@ test("negrito dentro de itálico não deixa asterisco cru (ensaio de 25/09/2026)
     [{ tipo: "italico", valor: "Nota: consta num documento com status de RASCUNHO, orientação provisória." }],
   );
 });
+
+test("--- vira separador, e não texto cru (ensaio de 26/09/2026)", () => {
+  assert.deepEqual(blocosDeMarkdown("Cores principais\n\n---\n\n2. Tons de apoio"), [
+    { tipo: "paragrafo", texto: "Cores principais" },
+    { tipo: "separador" },
+    { tipo: "lista", ordenada: true, itens: ["Tons de apoio"] },
+  ]);
+  assert.deepEqual(blocosDeMarkdown("* * *"), [{ tipo: "separador" }]);
+  assert.deepEqual(blocosDeMarkdown("___"), [{ tipo: "separador" }]);
+});
+
+test("dois traços não são separador: continuam texto", () => {
+  assert.deepEqual(blocosDeMarkdown("--"), [{ tipo: "paragrafo", texto: "--" }]);
+});
