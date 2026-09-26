@@ -88,6 +88,15 @@ returns text language sql as $f$
     || 'from public.buscar_trechos(%L, %L, %s)', p_marca, p_pergunta, p_limite));
 $f$;
 
+-- Os trechos NA ORDEM em que a busca devolve — o exato tem de vir primeiro.
+create function pg_temp.ordem(p_quem uuid, p_marca uuid, p_pergunta text, p_limite int default 8)
+returns text language sql as $f$
+  select saida from pg_temp.como(p_quem, format(
+    'select count(*)::text || '':'' || coalesce(string_agg(t.document_slug, '','' order by t.n), '''') '
+    || 'from public.buscar_trechos(%L, %L, %s) with ordinality as t(document_slug, document_title, group_name, section, status, page_start, page_end, content, relevancia, n)',
+    p_marca, p_pergunta, p_limite));
+$f$;
+
 -- ─── O mundo ────────────────────────────────────────────────────────────────
 do $$
 declare
@@ -115,6 +124,12 @@ begin
     'A tipografia institucional é uma sem serifa em quatro pesos.', u_admin, 'ready');
   perform pg_temp.secao(conta, a, 'fotografia', 'Estilo de fotografia',
     'Pessoas em primeiro plano, luz natural, versão preferencial em cor.', u_admin);
+  -- O defeito de 26/09 ("Quantas cores tem a marca?"): a isca tem "quanto",
+  -- "cores" e "marcas"; a paleta, que responde, não tem "quanto".
+  perform pg_temp.secao(conta, a, 'co-branding', 'Co-branding',
+    'Quanto às marcas parceiras, respeite as cores de cada uma.', u_admin);
+  perform pg_temp.secao(conta, a, 'paleta', 'Paleta de cores',
+    'A paleta da marca tem duas cores: vermelho e branco.', u_admin);
 
   -- Marca B, MESMA conta, em inglês. `consulta` não tem acesso a ela.
   perform pg_temp.secao(conta, b, 'b-logo', 'Logotype',
@@ -142,8 +157,9 @@ begin
   select * into m from mundo;
   -- "logotipo" acha "logo" e "principal" acha "preferencial", com TODAS as
   -- palavras: a fotografia fala de preferencial mas não de logo, e fica fora.
-  perform pg_temp.registrar('logotipo principal acha logo preferencial',
-    '1:logo-versoes', pg_temp.buscar(m.admin, m.marca_a, 'Qual é o logotipo principal?'));
+  -- Desde 26/09 o exato vem PRIMEIRO e os parciais completam depois.
+  perform pg_temp.registrar('logotipo principal acha logo preferencial, primeiro',
+    'logo-versoes', split_part(split_part(pg_temp.ordem(m.admin, m.marca_a, 'Qual é o logotipo principal?'), ':', 2), ',', 1));
   perform pg_temp.registrar('em ingles: main logo acha master logotype',
     '1:b-logo', pg_temp.buscar(m.admin, m.marca_b, 'what is the main logo?'));
 end $$;
@@ -153,10 +169,10 @@ do $$
 declare m record;
 begin
   select * into m from mundo;
-  perform pg_temp.registrar('a palavra do manual continua achando: logo preferencial',
-    '1:logo-versoes', pg_temp.buscar(m.admin, m.marca_a, 'logo preferencial'));
-  perform pg_temp.registrar('protecao acha respiro',
-    '1:area-de-respiro', pg_temp.buscar(m.admin, m.marca_a, 'área de proteção do logotipo'));
+  perform pg_temp.registrar('a palavra do manual continua achando: logo preferencial, primeiro',
+    'logo-versoes', split_part(split_part(pg_temp.ordem(m.admin, m.marca_a, 'logo preferencial'), ':', 2), ',', 1));
+  perform pg_temp.registrar('protecao acha respiro, primeiro',
+    'area-de-respiro', split_part(split_part(pg_temp.ordem(m.admin, m.marca_a, 'área de proteção do logotipo'), ':', 2), ',', 1));
   perform pg_temp.registrar('fonte acha tipografia',
     '1:tipografia', pg_temp.buscar(m.admin, m.marca_a, 'qual a fonte institucional?'));
   perform pg_temp.registrar('em ingles: exclusion acha clearspace',
@@ -178,6 +194,20 @@ begin
     '0:', pg_temp.buscar(m.admin, m.marca_a, ''));
 end $$;
 
+-- ─── 3b. Palavras de pergunta e a busca que completa (26/09) ──────────────
+do $$
+declare m record;
+begin
+  select * into m from mundo;
+  perform pg_temp.registrar('Quantas cores tem a marca? traz a paleta',
+    'true', (pg_temp.ordem(m.admin, m.marca_a, 'Quantas cores tem a marca?') like '%paleta%')::text);
+  perform pg_temp.registrar('quantas nao vira termo: a mesma resposta sem a palavra',
+    pg_temp.ordem(m.admin, m.marca_a, 'cores da marca'),
+    pg_temp.ordem(m.admin, m.marca_a, 'Quantas cores tem a marca?'));
+  perform pg_temp.registrar('so palavras de pergunta: zero',
+    '0:', pg_temp.ordem(m.admin, m.marca_a, 'quantas? onde? pode?'));
+end $$;
+
 -- ─── 4. As grafias da busca tolerante continuam ────────────────────────────
 do $$
 declare m record;
@@ -193,7 +223,7 @@ declare m record;
 begin
   select * into m from mundo;
   perform pg_temp.registrar('consulta le a marca concedida',
-    '1:logo-versoes', pg_temp.buscar(m.consulta, m.marca_a, 'Qual é o logotipo principal?'));
+    'logo-versoes', split_part(split_part(pg_temp.ordem(m.consulta, m.marca_a, 'Qual é o logotipo principal?'), ':', 2), ',', 1));
   perform pg_temp.registrar('consulta NAO le outra marca da mesma conta',
     '0:', pg_temp.buscar(m.consulta, m.marca_b, 'main logo'));
   perform pg_temp.registrar('admin NAO le marca de outra conta',

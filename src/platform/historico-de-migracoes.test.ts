@@ -72,6 +72,14 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * A busca ignora palavras de pergunta e completa com a busca ampla quando a
+   * exata acha pouco (ensaio de 26/09/2026: "Quantas cores tem a marca?" não
+   * trazia a paleta). Só substitui `buscar_trechos`. NÃO aplicada em produção:
+   * aplicar é autorização nominal do André. Provas: `prova-busca-tolerante` e
+   * `prova-sinonimos-na-busca`.
+   */
+  "busca_completa_e_perguntas",
   // `sinonimos_na_busca` saiu daqui em 26/09/2026: aplicada ao banco hospedado
   // com autorização nominal do André, carimbada `20260926115535`; impressão
   // digital igual à do local (definição e grants de `buscar_trechos`).
