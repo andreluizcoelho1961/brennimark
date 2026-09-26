@@ -67,6 +67,11 @@ async function* sobrecarga(): AsyncGenerator<string> {
   throw Object.assign(new Error("503 UNAVAILABLE: model overloaded"), { statusCode: 503 });
 }
 
+// Falha que NÃO é sobrecarga: troca de IA direto, sem repetir o modelo.
+async function* recusa(): AsyncGenerator<string> {
+  throw new Error("400 invalid request");
+}
+
 async function drenar(iterator: AsyncIterator<string>) {
   let t = "";
   for (let n = await iterator.next(); !n.done; n = await iterator.next()) t += n.value;
@@ -81,6 +86,7 @@ function parametros(cliente: never, dispatch: Parameters<typeof executarEmFila>[
     primeira: { pricing: PRECO_DA_PRINCIPAL, reservedMicros: 7_000, maxOutputTokens: 2_000 },
     firstChunkTimeoutMs: 1_000, usageTimeoutMs: 20,
     novoId: () => `exec-reserva-${++n}`,
+    esperaNaSobrecargaMs: 0,
     dispatch,
     ...extra,
   };
@@ -108,7 +114,7 @@ test("a principal falha antes de responder: a reserva responde, com execução e
   const execucao = await executarEmFila(parametros(cliente, (a, _s, teto) => {
     tetos.push(teto);
     return a === PRINCIPAL
-      ? { textStream: sobrecarga(), usage: Promise.reject(new Error("sem uso")) }
+      ? { textStream: recusa(), usage: Promise.reject(new Error("sem uso")) }
       : { textStream: texto(["azul"]), usage: Promise.resolve(uso(100, 10)) };
   }));
   assert.equal(execucao.firstChunk + (await drenar(execucao.iterator)), "azul");
@@ -139,7 +145,7 @@ test("as duas falham: o erro sai achatado, com a causa da ÚLTIMA por último", 
   const { cliente, chamadas } = razaoFalso();
   await assert.rejects(
     executarEmFila(parametros(cliente, (a) => ({
-      textStream: a === PRINCIPAL ? sobrecarga() : (async function* () { throw new Error("429 rate limit"); })(),
+      textStream: a === PRINCIPAL ? recusa() : (async function* () { throw new Error("429 rate limit"); })(),
       usage: Promise.reject(new Error("sem uso")),
     }))),
     (erro: unknown) => {
@@ -177,7 +183,7 @@ test("reserva sem preço verificado pula a vez, e a próxima da fila responde", 
   const execucao = await executarEmFila(parametros(cliente, (a) => {
     tentadas.push(a.config.model);
     return a === PRINCIPAL
-      ? { textStream: sobrecarga(), usage: Promise.reject(new Error("sem uso")) }
+      ? { textStream: recusa(), usage: Promise.reject(new Error("sem uso")) }
       : { textStream: texto(["ok"]), usage: Promise.resolve(uso(1, 1)) };
   }, { attempts: [PRINCIPAL, SEM_PRECO, RESERVA], onReservaRecusada: (_a, _i, m) => recusas.push(m) }));
   assert.equal(execucao.attempt, RESERVA);
@@ -222,4 +228,54 @@ test("falha DEPOIS da primeira palavra não troca de IA: o texto já está na te
   }));
   await assert.rejects(drenar(execucao.iterator), /queda no meio/);
   assert.deepEqual(tentadas, ["google"]);
+});
+
+
+// ─── Sobrecarga: o mesmo modelo mais uma vez (26/09/2026) ──────────────────
+
+test("sobrecarga na principal: ela é repetida uma vez, responde, e a reserva nem é tentada", async () => {
+  const { cliente, chamadas } = razaoFalso();
+  const tentadas: string[] = [];
+  let vezesDaPrincipal = 0;
+  const execucao = await executarEmFila(parametros(cliente, (a) => {
+    tentadas.push(a.config.provider);
+    if (a === PRINCIPAL && ++vezesDaPrincipal === 1) {
+      return { textStream: sobrecarga(), usage: Promise.reject(new Error("sem uso")) };
+    }
+    return { textStream: texto(["azul"]), usage: Promise.resolve(uso(100, 10)) };
+  }));
+  assert.equal(execucao.firstChunk + (await drenar(execucao.iterator)), "azul");
+  assert.deepEqual(tentadas, ["google", "google"]);
+  assert.equal(execucao.attempt, PRINCIPAL);
+  assert.equal(execucao.fallbackUsed, false, "repetir a principal não é usar a reserva");
+  // A repetição é uma execução nova, com reserva própria ao preço da principal.
+  const reserva = chamadas.find((c) => c.fn === "reservar_execucao_de_ia_server");
+  assert.ok(reserva);
+  assert.equal((reserva.args.p_price_snapshot as { provider: string }).provider, "google");
+});
+
+test("sobrecarga que insiste: uma repetição só, e então a reserva", async () => {
+  const { cliente } = razaoFalso();
+  const tentadas: string[] = [];
+  const execucao = await executarEmFila(parametros(cliente, (a) => {
+    tentadas.push(a.config.provider);
+    return a === PRINCIPAL
+      ? { textStream: sobrecarga(), usage: Promise.reject(new Error("sem uso")) }
+      : { textStream: texto(["azul"]), usage: Promise.resolve(uso(100, 10)) };
+  }));
+  assert.equal(execucao.firstChunk + (await drenar(execucao.iterator)), "azul");
+  assert.deepEqual(tentadas, ["google", "google", "groq"]);
+  assert.equal(execucao.fallbackUsed, true);
+});
+
+test("falha que não é sobrecarga não repete o modelo: vai direto à reserva", async () => {
+  const { cliente } = razaoFalso();
+  const tentadas: string[] = [];
+  await executarEmFila(parametros(cliente, (a) => {
+    tentadas.push(a.config.provider);
+    return a === PRINCIPAL
+      ? { textStream: recusa(), usage: Promise.reject(new Error("sem uso")) }
+      : { textStream: texto(["azul"]), usage: Promise.resolve(uso(100, 10)) };
+  }));
+  assert.deepEqual(tentadas, ["google", "groq"]);
 });
