@@ -114,7 +114,9 @@ test("o salto para uma página distante cai na página pedida", async ({ page })
  */
 test("o zoom anda nos dois sentidos", async ({ page }) => {
   await abrir(page);
-  const largura = () => page.evaluate(() => document.querySelector("canvas")!.width);
+  // O tamanho NA TELA, não os pixels do desenho: em tela 2× a página já nasce
+  // no teto de pixels, e o zoom cresce na tela sem ganhar pixels.
+  const largura = () => page.evaluate(() => document.querySelector("canvas")!.getBoundingClientRect().width);
 
   const inicial = await largura();
 
