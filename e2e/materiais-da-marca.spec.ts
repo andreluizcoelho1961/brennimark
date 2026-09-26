@@ -281,3 +281,17 @@ test("remover o item escolhido no envio limpa a escolha — a caixa não mostra 
   await expect(envio.locator('select[name="hierarquia"]')).toBeVisible();
   await expect(envio.getByRole("button", { name: /Enviar arquivo/i })).toBeEnabled();
 });
+
+test("item com UM arquivo: o botão baixa o próprio arquivo, sem ZIP, e não oferece escolher", async ({ page }) => {
+  let pediuKit = false;
+  await comAcervo(page, () => { pediuKit = true; });
+  await page.route("**/api/assets/v-ico/download**", (rota) => rota.fulfill({ status: 200, contentType: "text/plain", body: "ok" }));
+  await page.goto("/dev/materiais/item-icones");
+  await expect(page.locator("[data-baixar-kit]")).toHaveText("Baixar o arquivo");
+  await expect(page.locator("[data-escolher-arquivos]")).toHaveCount(0);
+
+  const pedido = page.waitForRequest("**/api/assets/v-ico/download**");
+  await page.locator("[data-baixar-kit]").click();
+  await pedido;
+  expect(pediuKit).toBe(false);
+});
