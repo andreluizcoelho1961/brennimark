@@ -933,3 +933,11 @@ test("o teto de saída do MODELO vale quando é menor que o da tarefa — e a re
   assert.ok(outro.pode);
   assert.equal(outro.maxOutputTokens, 2_000);
 });
+
+test("a reserva conta o manual inteiro quando ele vai: mais conhecimento, teto maior", () => {
+  const trechos = tetoDeTokensDeEntrada(REQUEST_BASE.task, REQUEST_BASE.role);
+  const comManual = tetoDeTokensDeEntrada(REQUEST_BASE.task, REQUEST_BASE.role, 42_177);
+  assert.ok(comManual > trechos, "o manual do Bradesco passa do teto dos trechos e tem de pesar na reserva");
+  // Conhecimento menor que o teto dos trechos não diminui a reserva.
+  assert.equal(tetoDeTokensDeEntrada(REQUEST_BASE.task, REQUEST_BASE.role, 100), trechos);
+});

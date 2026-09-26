@@ -228,17 +228,31 @@ export function faixaDeTrecho(trecho: Trecho, ingles: boolean): string {
  * assistente dizer "não há diretriz" sobre algo que está escrito. Mas aparece
  * ROTULADO, e as regras de fundamentação obrigam a tratá-lo como provisório.
  */
+/**
+ * `trechos`: o que a busca escolheu, cortado e limitado (o caminho do manual
+ * gigante e da IA pequena). `inteiro`: o manual todo, sem corte — quem chama
+ * já conferiu que ele cabe no modelo (`manual-inteiro.ts`, decisão de 26/09).
+ */
+export type ModoDoContexto = "trechos" | "inteiro";
+
+/** O teto do modo inteiro, em caracteres — o de `manual-inteiro.ts`, por segurança. */
+const TETO_DO_MODO_INTEIRO = 60_000 * 3;
+
 export function montarContextoRecuperado(
   trechos: readonly Trecho[],
   rotulos: Record<string, string>,
   pergunta = "",
+  modo: ModoDoContexto = "trechos",
 ): { texto: string; usados: Trecho[] } {
   const usados: Trecho[] = [];
   const partes: string[] = [];
-  let orcamento = LIMITES_DE_IA.maxCaracteresDeContexto;
+  const inteiro = modo === "inteiro";
+  let orcamento = inteiro ? TETO_DO_MODO_INTEIRO : LIMITES_DE_IA.maxCaracteresDeContexto;
 
-  for (const trecho of trechos.slice(0, LIMITES_DE_IA.maxTrechos)) {
-    const conteudo = recortarTrecho(trecho.content, pergunta, LIMITES_DE_IA.maxCaracteresPorTrecho);
+  for (const trecho of inteiro ? trechos : trechos.slice(0, LIMITES_DE_IA.maxTrechos)) {
+    const conteudo = inteiro
+      ? trecho.content
+      : recortarTrecho(trecho.content, pergunta, LIMITES_DE_IA.maxCaracteresPorTrecho);
     if (conteudo.length > orcamento) break;
     orcamento -= conteudo.length;
     usados.push(trecho);

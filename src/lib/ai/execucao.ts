@@ -10,6 +10,7 @@ import {
 } from "./orcamento";
 import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
+import { caracteresDoManual } from "./manual-inteiro";
 import { contarCaracteres, MAX_CARACTERES_DO_PAPEL_DA_MARCA } from "../brennimark/brand-row";
 
 /**
@@ -109,12 +110,13 @@ const BYTES_POR_CARACTERE_PIOR_CASO = 4;
  * assume.
  *
  * PT, o pior caso entre os dois idiomas testados, com uma folga pequena:
- *   assist: 2.834 medidos → 2.900 (era 2.219 → 2.300; subiu em 25/09/2026 com a
- *     regra "dar os valores técnicos, não o ponteiro para eles")
+ *   assist: 3.823 medidos → 3.900 (2.219 → 2.300 até 25/09; 2.834 → 2.900 com
+ *     a regra "dar os valores técnicos"; subiu em 26/09/2026 com as regras de
+ *     RACIOCÍNIO — somar, associar, concluir, linguagem simples)
  *   analyse-image: 3.632 medidos → 3.700
  */
 export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
-  assist: 2_900,
+  assist: 3_900,
   "analyse-image": 3_700,
   prompt: 2_300,
 };
@@ -146,9 +148,13 @@ const MARGEM_DE_PROTOCOLO = 1.2;
  * superestimar é seguro porque a consolidação ajusta para o custo real
  * depois.
  */
-export function tetoDeTokensDeEntrada(task: AITaskType, role: string): number {
+export function tetoDeTokensDeEntrada(task: AITaskType, role: string, caracteresDoConhecimento = 0): number {
   const papelReal = Math.min(contarCaracteres(role), MAX_CARACTERES_DO_PAPEL_DA_MARCA);
-  const base = LIMITES_DE_IA.maxCaracteresDeContexto + BOILERPLATE_DO_PROMPT_DE_SISTEMA[task] + papelReal;
+  // O conhecimento é o MAIOR entre o teto dos trechos e o que de fato vai:
+  // com o manual inteiro (26/09/2026), o que vai passa do teto dos trechos,
+  // e reservar pelo teto antigo subestimaria a execução.
+  const conhecimento = Math.max(LIMITES_DE_IA.maxCaracteresDeContexto, caracteresDoConhecimento);
+  const base = conhecimento + BOILERPLATE_DO_PROMPT_DE_SISTEMA[task] + papelReal;
   const comHistorico = task === "assist"
     ? LIMITES_DE_IA.maxCaracteresDaPergunta + LIMITES_DE_IA.maxMensagens * LIMITES_DE_IA.maxCaracteresPorMensagem
     : LIMITES_DE_IA.maxCaracteresDaPergunta;
@@ -235,7 +241,7 @@ export async function decidirExecucao(
   // acima deste, o Groq gratuito recusa antes de começar.
   const maxOutputTokens = Math.min(tetoDeTokensDeSaida(request.task), capabilities.maxOutputTokens ?? Infinity);
   const reservedMicros = custoDeReservaMicros(pricing, {
-    entrada: tetoDeTokensDeEntrada(request.task, request.role),
+    entrada: tetoDeTokensDeEntrada(request.task, request.role, caracteresDoManual(request.sources ?? [])),
     saida: maxOutputTokens,
     imagem: request.image ? pricing.maxImageTokens : undefined,
   });

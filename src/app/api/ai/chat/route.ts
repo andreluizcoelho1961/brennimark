@@ -11,6 +11,8 @@ import { idDeConversa } from "@/lib/ai/conversas";
 import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
+import { caracteresDoManual, lerManualInteiro, manualCabeNoModelo } from "@/lib/ai/manual-inteiro";
+import { capacidadesDe } from "@/lib/ai/catalogo";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
@@ -70,6 +72,8 @@ export async function POST(request: Request) {
   let attempts: ResolvedChatAttempt[];
   let firstChunkTimeoutMs: number;
   let trechos: Trecho[] = [];
+  // O manual inteiro, quando lido (decisão de 26/09/2026). Vazio = só a busca.
+  let manual: Trecho[] = [];
   let brandPrompt: BrandPromptContext;
   let executionId: string | undefined;
   let maxOutputTokens: number;
@@ -130,6 +134,25 @@ export async function POST(request: Request) {
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
 
+    /*
+     * O manual INTEIRO, quando ele cabe no modelo da vez — decisão do André,
+     * 26/09/2026: o Vini raciocina sobre o manual, não sobre recortes. A busca
+     * acima continua: é o que vai quando o manual não cabe (manual gigante, ou
+     * a reserva gratuita do Groq, que aceita ~8 mil tokens por minuto).
+     *
+     * Falhar ao ler o manual não derruba a conversa: a busca já respondeu, e
+     * é com ela que o Vini segue. O log diz que o caminho inteiro caiu.
+     */
+    const leitura = await lerManualInteiro(portao.auth.supabase, portao.brand.id);
+    if (leitura.ok) manual = leitura.trechos;
+    const tamanhoDoManual = caracteresDoManual(manual);
+    const cabeNo = (attempt: ResolvedChatAttempt) =>
+      manual.length > 0 && manualCabeNoModelo(tamanhoDoManual, capacidadesDe(attempt.config.provider, attempt.config.model) ?? undefined);
+    const algumLeInteiro = attempts.some(cabeNo);
+    // A reserva conta o MAIOR que pode ir: se alguma IA da fila lê o manual
+    // inteiro, reservar pelos trechos subestimaria.
+    const fontesDaReserva = algumLeInteiro ? manual : trechos;
+
     // Cliente de serviço — chave sb_secret_..., só para as três mutações
     // financeiras do ledger de IA. Nunca a sessão do usuário (achado P0-2).
     const serviceClient = createServiceClient();
@@ -140,7 +163,7 @@ export async function POST(request: Request) {
       portao.auth.user.id,
       {
         workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
-        role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: trechos,
+        role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: fontesDaReserva,
       },
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
@@ -160,7 +183,7 @@ export async function POST(request: Request) {
       userId: portao.auth.user.id,
       request: {
         workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
-        role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: trechos,
+        role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: fontesDaReserva,
       },
       attempts,
       // decidirExecucao só devolve pode:true com preço verificado — a
@@ -174,7 +197,9 @@ export async function POST(request: Request) {
       dispatch: (attempt, abortSignal, tetoDeSaida) => {
         const result = streamText({
           model: getModel(attempt.config),
-          system: buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages)),
+          system: cabeNo(attempt)
+            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro")
+            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos"),
           messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
@@ -194,6 +219,7 @@ export async function POST(request: Request) {
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
+      modo: cabeNo(execucao.attempt) ? "inteiro" : "trechos",
       reserva: execucao.fallbackUsed, executionId: execucao.executionId,
     }));
     let firstChunk = execucao.firstChunk;
@@ -234,7 +260,7 @@ export async function POST(request: Request) {
                 supabase: portao.auth.supabase, conversaId,
                 workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, autor: portao.auth.user.id,
                 pergunta: perguntaDasMensagens(messages),
-                resposta: { conteudo: respostaInteira, tipo: "resposta", paginas: mapaDePaginas(trechos), incompleta: Boolean(marca) },
+                resposta: { conteudo: respostaInteira, tipo: "resposta", paginas: mapaDePaginas(manual.length > 0 ? manual : trechos), incompleta: Boolean(marca) },
               });
             }
             execucao.cleanup();
@@ -268,7 +294,7 @@ export async function POST(request: Request) {
     response.headers.set("X-AI-Execution-Id", executionId);
     // As páginas dos trechos entregues ao modelo, para a citação levar ao PDF
     // (ver `lib/ai/paginas-citadas.ts`: a página nunca é pedida ao modelo).
-    response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas(trechos)));
+    response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas(manual.length > 0 ? manual : trechos)));
     return response;
   } catch (error) {
     // executarComOrcamento já libera a reserva antes de repassar o erro —
