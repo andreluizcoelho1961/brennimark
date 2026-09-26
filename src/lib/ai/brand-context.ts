@@ -1,6 +1,6 @@
 import { flattenBlocksToFacts } from "../../content/doc-blocks";
 import type { DocPageEntry, DocStatus } from "../../content/docs";
-import { montarContextoRecuperado, semEvidencia, type Trecho } from "./recuperacao";
+import { montarContextoRecuperado, semEvidencia, type Trecho, type ModoDoContexto } from "./recuperacao";
 import {
   promptStatusLabels,
   resolveStatusLabels,
@@ -132,6 +132,34 @@ function regrasDeFundamentacao(brand: BrandPromptContext): string {
 }
 
 /**
+ * Raciocinar SOBRE o manual — decisão do André, 26/09/2026: "o Vini tem que
+ * entender o manual e conversar", somar, associar, concluir, e explicar para
+ * quem não é técnico. A honestidade não muda de lugar: cada conclusão diz de
+ * que páginas veio, e o que o manual não sustenta não se afirma.
+ */
+function regrasDeRaciocinio(language: string, modo: ModoDoContexto): string {
+  const en = language === "en";
+  const escopo = modo === "inteiro"
+    ? (en
+      ? "\n- You have the WHOLE manual below, in page order. Before saying something isn't documented, look through all of it."
+      : "\n- Você tem o manual INTEIRO abaixo, na ordem das páginas. Antes de dizer que algo não está documentado, procure no manual todo.")
+    : (en
+      ? "\n- You have EXCERPTS chosen by a search, not the whole manual. If they don't settle the question, say the manual may cover it elsewhere and suggest the section to look at — don't claim it is undocumented."
+      : "\n- Você tem TRECHOS escolhidos por uma busca, não o manual inteiro. Se eles não bastarem, diga que o manual pode tratar disso em outro ponto e sugira a seção onde olhar — não afirme que não está documentado.");
+  return en
+    ? `${escopo}
+- Reason over the manual like someone who knows it: count, compare, combine pages, and draw conclusions that FOLLOW from what is documented (e.g. "how many colors?" → count the documented palette and answer the number, listing them).
+- When the answer is a conclusion rather than a sentence of the manual, say so plainly ("By the palette on p. 21–22, …") and cite every page it comes from. Never fill a gap with general knowledge about the brand or about design.
+- Answer the person's real question in plain language. If they aren't technical, explain the term (e.g. what CMYK is for) in one short sentence; keep the exact documented values.
+- Be conversational and direct: start with the answer, then only what helps apply it. No filler, no repeating the question.`
+    : `${escopo}
+- Raciocine sobre o manual como quem o conhece: conte, compare, junte páginas e tire conclusões que DECORREM do que está documentado (ex.: "quantas cores?" → conte a paleta documentada e responda o número, listando as cores).
+- Quando a resposta for uma conclusão, e não uma frase do manual, diga isso com naturalidade ("Pela paleta das pp. 21–22, …") e cite todas as páginas de onde ela vem. Nunca preencha lacuna com conhecimento geral sobre a marca ou sobre design.
+- Responda à pergunta real da pessoa, em linguagem simples. Se ela não for técnica, explique o termo em uma frase curta (ex.: para que serve o CMYK), mantendo os valores exatos documentados.
+- Converse de forma direta: comece pela resposta, depois só o que ajuda a aplicar. Sem enrolação, sem repetir a pergunta.`;
+}
+
+/**
  * O prompt do chat, com os trechos RECUPERADOS — não o manual inteiro.
  *
  * A assinatura mudou de `docs` para `trechos` de propósito: enquanto ela
@@ -147,16 +175,18 @@ export function buildChatSystemPrompt(
   trechos: readonly Trecho[],
   brand: BrandPromptContext,
   pergunta = "",
+  modo: ModoDoContexto = "trechos",
 ): string {
   const regras = regrasDeFundamentacao(brand);
   const rotulos = rotulosDeStatus(brand);
-  const { texto } = montarContextoRecuperado(trechos, rotulos, pergunta);
+  const { texto } = montarContextoRecuperado(trechos, rotulos, pergunta, modo);
   const conhecimento = texto || semEvidencia(brand.language === "en");
+  const raciocinio = regrasDeRaciocinio(brand.language, modo);
 
   if (brand.language === "en") {
     return `${brand.chatRole} Your role is to give direct, useful, verifiable answers for teams and vendors — people who design, and who need the exact value, not a pointer to it.
 
-Grounding rules:${regras}
+Grounding rules:${regras}${raciocinio}
 - When the material contains technical values — color codes (Pantone, CMYK, RGB, HEX), measurements, clear space, typeface names and weights, proportions — the answer GIVES the values, complete and exactly as documented, organized as a list. Never replace a value with "see page X": the citation goes next to the value, not instead of it.
 - If the material seems cut ("…") before the value asked for, say that the value is on the cited pages and was not in the excerpt you received. Never complete it from memory.
 
@@ -172,7 +202,7 @@ ${conhecimento}
   }
   return `${brand.chatRole} Sua função é dar respostas diretas, úteis e verificáveis para equipes e fornecedores — gente que desenha, e que precisa do valor exato, não de um ponteiro para ele.
 
-Regras de fundamentação:${regras}
+Regras de fundamentação:${regras}${raciocinio}
 - Quando o material traz valores técnicos — códigos de cor (Pantone, CMYK, RGB, HEX), medidas, área de proteção, nomes e pesos de fonte, proporções —, a resposta DÁ os valores, completos e exatos como documentados, organizados em lista. Nunca troque um valor por "veja a página X": a citação vem junto do valor, não no lugar dele.
 - Se o material parecer cortado ("…") antes do valor pedido, diga que o valor está nas páginas citadas e não veio no trecho recebido. Nunca complete de memória.
 

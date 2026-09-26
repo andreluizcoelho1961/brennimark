@@ -375,3 +375,15 @@ test("a citação da interface reconhece o vocabulário da marca", () => {
   const comPadrao = parseBrandCitations(resposta, resolveStatusLabels({ language: "pt-BR" }));
   assert.ok(!comPadrao.some((s) => s.type === "citation"));
 });
+
+test("as regras de raciocínio (26/09): somar, concluir com as páginas, linguagem simples — nos dois modos", () => {
+  for (const modo of ["trechos", "inteiro"] as const) {
+    const prompt = buildChatSystemPrompt([], MARCA, "", modo);
+    assert.match(prompt, /Raciocine sobre o manual/);
+    assert.match(prompt, /cite todas as páginas/);
+    assert.match(prompt, /linguagem simples/);
+    assert.match(prompt, /Nunca preencha lacuna com conhecimento geral/);
+  }
+  assert.match(buildChatSystemPrompt([], MARCA, "", "inteiro"), /manual INTEIRO/);
+  assert.match(buildChatSystemPrompt([], MARCA, "", "trechos"), /não afirme que não está documentado/);
+});

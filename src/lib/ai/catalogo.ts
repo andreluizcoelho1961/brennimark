@@ -75,6 +75,13 @@ export interface ModelCapabilities {
    */
   maxOutputTokens?: number;
   /**
+   * Teto de tokens de ENTRADA por minuto da camada gratuita, quando existe.
+   * Um pedido acima dele o provedor recusa antes de começar — é o que decide
+   * se o Vini pode ler o manual inteiro com este modelo (`manual-inteiro.ts`).
+   * Ausente = sem teto por minuto conhecido.
+   */
+  maxInputTokensPerMinute?: number;
+  /**
    * Preço verificado — ver `ModelPricing`. Ausente = nenhuma reserva de
    * orçamento pode ser calculada para este modelo, texto ou imagem; é o que
    * `decidirExecucao` (execucao.ts) checa antes de reservar qualquer coisa.
@@ -149,6 +156,9 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
       // de 23/09). ~700 palavras: cabe resposta do chat e prompt; análise
       // longa pode sair cortada, e a janela avisa. Rever na fase comercial.
       maxOutputTokens: 1_000,
+      // ~8 mil tokens de entrada por minuto na camada gratuita (ver acima):
+      // o manual do Bradesco (~14 mil) não cabe, e o Vini usa a busca aqui.
+      maxInputTokensPerMinute: 8_000,
       pricing: {
         inputPerMillionTokensUsd: 0.8, outputPerMillionTokensUsd: 4, currency: "USD",
         source: "https://console.groq.com/docs/model/qwen/qwen3.8-27b", asOf: "2026-09-23",
