@@ -90,6 +90,31 @@ export function escalaLimitada(
   return Math.sqrt(teto / (pagina.largura * pagina.altura));
 }
 
+/** Até 3×: acima disso o olho não distingue, e a memória paga. */
+export const DENSIDADE_MAXIMA = 3;
+
+/**
+ * A escala do DESENHO de uma página — a do canvas, não a da tela.
+ *
+ * Tela de alta densidade (Retina do Mac, iPhone) tem 2 ou 3 pixels físicos por
+ * pixel de CSS. Desenhar na escala da tela entregava um terço dos pixels que o
+ * iPhone mostra, e o navegador esticava: texto macio no Mac, borrado no
+ * celular (ensaio de 26/09/2026). O tamanho NA TELA continua `escalaPedida`
+ * (`tamanhoNaTela`); só o desenho ganha a densidade.
+ *
+ * O teto de pixels continua valendo: se a densidade o estourar, a página sai
+ * menos nítida — inteira, nunca recortada.
+ */
+export function escalaDoDesenho(
+  pagina: Dimensao,
+  escalaPedida: number,
+  densidade: number,
+  teto: number = TETO_DE_PIXELS,
+): number {
+  const d = Number.isFinite(densidade) ? Math.min(Math.max(densidade, 1), DENSIDADE_MAXIMA) : 1;
+  return escalaLimitada(pagina, escalaPedida * d, teto);
+}
+
 /**
  * A escala que faz a página caber na largura disponível.
  *

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { PDFDocumentProxy, PDFPageProxy, RenderTask } from "pdfjs-dist";
-import { escalaLimitada, tamanhoNaTela } from "@/lib/documento-fonte/virtualizacao";
+import { escalaDoDesenho, tamanhoNaTela } from "@/lib/documento-fonte/virtualizacao";
 
 /**
  * Uma página do manual, montada.
@@ -71,10 +71,12 @@ export function PaginaDoPdf({
       const base = pagina.getViewport({ scale: 1 });
       aoMedir?.(numero, base.width, base.height);
 
-      // O teto de pixels age AQUI, e o resultado pode ser menor que o pedido.
-      const escalaReal = escalaLimitada(
+      // O desenho sai na densidade da tela (2× no Mac, 3× no iPhone); o teto
+      // de pixels age AQUI, e o resultado pode ser menor que o pedido.
+      const escalaReal = escalaDoDesenho(
         { largura: base.width, altura: base.height },
         escalaPedida,
+        window.devicePixelRatio || 1,
       );
       if (escalaReal <= 0) return;
 

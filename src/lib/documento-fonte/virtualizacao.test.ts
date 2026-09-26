@@ -3,6 +3,8 @@ import test from "node:test";
 import {
   TETO_DE_PIXELS,
   dentroDaJanela,
+  DENSIDADE_MAXIMA,
+  escalaDoDesenho,
   escalaLimitada,
   escalaParaLargura,
   janelaMontada,
@@ -127,3 +129,27 @@ test("rotação é normalizada para os quatro valores que o PDF permite", () => 
   // virar NaN e girar a página para lugar nenhum.
   assert.equal(rotacaoNormalizada(45), 0);
 });
+
+// ─── A densidade da tela (ensaio de 26/09/2026) ────────────────────────────
+
+const PAISAGEM = { largura: 842, altura: 474 }; // 16:9, como o Bradesco
+
+test("o desenho sai na densidade da tela: 3× no iPhone, 2× no Mac", () => {
+  const naTela = 0.35; // ~ajuste à largura de um celular
+  assert.equal(escalaDoDesenho(PAISAGEM, naTela, 3), naTela * 3);
+  assert.equal(escalaDoDesenho(PAISAGEM, naTela, 2), naTela * 2);
+});
+
+test("densidade estranha vira 1×; acima do máximo, o máximo", () => {
+  assert.equal(escalaDoDesenho(PAISAGEM, 0.5, 0.5), 0.5);
+  assert.equal(escalaDoDesenho(PAISAGEM, 0.5, Number.NaN), 0.5);
+  assert.equal(escalaDoDesenho(PAISAGEM, 0.5, 8), 0.5 * DENSIDADE_MAXIMA);
+});
+
+test("o teto de pixels continua valendo com a densidade", () => {
+  const escala = escalaDoDesenho(PAISAGEM, 2, 3);
+  assert.ok(escala < 6, "a densidade não pode furar o teto");
+  const pixels = PAISAGEM.largura * PAISAGEM.altura * escala * escala;
+  assert.ok(pixels <= TETO_DE_PIXELS + 1);
+});
+
