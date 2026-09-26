@@ -9,6 +9,7 @@ import {
   type MotivoDeRecusa, type SnapshotDeUso, type SnapshotDePreco, marcarExposicaoDeCobranca,
 } from "./orcamento";
 import { prepareStreamWithFallback, type PreparedFallbackStream } from "./stream-fallback";
+import { classifyAIError } from "./errors";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
 import { caracteresDoManual } from "./manual-inteiro";
 import { contarCaracteres, MAX_CARACTERES_DO_PAPEL_DA_MARCA } from "../brennimark/brand-row";
@@ -664,6 +665,17 @@ const BLOQUEIOS_DO_MODELO: ReadonlySet<MotivoDeBloqueio> = new Set<MotivoDeBloqu
  * - falha em registrar a cobrança — nada foi enviado, e a próxima tentativa
  *   esbarraria no mesmo razão.
  */
+/** Quanto esperar antes de repetir um modelo sobrecarregado. */
+export const ESPERA_NA_SOBRECARGA_MS = 2_000;
+
+function esperar(ms: number, sinal?: AbortSignal): Promise<void> {
+  if (ms <= 0 || sinal?.aborted) return Promise.resolve();
+  return new Promise((resolve) => {
+    const relogio = setTimeout(resolve, ms);
+    sinal?.addEventListener("abort", () => { clearTimeout(relogio); resolve(); }, { once: true });
+  });
+}
+
 export async function executarEmFila<TAttempt extends { config: { provider: string; model: string } }>(
   params: {
     supabase: SupabaseClient;
@@ -685,17 +697,30 @@ export async function executarEmFila<TAttempt extends { config: { provider: stri
     onReservaRecusada?: (attempt: TAttempt, index: number, motivo: MotivoDeBloqueio) => void;
     /** Só para testes. */
     novoId?: () => string;
+    /** A espera antes de repetir o mesmo modelo na sobrecarga. Testes passam 0. */
+    esperaNaSobrecargaMs?: number;
   },
 ): Promise<ExecucaoComOrcamento<TAttempt> & { executionId: string }> {
   const novoId = params.novoId ?? (() => crypto.randomUUID());
+  const espera = params.esperaNaSobrecargaMs ?? ESPERA_NA_SOBRECARGA_MS;
   const falhas: unknown[] = [];
 
-  for (let indice = 0; indice < params.attempts.length; indice++) {
-    const attempt = params.attempts[indice];
+  /*
+   * A fila de VEZES, não de modelos: na sobrecarga, o mesmo modelo ganha uma
+   * segunda vez logo depois da primeira (ensaio de 26/09/2026: o Gemini
+   * gratuito respondeu "overloaded", a fila passou direto ao Groq, e o Vini
+   * perdeu o manual inteiro — o Groq só lê trechos). Sobrecarga costuma durar
+   * segundos; uma espera curta salva a resposta boa.
+   */
+  const vezes = params.attempts.map((attempt, indice) => ({ attempt, indice }));
+  const repetidos = new Set<number>();
+
+  for (let vez = 0; vez < vezes.length; vez++) {
+    const { attempt, indice } = vezes[vez];
     let executionId = params.request.executionId;
     let custo = params.primeira;
 
-    if (indice > 0) {
+    if (vez > 0) {
       executionId = novoId();
       const decisao = await decidirExecucao(
         params.supabase, params.serviceClient, params.userId,
@@ -730,7 +755,17 @@ export async function executarEmFila<TAttempt extends { config: { provider: stri
     } catch (erro) {
       if (params.parentSignal?.aborted || erro instanceof FalhaDeExposicaoDeCobranca) throw erro;
       // Achatado: quem trata o erro lê a ÚLTIMA causa (`errors.at(-1)`).
-      falhas.push(...(erro instanceof AggregateError ? erro.errors : [erro]));
+      const causas = erro instanceof AggregateError ? erro.errors : [erro];
+      falhas.push(...causas);
+
+      // Sobrecarga: o MESMO modelo mais uma vez, depois de uma espera curta.
+      // Uma vez só por modelo — sobrecarga que insiste é caso da reserva.
+      if (!repetidos.has(indice) && causas.some((c) => classifyAIError(c).code === "overloaded")) {
+        repetidos.add(indice);
+        vezes.splice(vez + 1, 0, { attempt, indice });
+        await esperar(espera, params.parentSignal);
+        if (params.parentSignal?.aborted) throw erro;
+      }
     }
   }
 
