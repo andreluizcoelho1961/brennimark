@@ -87,6 +87,15 @@ returns text language sql as $f$
     || 'from public.buscar_trechos(%L, %L, %s)', p_marca, p_pergunta, p_limite));
 $f$;
 
+-- Os trechos NA ORDEM em que a busca devolve — o exato tem de vir primeiro.
+create function pg_temp.ordem(p_quem uuid, p_marca uuid, p_pergunta text, p_limite int default 8)
+returns text language sql as $f$
+  select saida from pg_temp.como(p_quem, format(
+    'select count(*)::text || '':'' || coalesce(string_agg(t.document_slug, '','' order by t.n), '''') '
+    || 'from public.buscar_trechos(%L, %L, %s) with ordinality as t(document_slug, document_title, group_name, section, status, page_start, page_end, content, relevancia, n)',
+    p_marca, p_pergunta, p_limite));
+$f$;
+
 -- ─── O mundo ────────────────────────────────────────────────────────────────
 do $$
 declare
@@ -149,10 +158,12 @@ do $$
 declare m record;
 begin
   select * into m from mundo;
-  perform pg_temp.registrar('color (americano) acha colour (britanico), com todas as palavras',
-    '1:logo-colours', pg_temp.buscar(m.admin, m.marca_a, 'what color is the logo?'));
-  perform pg_temp.registrar('colour acha colour',
-    '1:logo-colours', pg_temp.buscar(m.admin, m.marca_a, 'what colour is the logo?'));
+  -- Desde 26/09 o trecho com todas as palavras vem PRIMEIRO, e os parciais
+  -- completam as vagas depois (migration busca_completa_e_perguntas).
+  perform pg_temp.registrar('color (americano) acha colour (britanico), com todas as palavras, primeiro',
+    '2:logo-colours,photography', pg_temp.ordem(m.admin, m.marca_a, 'what color is the logo?'));
+  perform pg_temp.registrar('colour acha colour, primeiro',
+    '2:logo-colours,photography', pg_temp.ordem(m.admin, m.marca_a, 'what colour is the logo?'));
   perform pg_temp.registrar('gray acha grey',
     '1:backgrounds', pg_temp.buscar(m.admin, m.marca_a, 'gray background'));
   perform pg_temp.registrar('center acha centred',
@@ -164,10 +175,13 @@ do $$
 declare m record;
 begin
   select * into m from mundo;
-  -- "logo" + "colour" casam só em logo-colours. photography fala de cor mas
-  -- não de logo, e NÃO pode entrar: o plano B não é a regra, é a exceção.
-  perform pg_temp.registrar('com um trecho completo, o parcial fica de fora',
-    '1:logo-colours', pg_temp.buscar(m.admin, m.marca_a, 'logo colours'));
+  -- "logo" + "colour" casam só em logo-colours, que vem PRIMEIRO. photography
+  -- fala de cor mas não de logo: desde 26/09 ela completa as vagas DEPOIS —
+  -- um trecho exato não esconde mais os outros.
+  perform pg_temp.registrar('o trecho completo vem primeiro; o parcial completa depois',
+    '2:logo-colours,photography', pg_temp.ordem(m.admin, m.marca_a, 'logo colours'));
+  perform pg_temp.registrar('com o limite cheio pelo exato, o parcial nao entra',
+    '1:logo-colours', pg_temp.ordem(m.admin, m.marca_a, 'logo colours', 1));
 end $$;
 
 -- ─── 4. Quando não há o que achar, não acha ────────────────────────────────
@@ -189,7 +203,7 @@ declare m record;
 begin
   select * into m from mundo;
   perform pg_temp.registrar('operadores e aspas na pergunta sao so texto',
-    '1:logo-colours', pg_temp.buscar(m.admin, m.marca_a, $q$ 'logo' & | ! ( ) :* <-> "colour" \ $q$));
+    '2:logo-colours,photography', pg_temp.ordem(m.admin, m.marca_a, $q$ 'logo' & | ! ( ) :* <-> "colour" \ $q$));
 end $$;
 
 -- ─── 6. O isolamento não mudou ─────────────────────────────────────────────
