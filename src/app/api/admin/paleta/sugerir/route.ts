@@ -14,7 +14,7 @@ import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { COLUNAS_DA_PALETA, deLinha, lerPaleta } from "@/lib/paleta/paleta";
 import {
-  instrucoesDaSugestao, lerPaginasPedidas, lerSugestao, paginasDaPaleta, soOQueFalta, MAXIMO_DE_PAGINAS_DA_SUGESTAO,
+  instrucoesDaSugestao, lerPaginasPedidas, lerSugestaoComDiagnostico, paginasDaPaleta, soOQueFalta, MAXIMO_DE_PAGINAS_DA_SUGESTAO,
 } from "@/lib/paleta/sugestao";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
@@ -122,6 +122,8 @@ export async function POST(request: Request) {
     const inicio = Date.now();
     // Por que a IA parou — "length" é resposta cortada pelo teto de saída.
     let motivoDoFim: PromiseLike<string> | null = null;
+    // O motivo como o PROVEDOR o disse ("other" do SDK esconde qual foi).
+    let motivoBruto: PromiseLike<string | undefined> | null = null;
     const execucao = await executarEmFila({
       supabase: auth.supabase,
       serviceClient,
@@ -141,7 +143,7 @@ export async function POST(request: Request) {
             role: "user",
             content: [
               { type: "text", text: t("Transcribe the palette in these pages.", "Transcreva a paleta destas páginas.") },
-              ...vistas.map((v) => ({ type: "image" as const, image: v.bytes, mediaType: "image/jpeg" })),
+              ...vistas.map((v) => ({ type: "file" as const, data: v.bytes, mediaType: "image/jpeg" })),
             ],
           }],
           providerOptions: getTranscricaoProviderOptions(attempt.config),
@@ -151,6 +153,7 @@ export async function POST(request: Request) {
           maxRetries: 0,
         });
         motivoDoFim = result.finishReason;
+        motivoBruto = result.rawFinishReason;
         return { textStream: textoOuErro(result.fullStream), usage: result.usage };
       },
     });
@@ -166,8 +169,9 @@ export async function POST(request: Request) {
       execucao.cleanup();
     }
 
-    const sugeridas = lerSugestao(texto, enviadas);
+    const { cores: sugeridas, diagnostico } = lerSugestaoComDiagnostico(texto, enviadas);
     const motivo = await Promise.resolve(motivoDoFim ?? "unknown").catch(() => "error");
+    const motivoDoProvedor = await Promise.resolve(motivoBruto ?? undefined).catch(() => undefined);
     const cortada = motivo === "length";
     const atual = await lerPaleta(auth.supabase, brandId);
     if (!atual.ok) {
@@ -196,7 +200,7 @@ export async function POST(request: Request) {
       level: "info", msg: "paleta_sugerida", executionId, brandId, paginas: enviadas,
       lidas: sugeridas.length, novas: gravadas.length, repetidas, ms: Date.now() - inicio,
       // Medida, sem o conteúdo: por que parou, quanto veio, quantas linhas.
-      motivo, caracteres: texto.length, linhas: texto.split("\n").filter((l) => l.includes("|")).length,
+      motivo, motivoDoProvedor: motivoDoProvedor ?? null, diagnostico, caracteres: texto.length, linhas: texto.split("\n").filter((l) => l.includes("|")).length,
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
     }));
 
