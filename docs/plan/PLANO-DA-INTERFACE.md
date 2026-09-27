@@ -113,8 +113,13 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 26/09 | **Texto repetido em toda página** (o menu lateral do manual) entra na busca e casa com qualquer pergunta: "logotipo" trazia "Estilo fotográfico" no topo. Remover na importação o que se repete em quase todas as páginas | ensaio (fatia 7) |
 | 26/09 | **Títulos de seção da importação**: duas manchetes da mesma página viram um título ("Logo horizontal Logo vertical"), e texto de exemplo esquecido no manual vira seção ("XXxxxxxx"). O título aparece na citação do Vini | ensaio (fatia 7) |
 | 26/09 | Quem consulta **uma marca só** passa por "Escolha uma marca" com um cartão — cair direto no manual (ADR-0002, modo consulta) | ensaio (fatia 7) |
-| 26/09 | **Passada visual do ensaio**: tema escuro e celular em todas as telas — o que falta da fatia 7 | ensaio (fatia 7) |
-| 24/09 | Materiais — fica para depois: fotos e ilustrações em **álbum com pastas**; **fontes** (esperam o termo); **links de entrega**; **geração automática de paleta** (pergunta 66) | fatia 5 |
+| 26/09 | ~~**Passada visual do ensaio**: tema escuro e celular em todas as telas~~ — **feita em 26/09**: campos de 16 px no toque, fólio sem quebra (#44) e o manual nítido no celular (#45) | ensaio (fatia 7) |
+| 26/09 | **Pessoas em cartões no celular** (hoje a tabela rola dentro do próprio quadro) | passada visual |
+| 27/09 | **Gerar as imagens de leitura já na importação**, em vez do botão "Preparar o manual para o Vini" | #50 |
+| 27/09 | **A IA sugerir a ficha da paleta** a partir da imagem da página, sempre como rascunho para uma pessoa conferir | #51 |
+| 27/09 | **Aprovar sem administrar**: tela para quem só consulta e aprova (o dono da marca). O banco já aceita, pela função de aprovação | #51 |
+| 27/09 | **Cache de prompt** na fase paga: o manual inteiro se repete a cada pergunta | #47 |
+| 24/09 | Materiais — fica para depois: fotos e ilustrações em **álbum com pastas**; **fontes** (esperam o termo); **links de entrega**; **geração automática de paleta** (pergunta 66 — a ficha da paleta, #51, é a base dela) | fatia 5 |
 
 ## 6. Registro de mudanças deste plano
 
@@ -138,3 +143,5 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 24/09/2026 | **Fatia 6 (Visual) — decisões do André sobre a folha de tokens:** tipografia **Inter Tight** (grotesca neutra, linhagem Helvetica) com **IBM Plex Mono** em números e códigos; tema **claro "papel" como padrão** e **escuro "estúdio" como opção** de quem usa (botão ◐ na barra de cima, escolha guardada no navegador, aplicada antes da primeira pintura); **cantos pequenos e delicados** (3 px controle, 4 px painel, 6 px cartão). Moldura acromática (ADR-0004): o calor vem da temperatura dos cinzas. Contraste AA (≥ 4,5 : 1) de todo texto nos dois temas vira teste. A página do manual nunca inverte | André |
 | 25/09/2026 | **Ensaio (fatia 7), primeira rodada** — relatório em [`ensaio-2026-09-26.md`](./ensaio-2026-09-26.md). Nome da marca editável e **botão de apagar marca** (#38); o Vini **dá os valores técnicos** — recorte do trecho onde a pergunta está, e regra de nunca trocar o valor por "veja a página" (#39). **Heineken apagada**: o manual se declara confidencial, e com IA gratuita não entra | André |
 | 26/09/2026 | **Sinônimos de manual de marca na busca** (#40, migration só da função): logotipo/logo, principal/preferencial, proteção/respiro, tipografia/fonte… em pt e en. A busca por significado continua estacionada. Também: copiar a senha provisória avisa (#41); item com um arquivo baixa direto, sem ZIP (#42) | André |
+| 26/09/2026 | **O Vini lê o manual inteiro quando cabe** e raciocina sobre ele — conta, compara, junta páginas, conclui citando (#46–#48); sobrecarga do Gemini tenta de novo antes da reserva (#49). Motivo do André: a agência paga R$ 2.500/mês, e uma busca por palavras não passa por inteligência | André |
+| 27/09/2026 | **A e C** — o Vini **vê as páginas** (#50: imagem de leitura, JPEG ~1.600 px gerado no navegador de quem edita; o ADR-0006 ganha adendo) e a **ficha da paleta** (#51: cor como dado, editar e aprovar separados pelo banco; para cores o Vini responde pela ficha). Motivo: com o texto, o Vini contou 6 cores onde o Bradesco tem 19 | André |
