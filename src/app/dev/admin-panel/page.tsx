@@ -4,6 +4,7 @@ import { LocaleProvider } from "@/platform/locale-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
 import type { DocPageEntry } from "@/content/docs";
 import type { BrennimarkTheme } from "@/brennimark/types";
+import type { CorDaPaleta } from "@/lib/paleta/paleta";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -44,14 +45,29 @@ const VIVAS: DocPageEntry[] = [
   { slug: "tipografia", group: "Sistema", title: "Tipografia", status: "ready", body: ["Uma família, quatro pesos."] },
 ];
 
+// A ficha da paleta de bancada: cores inventadas, nenhuma de cliente.
+const PALETA_FIXA: CorDaPaleta[] = [
+  { id: "c0000000-0000-4000-8000-000000000001", nome: "Vermelho Bancada", papel: "principal", segmento: "", hex: "#C8102E", rgb: "200 16 46", cmyk: "0 100 80 5", pms: "186 C", pagina: 12, ordem: 0, status: "ready", aprovadoEm: "2026-09-27T12:00:00.000Z" },
+  { id: "c0000000-0000-4000-8000-000000000002", nome: "Branco", papel: "principal", segmento: "", hex: "#FFFFFF", rgb: null, cmyk: null, pms: null, pagina: 12, ordem: 1, status: "ready", aprovadoEm: "2026-09-27T12:00:00.000Z" },
+  { id: "c0000000-0000-4000-8000-000000000003", nome: "Azul Noite", papel: "apoio", segmento: "Varejo", hex: "#0B1F3A", rgb: null, cmyk: "100 80 30 60", pms: null, pagina: 13, ordem: 2, status: "draft", aprovadoEm: null },
+  { id: "c0000000-0000-4000-8000-000000000004", nome: "Só Pantone", papel: "apoio", segmento: "", hex: null, rgb: null, cmyk: null, pms: "7545 C", pagina: 13, ordem: 3, status: "draft", aprovadoEm: null },
+];
+
 export default async function AdminPanelLab({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string }>;
+  searchParams: Promise<{ estado?: string; papel?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
 
-  const { estado } = await searchParams;
+  const { estado, papel } = await searchParams;
+  // `?papel=editora` edita e não aprova; `?papel=aprovadora` aprova e não
+  // edita (ADR-0002). Sem o parâmetro, as duas capacidades — a dona.
+  const paleta = {
+    cores: PALETA_FIXA,
+    podeEditar: papel !== "aprovadora",
+    podeAprovar: papel !== "editora",
+  };
 
   // `?estado=com-excluida` é o servidor devolvendo o que devolveria depois de
   // um recarregamento: uma página viva e outra já excluída.
@@ -63,7 +79,7 @@ export default async function AdminPanelLab({
 
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
-      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} marca={MARCA_FIXA} />
+      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} marca={MARCA_FIXA} paleta={paleta} />
     </LocaleProvider>
   );
 }

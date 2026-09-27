@@ -72,6 +72,11 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `paleta_da_marca` saiu daqui em 27/09/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20260927193803`; impressão
+  // digital igual à do local (funções, gatilho, constraints, policies, índices,
+  // RLS e grants da tabela). A função de aprovar ganha `service_role`, o padrão
+  // do hospedado (o mesmo de `conceder_acesso`).
   // `imagens_de_leitura_das_paginas` saiu daqui em 27/09/2026: aplicada ao
   // banco hospedado com autorização nominal do André, carimbada
   // `20260927153359`; impressão digital igual à do local (definição, SECURITY

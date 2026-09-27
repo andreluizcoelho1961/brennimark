@@ -180,12 +180,17 @@ export function buildChatSystemPrompt(
   brand: BrandPromptContext,
   pergunta = "",
   modo: ModoDoContexto = "trechos",
+  ficha: readonly Trecho[] = [],
 ): string {
   const regras = regrasDeFundamentacao(brand);
   const rotulos = rotulosDeStatus(brand);
   const { texto } = montarContextoRecuperado(trechos, rotulos, pergunta, modo);
-  const conhecimento = texto || semEvidencia(brand.language === "en");
-  const raciocinio = regrasDeRaciocinio(brand.language, modo);
+  // A ficha vai INTEIRA e fora do orçamento da busca: ela é curta (uma linha
+  // por cor), e cortada ou deslocada por um trecho ela deixaria de ser a
+  // resposta certa justamente na pergunta de cor.
+  const { texto: textoDaFicha } = montarContextoRecuperado(ficha, rotulos, "", "inteiro");
+  const conhecimento = [textoDaFicha, texto].filter(Boolean).join("\n\n") || semEvidencia(brand.language === "en");
+  const raciocinio = regrasDeRaciocinio(brand.language, modo) + (textoDaFicha ? regraDaFicha(brand.language) : "");
 
   if (brand.language === "en") {
     return `${brand.chatRole} Your role is to give direct, useful, verifiable answers for teams and vendors — people who design, and who need the exact value, not a pointer to it.
@@ -221,6 +226,23 @@ Formato recomendado:
 <brand_knowledge>
 ${conhecimento}
 </brand_knowledge>`;
+}
+
+/**
+ * A ficha da paleta prevalece sobre o texto extraído — 27/09/2026.
+ *
+ * O texto de uma página de amostras é uma sopa de códigos; a ficha foi
+ * conferida por uma pessoa contra o manual. Quando divergem, a ficha responde
+ * e a divergência é dita, não escondida.
+ */
+function regraDaFicha(language: string): string {
+  return language === "en"
+    ? `
+- The "Palette sheet" sources were checked by a person against the manual. For colors — how many, which, their codes — answer from the sheet, even over the extracted text of the manual pages. If they disagree, answer from the sheet and say the manual text shows something else.
+- Colors in "Palette sheet (draft)" were not approved yet: when you use them, say they are a draft.`
+    : `
+- As fontes "Ficha da paleta" foram conferidas por uma pessoa contra o manual. Para cores — quantas, quais, seus códigos —, responda pela ficha, mesmo sobre o texto extraído das páginas do manual. Se divergirem, responda pela ficha e diga que o texto do manual traz outra coisa.
+- As cores da "Ficha da paleta (rascunho)" ainda não foram aprovadas: ao usá-las, diga que são rascunho.`;
 }
 
 /**
