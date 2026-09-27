@@ -72,14 +72,11 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * As imagens de leitura das páginas — o Vini vê o manual (26/09/2026): check
-   * da forma do caminho em `brand_source_pages.miniatura_path` e a função
-   * `registrar_imagem_de_leitura` (só quem edita, só com o arquivo no Storage).
-   * NÃO aplicada em produção: aplicar é autorização nominal do André. Prova em
-   * `scripts/prova-imagens-de-leitura.sh`.
-   */
-  "imagens_de_leitura_das_paginas",
+  // `imagens_de_leitura_das_paginas` saiu daqui em 27/09/2026: aplicada ao
+  // banco hospedado com autorização nominal do André, carimbada
+  // `20260927153359`; impressão digital igual à do local (definição, SECURITY
+  // DEFINER, search_path e o check). Grants: iguais, mais `service_role`, o
+  // padrão do hospedado (o mesmo de `conceder_acesso`).
   // `busca_completa_e_perguntas` saiu daqui em 26/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260926172522`;
   // impressão digital igual à do local (definição e grants de `buscar_trechos`).
