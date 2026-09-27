@@ -32,10 +32,21 @@ export function useCopilotoDePrompt(obterConversa?: () => string) {
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const abortRef = useRef<AbortController | null>(null);
+  // A consulta de regras tem o PRÓPRIO controle: mudar a descrição no meio a
+  // cancela. Sem isto, a lista da descrição anterior chegava depois e aparecia
+  // sobre a nova — e o prompt seria gerado com as regras de outra pergunta
+  // (revisão de 27/09).
+  const regrasRef = useRef<AbortController | null>(null);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    regrasRef.current?.abort();
+  }, []);
 
   const reiniciar = () => {
+    regrasRef.current?.abort();
+    regrasRef.current = null;
+    setBuscando(false);
     setRegras(null);
     setMarcados([]);
     setPrompt("");
@@ -55,18 +66,27 @@ export function useCopilotoDePrompt(obterConversa?: () => string) {
 
   async function verRegras() {
     if (!descricao.trim() || buscando) return;
-    setBuscando(true);
     reiniciar();
+    const controle = new AbortController();
+    regrasRef.current = controle;
+    setBuscando(true);
     try {
-      const resposta = await pedir({ etapa: "regras" });
+      const resposta = await pedir({ etapa: "regras" }, controle);
       const dados = await resposta.json().catch(() => ({}));
+      if (controle.signal.aborted) return;
       if (!resposta.ok) throw new Error(dados.message);
       setRegras({ aprovadas: dados.aprovadas ?? [], rascunhos: dados.rascunhos ?? [] });
     } catch (caught) {
+      if (controle.signal.aborted) return;
       setErro(caught instanceof Error && caught.message ? caught.message
         : isEnglish ? "Couldn't consult the manual." : "Não foi possível consultar o manual.");
     } finally {
-      setBuscando(false);
+      // Só a consulta VIGENTE desliga o "buscando": a cancelada não mexe no
+      // estado da que a substituiu.
+      if (regrasRef.current === controle) {
+        regrasRef.current = null;
+        setBuscando(false);
+      }
     }
   }
 
@@ -111,8 +131,8 @@ export function useCopilotoDePrompt(obterConversa?: () => string) {
 
   return {
     descricao, tipo, regras, marcados, buscando, gerando, prompt, usadas, paginas, erro, aviso,
-    setDescricao(v: string) { setDescricaoCrua(v); if (regras) reiniciar(); },
-    setTipo(v: TipoDePrompt) { setTipoCru(v); if (regras) reiniciar(); },
+    setDescricao(v: string) { setDescricaoCrua(v); if (regras || regrasRef.current) reiniciar(); },
+    setTipo(v: TipoDePrompt) { setTipoCru(v); if (regras || regrasRef.current) reiniciar(); },
     alternar(slug: string) {
       setMarcados((atual) => atual.includes(slug) ? atual.filter((s) => s !== slug) : [...atual, slug]);
     },

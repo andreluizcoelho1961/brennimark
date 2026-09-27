@@ -6,7 +6,7 @@ import {
   montarIndice, type FonteDoIndice, type ItemDeIndice, type MarcadorResolvido,
   type SecaoExtraida,
 } from "@/lib/documento-fonte/indice";
-import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 import { useIsEnglish } from "@/platform/locale-client";
 import { prepararAmbienteDePdf } from "@/lib/import/stream-iteravel";
 import {
@@ -644,8 +644,9 @@ export function VisualizadorDePdf({
       const numero = ((paginaAtual - 1 + passo) % total) + 1;
       let texto = textos.current.get(numero);
       if (texto === undefined) {
+        let pagina: PDFPageProxy | null = null;
         try {
-          const pagina = await documento.getPage(numero);
+          pagina = await documento.getPage(numero);
           const conteudo = await pagina.getTextContent();
           texto = conteudo.items
             .map((item) => ("str" in item ? item.str : ""))
@@ -653,6 +654,13 @@ export function VisualizadorDePdf({
             .toLocaleLowerCase();
         } catch {
           texto = "";
+        } finally {
+          // O texto já está guardado; os recursos da página, não precisam
+          // ficar. Sem isto, uma busca que atravessa um manual de centenas de
+          // páginas acumulava todas na memória (revisão de 27/09). O PDF.js
+          // adia a limpeza de página com desenho em andamento, então a página
+          // que está na tela não é afetada.
+          pagina?.cleanup();
         }
         textos.current.set(numero, texto);
       }

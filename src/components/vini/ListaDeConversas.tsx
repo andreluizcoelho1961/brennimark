@@ -30,11 +30,18 @@ export function ListaDeConversas({
   useEffect(() => {
     let cancelado = false;
     (async () => {
-      const resposta = await fetch(comAlvo("/api/conversas", alvo), { cache: "no-store" });
-      const dados = await resposta.json().catch(() => ({}));
-      if (cancelado) return;
-      if (resposta.ok) setConversas(dados.conversas ?? []);
-      else setErro(dados.message ?? t("Não foi possível carregar suas conversas.", "Couldn't load your conversations."));
+      // Falha de REDE (sem resposta nenhuma) também vira mensagem: sem o
+      // `catch`, o `fetch` rejeitava, ninguém tratava, e a lista ficava em
+      // "Carregando…" para sempre (revisão de 27/09).
+      try {
+        const resposta = await fetch(comAlvo("/api/conversas", alvo), { cache: "no-store" });
+        const dados = await resposta.json().catch(() => ({}));
+        if (cancelado) return;
+        if (resposta.ok) setConversas(dados.conversas ?? []);
+        else setErro(dados.message ?? t("Não foi possível carregar suas conversas.", "Couldn't load your conversations."));
+      } catch {
+        if (!cancelado) setErro(t("Sem conexão: não foi possível carregar suas conversas.", "No connection: couldn't load your conversations."));
+      }
     })();
     return () => { cancelado = true; };
     // `t` muda a cada render; a busca depende só do alvo.
@@ -43,7 +50,11 @@ export function ListaDeConversas({
 
   async function abrir(id: string) {
     setErro("");
-    const resposta = await fetch(comAlvo(`/api/conversas/${id}`, alvo), { cache: "no-store" });
+    const resposta = await fetch(comAlvo(`/api/conversas/${id}`, alvo), { cache: "no-store" }).catch(() => null);
+    if (!resposta) {
+      setErro(t("Sem conexão: não foi possível abrir a conversa.", "No connection: couldn't open the conversation."));
+      return;
+    }
     const dados = await resposta.json().catch(() => ({}));
     if (!resposta.ok) {
       setErro(dados.message ?? t("Não foi possível abrir a conversa.", "Couldn't open the conversation."));
@@ -67,7 +78,11 @@ export function ListaDeConversas({
     );
     if (!window.confirm(aviso)) return;
     setErro("");
-    const resposta = await fetch(comAlvo(`/api/conversas/${c.id}`, alvo), { method: "DELETE" });
+    const resposta = await fetch(comAlvo(`/api/conversas/${c.id}`, alvo), { method: "DELETE" }).catch(() => null);
+    if (!resposta) {
+      setErro(t("Sem conexão: a conversa não foi apagada.", "No connection: the conversation wasn't deleted."));
+      return;
+    }
     if (!resposta.ok) {
       const dados = await resposta.json().catch(() => ({}));
       setErro(dados.message ?? t("Não foi possível apagar a conversa.", "Couldn't delete the conversation."));
