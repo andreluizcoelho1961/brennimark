@@ -140,7 +140,9 @@ export function PaletaDaMarca({
     const paginas = ((dados.paginas ?? []) as number[]).join(", ");
     const partes = [
       novas.length === 0
-        ? (dados.lidas > 0
+        ? (dados.cortada && !dados.lidas
+          ? t("The AI's answer was cut short before any color.", "A resposta da IA foi cortada antes de qualquer cor.")
+          : dados.lidas > 0
           ? t("Every color the AI read is already in the sheet.", "Todas as cores que a IA leu já estavam na ficha.")
           : t(`The AI found no palette on pages ${paginas}.`, `A IA não achou paleta nas páginas ${paginas}.`))
         : t(`${novas.length} color(s) suggested from pages ${paginas}, as drafts — check each code before approving.`,
@@ -148,6 +150,12 @@ export function PaletaDaMarca({
     ];
     if (novas.length > 0 && dados.repetidas > 0) {
       partes.push(t(`${dados.repetidas} were already in the sheet.`, `${dados.repetidas} já ${dados.repetidas === 1 ? "estava" : "estavam"} na ficha.`));
+    }
+    if (dados.cortada && (dados.lidas ?? 0) > 0) {
+      partes.push(t(
+        "The AI's answer was cut short, so some colors may be missing: run again with fewer pages (e.g. just the palette page).",
+        "A resposta da IA foi cortada, então pode faltar cor: rode de novo com menos páginas (ex.: só a da paleta).",
+      ));
     }
     if ((dados.semImagem ?? []).length > 0) {
       partes.push(t(`Pages ${dados.semImagem.join(", ")} weren't prepared and were left out.`,

@@ -96,3 +96,30 @@ test("só o que falta: nada repete HEX ou nome já na ficha, nem dentro da suges
   assert.equal(repetidas, 4);
   assert.equal(chaveDoNome("  Açaí   ESCURO "), "acai escuro");
 });
+
+test("a resposta em LINHAS vira cores, e a linha cortada no fim fica de fora", () => {
+  // O formato do ensaio de 27/09: JSON estourava o teto de saída.
+  const resposta = [
+    "nome | papel | segmento | HEX | RGB | CMYK | PMS | página",
+    "Vermelho Bradesco | principal | - | #cc092f | 204 9 47 | 0 100 85 0 | 186 C | 22",
+    "- Branco | Principal | - | #FFFFFF | 255 255 255 | 0 0 0 0 | - | p. 22",
+    "Azul Noite | apoio | Varejo | - | - | 100 80 30 60 | 289 C | 22",
+    "Cinza sem código | apoio | - | - | - | - | - | 22",
+    "Verde | apoio | - | #78BE20 | 120 190",
+  ].join("\n");
+  const cores = lerSugestao(resposta, [21, 22]);
+  assert.deepEqual(cores.map((c) => c.nome), ["Vermelho Bradesco", "Branco", "Azul Noite"]);
+  assert.deepEqual(cores[0], { nome: "Vermelho Bradesco", papel: "principal", segmento: "", hex: "#CC092F", rgb: "204 9 47", cmyk: "0 100 85 0", pms: "186 C", pagina: 22 });
+  assert.equal(cores[1].papel, "principal");
+  assert.equal(cores[1].pms, null);
+  assert.equal(cores[1].pagina, 22);
+  // CMYK sem HEX impresso: o HEX fica vazio — nunca calculado.
+  assert.equal(cores[2].hex, null);
+  assert.equal(cores[2].segmento, "Varejo");
+  assert.deepEqual(lerSugestao("NENHUMA", [22]), []);
+});
+
+test("a instrução pede uma linha por cor, sem JSON", () => {
+  assert.match(instrucoesDaSugestao(false, [22]), /UMA LINHA POR COR/);
+  assert.match(instrucoesDaSugestao(false, [22]), /nome \| papel \| segmento \| HEX \| RGB \| CMYK \| PMS \| página/);
+});
