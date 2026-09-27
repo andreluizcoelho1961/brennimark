@@ -7,7 +7,7 @@ import { LIMITES_DE_IA, type Trecho } from "../ai/recuperacao";
 function cor(parcial: Partial<CorDaPaleta>): CorDaPaleta {
   return {
     id: parcial.nome ?? "id", nome: "Cor", papel: "apoio", segmento: "", hex: "#CC092F", rgb: null, cmyk: null, pms: null,
-    pagina: null, ordem: 0, status: "ready", aprovadoEm: "2026-09-27T12:00:00Z", ...parcial,
+    pagina: null, ordem: 0, status: "ready", aprovadoEm: "2026-09-27T12:00:00Z", origem: "pessoa", ...parcial,
   };
 }
 

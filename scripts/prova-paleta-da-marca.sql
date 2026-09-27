@@ -307,6 +307,31 @@ begin
   perform pg_temp.registrar('pagina zero e recusada', '23514 paleta_da_marca_pagina_check', t.estado || ' ' || t.nome);
 end $$;
 
+-- ─── 3b. A origem da cor (27/09/2026) ───────────────────────────────────────
+do $$
+declare m record; t record; linha record; id_cor uuid;
+begin
+  select * into m from mundo;
+
+  t := pg_temp.tentar(m.editora, pg_temp.cor(m.w1, m.marca_a, 'Cor à mão'));
+  select * into linha from public.paleta_da_marca where nome = 'Cor à mão';
+  perform pg_temp.registrar('cor cadastrada sem origem nasce de pessoa', 'ACEITOU pessoa', t.estado || ' ' || coalesce(linha.origem, '?'));
+
+  t := pg_temp.tentar(m.editora, pg_temp.cor(m.w1, m.marca_a, 'Lida pela IA', 'origem=''ia'''));
+  select * into linha from public.paleta_da_marca where nome = 'Lida pela IA';
+  perform pg_temp.registrar('a sugestao da IA grava origem ia, e nasce rascunho', 'ACEITOU ia draft',
+    t.estado || ' ' || coalesce(linha.origem, '?') || ' ' || coalesce(linha.status, '?'));
+
+  t := pg_temp.tentar(m.editora, pg_temp.cor(m.w1, m.marca_a, 'Origem inventada', 'origem=''robo'''));
+  perform pg_temp.registrar('origem fora do vocabulario e recusada', '23514 paleta_da_marca_origem_check', t.estado || ' ' || t.nome);
+
+  id_cor := linha.id;
+  t := pg_temp.tentar(m.editora, format('update public.paleta_da_marca set hex = ''#112233'', origem = ''pessoa'' where id = %L', id_cor));
+  select * into linha from public.paleta_da_marca where id = id_cor;
+  perform pg_temp.registrar('corrigir a cor sugerida NAO apaga que ela veio da IA', 'ACEITOU ia #112233 ' || m.editora,
+    t.estado || ' ' || linha.origem || ' ' || coalesce(linha.hex, '?') || ' ' || coalesce(linha.updated_by::text, '?'));
+end $$;
+
 -- ─── 4. Conta removida e marca apagada ──────────────────────────────────────
 do $$
 declare m record; estado text; linha record; n integer;

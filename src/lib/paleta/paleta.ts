@@ -16,6 +16,8 @@ import type { Trecho } from "../ai/recuperacao";
 export const PAPEIS = ["principal", "apoio"] as const;
 export type Papel = (typeof PAPEIS)[number];
 export type StatusDaCor = "draft" | "ready";
+/** De onde a cor veio (27/09): cadastrada à mão, ou lida pela IA das páginas. */
+export type OrigemDaCor = "pessoa" | "ia";
 
 export const NOME_MAXIMO = 80;
 export const SEGMENTO_MAXIMO = 80;
@@ -34,10 +36,11 @@ export type CorDaPaleta = {
   ordem: number;
   status: StatusDaCor;
   aprovadoEm: string | null;
+  origem: OrigemDaCor;
 };
 
 /** O que uma pessoa escreve: tudo menos o que o banco decide. */
-export type CorEscrita = Omit<CorDaPaleta, "id" | "status" | "aprovadoEm">;
+export type CorEscrita = Omit<CorDaPaleta, "id" | "status" | "aprovadoEm" | "origem">;
 
 /**
  * HEX na forma canônica do banco: `#` e seis dígitos maiúsculos. Aceita o que
@@ -110,7 +113,7 @@ export function ordenarPaleta<T extends Pick<CorDaPaleta, "papel" | "ordem" | "n
     || a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
-const COLUNAS = "id, nome, papel, segmento, hex, rgb, cmyk, pms, pagina, ordem, status, aprovado_em";
+const COLUNAS = "id, nome, papel, segmento, hex, rgb, cmyk, pms, pagina, ordem, status, aprovado_em, origem";
 
 export function deLinha(linha: Record<string, unknown>): CorDaPaleta {
   return {
@@ -126,6 +129,7 @@ export function deLinha(linha: Record<string, unknown>): CorDaPaleta {
     ordem: typeof linha.ordem === "number" ? linha.ordem : 0,
     status: linha.status === "ready" ? "ready" : "draft",
     aprovadoEm: typeof linha.aprovado_em === "string" ? linha.aprovado_em : null,
+    origem: linha.origem === "ia" ? "ia" : "pessoa",
   };
 }
 

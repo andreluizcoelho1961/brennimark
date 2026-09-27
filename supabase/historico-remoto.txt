@@ -79,3 +79,4 @@
 20260926172522 busca_completa_e_perguntas
 20260927153359 imagens_de_leitura_das_paginas
 20260927193803 paleta_da_marca
+20260927203333 origem_da_cor

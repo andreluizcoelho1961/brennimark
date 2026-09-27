@@ -123,3 +123,66 @@ test("a recusa do servidor aparece e o formulário continua aberto", async ({ pa
   await expect(secao.getByRole("status")).toHaveText("O HEX tem seis dígitos, como #CC092F.");
   await expect(formulario).toBeVisible();
 });
+
+// ─── A ficha sugerida pela IA (27/09/2026) ──────────────────────────────────
+
+test("sugerir pela IA manda as páginas, e as cores entram como rascunho marcadas como da IA", async ({ page }) => {
+  let corpo: unknown = null;
+  await page.route("**/api/admin/paleta/sugerir**", async (rota) => {
+    corpo = rota.request().postDataJSON();
+    await rota.fulfill({
+      status: 200,
+      json: {
+        cores: [
+          { id: "c0000000-0000-4000-8000-000000000021", nome: "Verde Mata", papel: "apoio", segmento: "", hex: "#1B5E20", rgb: null, cmyk: "80 0 100 40", pms: "356 C", pagina: 13, ordem: 4, status: "draft", aprovadoEm: null, origem: "ia" },
+          { id: "c0000000-0000-4000-8000-000000000022", nome: "Areia", papel: "apoio", segmento: "", hex: "#D8C8A8", rgb: null, cmyk: null, pms: null, pagina: 13, ordem: 5, status: "draft", aprovadoEm: null, origem: "ia" },
+        ],
+        lidas: 3, repetidas: 1, paginas: [12, 13], semImagem: [],
+      },
+    });
+  });
+
+  await page.goto("/dev/admin-panel");
+  const secao = secaoDaPaleta(page);
+  const sugestao = secao.locator("[data-sugestao-da-paleta]");
+  await sugestao.getByLabel("Páginas da paleta (opcional)").fill("12, 13");
+  await sugestao.locator("[data-sugerir-cores]").click();
+
+  expect(corpo).toEqual({ paginas: "12, 13" });
+  await expect(secao.getByRole("status")).toHaveText(
+    "2 cores sugeridas das páginas 12, 13, como rascunho — confira cada código antes de aprovar. 1 já estava na ficha.",
+  );
+  const verde = secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000021"]');
+  await expect(verde.locator("[data-status-da-cor]")).toHaveText("Rascunho");
+  await expect(verde.locator("[data-origem-ia]")).toHaveText("sugerida pela IA");
+  // A cor à mão não ganha a marca.
+  await expect(secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000001"] [data-origem-ia]')).toHaveCount(0);
+  await expect(secao.locator("[data-resumo-da-paleta]")).toContainText("6 cores");
+});
+
+test("sugestão recusada diz o que fazer, e nada muda na ficha", async ({ page }) => {
+  await page.route("**/api/admin/paleta/sugerir**", (rota) => rota.fulfill({
+    status: 409,
+    json: { error: "paginas_sem_imagem", message: "As páginas 21, 22 ainda não foram preparadas. No manual, use antes \"Preparar o manual para o Vini\"." },
+  }));
+  await page.goto("/dev/admin-panel");
+  const secao = secaoDaPaleta(page);
+  await secao.locator("[data-sugerir-cores]").click();
+  await expect(secao.getByRole("status")).toContainText("ainda não foram preparadas");
+  await expect(secao.locator("[data-cor-da-paleta]")).toHaveCount(4);
+  await expect(secao.locator("[data-sugerir-cores]")).toBeEnabled();
+});
+
+test("sem rede, a ficha avisa e os botões voltam", async ({ page }) => {
+  await page.route("**/api/admin/paleta/sugerir**", (rota) => rota.abort("internetdisconnected"));
+  await page.goto("/dev/admin-panel");
+  const secao = secaoDaPaleta(page);
+  await secao.locator("[data-sugerir-cores]").click();
+  await expect(secao.getByRole("status")).toHaveText("Sem conexão: nada foi guardado.");
+  await expect(secao.locator("[data-sugerir-cores]")).toBeEnabled();
+});
+
+test("quem só aprova não vê a sugestão", async ({ page }) => {
+  await page.goto("/dev/admin-panel?papel=aprovadora");
+  await expect(secaoDaPaleta(page).locator("[data-sugestao-da-paleta]")).toHaveCount(0);
+});
