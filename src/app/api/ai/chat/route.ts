@@ -13,6 +13,8 @@ import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/pag
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { caracteresDoManual, lerManualInteiro, manualCabeNoModelo } from "@/lib/ai/manual-inteiro";
 import { capacidadesDe } from "@/lib/ai/catalogo";
+import { comPaginasVistas, lerPaginasVistas, modeloVePaginas, paginasParaVer, type PaginaVista } from "@/lib/ai/paginas-para-ver";
+import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { lerPaleta, trechosDaFicha } from "@/lib/paleta/paleta";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
@@ -163,6 +165,21 @@ export async function POST(request: Request) {
     // inteiro, reservar pelos trechos subestimaria.
     const fontesDaReserva = [...ficha, ...(algumLeInteiro ? manual : trechos)];
 
+    /*
+     * O Vini VÊ as páginas mais relevantes (26/09/2026): o texto de uma página
+     * visual — a tabela de paleta — engana; a imagem, não. Só para a IA que lê
+     * o manual inteiro E enxerga imagem; as outras seguem pelo texto.
+     */
+    const veNo = (attempt: ResolvedChatAttempt) =>
+      cabeNo(attempt) && modeloVePaginas(capacidadesDe(attempt.config.provider, attempt.config.model));
+    let vistas: PaginaVista[] = [];
+    if (attempts.some(veNo)) {
+      const { sourceDocumentId } = await lerManualDaMarca(portao.auth.supabase, portao.auth.workspaceId, portao.brand.id);
+      if (sourceDocumentId) {
+        vistas = await lerPaginasVistas(portao.auth.supabase, sourceDocumentId, paginasParaVer(trechos));
+      }
+    }
+
     // Cliente de serviço — chave sb_secret_..., só para as três mutações
     // financeiras do ledger de IA. Nunca a sessão do usuário (achado P0-2).
     const serviceClient = createServiceClient();
@@ -174,6 +191,7 @@ export async function POST(request: Request) {
       {
         workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
         role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: fontesDaReserva,
+        imagensDePagina: vistas.length,
       },
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
@@ -194,6 +212,7 @@ export async function POST(request: Request) {
       request: {
         workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, executionId, task: "assist",
         role: portao.brand.ai.chatRole, question: perguntaDasMensagens(messages), sources: fontesDaReserva,
+        imagensDePagina: vistas.length,
       },
       attempts,
       // decidirExecucao só devolve pode:true com preço verificado — a
@@ -210,7 +229,7 @@ export async function POST(request: Request) {
           system: cabeNo(attempt)
             ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha)
             : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha),
-          messages,
+          messages: veNo(attempt) ? comPaginasVistas(messages, vistas, isEnglish) : messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: CHAT_TIMEOUT_MS },
@@ -230,6 +249,7 @@ export async function POST(request: Request) {
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
       modo: cabeNo(execucao.attempt) ? "inteiro" : "trechos", ficha: ficha.length > 0,
+      paginasVistas: veNo(execucao.attempt) ? vistas.map((v) => v.pagina) : [],
       reserva: execucao.fallbackUsed, executionId: execucao.executionId,
     }));
     let firstChunk = execucao.firstChunk;

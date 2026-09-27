@@ -46,6 +46,7 @@ export function VisualizadorDePdf({
   paginaPedida,
   nomeDoArquivo,
   enderecoDoDownload,
+  preparoParaOVini,
 }: {
   /** O identificador do DOCUMENTO. Nunca um caminho de Storage. */
   documentoId: string;
@@ -78,10 +79,51 @@ export function VisualizadorDePdf({
   paginaPedida?: { pagina: number; pedido: string };
   /** O nome com que a agência enviou o PDF — aparece no fólio. */
   nomeDoArquivo?: string;
+  /**
+   * Só para quem EDITA a marca: gerar as imagens de leitura das páginas que
+   * ainda não têm — o Vini vê o manual (26/09/2026). Ausente = sem a ação.
+   */
+  preparoParaOVini?: {
+    workspaceId: string;
+    brandId: string;
+    sourceDocumentId: string;
+    paginasSemImagem: readonly number[];
+  };
   /** A rota que registra e baixa o PDF. Ausente na bancada. */
   enderecoDoDownload?: string;
 }) {
   const [documento, setDocumento] = useState<PDFDocumentProxy | null>(null);
+
+  // ─── Preparar o manual para o Vini (26/09/2026) ───────────────────────────
+  const [faltam, setFaltam] = useState<readonly number[]>(preparoParaOVini?.paginasSemImagem ?? []);
+  const [preparando, setPreparando] = useState<{ feitas: number; total: number } | null>(null);
+  const [falhasDoPreparo, setFalhasDoPreparo] = useState(0);
+  // Função, e não constante: `t` é declarado mais abaixo neste componente.
+  function rotuloDoPreparo(): string {
+    if (preparando) return t(`Preparando para o Vini… ${preparando.feitas} de ${preparando.total}`, `Preparing for Vini… ${preparando.feitas} of ${preparando.total}`);
+    if (faltam.length === 0) return t("Manual pronto para o Vini ✓", "Manual ready for Vini ✓");
+    if (falhasDoPreparo > 0) return t(`Tentar de novo: ${faltam.length} páginas para o Vini`, `Retry: ${faltam.length} pages for Vini`);
+    return t(`Preparar o manual para o Vini (${faltam.length} páginas)`, `Prepare the manual for Vini (${faltam.length} pages)`);
+  }
+
+  async function prepararParaOVini() {
+    if (!preparoParaOVini || !documento || preparando || faltam.length === 0) return;
+    const { createClient } = await import("@/lib/supabase/client");
+    const { prepararImagensDeLeitura } = await import("@/lib/documento-fonte/imagens-de-leitura");
+    setPreparando({ feitas: 0, total: faltam.length });
+    const resultado = await prepararImagensDeLeitura({
+      documento,
+      supabase: createClient(),
+      workspaceId: preparoParaOVini.workspaceId,
+      brandId: preparoParaOVini.brandId,
+      sourceDocumentId: preparoParaOVini.sourceDocumentId,
+      paginas: faltam,
+      aoProgredir: (feitas, total) => setPreparando({ feitas, total }),
+    });
+    setFaltam(resultado.falhas);
+    setFalhasDoPreparo(resultado.falhas.length);
+    setPreparando(null);
+  }
   const [total, setTotal] = useState(0);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [ajuste, setAjuste] = useState<Ajuste>({ tipo: "largura" });
@@ -804,6 +846,11 @@ export function VisualizadorDePdf({
       aoAlternarMiniaturas={() => setMiniaturasAbertas((v) => !v)}
       aoTelaCheia={telaCheia}
       enderecoDoDownload={enderecoDoDownload}
+      preparo={preparoParaOVini && documento ? {
+        rotulo: rotuloDoPreparo(),
+        emAndamento: preparando,
+        aoPreparar: () => void prepararParaOVini(),
+      } : undefined}
     />
   );
   // Na moldura e em tela larga, as ações sobem para a barra de cima; sem

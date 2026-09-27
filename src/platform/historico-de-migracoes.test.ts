@@ -78,6 +78,11 @@ const PENDENTES_ESPERADAS: string[] = [
    * para ir ao banco hospedado; depois, carimbo de produção no nome do arquivo.
    */
   "paleta_da_marca",
+  // `imagens_de_leitura_das_paginas` saiu daqui em 27/09/2026: aplicada ao
+  // banco hospedado com autorização nominal do André, carimbada
+  // `20260927153359`; impressão digital igual à do local (definição, SECURITY
+  // DEFINER, search_path e o check). Grants: iguais, mais `service_role`, o
+  // padrão do hospedado (o mesmo de `conceder_acesso`).
   // `busca_completa_e_perguntas` saiu daqui em 26/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260926172522`;
   // impressão digital igual à do local (definição e grants de `buscar_trechos`).
