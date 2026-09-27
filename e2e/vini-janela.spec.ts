@@ -452,6 +452,34 @@ test("mudar a descrição apaga as regras da pergunta anterior", async ({ page }
   await expect(janela.getByRole("button", { name: "Ver as regras" })).toBeVisible();
 });
 
+test("regras que chegam DEPOIS de mudar a descrição não aparecem sobre a nova", async ({ page }) => {
+  // Revisão de 27/09: a consulta de regras não era cancelável. Mudar a
+  // descrição enquanto ela ia deixava a resposta velha aparecer sobre a nova,
+  // e o prompt seria gerado com as regras de outra pergunta.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  let soltar: () => void = () => {};
+  const segura = new Promise<void>((ok) => { soltar = ok; });
+  await page.route("**/api/ai/prompt**", async (rota) => {
+    await segura;
+    await rota.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ aprovadas: [], rascunhos: [FOTOGRAFIA] }) }).catch(() => undefined);
+  });
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-prompt]").click();
+  const janela = page.locator("[data-vini-janela]");
+  const campo = janela.getByRole("textbox", { name: "O que você vai criar" });
+  await campo.fill("foto de produto");
+  await janela.getByRole("button", { name: "Ver as regras" }).click();
+
+  await campo.fill("vídeo curto de lançamento");
+  soltar();
+  // Dá tempo de a resposta velha chegar, se fosse chegar.
+  await page.waitForTimeout(300);
+  await expect(janela.locator("[data-regras-rascunho]")).toHaveCount(0);
+  await expect(janela.getByRole("button", { name: "Ver as regras" })).toBeEnabled();
+});
+
 // ─── Fatia 4d: as conversas por autor ──────────────────────────────────────
 
 async function comConversas(page: Page, apagadas: string[]) {
@@ -557,4 +585,18 @@ test("Nova começa outra conversa, com outro identificador", async ({ page }) =>
   await expect.poll(() => enviados.length).toBe(2);
   const [a, b] = enviados as { conversaId: string }[];
   expect(a.conversaId).not.toBe(b.conversaId);
+});
+
+test("sem rede, a lista de conversas diz que falhou em vez de ficar carregando", async ({ page }) => {
+  // Revisão de 27/09: o `fetch` rejeitado não era tratado, e a lista ficava em
+  // "Carregando…" para sempre.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route("**/api/conversas**", (rota) => rota.abort("internetdisconnected"));
+  await page.goto(MARCA);
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-abrir-conversas]").click();
+
+  const lista = page.locator("[data-lista-de-conversas]");
+  await expect(lista.getByRole("alert")).toHaveText("Sem conexão: não foi possível carregar suas conversas.");
+  await expect(lista).not.toContainText("Carregando");
 });
