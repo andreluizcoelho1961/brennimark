@@ -941,3 +941,13 @@ test("a reserva conta o manual inteiro quando ele vai: mais conhecimento, teto m
   // Conhecimento menor que o teto dos trechos não diminui a reserva.
   assert.equal(tetoDeTokensDeEntrada(REQUEST_BASE.task, REQUEST_BASE.role, 100), trechos);
 });
+
+test("imagens de página pesam na reserva: cada uma pelo teto de imagem do modelo", async () => {
+  const semImagens = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  const comImagens = supabaseFalso({ reservar_execucao_de_ia_server: RESERVA_OK, kill_switch_ativo: KILL_SWITCH_INATIVO });
+  await decidirExecucao(semImagens.cliente, semImagens.cliente, USER_ID, { ...REQUEST_BASE }, PERFIL_COM_PRECO_DE_IMAGEM);
+  await decidirExecucao(comImagens.cliente, comImagens.cliente, USER_ID, { ...REQUEST_BASE, imagensDePagina: 4 }, PERFIL_COM_PRECO_DE_IMAGEM);
+  const sem = semImagens.chamadas[0].args.p_reserved_micros as number;
+  const com = comImagens.chamadas[0].args.p_reserved_micros as number;
+  assert.ok(com > sem, "quatro imagens de página tinham de aumentar a reserva");
+});

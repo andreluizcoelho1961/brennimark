@@ -123,6 +123,22 @@ export default async function ManualOriginal({
     ? await lerSecoesDoIndice(auth.supabase, registro.sourceDocumentId)
     : [];
 
+  /*
+   * As páginas ainda sem imagem de leitura — o Vini VÊ o manual (26/09/2026).
+   * Só para quem edita: gerar as imagens é trabalho de quem cuida da marca, e
+   * o banco só aceita o registro de quem tem `editar`.
+   */
+  let paginasSemImagem: number[] = [];
+  if (edita && registro?.sourceDocumentId) {
+    const { data: semImagem } = await auth.supabase
+      .from("brand_source_pages")
+      .select("pagina")
+      .eq("source_document_id", registro.sourceDocumentId)
+      .is("miniatura_path", null)
+      .order("pagina", { ascending: true });
+    paginasSemImagem = (semImagem ?? []).map((linha: { pagina: number }) => linha.pagina);
+  }
+
   return (
     /*
      * A altura da tela MENOS a moldura inteira: a barra de cima e, em tela
@@ -162,6 +178,12 @@ export default async function ManualOriginal({
           paginaPedida={paginaPedida}
           nomeDoArquivo={nomeDoArquivo}
           enderecoDoDownload={`/api/documento-fonte/${documento.id}/baixar?${consulta}`}
+          preparoParaOVini={edita && registro?.sourceDocumentId ? {
+            workspaceId: auth.workspaceId,
+            brandId: contexto.brand.id,
+            sourceDocumentId: registro.sourceDocumentId,
+            paginasSemImagem,
+          } : undefined}
         />
       </div>
     </div>

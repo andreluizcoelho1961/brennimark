@@ -56,6 +56,12 @@ export interface AIExecutionRequest {
   question: string;
   sources: readonly Trecho[];
   image?: AIImageInput;
+  /**
+   * Imagens de PÁGINA do manual que vão junto (o Vini vê as páginas, 26/09).
+   * Opcionais: modelo sem visão simplesmente não as recebe — por isso não
+   * passam pelo portão de `image`, só pela reserva.
+   */
+  imagensDePagina?: number;
 }
 
 export type MotivoDeBloqueio =
@@ -245,7 +251,9 @@ export async function decidirExecucao(
   const reservedMicros = custoDeReservaMicros(pricing, {
     entrada: tetoDeTokensDeEntrada(request.task, request.role, caracteresDoManual(request.sources ?? [])),
     saida: maxOutputTokens,
-    imagem: request.image ? pricing.maxImageTokens : undefined,
+    imagem: (request.image || request.imagensDePagina) && pricing.maxImageTokens !== undefined
+      ? pricing.maxImageTokens * ((request.image ? 1 : 0) + (request.imagensDePagina ?? 0))
+      : undefined,
   });
 
   const reserva = await reservarExecucao(serviceClient, userId, {

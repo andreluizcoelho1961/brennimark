@@ -246,6 +246,7 @@ export function AcoesDoManual({
   aoAlternarMiniaturas,
   aoTelaCheia,
   enderecoDoDownload,
+  preparo,
 }: {
   t: T;
   indice: { fonte: FonteDoIndice; itens: readonly ItemDeIndice[] };
@@ -267,6 +268,8 @@ export function AcoesDoManual({
   aoTelaCheia: () => void;
   /** Ausente na bancada: sem marca, não há download registrável. */
   enderecoDoDownload?: string;
+  /** Só para quem edita: gerar as imagens de leitura para o Vini. */
+  preparo?: { rotulo: string; emAndamento: unknown; aoPreparar: () => void };
 }) {
   const [zoomAberto, setZoomAberto] = useState(false);
   const [maisAberto, setMaisAberto] = useState(false);
@@ -394,6 +397,19 @@ export function AcoesDoManual({
               {t("Tela cheia", "Full screen")}
             </button>
           </li>
+          {preparo && (
+            <li className="border-t border-platform-border">
+              <button
+                type="button"
+                data-preparar-para-o-vini
+                disabled={Boolean(preparo.emAndamento)}
+                onClick={() => preparo.aoPreparar()}
+                className="w-full px-[var(--space-shell-3)] py-[6px] text-left hover:bg-platform-bg disabled:opacity-60"
+              >
+                {preparo.rotulo}
+              </button>
+            </li>
+          )}
           {enderecoDoDownload && (
             <li className="border-t border-platform-border">
               {/*

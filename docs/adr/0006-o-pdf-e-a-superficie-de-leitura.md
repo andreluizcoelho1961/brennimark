@@ -105,3 +105,28 @@ nível em diante, exige três itens úteis para preferir os marcadores, e **diz 
   deixou de exigir imagens enviadas — asserção sobre zero imagens seria teatro — e continua
   exigindo o que ainda é garantia do produto, **publicar não depende de a aba estar à vista**. Se
   a renderização voltar, a asserção volta com ela; a nota no próprio arquivo diz isso.
+
+## Adendo de 26/09/2026 — a imagem de página volta, com outro propósito
+
+Este ADR desligou a geração de imagem de página em 12/09: eram PNG de 2× para
+**remontar** a página fora do PDF (≈ 34 MB e 45 s num manual de 47 páginas), e o
+PDF passou a ser a superfície de leitura. Isso continua valendo — nada aqui
+remonta página.
+
+O que volta é outra coisa: uma **imagem de leitura para a IA**. No ensaio da
+fatia 7, o Vini lendo o manual inteiro em texto contou 6 cores numa paleta de 19,
+porque a tabela da página 22 do Bradesco, extraída como texto, vira códigos sem
+coluna nem nome. Decisão do André (26/09): o Vini **vê** as páginas mais
+relevantes, junto do texto.
+
+- JPEG de ~1.600 px (≈ 200 KB por página), não PNG de 2×.
+- Gerada no navegador de quem **edita** a marca, pela ação "Preparar o manual
+  para o Vini"; o servidor nunca desenha PDF.
+- Guardada em `brand_source_pages.miniatura_path`, caminho determinístico com
+  check no banco (migration `imagens_de_leitura_das_paginas`); lida só por quem
+  alcança a marca.
+- Vai à IA só quando ela enxerga imagem e lê o manual inteiro; nunca aparece
+  como substituta da página na tela.
+- **Não roda na importação**: publicar continua sem desenhar página, e a garantia
+  de "publicar não depende da aba à vista" segue como está. Se um dia a imagem
+  de leitura for gerada na importação, a asserção de aba oculta volta com ela.
