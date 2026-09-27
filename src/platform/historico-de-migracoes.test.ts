@@ -72,6 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * A ficha da paleta da marca (27/09/2026): tabela, gatilho que separa editar
+   * de aprovar, e a função de aprovação. Aguarda autorização nominal do André
+   * para ir ao banco hospedado; depois, carimbo de produção no nome do arquivo.
+   */
+  "paleta_da_marca",
   // `busca_completa_e_perguntas` saiu daqui em 26/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260926172522`;
   // impressão digital igual à do local (definição e grants de `buscar_trechos`).

@@ -8,6 +8,8 @@ import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { VersionHistory } from "@/components/admin/VersionHistory";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { ApagarMarca, NomeDaMarca } from "@/components/admin/ConfiguracoesDaMarca";
+import { PaletaDaMarca } from "@/components/admin/PaletaDaMarca";
+import type { CorDaPaleta } from "@/lib/paleta/paleta";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { criarPedidoDeEdicao } from "@/lib/brennimark/edicao-de-conteudo";
@@ -25,6 +27,7 @@ export function AdminPanel({
   groups,
   theme,
   marca,
+  paleta,
 }: {
   initialDocs: DocPageEntry[];
   /** Páginas sem linha viva que ainda têm histórico. Elas continuam
@@ -34,6 +37,8 @@ export function AdminPanel({
   theme: BrennimarkTheme;
   /** A marca desta tela: o nome é editável e a marca pode ser apagada. */
   marca: { id: string; nome: string };
+  /** A ficha da paleta (27/09/2026) e o que esta pessoa pode fazer nela. */
+  paleta: { cores: CorDaPaleta[]; podeEditar: boolean; podeAprovar: boolean };
 }) {
   // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
   // saberia qual, e responderia 409 numa conta com mais de uma.
@@ -195,6 +200,7 @@ export function AdminPanel({
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-platform-text-muted">{isEnglish ? "This brand has no published pages. Pages arrive when a brand manual is imported." : "Esta marca ainda não tem páginas publicadas. As páginas chegam quando um manual é importado."}</p>
         <NomeDaMarca nome={marca.nome} />
         <ThemeEditor theme={theme} />
+        <PaletaDaMarca coresIniciais={paleta.cores} podeEditar={paleta.podeEditar} podeAprovar={paleta.podeAprovar} />
         <div className="mt-16 border-t border-platform-border pt-12">
           <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>
           <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Brand materials" : "Materiais da marca"}</h2>
@@ -257,6 +263,7 @@ export function AdminPanel({
       </section>
 
       <ThemeEditor theme={theme} />
+        <PaletaDaMarca coresIniciais={paleta.cores} podeEditar={paleta.podeEditar} podeAprovar={paleta.podeAprovar} />
 
       <section className="mt-16 border-t border-platform-border pt-12">
         <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>

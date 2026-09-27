@@ -4,6 +4,7 @@ import { getBrennimarkAuthContext, getDeletedPages } from "@/lib/brennimark/serv
 import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { caminhoDaMarca } from "@/lib/brennimark/selecao";
+import { lerPaleta } from "@/lib/paleta/paleta";
 
 export default async function AdminPage({ params }: { params: Promise<{ workspaceSlug: string; brandKey: string }> }) {
   const alvo = await params;
@@ -28,6 +29,10 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
   // abrir: a fila continua pendente e será tentada na próxima vez.
   if (auth) await drenarFilaDeExclusao(auth).catch(() => undefined);
 
+  // A ficha da paleta, pela sessão (a RLS decide). Falhar ao lê-la mostra a
+  // ficha vazia, e não derruba a administração.
+  const paleta = auth ? await lerPaleta(auth.supabase, brand.id) : { ok: false as const };
+
   return (
     <AdminPanel
       initialDocs={[...docs]}
@@ -35,6 +40,11 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
       groups={brand.navigation.groups}
       theme={brand.theme}
       marca={{ id: brand.id, nome: brand.brand.name }}
+      paleta={{
+        cores: paleta.ok ? paleta.cores : [],
+        podeEditar: capabilities.includes("editar"),
+        podeAprovar: capabilities.includes("aprovar"),
+      }}
     />
   );
 }

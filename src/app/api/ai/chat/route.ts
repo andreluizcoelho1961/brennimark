@@ -13,6 +13,7 @@ import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/pag
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
 import { caracteresDoManual, lerManualInteiro, manualCabeNoModelo } from "@/lib/ai/manual-inteiro";
 import { capacidadesDe } from "@/lib/ai/catalogo";
+import { lerPaleta, trechosDaFicha } from "@/lib/paleta/paleta";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
@@ -74,6 +75,9 @@ export async function POST(request: Request) {
   let trechos: Trecho[] = [];
   // O manual inteiro, quando lido (decisão de 26/09/2026). Vazio = só a busca.
   let manual: Trecho[] = [];
+  // A ficha da paleta (27/09/2026): vai com qualquer modo, e para cores vale
+  // sobre o texto do manual. Vazia quando a marca não tem ficha.
+  let ficha: Trecho[] = [];
   let brandPrompt: BrandPromptContext;
   let executionId: string | undefined;
   let maxOutputTokens: number;
@@ -145,13 +149,19 @@ export async function POST(request: Request) {
      */
     const leitura = await lerManualInteiro(portao.auth.supabase, portao.brand.id);
     if (leitura.ok) manual = leitura.trechos;
+    /*
+     * A ficha da paleta, lida com a sessão (a RLS decide). Falhar ao lê-la não
+     * derruba a conversa: o manual continua lá, e o log diz que a ficha caiu.
+     */
+    const paleta = await lerPaleta(portao.auth.supabase, portao.brand.id);
+    if (paleta.ok) ficha = trechosDaFicha(paleta.cores, brandPrompt.language === "en");
     const tamanhoDoManual = caracteresDoManual(manual);
     const cabeNo = (attempt: ResolvedChatAttempt) =>
       manual.length > 0 && manualCabeNoModelo(tamanhoDoManual, capacidadesDe(attempt.config.provider, attempt.config.model) ?? undefined);
     const algumLeInteiro = attempts.some(cabeNo);
     // A reserva conta o MAIOR que pode ir: se alguma IA da fila lê o manual
     // inteiro, reservar pelos trechos subestimaria.
-    const fontesDaReserva = algumLeInteiro ? manual : trechos;
+    const fontesDaReserva = [...ficha, ...(algumLeInteiro ? manual : trechos)];
 
     // Cliente de serviço — chave sb_secret_..., só para as três mutações
     // financeiras do ledger de IA. Nunca a sessão do usuário (achado P0-2).
@@ -198,8 +208,8 @@ export async function POST(request: Request) {
         const result = streamText({
           model: getModel(attempt.config),
           system: cabeNo(attempt)
-            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro")
-            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos"),
+            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha)
+            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha),
           messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
@@ -219,7 +229,7 @@ export async function POST(request: Request) {
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
-      modo: cabeNo(execucao.attempt) ? "inteiro" : "trechos",
+      modo: cabeNo(execucao.attempt) ? "inteiro" : "trechos", ficha: ficha.length > 0,
       reserva: execucao.fallbackUsed, executionId: execucao.executionId,
     }));
     let firstChunk = execucao.firstChunk;
@@ -260,7 +270,7 @@ export async function POST(request: Request) {
                 supabase: portao.auth.supabase, conversaId,
                 workspaceId: portao.auth.workspaceId, brandId: portao.brand.id, autor: portao.auth.user.id,
                 pergunta: perguntaDasMensagens(messages),
-                resposta: { conteudo: respostaInteira, tipo: "resposta", paginas: mapaDePaginas(manual.length > 0 ? manual : trechos), incompleta: Boolean(marca) },
+                resposta: { conteudo: respostaInteira, tipo: "resposta", paginas: mapaDePaginas([...ficha, ...(manual.length > 0 ? manual : trechos)]), incompleta: Boolean(marca) },
               });
             }
             execucao.cleanup();
@@ -294,7 +304,7 @@ export async function POST(request: Request) {
     response.headers.set("X-AI-Execution-Id", executionId);
     // As páginas dos trechos entregues ao modelo, para a citação levar ao PDF
     // (ver `lib/ai/paginas-citadas.ts`: a página nunca é pedida ao modelo).
-    response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas(manual.length > 0 ? manual : trechos)));
+    response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas([...ficha, ...(manual.length > 0 ? manual : trechos)])));
     return response;
   } catch (error) {
     // executarComOrcamento já libera a reserva antes de repassar o erro —
