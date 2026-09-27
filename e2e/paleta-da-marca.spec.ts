@@ -186,3 +186,15 @@ test("quem só aprova não vê a sugestão", async ({ page }) => {
   await page.goto("/dev/admin-panel?papel=aprovadora");
   await expect(secaoDaPaleta(page).locator("[data-sugestao-da-paleta]")).toHaveCount(0);
 });
+
+test("resposta cortada pelo teto da IA é dita como cortada, não como 'sem paleta'", async ({ page }) => {
+  // Ensaio de 27/09: a primeira sugestão real bateu no teto de saída e a tela
+  // disse "a IA não achou paleta" — em páginas que têm paleta.
+  await page.route("**/api/admin/paleta/sugerir**", (rota) => rota.fulfill({
+    status: 200, json: { cores: [], lidas: 0, repetidas: 0, paginas: [21, 22], semImagem: [], cortada: true },
+  }));
+  await page.goto("/dev/admin-panel");
+  const secao = secaoDaPaleta(page);
+  await secao.locator("[data-sugerir-cores]").click();
+  await expect(secao.getByRole("status")).toHaveText("A resposta da IA foi cortada antes de qualquer cor.");
+});

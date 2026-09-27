@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { streamText } from "ai";
 import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
-import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
+import { getModel, getTranscricaoProviderOptions } from "@/lib/ai/provider";
 import { resolveChatRouting } from "@/lib/ai/settings";
 import { capacidadesDe } from "@/lib/ai/catalogo";
 import { lerPaginasVistas, modeloVePaginas } from "@/lib/ai/paginas-para-ver";
@@ -120,6 +120,8 @@ export async function POST(request: Request) {
     if (!decisao.pode) return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish));
 
     const inicio = Date.now();
+    // Por que a IA parou — "length" é resposta cortada pelo teto de saída.
+    let motivoDoFim: PromiseLike<string> | null = null;
     const execucao = await executarEmFila({
       supabase: auth.supabase,
       serviceClient,
@@ -142,12 +144,13 @@ export async function POST(request: Request) {
               ...vistas.map((v) => ({ type: "image" as const, image: v.bytes, mediaType: "image/jpeg" })),
             ],
           }],
-          providerOptions: getChatProviderOptions(attempt.config),
+          providerOptions: getTranscricaoProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: TEMPO_DA_LEITURA_MS },
           maxOutputTokens: tetoDeSaida,
           maxRetries: 0,
         });
+        motivoDoFim = result.finishReason;
         return { textStream: textoOuErro(result.fullStream), usage: result.usage };
       },
     });
@@ -164,6 +167,8 @@ export async function POST(request: Request) {
     }
 
     const sugeridas = lerSugestao(texto, enviadas);
+    const motivo = await Promise.resolve(motivoDoFim ?? "unknown").catch(() => "error");
+    const cortada = motivo === "length";
     const atual = await lerPaleta(auth.supabase, brandId);
     if (!atual.ok) {
       return recusa(503, "paleta_indisponivel", t("Couldn't read the current palette.", "Não foi possível ler a ficha atual."));
@@ -190,6 +195,8 @@ export async function POST(request: Request) {
     console.info(JSON.stringify({
       level: "info", msg: "paleta_sugerida", executionId, brandId, paginas: enviadas,
       lidas: sugeridas.length, novas: gravadas.length, repetidas, ms: Date.now() - inicio,
+      // Medida, sem o conteúdo: por que parou, quanto veio, quantas linhas.
+      motivo, caracteres: texto.length, linhas: texto.split("\n").filter((l) => l.includes("|")).length,
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
     }));
 
@@ -198,6 +205,8 @@ export async function POST(request: Request) {
       lidas: sugeridas.length,
       repetidas,
       paginas: enviadas,
+      // A IA parou no teto de saída: pode ter faltado cor, e a tela diz isso.
+      cortada,
       // Páginas pedidas que não tinham imagem: a tela diz que ficaram de fora.
       semImagem: paginas.filter((p) => !enviadas.includes(p)),
     });

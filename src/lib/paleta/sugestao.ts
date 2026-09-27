@@ -98,24 +98,44 @@ export function instrucoesDaSugestao(ingles: boolean, paginas: readonly number[]
 
 Rules:
 - Transcribe ONLY colors that appear in these pages as part of the brand palette (swatches with a name or codes). Ignore colors of photos and illustrations.
-- Copy each code EXACTLY as printed. Never convert or calculate a code: if the page shows CMYK but no HEX, "hex" is null.
-- "papel" is "principal" only when the manual calls the color primary, main, institutional or equivalent; otherwise "apoio".
-- "segmento": the group the manual gives the color (e.g. a business line), or "".
-- "pagina": the page number (from the list above) where the color appears.
-- Answer with JSON ONLY, no text before or after, in this shape:
-{"cores":[{"nome":"","papel":"principal","segmento":"","hex":"#RRGGBB","rgb":"R G B","cmyk":"C M Y K","pms":"","pagina":0}]}
-- Use null for a code that isn't printed. No palette in these pages → {"cores":[]}.`
+- Copy each code EXACTLY as printed. Never convert or calculate a code: if the page shows CMYK but no HEX, the HEX field is "-".
+- Role is "principal" only when the manual calls the color primary, main, institutional or equivalent; otherwise "apoio".
+- Segment: the group the manual gives the color (e.g. a business line), or "-".
+- Page: the page number (from the list above) where the color appears.
+- Answer with ONE LINE PER COLOR and nothing else — no title, no explanation, no JSON:
+name | role | segment | HEX | RGB | CMYK | PMS | page
+- Use "-" for a field that isn't printed. No palette in these pages → answer only: NENHUMA`
     : `Você lê páginas de manual de marca e transcreve a paleta de cores da marca. As imagens são as páginas ${lista} do manual, nesta ordem.
 
 Regras:
 - Transcreva SÓ as cores que aparecem nestas páginas como parte da paleta da marca (amostras com nome ou códigos). Ignore cores de fotos e ilustrações.
-- Copie cada código EXATAMENTE como está impresso. Nunca converta nem calcule um código: se a página mostra CMYK e não mostra HEX, "hex" é null.
-- "papel" é "principal" só quando o manual chama a cor de principal, primária, institucional ou equivalente; senão, "apoio".
-- "segmento": o grupo em que o manual põe a cor (ex.: uma linha de negócio), ou "".
-- "pagina": o número da página (da lista acima) em que a cor aparece.
-- Responda SÓ com JSON, sem texto antes ou depois, neste formato:
-{"cores":[{"nome":"","papel":"principal","segmento":"","hex":"#RRGGBB","rgb":"R G B","cmyk":"C M Y K","pms":"","pagina":0}]}
-- Use null para código que não está impresso. Sem paleta nestas páginas → {"cores":[]}.`;
+- Copie cada código EXATAMENTE como está impresso. Nunca converta nem calcule um código: se a página mostra CMYK e não mostra HEX, o campo HEX é "-".
+- Papel é "principal" só quando o manual chama a cor de principal, primária, institucional ou equivalente; senão, "apoio".
+- Segmento: o grupo em que o manual põe a cor (ex.: uma linha de negócio), ou "-".
+- Página: o número da página (da lista acima) em que a cor aparece.
+- Responda com UMA LINHA POR COR e nada mais — sem título, sem explicação, sem JSON:
+nome | papel | segmento | HEX | RGB | CMYK | PMS | página
+- Use "-" no campo que não está impresso. Sem paleta nestas páginas → responda só: NENHUMA`;
+}
+
+/**
+ * Por que LINHAS e não JSON (ensaio de 27/09/2026): a primeira sugestão real,
+ * no Bradesco, gastou 1.948 dos 2.000 tokens de saída e não entregou cor
+ * nenhuma. JSON com chaves e nulos custa ~3 vezes mais por cor, e o Gemini
+ * ainda raciocina antes — e o raciocínio conta como saída. Em linha, uma
+ * resposta cortada perde só a última cor, não todas.
+ */
+function deLinhas(texto: string): Record<string, unknown>[] {
+  const vazio = (v: string | undefined) => (v === undefined || /^[-–—]?$/.test(v.trim()) || /^null$/i.test(v.trim()) ? null : v.trim());
+  const itens: Record<string, unknown>[] = [];
+  for (const linha of texto.split(/\r?\n/)) {
+    const campos = linha.replace(/^\s*[-*•\d.)]*\s*(?=\S)/, "").split("|").map((c) => c.trim());
+    // Linha de cor tem os oito campos; cabeçalho repetido ("nome | papel…") não é cor.
+    if (campos.length < 8 || /^(nome|name)$/i.test(campos[0])) continue;
+    const [nome, papel, segmento, hex, rgb, cmyk, pms, pagina] = campos;
+    itens.push({ nome, papel: (papel ?? "").toLowerCase(), segmento: vazio(segmento) ?? "", hex: vazio(hex), rgb: vazio(rgb), cmyk: vazio(cmyk), pms: vazio(pms), pagina: vazio(pagina) });
+  }
+  return itens;
 }
 
 /**
@@ -151,7 +171,10 @@ function objetosCompletos(texto: string): unknown[] {
 }
 
 function comoLista(texto: string): unknown[] {
-  const limpo = texto.replace(/```(?:json)?/gi, "").trim();
+  const limpo = texto.replace(/```(?:json|text)?/gi, "").trim();
+  const linhas = deLinhas(limpo);
+  if (linhas.length > 0) return linhas;
+  // Reserva: modelo que insiste em JSON.
   try {
     const bruto: unknown = JSON.parse(limpo);
     if (Array.isArray(bruto)) return bruto;
@@ -178,7 +201,8 @@ export function lerSugestao(texto: string, paginasEnviadas: readonly number[]): 
   for (const item of comoLista(texto).slice(0, MAXIMO_DE_CORES_SUGERIDAS)) {
     if (!item || typeof item !== "object") continue;
     const bruto = item as Record<string, unknown>;
-    const pagina = Number(bruto.pagina);
+    // "22", "p. 22", 22: o número é o que importa.
+    const pagina = Number(String(bruto.pagina ?? "").replace(/\D/g, "") || NaN);
     const lida = lerCorEscrita({
       ...bruto,
       papel: bruto.papel === "principal" ? "principal" : "apoio",

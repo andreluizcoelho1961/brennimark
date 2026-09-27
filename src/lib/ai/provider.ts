@@ -107,6 +107,20 @@ export function getChatProviderOptions(config: AIProviderConfig) {
   };
 }
 
+/**
+ * TRANSCREVER, não raciocinar: a ficha da paleta sugerida pela IA (27/09/2026).
+ * Copiar os códigos de uma tabela de amostras não pede dedução, e no Gemini 3
+ * o raciocínio conta como saída — a primeira sugestão real, no Bradesco, gastou
+ * 1.948 dos 2.000 tokens e não entregou cor nenhuma. Aqui o nível é o MÍNIMO;
+ * o chat e a análise continuam em "low".
+ */
+export function getTranscricaoProviderOptions(config: AIProviderConfig) {
+  if (config.provider === "google" && /^gemini-3/.test(config.model)) {
+    return { google: { thinkingConfig: { thinkingLevel: "minimal" as const } } };
+  }
+  return getChatProviderOptions(config);
+}
+
 /** O mesmo controle de espera, para a análise de peça (imagem). */
 export function getAnalysisProviderOptions(config: AIProviderConfig) {
   if (config.provider === "groq") return getChatProviderOptions(config);
