@@ -72,6 +72,9 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `origem_da_cor` saiu daqui em 27/09/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20260927203333`; impressão digital
+  // igual à do local (coluna, constraints, gatilho, policies, índices, grants).
   // `paleta_da_marca` saiu daqui em 27/09/2026: aplicada ao banco hospedado
   // com autorização nominal do André, carimbada `20260927193803`; impressão
   // digital igual à do local (funções, gatilho, constraints, policies, índices,

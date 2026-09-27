@@ -62,6 +62,8 @@ export function PaletaDaMarca({
   const [editando, setEditando] = useState<Rascunho | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [mensagem, setMensagem] = useState("");
+  const [paginasDaSugestao, setPaginasDaSugestao] = useState("");
+  const [sugerindo, setSugerindo] = useState(false);
 
   const resumo = useMemo(() => {
     const principais = cores.filter((c) => c.papel === "principal").length;
@@ -71,12 +73,15 @@ export function PaletaDaMarca({
   const emRascunho = cores.filter((c) => c.status === "draft");
   const manual = alvo.workspaceSlug && alvo.brandKey ? `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs/original` : null;
 
+  // Sem rede, o `fetch` rejeita: vira recusa com mensagem, e nenhum botão
+  // fica preso em "ocupado" (o defeito da lista de conversas, revisão de 27/09).
   async function pedir(url: string, metodo: string, corpo: unknown) {
     const resposta = await fetch(comAlvo(url, alvo), {
       method: metodo,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(corpo),
-    });
+    }).catch(() => null);
+    if (!resposta) return { ok: false, dados: { message: t("No connection: nothing was saved.", "Sem conexão: nada foi guardado.") } };
     const dados = await resposta.json().catch(() => ({}));
     return { ok: resposta.ok, dados };
   }
@@ -113,6 +118,42 @@ export function PaletaDaMarca({
     }
     setCores((antes) => antes.filter((c) => c.id !== cor.id));
     if (editando?.id === cor.id) setEditando(null);
+  }
+
+  /**
+   * A IA lê as imagens das páginas de cor e sugere as cores que FALTAM, como
+   * rascunho e com origem "IA" (27/09/2026). Leva de 20 a 60 segundos.
+   */
+  async function sugerir() {
+    setSugerindo(true);
+    setOcupado(true);
+    setMensagem("");
+    const { ok, dados } = await pedir("/api/admin/paleta/sugerir", "POST", { paginas: paginasDaSugestao });
+    setSugerindo(false);
+    setOcupado(false);
+    if (!ok) {
+      setMensagem(dados.message ?? t("Couldn't suggest colors.", "Não foi possível sugerir as cores."));
+      return;
+    }
+    const novas = (dados.cores ?? []) as CorDaPaleta[];
+    setCores((antes) => ordenarPaleta([...antes, ...novas]));
+    const paginas = ((dados.paginas ?? []) as number[]).join(", ");
+    const partes = [
+      novas.length === 0
+        ? (dados.lidas > 0
+          ? t("Every color the AI read is already in the sheet.", "Todas as cores que a IA leu já estavam na ficha.")
+          : t(`The AI found no palette on pages ${paginas}.`, `A IA não achou paleta nas páginas ${paginas}.`))
+        : t(`${novas.length} color(s) suggested from pages ${paginas}, as drafts — check each code before approving.`,
+          `${novas.length} ${novas.length === 1 ? "cor sugerida" : "cores sugeridas"} das páginas ${paginas}, como rascunho — confira cada código antes de aprovar.`),
+    ];
+    if (novas.length > 0 && dados.repetidas > 0) {
+      partes.push(t(`${dados.repetidas} were already in the sheet.`, `${dados.repetidas} já ${dados.repetidas === 1 ? "estava" : "estavam"} na ficha.`));
+    }
+    if ((dados.semImagem ?? []).length > 0) {
+      partes.push(t(`Pages ${dados.semImagem.join(", ")} weren't prepared and were left out.`,
+        `As páginas ${dados.semImagem.join(", ")} não estavam preparadas e ficaram de fora.`));
+    }
+    setMensagem(partes.join(" "));
   }
 
   async function aprovar(ids: string[]) {
@@ -177,6 +218,36 @@ export function PaletaDaMarca({
         {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
       </div>
 
+      {podeEditar && !editando && (
+        <div data-sugestao-da-paleta className="mt-6 border border-dashed border-platform-border p-4">
+          <p className="text-sm text-platform-text">
+            {t("Let the AI read the palette pages and suggest the missing colors.", "Deixe a IA ler as páginas de cor e sugerir as cores que faltam.")}
+          </p>
+          <p className="mt-1 text-xs text-platform-text-muted">
+            {t(
+              "They come in as drafts, marked as suggested by AI. The AI may misread a digit: check each code against the page before approving. The manual must be prepared for Vini first.",
+              "Elas entram como rascunho, marcadas como sugeridas pela IA. A IA pode ler um dígito errado: confira cada código na página antes de aprovar. O manual precisa estar preparado para o Vini.",
+            )}
+          </p>
+          <div className="mt-3 flex flex-wrap items-end gap-3">
+            <label className="block w-full sm:w-64">
+              <span className={ROTULO}>{t("Palette pages (optional)", "Páginas da paleta (opcional)")}</span>
+              <input
+                value={paginasDaSugestao}
+                onChange={(e) => setPaginasDaSugestao(e.target.value)}
+                placeholder={t("e.g. 21, 22 — blank finds them", "ex.: 21, 22 — em branco, a IA acha")}
+                inputMode="numeric"
+                maxLength={30}
+                className={CAMPO}
+              />
+            </label>
+            <button type="button" data-sugerir-cores disabled={ocupado} onClick={sugerir} className={BOTAO}>
+              {sugerindo ? t("Reading the pages…", "Lendo as páginas…") : t("Suggest with AI", "Sugerir pela IA")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {editando && (
         <div data-formulario-da-cor className="mt-6 border border-platform-border bg-platform-panel p-4 md:p-6">
           <p className="font-display text-xs font-black uppercase tracking-wider text-platform-text">
@@ -235,6 +306,11 @@ export function PaletaDaMarca({
                     {cor.papel === "principal" ? t("primary", "principal") : t("support", "apoio")}
                     {cor.segmento ? ` · ${cor.segmento}` : ""}
                   </span>
+                  {cor.origem === "ia" && (
+                    <span data-origem-ia className="ml-2 border border-dashed border-platform-border px-1.5 py-0.5 align-middle font-display text-[10px] font-bold uppercase tracking-wider text-platform-text-muted">
+                      {t("suggested by AI", "sugerida pela IA")}
+                    </span>
+                  )}
                 </p>
                 <p className="mt-1 break-words font-mono text-xs text-platform-text-muted">
                   {[cor.hex && `HEX ${cor.hex}`, cor.rgb && `RGB ${cor.rgb}`, cor.cmyk && `CMYK ${cor.cmyk}`, cor.pms && `PMS ${cor.pms}`].filter(Boolean).join(" · ")}

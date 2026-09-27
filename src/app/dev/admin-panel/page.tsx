@@ -47,10 +47,10 @@ const VIVAS: DocPageEntry[] = [
 
 // A ficha da paleta de bancada: cores inventadas, nenhuma de cliente.
 const PALETA_FIXA: CorDaPaleta[] = [
-  { id: "c0000000-0000-4000-8000-000000000001", nome: "Vermelho Bancada", papel: "principal", segmento: "", hex: "#C8102E", rgb: "200 16 46", cmyk: "0 100 80 5", pms: "186 C", pagina: 12, ordem: 0, status: "ready", aprovadoEm: "2026-09-27T12:00:00.000Z" },
-  { id: "c0000000-0000-4000-8000-000000000002", nome: "Branco", papel: "principal", segmento: "", hex: "#FFFFFF", rgb: null, cmyk: null, pms: null, pagina: 12, ordem: 1, status: "ready", aprovadoEm: "2026-09-27T12:00:00.000Z" },
-  { id: "c0000000-0000-4000-8000-000000000003", nome: "Azul Noite", papel: "apoio", segmento: "Varejo", hex: "#0B1F3A", rgb: null, cmyk: "100 80 30 60", pms: null, pagina: 13, ordem: 2, status: "draft", aprovadoEm: null },
-  { id: "c0000000-0000-4000-8000-000000000004", nome: "Só Pantone", papel: "apoio", segmento: "", hex: null, rgb: null, cmyk: null, pms: "7545 C", pagina: 13, ordem: 3, status: "draft", aprovadoEm: null },
+  { id: "c0000000-0000-4000-8000-000000000001", nome: "Vermelho Bancada", papel: "principal", segmento: "", hex: "#C8102E", rgb: "200 16 46", cmyk: "0 100 80 5", pms: "186 C", pagina: 12, ordem: 0, status: "ready", aprovadoEm: "2026-09-27T12:00:00.000Z", origem: "pessoa" },
+  { id: "c0000000-0000-4000-8000-000000000002", nome: "Branco", papel: "principal", segmento: "", hex: "#FFFFFF", rgb: null, cmyk: null, pms: null, pagina: 12, ordem: 1, status: "ready", aprovadoEm: "2026-09-27T12:00:00.000Z", origem: "pessoa" },
+  { id: "c0000000-0000-4000-8000-000000000003", nome: "Azul Noite", papel: "apoio", segmento: "Varejo", hex: "#0B1F3A", rgb: null, cmyk: "100 80 30 60", pms: null, pagina: 13, ordem: 2, status: "draft", aprovadoEm: null, origem: "ia" },
+  { id: "c0000000-0000-4000-8000-000000000004", nome: "Só Pantone", papel: "apoio", segmento: "", hex: null, rgb: null, cmyk: null, pms: "7545 C", pagina: 13, ordem: 3, status: "draft", aprovadoEm: null, origem: "pessoa" },
 ];
 
 export default async function AdminPanelLab({
