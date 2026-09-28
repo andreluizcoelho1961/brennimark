@@ -104,6 +104,8 @@ begin
                                 reserved_micros, settled_micros, settled_at, released_at, currency, usage_snapshot, created_at) values
     (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'settled', 500, 100, now(), null, 'USD', '{"inputTokens":1000,"outputTokens":200}', now()),
     (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'settled', 500, 300, now(), null, 'USD', '{"unknown":true}', now()),
+    -- Recusada pelo provedor (503): custo ZERO, medido (28/09/2026).
+    (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'settled', 500, 0, now(), null, 'USD', '{"inputTokens":0,"outputTokens":0,"recusadoPeloProvedor":503}', now()),
     (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'reserved', 700, null, null, null, 'USD', null, now()),
     (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'released', 900, null, null, now(), 'USD', null, now()),
     (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'settled', 500, 5000, now() - interval '2 days', null, 'USD', '{"inputTokens":9,"outputTokens":9}', now() - interval '2 days'),
@@ -163,10 +165,11 @@ do $$
 declare m record; hoje text := quote_literal(date_trunc('day', now())); amanha text := quote_literal(date_trunc('day', now()) + interval '1 day');
 begin
   select * into m from mundo;
-  perform pg_temp.registrar('conta 1 hoje: 2 liquidadas, tokens 1000/200, custo 400, 1 sem uso medido',
-    '2 1000 200 400 1',
+  perform pg_temp.registrar('conta 1 hoje: 3 liquidadas, tokens 1000/200, custo 400, 1 sem uso medido, 300 incerto, 1 recusada',
+    '3 1000 200 400 1 300 1',
     pg_temp.valor(m.equipe, format(
       'select execucoes||'' ''||tokens_entrada||'' ''||tokens_saida||'' ''||custo_micros||'' ''||sem_uso_medido
+              ||'' ''||custo_incerto_micros||'' ''||recusadas
          from public.console_custos_de_ia(%s, %s) where workspace_id = %L', hoje, amanha, m.w1)));
   perform pg_temp.registrar('a execucao de anteontem fica fora do intervalo de hoje', '1',
     pg_temp.valor(m.equipe, format('select count(*)::text from public.console_custos_de_ia(%s, %s) where workspace_id = %L', hoje, amanha, m.w1)));

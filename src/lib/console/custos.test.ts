@@ -22,7 +22,7 @@ test("a fotografia de armazenamento: o último dia do mês, ou hoje no mês corr
 
 test("por conta e por marca, somando modelos e tipos de arquivo; quem custa mais primeiro", () => {
   const ia: LinhaDeIa[] = [
-    { workspace_id: "w1", conta: "Agência", brand_id: "a", marca: "Bradesco", provider: "google", model: "g", currency: "USD", execucoes: 40, tokens_entrada: 600_000, tokens_saida: 30_000, custo_micros: 1_500_000, sem_uso_medido: 1 },
+    { workspace_id: "w1", conta: "Agência", brand_id: "a", marca: "Bradesco", provider: "google", model: "g", currency: "USD", execucoes: 40, tokens_entrada: 600_000, tokens_saida: 30_000, custo_micros: 1_500_000, sem_uso_medido: 1, custo_incerto_micros: 396_843, recusadas: 1 },
     { workspace_id: "w1", conta: "Agência", brand_id: "a", marca: "Bradesco", provider: "groq", model: "q", currency: "USD", execucoes: 2, tokens_entrada: 8_000, tokens_saida: 500, custo_micros: 10_000, sem_uso_medido: 0 },
     { workspace_id: "w1", conta: "Agência", brand_id: "b", marca: "Sony", provider: "google", model: "g", currency: "USD", execucoes: 5, tokens_entrada: 40_000, tokens_saida: 2_000, custo_micros: 277_698, sem_uso_medido: 0 },
     { workspace_id: "w2", conta: "Outra", brand_id: "c", marca: "C", provider: "google", model: "g", currency: "USD", execucoes: 1, tokens_entrada: 1, tokens_saida: 1, custo_micros: 5, sem_uso_medido: 0 },
@@ -37,6 +37,9 @@ test("por conta e por marca, somando modelos e tipos de arquivo; quem custa mais
   assert.equal(primeira.execucoes, 47);
   assert.equal(primeira.custo_micros, 1_787_698);
   assert.equal(primeira.sem_uso_medido, 1);
+  // Medido e incerto separados; linha sem as colunas novas conta zero.
+  assert.equal(primeira.custo_incerto_micros, 396_843);
+  assert.equal(primeira.recusadas, 1);
   assert.equal(primeira.bytes, 15_001_000);
   assert.deepEqual(primeira.marcas.map((m) => [m.marca, m.execucoes, m.custo_micros, m.bytes]), [
     ["Bradesco", 42, 1_510_000, 15_000_000], ["Sony", 5, 277_698, 0], ["Sem marca", 0, 0, 1_000],

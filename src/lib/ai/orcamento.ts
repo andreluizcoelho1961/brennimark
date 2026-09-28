@@ -20,8 +20,16 @@ export type SnapshotDePreco = ModelPricing & { catalogVersion: string; provider:
  * com os campos de token: ou o uso é conhecido, ou é `unknown`.
  */
 export type SnapshotDeUso =
-  | { inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; imageTokens?: number; unknown?: false }
-  | { unknown: true };
+  | {
+      inputTokens?: number; cachedInputTokens?: number; outputTokens?: number; imageTokens?: number; unknown?: false;
+      /** O provedor RECUSOU o pedido com este status, antes de processar: nada foi cobrado (28/09/2026). */
+      recusadoPeloProvedor?: number;
+    }
+  | {
+      unknown: true;
+      /** O fluxo acabou SEM motivo de parada do provedor — o uso que ele relatou, se relatou, é parcial. */
+      fluxoSemFim?: true;
+    };
 
 /**
  * A ponte entre uma execução de IA e o orçamento — reserva, consolida, libera.

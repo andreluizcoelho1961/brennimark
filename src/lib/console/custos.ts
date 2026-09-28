@@ -18,6 +18,10 @@ export type LinhaDeIa = {
   provider: string | null; model: string | null; currency: string;
   execucoes: number; tokens_entrada: number; tokens_saida: number;
   custo_micros: number; sem_uso_medido: number;
+  /** A parte do custo liquidada pelo TETO (sem uso medido): incerta, a conciliar. */
+  custo_incerto_micros?: number;
+  /** Execuções que o provedor recusou sem processar: custo zero, medido. */
+  recusadas?: number;
 };
 
 export type LinhaDeArmazenamento = {
@@ -54,7 +58,7 @@ export function diaDeReferencia(mes: string, agora = new Date()): string {
 export type TotalDeConta = {
   workspace_id: string; conta: string;
   execucoes: number; tokens_entrada: number; tokens_saida: number;
-  custo_micros: number; sem_uso_medido: number; bytes: number;
+  custo_micros: number; sem_uso_medido: number; custo_incerto_micros: number; recusadas: number; bytes: number;
   marcas: { brand_id: string | null; marca: string; execucoes: number; custo_micros: number; bytes: number }[];
 };
 
@@ -66,7 +70,7 @@ export type TotalDeConta = {
 export function totaisPorConta(ia: readonly LinhaDeIa[], armazenamento: readonly LinhaDeArmazenamento[], semMarca = "Sem marca"): TotalDeConta[] {
   const contas = new Map<string, TotalDeConta>();
   const conta = (id: string, nome: string) => {
-    if (!contas.has(id)) contas.set(id, { workspace_id: id, conta: nome, execucoes: 0, tokens_entrada: 0, tokens_saida: 0, custo_micros: 0, sem_uso_medido: 0, bytes: 0, marcas: [] });
+    if (!contas.has(id)) contas.set(id, { workspace_id: id, conta: nome, execucoes: 0, tokens_entrada: 0, tokens_saida: 0, custo_micros: 0, sem_uso_medido: 0, custo_incerto_micros: 0, recusadas: 0, bytes: 0, marcas: [] });
     return contas.get(id)!;
   };
   const marca = (c: TotalDeConta, id: string | null, nome: string | null) => {
@@ -78,6 +82,7 @@ export function totaisPorConta(ia: readonly LinhaDeIa[], armazenamento: readonly
     const c = conta(l.workspace_id, l.conta);
     c.execucoes += l.execucoes; c.tokens_entrada += l.tokens_entrada; c.tokens_saida += l.tokens_saida;
     c.custo_micros += l.custo_micros; c.sem_uso_medido += l.sem_uso_medido;
+    c.custo_incerto_micros += l.custo_incerto_micros ?? 0; c.recusadas += l.recusadas ?? 0;
     const m = marca(c, l.brand_id, l.marca);
     m.execucoes += l.execucoes; m.custo_micros += l.custo_micros;
   }

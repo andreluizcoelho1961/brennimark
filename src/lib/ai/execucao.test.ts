@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento, tetoDeTokensDeEntrada } from "./execucao";
+import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento, recusaSemProcessar, tetoDeTokensDeEntrada } from "./execucao";
 import { custoDeReservaMicros, custoMicros, type ModelPricing } from "./catalogo";
 import { buildChatSystemPrompt, buildAnalysisSystemPrompt, type BrandPromptContext } from "./brand-context";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
@@ -959,4 +959,110 @@ test("imagens de página pesam na reserva: cada uma pelo teto de imagem do model
   const sem = semImagens.chamadas[0].args.p_reserved_micros as number;
   const com = comImagens.chamadas[0].args.p_reserved_micros as number;
   assert.ok(com > sem, "quatro imagens de página tinham de aumentar a reserva");
+});
+
+// ─── O razão preciso (28/09/2026) ─────────────────────────────────────────
+//
+// O ensaio mostrou 12 de 47 execuções liquidadas pelo TETO, somando US$ 1,60
+// de US$ 1,79. Duas regras novas, e o resto como estava.
+
+function erroDoProvedor(statusCode: number, viaCausa = false) {
+  const erro = new Error(`provedor respondeu ${statusCode}`) as Error & { statusCode?: number; cause?: unknown };
+  if (viaCausa) erro.cause = { statusCode };
+  else erro.statusCode = statusCode;
+  return erro;
+}
+
+async function* geradorQueRecusa(statusCode: number, viaCausa = false): AsyncGenerator<string> {
+  throw erroDoProvedor(statusCode, viaCausa);
+}
+
+test("recusaSemProcessar: só os status inequívocos, só com uma causa", () => {
+  for (const status of [400, 401, 403, 404, 429, 503]) assert.equal(recusaSemProcessar(erroDoProvedor(status)), status);
+  for (const status of [408, 500, 502, 504]) assert.equal(recusaSemProcessar(erroDoProvedor(status)), null, String(status));
+  assert.equal(recusaSemProcessar(new AggregateError([erroDoProvedor(503)])), 503);
+  assert.equal(recusaSemProcessar(new AggregateError([erroDoProvedor(503), erroDoProvedor(429)])), null);
+  assert.equal(recusaSemProcessar(erroDoProvedor(429, true)), 429);
+  assert.equal(recusaSemProcessar(new Error("tempo esgotado")), null);
+  assert.equal(recusaSemProcessar(null), null);
+});
+
+test("o provedor RECUSA sem processar (503, alta demanda): liquida em ZERO, medido, com o status", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  await assert.rejects(() =>
+    executarComOrcamento({
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+      dispatch: () => ({ textStream: geradorQueRecusa(503), usage: Promise.reject(new Error("sem uso")) }),
+    }),
+  );
+  assert.deepEqual(chamadas.map((c) => c.fn), MARCA_E_LIQUIDA);
+  assert.equal(liquidacao(chamadas).p_settled_micros, 0);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { inputTokens: 0, outputTokens: 0, recusadoPeloProvedor: 503 });
+});
+
+test("limite de pedidos (429) informado na causa também é recusa sem custo", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  await assert.rejects(() =>
+    executarComOrcamento({
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+      dispatch: () => ({ textStream: geradorQueRecusa(429, true), usage: Promise.reject(new Error("sem uso")) }),
+    }),
+  );
+  assert.equal(liquidacao(chamadas).p_settled_micros, 0);
+});
+
+test("erro AMBÍGUO do provedor (500): continua pelo teto — o ambíguo nunca vira zero", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  await assert.rejects(() =>
+    executarComOrcamento({
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+      dispatch: () => ({ textStream: geradorQueRecusa(500), usage: Promise.reject(new Error("sem uso")) }),
+    }),
+  );
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true });
+});
+
+test("fluxo que termina SEM motivo do provedor: o uso relatado é parcial, e vale o teto", async () => {
+  // O caso dos 283 tokens de entrada para 4 imagens: resposta cortada.
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["Vermelho | principal", " | …"]),
+      usage: Promise.resolve(usoFalso(283, 782)),
+      fim: Promise.resolve({ unificado: "other", bruto: undefined }),
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
+  assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true, fluxoSemFim: true });
+});
+
+test("fluxo que termina com motivo do provedor usa o uso REAL — inclusive 'other' com motivo bruto", async () => {
+  for (const fim of [{ unificado: "stop", bruto: "STOP" }, { unificado: "length", bruto: "MAX_TOKENS" }, { unificado: "other", bruto: "RECITATION" }]) {
+    const { cliente, chamadas } = supabaseFalso({ data: null });
+    const execucao = await executarComOrcamento({
+      serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+      attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+      dispatch: () => ({ textStream: geradorDeTexto(["ok"]), usage: Promise.resolve(usoFalso(500, 40)), fim: Promise.resolve(fim) }),
+    });
+    await drenarTudo(execucao.iterator);
+    assert.equal(liquidacao(chamadas).p_settled_micros, 500 * 0.14 + 40 * 0.40, JSON.stringify(fim));
+  }
+});
+
+test("o motivo de parada que não chega a tempo não derruba nada: vale o uso relatado", async () => {
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING, reservedMicros: RESERVED_MICROS,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000, usageTimeoutMs: 50,
+    dispatch: () => ({ textStream: geradorDeTexto(["ok"]), usage: Promise.resolve(usoFalso(500, 40)), fim: new Promise(() => {}) }),
+  });
+  await drenarTudo(execucao.iterator);
+  assert.equal(liquidacao(chamadas).p_settled_micros, 500 * 0.14 + 40 * 0.40);
 });

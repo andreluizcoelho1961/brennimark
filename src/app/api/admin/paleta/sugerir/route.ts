@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { streamText } from "ai";
-import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
+import { fimDoFluxo, textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import { getModel, getTranscricaoProviderOptions } from "@/lib/ai/provider";
 import { resolveChatRouting } from "@/lib/ai/settings";
 import { capacidadesDe } from "@/lib/ai/catalogo";
@@ -155,7 +155,7 @@ export async function POST(request: Request) {
         });
         motivoDoFim = result.finishReason;
         motivoBruto = result.rawFinishReason;
-        return { textStream: textoOuErro(result.fullStream), usage: result.usage };
+        return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result) };
       },
     });
 
