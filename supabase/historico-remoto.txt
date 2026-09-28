@@ -81,3 +81,4 @@
 20260927193803 paleta_da_marca
 20260927203333 origem_da_cor
 20260928173230 console_da_brennimark
+20260928221302 console_custo_incerto

@@ -72,11 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * O Console separa custo medido de incerto (28/09/2026): a função
-   * `console_custos_de_ia` ganha duas colunas. Aguarda autorização nominal.
-   */
-  "console_custo_incerto",
+  // `console_custo_incerto` saiu daqui em 28/09/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20260928221302`;
+  // impressão digital igual à do local (definição, SECURITY DEFINER,
+  // search_path; `service_role` a mais, padrão do hospedado).
   // `console_da_brennimark` saiu daqui em 28/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260928173230`;
   // impressão digital igual à do local (funções, tabela da equipe, regras e
