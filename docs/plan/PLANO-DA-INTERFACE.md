@@ -116,9 +116,10 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 26/09 | ~~**Passada visual do ensaio**: tema escuro e celular em todas as telas~~ — **feita em 26/09**: campos de 16 px no toque, fólio sem quebra (#44) e o manual nítido no celular (#45) | ensaio (fatia 7) |
 | 26/09 | **Pessoas em cartões no celular** (hoje a tabela rola dentro do próprio quadro) | passada visual |
 | 27/09 | **Gerar as imagens de leitura já na importação**, em vez do botão "Preparar o manual para o Vini" | #50 |
-| 27/09 | **A IA sugerir a ficha da paleta** a partir da imagem da página, sempre como rascunho para uma pessoa conferir | #51 |
+| 27/09 | ~~**A IA sugerir a ficha da paleta** a partir da imagem da página, sempre como rascunho para uma pessoa conferir~~ — **feito em 27–28/09** (#54–#58): sugestão pela IA, conferência contra o texto do manual e "Aprovar as conferidas" | #51 |
 | 27/09 | **Aprovar sem administrar**: tela para quem só consulta e aprova (o dono da marca). O banco já aceita, pela função de aprovação | #51 |
 | 27/09 | **Cache de prompt** na fase paga: o manual inteiro se repete a cada pergunta | #47 |
+| 28/09 | **Razão de custos × imagens**: uma sugestão com 4 imagens registrou 283 tokens de entrada (as outras, ~4.700). Conferir a contagem antes da fase paga | ensaio (fatia 7) |
 | 24/09 | Materiais — fica para depois: fotos e ilustrações em **álbum com pastas**; **fontes** (esperam o termo); **links de entrega**; **geração automática de paleta** (pergunta 66 — a ficha da paleta, #51, é a base dela) | fatia 5 |
 
 ## 6. Registro de mudanças deste plano
@@ -145,3 +146,4 @@ Ideias boas que chegam no meio de uma fatia. Revistas ao fim de cada uma, com o 
 | 26/09/2026 | **Sinônimos de manual de marca na busca** (#40, migration só da função): logotipo/logo, principal/preferencial, proteção/respiro, tipografia/fonte… em pt e en. A busca por significado continua estacionada. Também: copiar a senha provisória avisa (#41); item com um arquivo baixa direto, sem ZIP (#42) | André |
 | 26/09/2026 | **O Vini lê o manual inteiro quando cabe** e raciocina sobre ele — conta, compara, junta páginas, conclui citando (#46–#48); sobrecarga do Gemini tenta de novo antes da reserva (#49). Motivo do André: a agência paga R$ 2.500/mês, e uma busca por palavras não passa por inteligência | André |
 | 27/09/2026 | **A e C** — o Vini **vê as páginas** (#50: imagem de leitura, JPEG ~1.600 px gerado no navegador de quem edita; o ADR-0006 ganha adendo) e a **ficha da paleta** (#51: cor como dado, editar e aprovar separados pelo banco; para cores o Vini responde pela ficha). Motivo: com o texto, o Vini contou 6 cores onde o Bradesco tem 19 | André |
+| 28/09/2026 | **Ficha da paleta de ponta a ponta** (#54–#59): a IA sugere as cores lendo as páginas; cada cor guarda a **origem** (pessoa ou IA) e a sugestão só acrescenta o que falta; cada código é **conferido contra o texto do manual**; opção A — a conferida continua rascunho e "Aprovar as conferidas" é um clique de uma pessoa. Bradesco: 19 cores sugeridas, 18 conferidas, o branco apontado na p. 22 | André |
