@@ -53,9 +53,15 @@ function padraoDeSequencia(valores: string[], letras: string): RegExp | null {
   return new RegExp(`(?<![\\d.,])${partes.join("\\s*[,/;|]?\\s*")}(?![\\d])`);
 }
 
+/**
+ * O HEX pode vir PARTIDO no texto do manual: a extração do navegador separa
+ * letras com espaçamento próprio, e o Bradesco saiu "D12 244", "C F C9C1",
+ * "96 0D1F" (ensaio de 28/09). Aceita UM espaço entre caracteres; nunca um
+ * caractere hexadecimal colado nas pontas.
+ */
 function temHex(texto: string, hex: string): boolean {
-  const digitos = hex.replace("#", "").toUpperCase();
-  return new RegExp(`(?<![0-9A-F])#?${digitos}(?![0-9A-F])`).test(texto);
+  const digitos = hex.replace("#", "").toUpperCase().split("").join("\\s?");
+  return new RegExp(`(?<![0-9A-F])#?\\s?${digitos}(?![0-9A-F])`).test(texto);
 }
 
 function temPms(texto: string, pms: string): boolean {
