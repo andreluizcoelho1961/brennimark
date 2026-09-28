@@ -72,6 +72,11 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  // `console_da_brennimark` saiu daqui em 28/09/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20260928173230`;
+  // impressão digital igual à do local (funções, tabela da equipe, regras e
+  // permissões — a tabela sem grant nenhum; `service_role` nas funções públicas,
+  // o padrão do hospedado).
   // `origem_da_cor` saiu daqui em 27/09/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20260927203333`; impressão digital
   // igual à do local (coluna, constraints, gatilho, policies, índices, grants).
