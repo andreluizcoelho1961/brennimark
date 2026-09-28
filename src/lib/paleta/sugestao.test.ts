@@ -136,7 +136,8 @@ test("tabela Markdown, tom sem nome e HEX mal lido: o campo duvidoso sai, a cor 
     "1. Verde | apoio | - | #78BE20 | - | - | - | 22",
   ].join("\n");
   const { cores, diagnostico } = lerSugestaoComDiagnostico(resposta, [22]);
-  assert.deepEqual(cores.map((c) => c.nome), ["PMS 7545 C", "Azul", "Verde"]);
+  // Sem nome impresso: o nome sai da coluna e da posição, não do código.
+  assert.deepEqual(cores.map((c) => c.nome), ["Varejo 1", "Azul", "Verde"]);
   // HEX com cinco dígitos sai; os outros códigos do mesmo tom ficam.
   assert.equal(cores[0].hex, null);
   assert.equal(cores[0].cmyk, "23 2 0 72");
@@ -147,4 +148,24 @@ test("tabela Markdown, tom sem nome e HEX mal lido: o campo duvidoso sai, a cor 
     camposDescartados: { hex: 1, "codigo-longo": 0 },
     semNome: 1,
   });
+});
+
+test("tons sem nome ganham o nome da coluna e a posição; branco e preto, o próprio nome", () => {
+  const resposta = [
+    "- | apoio | TODOS | #D12244 | R209 G34 B68 | C13 M100 Y73 K0 | - | 22",
+    "- | apoio | TODOS | #E00B39 | - | C0 M99 Y70 K0 | - | 22",
+    "- | apoio | INSTITUCIONAL / VAREJO / NEGÓCIOS DIGITAIS | #EDEDED | - | C0 M0 Y0 K10 | PMS 427 | 22",
+    "- | apoio | - | #FFFFFF | R255 G255 B255 | C0 M0 Y0 K0 | - | 22",
+    "- | apoio | - | #000000 | R0 G0 B0 | C0 M0 Y0 K100 | - | 22",
+    "- | apoio | - | #123456 | - | - | - | 22",
+  ].join("\n");
+  const cores = lerSugestao(resposta, [22]);
+  assert.deepEqual(cores.map((c) => c.nome), [
+    "Todos 1", "Todos 2", "Institucional / Varejo / Negócios Digitais 1", "Branco", "Preto", "Apoio 1",
+  ]);
+  // O segmento fica como o manual escreve; faixa comum a todos, sem segmento.
+  assert.equal(cores[2].segmento, "INSTITUCIONAL / VAREJO / NEGÓCIOS DIGITAIS");
+  assert.equal(cores[3].segmento, "");
+  assert.match(instrucoesDaSugestao(false, [22]), /inclusive as letras/);
+  assert.match(instrucoesDaSugestao(false, [22]), /Cor fora de qualquer grupo/);
 });

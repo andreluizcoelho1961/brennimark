@@ -13,6 +13,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { COLUNAS_DA_PALETA, deLinha, lerPaleta } from "@/lib/paleta/paleta";
+import { conferirPaleta } from "@/lib/paleta/conferencia";
 import {
   instrucoesDaSugestao, lerPaginasPedidas, lerSugestaoComDiagnostico, paginasDaPaleta, soOQueFalta, MAXIMO_DE_PAGINAS_DA_SUGESTAO,
 } from "@/lib/paleta/sugestao";
@@ -169,7 +170,7 @@ export async function POST(request: Request) {
       execucao.cleanup();
     }
 
-    const { cores: sugeridas, diagnostico } = lerSugestaoComDiagnostico(texto, enviadas);
+    const { cores: sugeridas, diagnostico } = lerSugestaoComDiagnostico(texto, enviadas, isEnglish);
     const motivo = await Promise.resolve(motivoDoFim ?? "unknown").catch(() => "error");
     const motivoDoProvedor = await Promise.resolve(motivoBruto ?? undefined).catch(() => undefined);
     const cortada = motivo === "length";
@@ -204,8 +205,11 @@ export async function POST(request: Request) {
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
     }));
 
+    // Cada cor sugerida já sai conferida contra o texto do manual (27/09).
+    const conferidas = await conferirPaleta(auth.supabase, brandId, gravadas.map(deLinha));
     return NextResponse.json({
-      cores: gravadas.map(deLinha),
+      cores: conferidas,
+      conferidas: conferidas.filter((c) => c.conferencia?.estado === "conferida").length,
       lidas: sugeridas.length,
       repetidas,
       paginas: enviadas,

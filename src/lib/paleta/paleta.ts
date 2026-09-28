@@ -163,13 +163,28 @@ export function ehFichaDaPaleta(trecho: Pick<Trecho, "documentSlug">): boolean {
   return trecho.documentSlug === SLUG_DA_FICHA || trecho.documentSlug === SLUG_DA_FICHA_EM_RASCUNHO;
 }
 
+/**
+ * Um código com o rótulo — sem repetir o rótulo que o manual já escreveu.
+ * O ensaio de 27/09 mostrou "PMS PMS 427": o código é gravado COMO O MANUAL
+ * ESCREVE, e o manual do Bradesco escreve "PMS 427".
+ */
+export function comRotulo(rotulo: "HEX" | "RGB" | "CMYK" | "PMS", valor: string): string {
+  const jaTem = rotulo === "PMS" ? /^(pms|pantone)\b/i : new RegExp(`^${rotulo}\\b`, "i");
+  return jaTem.test(valor.trim()) ? valor.trim() : `${rotulo} ${valor.trim()}`;
+}
+
+/** Os códigos de uma cor, rotulados, na ordem de sempre. */
+export function codigosDaCor(cor: Pick<CorDaPaleta, "hex" | "rgb" | "cmyk" | "pms">): string[] {
+  return [
+    cor.hex && comRotulo("HEX", cor.hex),
+    cor.rgb && comRotulo("RGB", cor.rgb),
+    cor.cmyk && comRotulo("CMYK", cor.cmyk),
+    cor.pms && comRotulo("PMS", cor.pms),
+  ].filter((v): v is string => Boolean(v));
+}
+
 function linhaDaCor(cor: CorDaPaleta, ingles: boolean): string {
-  const codigos = [
-    cor.hex && `HEX ${cor.hex}`,
-    cor.rgb && `RGB ${cor.rgb}`,
-    cor.cmyk && `CMYK ${cor.cmyk}`,
-    cor.pms && `PMS ${cor.pms}`,
-  ].filter(Boolean).join(" · ");
+  const codigos = codigosDaCor(cor).join(" · ");
   const papel = cor.papel === "principal" ? (ingles ? "primary" : "principal") : (ingles ? "support" : "apoio");
   const segmento = cor.segmento ? ` · ${ingles ? "segment" : "segmento"}: ${cor.segmento}` : "";
   const pagina = cor.pagina !== null ? ` · p. ${cor.pagina}` : "";

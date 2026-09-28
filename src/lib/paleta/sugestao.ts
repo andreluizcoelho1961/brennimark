@@ -98,9 +98,9 @@ export function instrucoesDaSugestao(ingles: boolean, paginas: readonly number[]
 
 Rules:
 - Transcribe ONLY colors that appear in these pages as part of the brand palette (swatches with a name or codes). Ignore colors of photos and illustrations.
-- Copy each code EXACTLY as printed. Never convert or calculate a code: if the page shows CMYK but no HEX, the HEX field is "-".
+- Copy each code EXACTLY as printed, letters included (e.g. "C0 M100 Y75 K4", "R204 G9 B47", "PMS 186"). Never convert or calculate a code: if the page shows CMYK but no HEX, the HEX field is "-".
 - Role is "principal" only when the manual calls the color primary, main, institutional or equivalent; otherwise "apoio".
-- Segment: the group the manual gives the color (e.g. a business line), or "-".
+- Segment: the column or group the manual puts the color under (e.g. a business line). A color outside every group (e.g. a strip shared by all) → "-".
 - Page: the page number (from the list above) where the color appears.
 - Answer with ONE LINE PER COLOR and nothing else — no title, no explanation, no JSON:
 name | role | segment | HEX | RGB | CMYK | PMS | page
@@ -109,9 +109,9 @@ name | role | segment | HEX | RGB | CMYK | PMS | page
 
 Regras:
 - Transcreva SÓ as cores que aparecem nestas páginas como parte da paleta da marca (amostras com nome ou códigos). Ignore cores de fotos e ilustrações.
-- Copie cada código EXATAMENTE como está impresso. Nunca converta nem calcule um código: se a página mostra CMYK e não mostra HEX, o campo HEX é "-".
+- Copie cada código EXATAMENTE como está impresso, inclusive as letras (ex.: "C0 M100 Y75 K4", "R204 G9 B47", "PMS 186"). Nunca converta nem calcule um código: se a página mostra CMYK e não mostra HEX, o campo HEX é "-".
 - Papel é "principal" só quando o manual chama a cor de principal, primária, institucional ou equivalente; senão, "apoio".
-- Segmento: o grupo em que o manual põe a cor (ex.: uma linha de negócio), ou "-".
+- Segmento: a coluna ou o grupo em que o manual põe a cor (ex.: uma linha de negócio). Cor fora de qualquer grupo (ex.: uma faixa comum a todos) → "-".
 - Página: o número da página (da lista acima) em que a cor aparece.
 - Responda com UMA LINHA POR COR e nada mais — sem título, sem explicação, sem JSON:
 nome | papel | segmento | HEX | RGB | CMYK | PMS | página
@@ -209,6 +209,14 @@ export type DiagnosticoDaSugestao = {
   semNome: number;
 };
 
+/** "INSTITUCIONAL / VAREJO" → "Institucional / Varejo": o nome não grita. */
+function legivel(texto: string): string {
+  if (texto !== texto.toUpperCase()) return texto;
+  const miudas = new Set(["de", "da", "do", "das", "dos", "e", "of", "and", "the"]);
+  return texto.toLowerCase().split(/(\s+|\/)/).map((parte, i) =>
+    i > 0 && miudas.has(parte) ? parte : parte.charAt(0).toUpperCase() + parte.slice(1)).join("");
+}
+
 function diagnosticoVazio(): DiagnosticoDaSugestao {
   return { recusadas: { formato: 0, "sem-codigo": 0 }, camposDescartados: { hex: 0, "codigo-longo": 0 }, semNome: 0 };
 }
@@ -231,7 +239,13 @@ function aparado(valor: unknown, maximo: number): string | null {
  * Tom sem nome impresso (tabelas de amostras costumam ter só códigos) ganha
  * como nome o primeiro código: "PMS 7545 C".
  */
-function corDaSugestao(bruto: Record<string, unknown>, paginasEnviadas: readonly number[], d: DiagnosticoDaSugestao): CorSugerida | null {
+function corDaSugestao(
+  bruto: Record<string, unknown>,
+  paginasEnviadas: readonly number[],
+  d: DiagnosticoDaSugestao,
+  contadores: Map<string, number>,
+  ingles: boolean,
+): CorSugerida | null {
   const hexBruto = aparado(bruto.hex, 40);
   const hex = hexBruto === null ? null : normalizarHex(hexBruto);
   if (hexBruto !== null && hex === null) d.camposDescartados.hex += 1;
@@ -252,11 +266,20 @@ function corDaSugestao(bruto: Record<string, unknown>, paginasEnviadas: readonly
     return null;
   }
 
+  const segmento = aparado(bruto.segmento, SEGMENTO_MAXIMO) ?? "";
   let nome = aparado(bruto.nome, NOME_MAXIMO);
   if (nome === null) {
     d.semNome += 1;
-    const pmsComRotulo = pms === null ? null : /^(pms|pantone)\b/i.test(pms) ? pms : `PMS ${pms}`;
-    nome = (pmsComRotulo ?? hex ?? (cmyk && `CMYK ${cmyk}`) ?? `RGB ${rgb}`).slice(0, NOME_MAXIMO);
+    // Tom sem nome impresso (27/09): branco e preto pelo nome; o resto pela
+    // coluna e pela posição — "Todos 3" diz onde a cor está, o código não.
+    if (hex === "#FFFFFF") nome = ingles ? "White" : "Branco";
+    else if (hex === "#000000") nome = ingles ? "Black" : "Preto";
+    else {
+      const grupo = segmento ? legivel(segmento) : (ingles ? "Support" : "Apoio");
+      const n = (contadores.get(grupo) ?? 0) + 1;
+      contadores.set(grupo, n);
+      nome = `${grupo} ${n}`.slice(0, NOME_MAXIMO);
+    }
   }
 
   // "22", "p. 22", 22: o número é o que importa.
@@ -266,17 +289,22 @@ function corDaSugestao(bruto: Record<string, unknown>, paginasEnviadas: readonly
   return {
     nome,
     papel: String(bruto.papel ?? "").toLowerCase() === "principal" ? "principal" : "apoio",
-    segmento: aparado(bruto.segmento, SEGMENTO_MAXIMO) ?? "",
+    segmento,
     hex, rgb, cmyk, pms, pagina,
   };
 }
 
-export function lerSugestaoComDiagnostico(texto: string, paginasEnviadas: readonly number[]): { cores: CorSugerida[]; diagnostico: DiagnosticoDaSugestao } {
+export function lerSugestaoComDiagnostico(
+  texto: string,
+  paginasEnviadas: readonly number[],
+  ingles = false,
+): { cores: CorSugerida[]; diagnostico: DiagnosticoDaSugestao } {
   const diagnostico = diagnosticoVazio();
+  const contadores = new Map<string, number>();
   const cores: CorSugerida[] = [];
   for (const item of comoLista(texto, diagnostico).slice(0, MAXIMO_DE_CORES_SUGERIDAS)) {
     if (!item || typeof item !== "object") continue;
-    const cor = corDaSugestao(item as Record<string, unknown>, paginasEnviadas, diagnostico);
+    const cor = corDaSugestao(item as Record<string, unknown>, paginasEnviadas, diagnostico, contadores, ingles);
     if (cor) cores.push(cor);
   }
   return { cores, diagnostico };

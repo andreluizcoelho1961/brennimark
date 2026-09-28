@@ -3,7 +3,8 @@
 import { useId, useMemo, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
-import { ordenarPaleta, type CorDaPaleta, type Papel } from "@/lib/paleta/paleta";
+import { codigosDaCor, ordenarPaleta, type Papel } from "@/lib/paleta/paleta";
+import type { CorConferida as CorDaPaleta, Conferencia } from "@/lib/paleta/conferencia";
 
 /**
  * A ficha da paleta da marca — 27/09/2026.
@@ -68,9 +69,13 @@ export function PaletaDaMarca({
   const resumo = useMemo(() => {
     const principais = cores.filter((c) => c.papel === "principal").length;
     const aprovadas = cores.filter((c) => c.status === "ready").length;
-    return { principais, apoio: cores.length - principais, aprovadas, rascunhos: cores.length - aprovadas };
+    const conferidas = cores.filter((c) => c.conferencia?.estado === "conferida").length;
+    return { principais, apoio: cores.length - principais, aprovadas, rascunhos: cores.length - aprovadas, conferidas };
   }, [cores]);
   const emRascunho = cores.filter((c) => c.status === "draft");
+  // Opção A do André (27/09): a conferida continua rascunho; aprová-las é UM
+  // clique de uma pessoa, nunca automático.
+  const conferidasEmRascunho = emRascunho.filter((c) => c.conferencia?.estado === "conferida");
   const manual = alvo.workspaceSlug && alvo.brandKey ? `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs/original` : null;
 
   // Sem rede, o `fetch` rejeita: vira recusa com mensagem, e nenhum botão
@@ -148,6 +153,12 @@ export function PaletaDaMarca({
         : t(`${novas.length} color(s) suggested from pages ${paginas}, as drafts — check each code before approving.`,
           `${novas.length} ${novas.length === 1 ? "cor sugerida" : "cores sugeridas"} das páginas ${paginas}, como rascunho — confira cada código antes de aprovar.`),
     ];
+    if (novas.length > 0) {
+      const conferidas = novas.filter((c) => c.conferencia?.estado === "conferida").length;
+      partes.push(conferidas === novas.length
+        ? t("All of them match the manual text.", "Todas batem com o texto do manual.")
+        : t(`${conferidas} match the manual text; check the others.`, `${conferidas} ${conferidas === 1 ? "bate" : "batem"} com o texto do manual; confira as outras.`));
+    }
     if (novas.length > 0 && dados.repetidas > 0) {
       partes.push(t(`${dados.repetidas} were already in the sheet.`, `${dados.repetidas} já ${dados.repetidas === 1 ? "estava" : "estavam"} na ficha.`));
     }
@@ -174,7 +185,12 @@ export function PaletaDaMarca({
       return;
     }
     const aprovadas = (dados.aprovadas ?? []) as CorDaPaleta[];
-    setCores((antes) => ordenarPaleta(antes.map((c) => aprovadas.find((a) => a.id === c.id) ?? c)));
+    // A resposta da aprovação não traz a conferência: a de antes continua valendo,
+    // porque aprovar não muda código nenhum.
+    setCores((antes) => ordenarPaleta(antes.map((c) => {
+      const aprovada = aprovadas.find((a) => a.id === c.id);
+      return aprovada ? { ...aprovada, conferencia: c.conferencia } : c;
+    })));
     setMensagem(aprovadas.length === 1
       ? t("1 color approved.", "1 cor aprovada.")
       : t(`${aprovadas.length} colors approved.`, `${aprovadas.length} cores aprovadas.`));
@@ -206,8 +222,8 @@ export function PaletaDaMarca({
       {cores.length > 0 && (
         <p data-resumo-da-paleta className="mt-6 text-sm text-platform-text">
           {t(
-            `${cores.length} color(s) · ${resumo.principais} primary, ${resumo.apoio} support · ${resumo.aprovadas} approved, ${resumo.rascunhos} draft`,
-            `${cores.length} ${cores.length === 1 ? "cor" : "cores"} · ${resumo.principais} ${resumo.principais === 1 ? "principal" : "principais"}, ${resumo.apoio} de apoio · ${resumo.aprovadas} ${resumo.aprovadas === 1 ? "aprovada" : "aprovadas"}, ${resumo.rascunhos} em rascunho`,
+            `${cores.length} color(s) · ${resumo.principais} primary, ${resumo.apoio} support · ${resumo.aprovadas} approved, ${resumo.rascunhos} draft${resumo.conferidas > 0 ? ` · ${resumo.conferidas} checked against the manual` : ""}`,
+            `${cores.length} ${cores.length === 1 ? "cor" : "cores"} · ${resumo.principais} ${resumo.principais === 1 ? "principal" : "principais"}, ${resumo.apoio} de apoio · ${resumo.aprovadas} ${resumo.aprovadas === 1 ? "aprovada" : "aprovadas"}, ${resumo.rascunhos} em rascunho${resumo.conferidas > 0 ? ` · ${resumo.conferidas} ${resumo.conferidas === 1 ? "conferida" : "conferidas"} no manual` : ""}`,
           )}
         </p>
       )}
@@ -216,6 +232,11 @@ export function PaletaDaMarca({
         {podeEditar && !editando && (
           <button type="button" data-adicionar-cor disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, ordem: String(cores.length) }); }} className={BOTAO_FORTE}>
             {t("Add color", "Adicionar cor")}
+          </button>
+        )}
+        {podeAprovar && conferidasEmRascunho.length > 0 && (
+          <button type="button" data-aprovar-conferidas disabled={ocupado} onClick={() => aprovar(conferidasEmRascunho.map((c) => c.id))} className={BOTAO_FORTE}>
+            {t(`Approve checked colors (${conferidasEmRascunho.length})`, `Aprovar as conferidas (${conferidasEmRascunho.length})`)}
           </button>
         )}
         {podeAprovar && emRascunho.length > 1 && (
@@ -321,11 +342,12 @@ export function PaletaDaMarca({
                   )}
                 </p>
                 <p className="mt-1 break-words font-mono text-xs text-platform-text-muted">
-                  {[cor.hex && `HEX ${cor.hex}`, cor.rgb && `RGB ${cor.rgb}`, cor.cmyk && `CMYK ${cor.cmyk}`, cor.pms && `PMS ${cor.pms}`].filter(Boolean).join(" · ")}
+                  {codigosDaCor(cor).join(" · ")}
                   {cor.pagina !== null && (manual
                     ? <> · <a href={`${manual}?pagina=${cor.pagina}`} className="underline hover:text-platform-text">p. {cor.pagina}</a></>
                     : ` · p. ${cor.pagina}`)}
                 </p>
+                {cor.conferencia && <SeloDaConferencia conferencia={cor.conferencia} pagina={cor.pagina} t={t} />}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span
@@ -349,5 +371,37 @@ export function PaletaDaMarca({
         </ul>
       )}
     </section>
+  );
+}
+
+/**
+ * O que a conferência contra o texto do manual achou (27/09/2026). Tons da
+ * PLATAFORMA — nada de verde de "ok": a moldura é acromática (ADR-0004), e o
+ * estado se diz pela palavra e pelo filete.
+ */
+function SeloDaConferencia({
+  conferencia, pagina, t,
+}: { conferencia: Conferencia; pagina: number | null; t: (en: string, pt: string) => string }) {
+  if (conferencia.estado === "conferida") {
+    return (
+      <p data-conferencia="conferida" className="mt-1 text-xs text-platform-text">
+        {t(`✓ Checked: every code is written on p. ${pagina}`, `✓ Conferida: todos os códigos estão escritos na p. ${pagina}`)}
+      </p>
+    );
+  }
+  if (conferencia.estado === "sem-pagina") {
+    return (
+      <p data-conferencia="sem-pagina" className="mt-1 text-xs text-platform-text-muted">
+        {t("Not checked: no manual page for this color.", "Não conferida: esta cor não tem página do manual.")}
+      </p>
+    );
+  }
+  const faltam = conferencia.faltam.join(", ");
+  return (
+    <p data-conferencia="conferir" className="mt-1 text-xs font-bold text-platform-text">
+      {conferencia.achadaNaPagina
+        ? t(`Check: the codes are on p. ${conferencia.achadaNaPagina}, not p. ${pagina}.`, `Conferir: os códigos estão na p. ${conferencia.achadaNaPagina}, não na p. ${pagina}.`)
+        : t(`Check: ${faltam} not found on p. ${pagina}.`, `Conferir: ${faltam} não ${conferencia.faltam.length === 1 ? "está" : "estão"} na p. ${pagina}.`)}
+    </p>
   );
 }
