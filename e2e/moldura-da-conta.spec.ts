@@ -82,7 +82,8 @@ test("quem administra vê a gestão; o que não existe está 'em breve' e não �
   const coluna = page.locator("[data-coluna-da-plataforma]");
 
   await expect(coluna.locator('[data-item-da-coluna="pessoas"]')).toHaveAttribute("href", "/w/dev/pessoas");
-  for (const id of ["links", "registros", "configuracoes"]) {
+  await expect(coluna.locator('[data-item-da-coluna="registros"]')).toHaveAttribute("href", "/w/dev/registros");
+  for (const id of ["links", "configuracoes"]) {
     const item = coluna.locator(`[data-item-em-breve="${id}"]`);
     await expect(item).toHaveAttribute("aria-disabled", "true");
     await expect(item).not.toHaveAttribute("href", /.*/);
