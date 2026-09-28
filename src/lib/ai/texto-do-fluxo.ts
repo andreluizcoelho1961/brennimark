@@ -21,3 +21,18 @@ export async function* textoOuErro(fluxo: AsyncIterable<ParteDoFluxo>): AsyncGen
     else if (parte.type === "error") throw parte.error;
   }
 }
+
+/**
+ * Como o provedor encerrou a resposta, para o razão (28/09/2026): o motivo
+ * unificado do SDK e o BRUTO do provedor. "other" sem bruto é o fluxo que
+ * acabou sem o provedor dizer por quê — o uso relatado até ali é parcial.
+ */
+export function fimDoFluxo(resultado: {
+  finishReason: PromiseLike<string>;
+  rawFinishReason: PromiseLike<string | undefined>;
+}): PromiseLike<{ unificado?: string; bruto?: string | undefined }> {
+  return Promise.all([
+    Promise.resolve(resultado.finishReason).catch(() => undefined),
+    Promise.resolve(resultado.rawFinishReason).catch(() => undefined),
+  ]).then(([unificado, bruto]) => ({ unificado, bruto }));
+}

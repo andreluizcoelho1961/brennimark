@@ -12,7 +12,7 @@ import { expect, test } from "@playwright/test";
 const DADOS = {
   mes: "2026-09",
   ia: [
-    { workspace_id: "w1", conta: "Brennimark — Ensaio", brand_id: "a", marca: "BRADESCO", provider: "google", model: "gemini-3.6-flash", currency: "USD", execucoes: 40, tokens_entrada: 600000, tokens_saida: 30000, custo_micros: 1500000, sem_uso_medido: 1 },
+    { workspace_id: "w1", conta: "Brennimark — Ensaio", brand_id: "a", marca: "BRADESCO", provider: "google", model: "gemini-3.6-flash", currency: "USD", execucoes: 40, tokens_entrada: 600000, tokens_saida: 30000, custo_micros: 1500000, sem_uso_medido: 1, custo_incerto_micros: 1600000, recusadas: 2 },
     { workspace_id: "w1", conta: "Brennimark — Ensaio", brand_id: "b", marca: "Sony Vaio", provider: "groq", model: "qwen", currency: "USD", execucoes: 7, tokens_entrada: 40000, tokens_saida: 2000, custo_micros: 287698, sem_uso_medido: 0 },
   ],
   armazenamento: [
@@ -36,7 +36,9 @@ test("o mês em números: total, por conta e marca, por modelo — e o aviso de 
   await expect(page.locator("[data-total-custo]")).toHaveText("US$ 1,79");
   await expect(page.locator("[data-total-execucoes]")).toHaveText("47");
   await expect(page.locator("[data-total-armazenamento]")).toHaveText("14,3 MB");
-  await expect(page.locator("[data-aviso-sem-uso]")).toContainText("1 execução liquidada sem tokens");
+  await expect(page.locator("[data-aviso-sem-uso]")).toContainText("1 execução liquidada sem tokens informados pelo provedor: somam US$ 1,60");
+  await expect(page.locator("[data-custo-medido-e-incerto]")).toHaveText("US$ 0,19 medido + até US$ 1,60 incerto");
+  await expect(page.locator("[data-recusadas]")).toContainText("2 pedidos recusados pelo provedor sem processar");
 
   const contas = page.locator("[data-tabela-contas]");
   await expect(contas.locator('[data-conta="w1"]')).toContainText("Brennimark — Ensaio");

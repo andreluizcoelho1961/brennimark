@@ -47,7 +47,10 @@ export function PainelDeCustos() {
   const taxa = Number(cotacao.replace(",", "."));
   const cot = taxa > 0 ? taxa : null;
   const contas = useMemo(() => (dados ? totaisPorConta(dados.ia, dados.armazenamento) : []), [dados]);
-  const total = contas.reduce((s, c) => ({ custo: s.custo + c.custo_micros, exec: s.exec + c.execucoes, bytes: s.bytes + c.bytes, semUso: s.semUso + c.sem_uso_medido }), { custo: 0, exec: 0, bytes: 0, semUso: 0 });
+  const total = contas.reduce((s, c) => ({
+    custo: s.custo + c.custo_micros, exec: s.exec + c.execucoes, bytes: s.bytes + c.bytes, semUso: s.semUso + c.sem_uso_medido,
+    incerto: s.incerto + c.custo_incerto_micros, recusadas: s.recusadas + c.recusadas,
+  }), { custo: 0, exec: 0, bytes: 0, semUso: 0, incerto: 0, recusadas: 0 });
   const modelos = useMemo(() => {
     const mapa = new Map<string, { chave: string; execucoes: number; tokens_entrada: number; tokens_saida: number; custo_micros: number }>();
     for (const l of dados?.ia ?? []) {
@@ -90,6 +93,11 @@ export function PainelDeCustos() {
               <p className={ROTULO}>IA no mês</p>
               <p data-total-custo className="font-display text-2xl font-black text-platform-text">{dinheiro(total.custo)}</p>
               {emReais(total.custo, cot) && <p className="text-sm text-platform-text-muted">{emReais(total.custo, cot)}</p>}
+              {total.incerto > 0 && (
+                <p data-custo-medido-e-incerto className="mt-1 text-xs text-platform-text-muted">
+                  {dinheiro(total.custo - total.incerto)} medido + até {dinheiro(total.incerto)} incerto
+                </p>
+              )}
             </div>
             <div className="border border-platform-border p-4">
               <p className={ROTULO}>Execuções de IA</p>
@@ -105,7 +113,12 @@ export function PainelDeCustos() {
 
           {total.semUso > 0 && (
             <p data-aviso-sem-uso className="text-sm font-bold text-platform-text">
-              {total.semUso} {total.semUso === 1 ? "execução liquidada sem" : "execuções liquidadas sem"} tokens informados pelo provedor: o custo delas é o valor reservado, não o medido.
+              {total.semUso} {total.semUso === 1 ? "execução liquidada sem" : "execuções liquidadas sem"} tokens informados pelo provedor: somam {dinheiro(total.incerto)}, o valor reservado — é o teto, não o medido, e se concilia com a fatura.
+            </p>
+          )}
+          {total.recusadas > 0 && (
+            <p data-recusadas className="text-sm text-platform-text-muted">
+              {total.recusadas} {total.recusadas === 1 ? "pedido recusado" : "pedidos recusados"} pelo provedor sem processar (sobrecarga, limite): custo zero.
             </p>
           )}
 

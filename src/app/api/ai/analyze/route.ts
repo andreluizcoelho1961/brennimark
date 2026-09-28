@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { streamText } from "ai";
 // Lê o fluxo COMPLETO: o erro do provedor chega a `classifyAIError` em vez de
 // virar fluxo vazio (ver `lib/ai/texto-do-fluxo.ts`).
-import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
+import { fimDoFluxo, textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getModel, supportsVision, getAnalysisProviderOptions } from "@/lib/ai/provider";
 import type { ModelPricing } from "@/lib/ai/catalogo";
@@ -335,7 +335,7 @@ export async function POST(request: Request) {
                 }));
               },
             });
-            return { textStream: textoOuErro(result.fullStream), usage: result.usage };
+            return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result) };
           },
         });
 

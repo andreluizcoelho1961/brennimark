@@ -358,6 +358,32 @@ export function mensagemDeBloqueio(motivo: MotivoDeBloqueio, ingles: boolean): s
 export interface ResultadoDoDespacho {
   textStream: AsyncIterable<string>;
   usage: PromiseLike<LanguageModelUsage>;
+  /**
+   * Como o provedor encerrou: o motivo unificado do SDK e o BRUTO do provedor
+   * (28/09/2026). Opcional — quem não informa segue a regra anterior.
+   */
+  fim?: PromiseLike<{ unificado?: string; bruto?: string | undefined }>;
+}
+
+/**
+ * Os status HTTP em que o provedor RECUSOU o pedido antes de processar
+ * (28/09/2026): sobrecarga (503), limite de pedidos (429) e pedido rejeitado
+ * (400, 401, 403, 404). Nenhum provedor cobra pedido recusado — e o razão
+ * cobrava o teto inteiro: no ensaio, a "alta demanda" do Gemini virou
+ * US$ 0,40 de custo que não existiu. 500, 502, 504 e 408 ficam de fora: são
+ * ambíguos, e o ambíguo continua pelo teto.
+ */
+const RECUSAS_SEM_PROCESSAR = new Set([400, 401, 403, 404, 429, 503]);
+
+/** O status da recusa sem processamento, ou `null` se o erro não é uma. */
+export function recusaSemProcessar(erro: unknown): number | null {
+  const lista = erro instanceof AggregateError ? erro.errors : [erro];
+  // Mais de uma causa: não há uma recusa limpa para afirmar.
+  if (lista.length !== 1) return null;
+  const alvo = lista[0] as { statusCode?: unknown; cause?: { statusCode?: unknown } } | null;
+  const status = typeof alvo?.statusCode === "number" ? alvo.statusCode
+    : typeof alvo?.cause?.statusCode === "number" ? alvo.cause.statusCode : null;
+  return status !== null && RECUSAS_SEM_PROCESSAR.has(status) ? status : null;
 }
 
 export interface ExecucaoComOrcamento<TAttempt> {
@@ -384,10 +410,10 @@ const TIMEOUT_DE_USO_PADRAO_MS = 5_000;
  * "não confirmei a tempo", tratado pelo chamador do mesmo jeito que "o
  * provedor não informou": liquidação conservadora, nunca custo zero.
  */
-async function aguardarUsoComTimeout(
-  usage: PromiseLike<LanguageModelUsage>,
+async function aguardarUsoComTimeout<T = LanguageModelUsage>(
+  usage: PromiseLike<T>,
   timeoutMs: number,
-): Promise<LanguageModelUsage | null> {
+): Promise<T | null> {
   return Promise.race([
     Promise.resolve(usage).catch(() => null),
     new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
@@ -472,6 +498,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
   const attemptsRestritos = params.attempts.slice(0, 1) as TAttempt[];
 
   let usageCapturado: PromiseLike<LanguageModelUsage> | null = null;
+  let fimCapturado: PromiseLike<{ unificado?: string; bruto?: string | undefined }> | null = null;
   // Marcado no instante em que ALGUMA tentativa chega a ser despachada —
   // é o que decide se uma falha depois disso ainda pode liberar
   // integralmente (não pode) ou precisa liquidar conservador (precisa).
@@ -489,8 +516,8 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     typeof n === "number" && Number.isFinite(n) && n >= 0;
 
   /** A liquidação conservadora — nunca vira custo zero. */
-  const consolidarConservador = async () => {
-    const usageSnapshot: SnapshotDeUso = { unknown: true };
+  const consolidarConservador = async (fluxoSemFim = false) => {
+    const usageSnapshot: SnapshotDeUso = fluxoSemFim ? { unknown: true, fluxoSemFim: true } : { unknown: true };
     await consolidarExecucao(serviceClient, userId, {
       executionId, settledMicros: reservedMicros,
       provider: attemptDespachado?.config.provider ?? "desconhecido",
@@ -500,10 +527,29 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
   };
 
   /** Encerramento depois do despacho — tenta o uso real, cai para o conservador. */
-  const encerrarPosDespacho = async () => {
+  const encerrarPosDespacho = async (terminouNormal = false) => {
     if (encerrado) return;
     encerrado = true;
     const usage = usageCapturado ? await aguardarUsoComTimeout(usageCapturado, usageTimeoutMs) : null;
+    /*
+     * O fluxo que TERMINOU sem motivo de parada do provedor (28/09/2026).
+     *
+     * O SDK diz "other" quando o fluxo acaba sem o provedor dizer por quê —
+     * a conexão caiu no meio. O uso que chegou até ali é PARCIAL: no ensaio,
+     * uma resposta cortada relatou 283 tokens de entrada para 4 imagens de
+     * página (~4.700 numa chamada inteira). Aceitar o parcial conta A MENOS,
+     * o lado que perde dinheiro — então vale o teto, e o registro diz por quê.
+     *
+     * Só no término normal: erro e cancelamento seguem a regra de sempre, que
+     * aceita o uso quando o provedor o relata por outro canal.
+     */
+    if (terminouNormal && fimCapturado) {
+      const fim = await aguardarUsoComTimeout(fimCapturado, usageTimeoutMs);
+      if (fim && fim.unificado === "other" && !fim.bruto) {
+        await consolidarConservador(true);
+        return;
+      }
+    }
     /*
      * Liquidar pelo uso real exige o uso INTEIRO, e exige que ele seja um
      * número.
@@ -588,11 +634,32 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
         attemptDespachado = attempt;
         const resultado = dispatch(attempt, signal);
         usageCapturado = resultado.usage;
+        fimCapturado = resultado.fim ?? null;
         return resultado.textStream;
       },
     });
   } catch (error) {
-    if (attemptDespachado) {
+    // Atribuída dentro do `start` acima: o compilador não vê, então a leitura é explícita.
+    const despachado = attemptDespachado as TAttempt | null;
+    const recusa = despachado ? recusaSemProcessar(error) : null;
+    if (despachado && recusa !== null) {
+      /*
+       * O provedor RECUSOU antes de processar (28/09/2026) — sobrecarga,
+       * limite, pedido rejeitado. Nada foi gerado, nada é cobrado: liquida em
+       * ZERO, medido, com o status no registro. Liberar não serve: depois da
+       * exposição, o banco liquida o que é liberado pelo teto.
+       */
+      encerrado = true;
+      // O uso e o motivo de parada não serão lidos: escutados e descartados,
+      // para uma rejeição deles não virar erro solto no processo.
+      if (usageCapturado) Promise.resolve(usageCapturado).catch(() => undefined);
+      if (fimCapturado) Promise.resolve(fimCapturado).catch(() => undefined);
+      await consolidarExecucao(serviceClient, userId, {
+        executionId, settledMicros: 0,
+        provider: despachado.config.provider, model: despachado.config.model,
+        usageSnapshot: { inputTokens: 0, outputTokens: 0, recusadoPeloProvedor: recusa },
+      });
+    } else if (attemptDespachado) {
       await encerrarPosDespacho();
     } else {
       // Nenhuma tentativa chegou a ser despachada — o único caso real é
@@ -609,7 +676,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     async next() {
       try {
         const resultado = await originalIterator.next();
-        if (resultado.done) await encerrarPosDespacho();
+        if (resultado.done) await encerrarPosDespacho(true);
         return resultado;
       } catch (error) {
         await encerrarPosDespacho();
