@@ -1,5 +1,5 @@
 import type { Trecho } from "../ai/recuperacao";
-import { lerCorEscrita, type CorEscrita } from "./paleta";
+import { CODIGO_MAXIMO, NOME_MAXIMO, SEGMENTO_MAXIMO, normalizarHex, type CorEscrita } from "./paleta";
 
 /**
  * A ficha da paleta SUGERIDA pela IA — decisão do André, 27/09/2026.
@@ -125,13 +125,22 @@ nome | papel | segmento | HEX | RGB | CMYK | PMS | página
  * ainda raciocina antes — e o raciocínio conta como saída. Em linha, uma
  * resposta cortada perde só a última cor, não todas.
  */
-function deLinhas(texto: string): Record<string, unknown>[] {
+function deLinhas(texto: string, diagnostico?: DiagnosticoDaSugestao): Record<string, unknown>[] {
   const vazio = (v: string | undefined) => (v === undefined || /^[-–—]?$/.test(v.trim()) || /^null$/i.test(v.trim()) ? null : v.trim());
   const itens: Record<string, unknown>[] = [];
   for (const linha of texto.split(/\r?\n/)) {
-    const campos = linha.replace(/^\s*[-*•\d.)]*\s*(?=\S)/, "").split("|").map((c) => c.trim());
-    // Linha de cor tem os oito campos; cabeçalho repetido ("nome | papel…") não é cor.
-    if (campos.length < 8 || /^(nome|name)$/i.test(campos[0])) continue;
+    if (!linha.includes("|")) continue;
+    // Tabela Markdown: "| a | b |" — o "|" das pontas não é coluna. E a linha
+    // separadora ("|---|---|") não é cor.
+    const semPontas = linha.trim().replace(/^\|/, "").replace(/\|$/, "");
+    if (/^[\s|:\-–—]*$/.test(semPontas)) continue;
+    const campos = semPontas.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").split("|").map((c) => c.trim());
+    // Cabeçalho repetido ("nome | papel…") não é cor.
+    if (/^(nome|name)$/i.test(campos[0])) continue;
+    if (campos.length < 8) {
+      if (diagnostico) diagnostico.recusadas.formato += 1;
+      continue;
+    }
     const [nome, papel, segmento, hex, rgb, cmyk, pms, pagina] = campos;
     itens.push({ nome, papel: (papel ?? "").toLowerCase(), segmento: vazio(segmento) ?? "", hex: vazio(hex), rgb: vazio(rgb), cmyk: vazio(cmyk), pms: vazio(pms), pagina: vazio(pagina) });
   }
@@ -170,9 +179,9 @@ function objetosCompletos(texto: string): unknown[] {
   return objetos;
 }
 
-function comoLista(texto: string): unknown[] {
-  const limpo = texto.replace(/```(?:json|text)?/gi, "").trim();
-  const linhas = deLinhas(limpo);
+function comoLista(texto: string, diagnostico?: DiagnosticoDaSugestao): unknown[] {
+  const limpo = texto.replace(/```(?:json|text|markdown)?/gi, "").trim();
+  const linhas = deLinhas(limpo, diagnostico);
   if (linhas.length > 0) return linhas;
   // Reserva: modelo que insiste em JSON.
   try {
@@ -190,29 +199,92 @@ function comoLista(texto: string): unknown[] {
 export type CorSugerida = Omit<CorEscrita, "ordem">;
 
 /**
- * A resposta da IA → cores que passam nas MESMAS regras do banco. O que não
- * passa fica de fora em silêncio: uma cor sem código, ou com HEX torto, não
- * vira rascunho para alguém consertar — vira ruído.
- *
- * A página tem de ser uma das enviadas; página inventada vira "sem página".
+ * O que a leitura fez com a resposta — medida, sem o conteúdo (ensaio de
+ * 27/09: a p. 22 do Bradesco voltou 17 linhas e ZERO cores, e o log não dizia
+ * por quê).
  */
-export function lerSugestao(texto: string, paginasEnviadas: readonly number[]): CorSugerida[] {
-  const cores: CorSugerida[] = [];
-  for (const item of comoLista(texto).slice(0, MAXIMO_DE_CORES_SUGERIDAS)) {
-    if (!item || typeof item !== "object") continue;
-    const bruto = item as Record<string, unknown>;
-    // "22", "p. 22", 22: o número é o que importa.
-    const pagina = Number(String(bruto.pagina ?? "").replace(/\D/g, "") || NaN);
-    const lida = lerCorEscrita({
-      ...bruto,
-      papel: bruto.papel === "principal" ? "principal" : "apoio",
-      pagina: paginasEnviadas.includes(pagina) ? pagina : paginasEnviadas.length === 1 ? paginasEnviadas[0] : null,
-    });
-    if (!lida.ok) continue;
-    const { nome, papel, segmento, hex, rgb, cmyk, pms, pagina: paginaLida } = lida.cor;
-    cores.push({ nome, papel, segmento, hex, rgb, cmyk, pms, pagina: paginaLida });
+export type DiagnosticoDaSugestao = {
+  recusadas: { formato: number; "sem-codigo": number };
+  camposDescartados: { hex: number; "codigo-longo": number };
+  semNome: number;
+};
+
+function diagnosticoVazio(): DiagnosticoDaSugestao {
+  return { recusadas: { formato: 0, "sem-codigo": 0 }, camposDescartados: { hex: 0, "codigo-longo": 0 }, semNome: 0 };
+}
+
+function aparado(valor: unknown, maximo: number): string | null {
+  if (typeof valor !== "string" && typeof valor !== "number") return null;
+  const limpo = String(valor).trim().replace(/\s+/g, " ");
+  if (limpo === "" || /^[-–—]$/.test(limpo) || /^null$/i.test(limpo)) return null;
+  return limpo.length > maximo ? null : limpo;
+}
+
+/**
+ * Uma cor lida pela IA → uma cor que o banco aceita, CAMPO A CAMPO.
+ *
+ * Transcrição não é cadastro: a IA pode ler um dígito a menos num HEX, e
+ * recusar a cor inteira por isso jogava fora os outros três códigos, que
+ * estavam certos. Aqui o campo duvidoso sai e o resto fica — a cor é rascunho
+ * e uma pessoa confere de qualquer jeito. Só não entra cor sem código nenhum.
+ *
+ * Tom sem nome impresso (tabelas de amostras costumam ter só códigos) ganha
+ * como nome o primeiro código: "PMS 7545 C".
+ */
+function corDaSugestao(bruto: Record<string, unknown>, paginasEnviadas: readonly number[], d: DiagnosticoDaSugestao): CorSugerida | null {
+  const hexBruto = aparado(bruto.hex, 40);
+  const hex = hexBruto === null ? null : normalizarHex(hexBruto);
+  if (hexBruto !== null && hex === null) d.camposDescartados.hex += 1;
+
+  const codigo = (valor: unknown) => {
+    const lido = aparado(valor, 1_000);
+    if (lido !== null && lido.length > CODIGO_MAXIMO) {
+      d.camposDescartados["codigo-longo"] += 1;
+      return null;
+    }
+    return lido;
+  };
+  const rgb = codigo(bruto.rgb);
+  const cmyk = codigo(bruto.cmyk);
+  const pms = codigo(bruto.pms);
+  if (hex === null && rgb === null && cmyk === null && pms === null) {
+    d.recusadas["sem-codigo"] += 1;
+    return null;
   }
-  return cores;
+
+  let nome = aparado(bruto.nome, NOME_MAXIMO);
+  if (nome === null) {
+    d.semNome += 1;
+    const pmsComRotulo = pms === null ? null : /^(pms|pantone)\b/i.test(pms) ? pms : `PMS ${pms}`;
+    nome = (pmsComRotulo ?? hex ?? (cmyk && `CMYK ${cmyk}`) ?? `RGB ${rgb}`).slice(0, NOME_MAXIMO);
+  }
+
+  // "22", "p. 22", 22: o número é o que importa.
+  const numero = Number(String(bruto.pagina ?? "").replace(/\D/g, "") || NaN);
+  const pagina = paginasEnviadas.includes(numero) ? numero : paginasEnviadas.length === 1 ? paginasEnviadas[0] : null;
+
+  return {
+    nome,
+    papel: String(bruto.papel ?? "").toLowerCase() === "principal" ? "principal" : "apoio",
+    segmento: aparado(bruto.segmento, SEGMENTO_MAXIMO) ?? "",
+    hex, rgb, cmyk, pms, pagina,
+  };
+}
+
+export function lerSugestaoComDiagnostico(texto: string, paginasEnviadas: readonly number[]): { cores: CorSugerida[]; diagnostico: DiagnosticoDaSugestao } {
+  const diagnostico = diagnosticoVazio();
+  const cores: CorSugerida[] = [];
+  for (const item of comoLista(texto, diagnostico).slice(0, MAXIMO_DE_CORES_SUGERIDAS)) {
+    if (!item || typeof item !== "object") continue;
+    const cor = corDaSugestao(item as Record<string, unknown>, paginasEnviadas, diagnostico);
+    if (cor) cores.push(cor);
+  }
+  return { cores, diagnostico };
+}
+
+/** As cores lidas, sem o diagnóstico. */
+export function lerSugestao(texto: string, paginasEnviadas: readonly number[]): CorSugerida[] {
+  return lerSugestaoComDiagnostico(texto, paginasEnviadas).cores;
 }
 
 /** Nome comparável: sem acento, sem caixa, espaços únicos. */

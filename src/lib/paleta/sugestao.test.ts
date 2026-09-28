@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  chaveDoNome, instrucoesDaSugestao, lerPaginasPedidas, lerSugestao, paginasDaPaleta, pontuarCodigosDeCor, soOQueFalta,
+  chaveDoNome, instrucoesDaSugestao, lerPaginasPedidas, lerSugestao, lerSugestaoComDiagnostico, paginasDaPaleta, pontuarCodigosDeCor, soOQueFalta,
   MAXIMO_DE_PAGINAS_DA_SUGESTAO,
 } from "./sugestao";
 import type { Trecho } from "../ai/recuperacao";
@@ -122,4 +122,29 @@ test("a resposta em LINHAS vira cores, e a linha cortada no fim fica de fora", (
 test("a instrução pede uma linha por cor, sem JSON", () => {
   assert.match(instrucoesDaSugestao(false, [22]), /UMA LINHA POR COR/);
   assert.match(instrucoesDaSugestao(false, [22]), /nome \| papel \| segmento \| HEX \| RGB \| CMYK \| PMS \| página/);
+});
+
+test("tabela Markdown, tom sem nome e HEX mal lido: o campo duvidoso sai, a cor fica", () => {
+  // Ensaio de 27/09: a p. 22 do Bradesco voltou 17 linhas e ZERO cores.
+  const resposta = [
+    "| nome | papel | segmento | HEX | RGB | CMYK | PMS | página |",
+    "|---|---|---|---|---|---|---|---|",
+    "| - | apoio | Varejo | #42556 | 66 85 99 | 23 2 0 72 | 7545 C | 22 |",
+    "| Azul | apoio | - | #0033A0 | - | 100 66 0 2 | PMS 286 C | 22 |",
+    "| Só nome | apoio | - | - | - | - | - | 22 |",
+    "| curta | apoio | 22 |",
+    "1. Verde | apoio | - | #78BE20 | - | - | - | 22",
+  ].join("\n");
+  const { cores, diagnostico } = lerSugestaoComDiagnostico(resposta, [22]);
+  assert.deepEqual(cores.map((c) => c.nome), ["PMS 7545 C", "Azul", "Verde"]);
+  // HEX com cinco dígitos sai; os outros códigos do mesmo tom ficam.
+  assert.equal(cores[0].hex, null);
+  assert.equal(cores[0].cmyk, "23 2 0 72");
+  assert.equal(cores[0].segmento, "Varejo");
+  assert.equal(cores[1].pms, "PMS 286 C");
+  assert.deepEqual(diagnostico, {
+    recusadas: { formato: 1, "sem-codigo": 1 },
+    camposDescartados: { hex: 1, "codigo-longo": 0 },
+    semNome: 1,
+  });
 });
