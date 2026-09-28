@@ -252,8 +252,18 @@ export function JanelaDoVini({
                         <RespostaDoVini conteudo={m.content} paginas={m.paginas ?? {}} basePath={basePath} />
                       )}
                       {m.incompleta && (
-                        <p className="mt-2 font-display text-[10px] font-bold uppercase tracking-wide text-platform-warning">
-                          {t("Resposta incompleta", "Incomplete answer")}
+                        <p className="mt-2 flex flex-wrap items-center gap-3">
+                          <span className="font-display text-[10px] font-bold uppercase tracking-wide text-platform-warning">
+                            {t("Resposta incompleta", "Incomplete answer")}
+                          </span>
+                          {/* O "tentar de novo" também AQUI, onde o olho está (ensaio de
+                              28/09): numa lista longa, o aviso de baixo fica fora da vista. */}
+                          {i === conversa.mensagens.length - 1 && conversa.podeRepetir && !conversa.ocupado && (
+                            <button type="button" data-perguntar-de-novo onClick={conversa.repetir}
+                              className="text-[12px] font-medium text-platform-text underline underline-offset-4">
+                              {t("Perguntar de novo", "Ask again")}
+                            </button>
+                          )}
                         </p>
                       )}
                     </div>

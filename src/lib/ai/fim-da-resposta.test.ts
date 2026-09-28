@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { avisoDeInterrupcao, marcaDeFim, separarFim } from "./fim-da-resposta";
+import { avisoDeInterrupcao, marcaDeFim, separarFim, motivoDaParada } from "./fim-da-resposta";
 
 /**
  * Resposta pela metade não pode passar por inteira — ensaio de 19/09.
@@ -50,4 +50,17 @@ test("o aviso diz o que faltou, sem jargão", () => {
   assert.match(avisoDeInterrupcao("content-filter"), /parou antes de terminar — o filtro de conteúdo/);
   assert.match(avisoDeInterrupcao("other"), /parou antes de terminar\. O que está acima pode estar incompleto/);
   assert.match(avisoDeInterrupcao("length", true), /stopped before finishing — the answer went past/);
+});
+
+test("fluxo que acaba SEM motivo do provedor é conexão caída, e o aviso diz isso", () => {
+  // Ensaio de 28/09: o Gemini, em pico de demanda, cortou a lista de cores no
+  // 17º item; o SDK disse "other", e o provedor não disse nada.
+  assert.equal(motivoDaParada("other", undefined), "conexao");
+  assert.equal(motivoDaParada("other", null), "conexao");
+  // "other" COM motivo do provedor é outra coisa, e não se disfarça de conexão.
+  assert.equal(motivoDaParada("other", "RECITATION"), "other");
+  assert.equal(motivoDaParada("stop", undefined), "stop");
+  assert.equal(motivoDaParada("length", "MAX_TOKENS"), "length");
+  assert.match(avisoDeInterrupcao("conexao"), /a conexão com a IA caiu no meio da resposta/);
+  assert.match(avisoDeInterrupcao("conexao", true), /connection to the AI dropped/);
 });

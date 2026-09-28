@@ -22,6 +22,18 @@ const FIM = "]]";
 /** Os motivos que significam "terminou de verdade". */
 const TERMINOU = new Set(["stop"]);
 
+/**
+ * O motivo como a PESSOA precisa saber. O SDK diz "other" tanto para um
+ * motivo exótico do provedor quanto para o fluxo que ACABOU SEM MOTIVO — a
+ * conexão com a IA caiu no meio (ensaio de 28/09: o Gemini, em pico de
+ * demanda, cortou uma lista de cores no 17º item). Sem motivo bruto do
+ * provedor, é conexão caída, e o aviso diz isso.
+ */
+export function motivoDaParada(unificado: string | null | undefined, bruto: string | null | undefined): string {
+  if (unificado === "other" && (bruto === null || bruto === undefined || bruto === "")) return "conexao";
+  return unificado ?? "unknown";
+}
+
 /** O que o servidor acrescenta ao fluxo, ou `null` quando terminou bem. */
 export function marcaDeFim(motivo: string | null | undefined): string | null {
   const limpo = (motivo ?? "unknown").replace(/[^a-z-]/gi, "").slice(0, 32) || "unknown";
@@ -56,6 +68,7 @@ export function avisoDeInterrupcao(motivo: string, ingles = false): string {
     length: ["a resposta passou do tamanho máximo", "the answer went past the maximum length"],
     "content-filter": ["o filtro de conteúdo do provedor interrompeu", "the provider's content filter stopped it"],
     error: ["o provedor encontrou um erro", "the provider hit an error"],
+    conexao: ["a conexão com a IA caiu no meio da resposta", "the connection to the AI dropped mid-answer"],
   };
   const par = porque[motivo];
   if (ingles) {

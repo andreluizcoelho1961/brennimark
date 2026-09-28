@@ -6,7 +6,7 @@ import { textoOuErro } from "@/lib/ai/texto-do-fluxo";
 import { getChatProviderOptions, getModel } from "@/lib/ai/provider";
 import { resolveChatRouting, type ResolvedChatAttempt } from "@/lib/ai/settings";
 import { buildChatSystemPrompt } from "@/lib/ai/brand-context";
-import { marcaDeFim } from "@/lib/ai/fim-da-resposta";
+import { marcaDeFim, motivoDaParada } from "@/lib/ai/fim-da-resposta";
 import { idDeConversa } from "@/lib/ai/conversas";
 import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
@@ -278,10 +278,10 @@ export async function POST(request: Request) {
               Promise.resolve(fimDoProvedor?.unificado ?? "unknown").catch(() => "error"),
               Promise.resolve(fimDoProvedor?.bruto).catch(() => undefined),
             ]);
-            const marca = marcaDeFim(motivo);
+            const marca = marcaDeFim(motivoDaParada(motivo, bruto));
             if (marca) {
               console.warn(JSON.stringify({
-                level: "warn", msg: "ai_resposta_incompleta", motivo, motivoDoProvedor: bruto ?? null, executionId,
+                level: "warn", msg: "ai_resposta_incompleta", motivo, motivoDoProvedor: bruto ?? null, parada: motivoDaParada(motivo, bruto), executionId,
               }));
               controller.enqueue(encoder.encode(marca));
             }

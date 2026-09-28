@@ -178,6 +178,23 @@ test("resposta que o provedor interrompeu aparece como incompleta, nunca como in
   expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "what is the primary logo?" }] });
 });
 
+test("conexão caída no meio: o aviso diz isso, e 'Perguntar de novo' está ao lado da resposta", async ({ page }) => {
+  // Ensaio de 28/09: a lista de 19 cores parou no 17º item; o "Tentar de
+  // novo" existia, mas ficava na caixa de baixo, fora da vista.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comResposta(page, "A marca tem 19 cores. 1. #D12244 2. #A509⁣[[brennimark:incompleta:conexao]]", enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "quais as cores da marca?");
+
+  await expect(page.locator("[data-vini-aviso]")).toContainText("a conexão com a IA caiu no meio da resposta");
+  const aoLado = page.locator("[data-vini-janela] [data-incompleta] [data-perguntar-de-novo]");
+  await expect(aoLado).toHaveText("Perguntar de novo");
+  await aoLado.click();
+  await expect.poll(() => enviados.length).toBe(2);
+  expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "quais as cores da marca?" }] });
+});
+
 test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await comResposta(page);
