@@ -42,7 +42,7 @@ test("as imagens vão só na ÚLTIMA pergunta, com o aviso de que a imagem vale 
   assert.equal(partes[0].text, "Quantas cores tem a marca?");
   assert.match(partes[1].text ?? "", /páginas 22, 21/);
   assert.match(partes[1].text ?? "", /vale a imagem/);
-  assert.equal(partes.filter((p) => p.type === "image").length, 2);
+  assert.equal(partes.filter((p) => p.type === "file").length, 2);
   assert.equal(mensagens[2].content, "Quantas cores tem a marca?", "as mensagens originais não mudam");
 });
 

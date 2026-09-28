@@ -100,7 +100,8 @@ export function comPaginasVistas(mensagens: readonly ModelMessage[], vistas: rea
     content: [
       ...partesOriginais,
       { type: "text", text: aviso },
-      ...vistas.map((v) => ({ type: "image", image: v.bytes, mediaType: "image/jpeg" })),
+      // Parte "file": a "image" está obsoleta no SDK e enchia o log de avisos.
+      ...vistas.map((v) => ({ type: "file", data: v.bytes, mediaType: "image/jpeg" })),
     ],
   } as ModelMessage;
   return [...mensagens.slice(0, indice), nova, ...mensagens.slice(indice + 1)];
