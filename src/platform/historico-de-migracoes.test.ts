@@ -72,6 +72,12 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
+  /**
+   * O Console da Brennimark, etapa 1 (28/09/2026): a lista da equipe em
+   * `private` e as funções de leitura entre contas, só para a equipe.
+   * Aguarda autorização nominal do André para ir ao banco hospedado.
+   */
+  "console_da_brennimark",
   // `origem_da_cor` saiu daqui em 27/09/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20260927203333`; impressão digital
   // igual à do local (coluna, constraints, gatilho, policies, índices, grants).
