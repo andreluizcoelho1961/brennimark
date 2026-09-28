@@ -81,3 +81,15 @@ test("códigos que não estão na página gravada, mas estão em outra: diz qual
   // Em página nenhuma: sem sugestão de página.
   assert.deepEqual(conferirNoManual(cor({ hex: "#123456", pagina: 21 }), textos), { estado: "conferir", faltam: ["HEX"] });
 });
+
+test("HEX partido por espaço no texto extraído ainda confere; colado em outro código, não", () => {
+  // Ensaio de 28/09: o texto indexado do Bradesco veio com os HEX partidos
+  // ("D12 244", "C F C9C1") e 8 das 19 cores ficaram "conferir" à toa.
+  const partido = "R209 G34 B68 D12 244 EDEDED E CE7DE B A0A29 A 5091B C F C9C1 96 0D1F 808285";
+  for (const hex of ["#D12244", "#ECE7DE", "#BA0A29", "#A5091B", "#CFC9C1", "#960D1F", "#808285"]) {
+    assert.deepEqual(conferirNoTexto(cor({ hex }), partido), { estado: "conferida" }, hex);
+  }
+  // Pedaços de dois códigos vizinhos não formam um terceiro.
+  assert.deepEqual(conferirNoTexto(cor({ hex: "#0D1F80" }), partido), { estado: "conferir", faltam: ["HEX"] });
+  assert.deepEqual(conferirNoTexto(cor({ hex: "#D12245" }), partido), { estado: "conferir", faltam: ["HEX"] });
+});
