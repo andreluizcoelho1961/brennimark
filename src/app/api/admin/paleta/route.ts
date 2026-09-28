@@ -3,6 +3,7 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { COLUNAS_DA_PALETA, deLinha, lerCorEscrita, type MotivoDaRecusa } from "@/lib/paleta/paleta";
+import { conferirPaleta } from "@/lib/paleta/conferencia";
 
 const isEnglish = inEnglish(PRODUCT_LOCALE);
 
@@ -65,7 +66,8 @@ export async function POST(request: Request) {
   // 42501: a policy recusou — quem pediu não edita esta marca.
   if (error?.code === "42501") return SO_QUEM_EDITA();
   if (error || !data) return FALHOU();
-  return NextResponse.json({ cor: deLinha(data as Record<string, unknown>) }, { status: 201 });
+  const [cor] = await conferirPaleta(auth.supabase, brandId, [deLinha(data as Record<string, unknown>)]);
+  return NextResponse.json({ cor }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
@@ -84,7 +86,8 @@ export async function PATCH(request: Request) {
     .select(COLUNAS_DA_PALETA);
   if (error) return FALHOU();
   if (!data || data.length === 0) return SO_QUEM_EDITA();
-  return NextResponse.json({ cor: deLinha(data[0] as Record<string, unknown>) });
+  const [cor] = await conferirPaleta(auth.supabase, brandId, [deLinha(data[0] as Record<string, unknown>)]);
+  return NextResponse.json({ cor });
 }
 
 export async function DELETE(request: Request) {

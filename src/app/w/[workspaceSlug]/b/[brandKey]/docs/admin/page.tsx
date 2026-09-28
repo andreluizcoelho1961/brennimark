@@ -5,6 +5,7 @@ import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { caminhoDaMarca } from "@/lib/brennimark/selecao";
 import { lerPaleta } from "@/lib/paleta/paleta";
+import { conferirPaleta } from "@/lib/paleta/conferencia";
 
 export default async function AdminPage({ params }: { params: Promise<{ workspaceSlug: string; brandKey: string }> }) {
   const alvo = await params;
@@ -41,7 +42,8 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
       theme={brand.theme}
       marca={{ id: brand.id, nome: brand.brand.name }}
       paleta={{
-        cores: paleta.ok ? paleta.cores : [],
+        // Cada cor conferida contra o texto do manual (27/09): selo na tela.
+        cores: paleta.ok && auth ? await conferirPaleta(auth.supabase, brand.id, paleta.cores) : [],
         podeEditar: capabilities.includes("editar"),
         podeAprovar: capabilities.includes("aprovar"),
       }}

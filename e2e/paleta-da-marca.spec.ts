@@ -19,7 +19,7 @@ test("a ficha mostra as cores, a contagem e o status de cada uma", async ({ page
   const secao = secaoDaPaleta(page);
 
   await expect(secao.locator("[data-resumo-da-paleta]")).toHaveText(
-    "4 cores · 2 principais, 2 de apoio · 2 aprovadas, 2 em rascunho",
+    "4 cores · 2 principais, 2 de apoio · 2 aprovadas, 2 em rascunho · 3 conferidas no manual",
   );
   const linhas = secao.locator("[data-cor-da-paleta]");
   await expect(linhas).toHaveCount(4);
@@ -134,8 +134,8 @@ test("sugerir pela IA manda as páginas, e as cores entram como rascunho marcada
       status: 200,
       json: {
         cores: [
-          { id: "c0000000-0000-4000-8000-000000000021", nome: "Verde Mata", papel: "apoio", segmento: "", hex: "#1B5E20", rgb: null, cmyk: "80 0 100 40", pms: "356 C", pagina: 13, ordem: 4, status: "draft", aprovadoEm: null, origem: "ia" },
-          { id: "c0000000-0000-4000-8000-000000000022", nome: "Areia", papel: "apoio", segmento: "", hex: "#D8C8A8", rgb: null, cmyk: null, pms: null, pagina: 13, ordem: 5, status: "draft", aprovadoEm: null, origem: "ia" },
+          { id: "c0000000-0000-4000-8000-000000000021", nome: "Verde Mata", papel: "apoio", segmento: "", hex: "#1B5E20", rgb: null, cmyk: "80 0 100 40", pms: "356 C", pagina: 13, ordem: 4, status: "draft", aprovadoEm: null, origem: "ia", conferencia: { estado: "conferida" } },
+          { id: "c0000000-0000-4000-8000-000000000022", nome: "Areia", papel: "apoio", segmento: "", hex: "#D8C8A8", rgb: null, cmyk: null, pms: null, pagina: 13, ordem: 5, status: "draft", aprovadoEm: null, origem: "ia", conferencia: { estado: "conferir", faltam: ["HEX"] } },
         ],
         lidas: 3, repetidas: 1, paginas: [12, 13], semImagem: [],
       },
@@ -150,7 +150,7 @@ test("sugerir pela IA manda as páginas, e as cores entram como rascunho marcada
 
   expect(corpo).toEqual({ paginas: "12, 13" });
   await expect(secao.getByRole("status")).toHaveText(
-    "2 cores sugeridas das páginas 12, 13, como rascunho — confira cada código antes de aprovar. 1 já estava na ficha.",
+    "2 cores sugeridas das páginas 12, 13, como rascunho — confira cada código antes de aprovar. 1 bate com o texto do manual; confira as outras. 1 já estava na ficha.",
   );
   const verde = secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000021"]');
   await expect(verde.locator("[data-status-da-cor]")).toHaveText("Rascunho");
@@ -197,4 +197,50 @@ test("resposta cortada pelo teto da IA é dita como cortada, não como 'sem pale
   const secao = secaoDaPaleta(page);
   await secao.locator("[data-sugerir-cores]").click();
   await expect(secao.getByRole("status")).toHaveText("A resposta da IA foi cortada antes de qualquer cor.");
+});
+
+// ─── A conferência contra o texto do manual (27/09/2026, opção A) ──────────
+
+test("cada cor diz se os códigos estão escritos no manual, e onde conferir", async ({ page }) => {
+  await page.goto("/dev/admin-panel");
+  const secao = secaoDaPaleta(page);
+  await expect(secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000001"] [data-conferencia]'))
+    .toHaveText("✓ Conferida: todos os códigos estão escritos na p. 12");
+  await expect(secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000004"] [data-conferencia]'))
+    .toHaveText("Conferir: os códigos estão na p. 14, não na p. 13.");
+  // O rótulo não se repete quando o manual já escreveu "PMS".
+  await expect(secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000001"]')).toContainText("PMS 186 C");
+  await expect(secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000001"]')).not.toContainText("PMS PMS");
+});
+
+test("'Aprovar as conferidas' manda só os rascunhos conferidos — um clique, de uma pessoa", async ({ page }) => {
+  let corpo: unknown = null;
+  await page.route("**/api/admin/paleta/aprovar**", async (rota) => {
+    corpo = rota.request().postDataJSON();
+    await rota.fulfill({ status: 200, json: { aprovadas: [{
+      id: "c0000000-0000-4000-8000-000000000003", nome: "Azul Noite", papel: "apoio", segmento: "Varejo",
+      hex: "#0B1F3A", rgb: null, cmyk: "100 80 30 60", pms: null, pagina: 13, ordem: 2,
+      status: "ready", aprovadoEm: "2026-09-27T13:00:00.000Z", origem: "ia",
+    }] } });
+  });
+  await page.goto("/dev/admin-panel");
+  const secao = secaoDaPaleta(page);
+  const botao = secao.locator("[data-aprovar-conferidas]");
+  await expect(botao).toHaveText("Aprovar as conferidas (1)");
+  await botao.click();
+
+  // "Só Pantone" é rascunho mas NÃO conferida: fica de fora.
+  expect(corpo).toEqual({ ids: ["c0000000-0000-4000-8000-000000000003"] });
+  const azul = secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000003"]');
+  await expect(azul.locator("[data-status-da-cor]")).toHaveText("Aprovada");
+  // Aprovar não apaga o selo: nenhum código mudou.
+  await expect(azul.locator("[data-conferencia]")).toHaveAttribute("data-conferencia", "conferida");
+  await expect(secao.locator("[data-aprovar-conferidas]")).toHaveCount(0);
+});
+
+test("quem edita e não aprova vê o selo, mas não o botão de aprovar", async ({ page }) => {
+  await page.goto("/dev/admin-panel?papel=editora");
+  const secao = secaoDaPaleta(page);
+  await expect(secao.locator("[data-conferencia]").first()).toBeVisible();
+  await expect(secao.locator("[data-aprovar-conferidas]")).toHaveCount(0);
 });
