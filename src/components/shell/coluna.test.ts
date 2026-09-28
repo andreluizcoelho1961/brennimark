@@ -26,12 +26,13 @@ test("quem só consulta não vê a gestão", () => {
   assert.deepEqual(grupos.map((g) => g.id), ["plataforma"]);
 });
 
-test("quem administra vê Pessoas funcionando e o resto como 'em breve', sem link", () => {
+test("quem administra vê Pessoas e Registros funcionando e o resto como 'em breve', sem link", () => {
   const gestao = colunaDaPlataforma({ contaSlug: "agencia", administraConta: true })
     .find((g) => g.id === "gestao")!;
   const pessoas = gestao.itens.find((i) => i.id === "pessoas")!;
   assert.equal(pessoas.href, "/w/agencia/pessoas");
-  for (const id of ["links", "registros", "configuracoes"]) {
+  assert.equal(gestao.itens.find((i) => i.id === "registros")!.href, "/w/agencia/registros");
+  for (const id of ["links", "configuracoes"]) {
     const item = gestao.itens.find((i) => i.id === id)!;
     assert.equal(item.emBreve, true, `${id} deveria estar em breve`);
     assert.equal(item.href, undefined, `${id} não pode levar a uma tela que não existe`);
