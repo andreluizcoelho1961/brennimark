@@ -21,7 +21,8 @@ test("cada página da lista tem a sua rota", () => {
 
 test("cada rota do site está na lista", () => {
   const pastas = readdirSync(PASTA_DO_SITE, { withFileTypes: true })
-    .filter((e) => e.isDirectory())
+    // `previa-do-site.png` é arquivo gerado (rota com extensão), não página.
+    .filter((e) => e.isDirectory() && !e.name.includes("."))
     .map((e) => e.name);
   const slugs = new Set(PAGINAS_DO_SITE.map((p) => p.slug));
   for (const pasta of pastas) assert.ok(slugs.has(pasta), `src/app/(site)/${pasta} não está em PAGINAS_DO_SITE`);

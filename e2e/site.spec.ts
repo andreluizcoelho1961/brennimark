@@ -179,7 +179,26 @@ test("abrir estreito e alargar a janela não muda o capítulo", async ({ page })
   await expect(page.locator("#chap-t")).toHaveText("O problema");
 });
 
+test("o site fica fora dos buscadores, e a prévia de link funciona", async ({ page, request }) => {
+  // Decisão do André (29/09/2026): no ar para teste, fora dos buscadores até a
+  // divulgação. A prévia (WhatsApp, LinkedIn) não depende de indexação.
+  test.setTimeout(120_000);
+  for (const rota of ["/", ...PAGINAS_DO_SITE.map((p) => `/${p.slug}`)]) {
+    await abrir(page, rota);
+    await expect(page.locator('meta[name="robots"]'), rota).toHaveAttribute("content", /noindex/);
+    await expect(page.locator('meta[property="og:title"]'), rota).toHaveAttribute("content", await page.title());
+    await expect(page.locator('meta[property="og:description"]'), rota).toHaveAttribute("content", /.{20,}/);
+    await expect(page.locator('meta[name="twitter:card"]'), rota).toHaveAttribute("content", "summary_large_image");
+  }
+  const imagem = await page.locator('meta[property="og:image"]').getAttribute("content");
+  const resposta = await request.get(new URL(imagem!).pathname);
+  expect(resposta.status()).toBe(200);
+  expect(resposta.headers()["content-type"]).toBe("image/png");
+});
+
 test("todo depoimento leva a marcação de fictício, sem nome de pessoa", async ({ page }) => {
+  // Busca as 17 páginas; sob a suíte inteira, cada compilação leva segundos.
+  test.setTimeout(120_000);
   // Decisão do André (29/09/2026): o site pode ir ao ar para teste ainda com
   // depoimentos de layout, e ninguém pode tomá-los por verdadeiros.
   await abrir(page, "/");
@@ -198,6 +217,8 @@ test("todo depoimento leva a marcação de fictício, sem nome de pessoa", async
 });
 
 test("nenhuma classe do site coincide com uma regra de fora dele", async ({ page }) => {
+  // Busca as 17 páginas; sob a suíte inteira, cada compilação leva segundos.
+  test.setTimeout(120_000);
   // O site usa os nomes do protótipo (`grow`, `wrap`, `tag`…) e a plataforma
   // gera utilitários do Tailwind com nomes curtos. `grow` já colidiu uma vez
   // (29/09/2026) e esticou os botões das maquetes. Esta guarda acusa a próxima.

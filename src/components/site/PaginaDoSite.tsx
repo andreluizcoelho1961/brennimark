@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { paginaDoSite } from "@/lib/site/paginas";
+import { metadadosDoSite } from "./metadados";
 import { MolduraDoSite } from "./MolduraDoSite";
 
 /**
@@ -9,7 +10,7 @@ import { MolduraDoSite } from "./MolduraDoSite";
  */
 export function metadadosDaPagina(slug: string): Metadata {
   const { titulo, resumo } = paginaDoSite(slug);
-  return { title: `${titulo} · Brennimark`, description: resumo };
+  return metadadosDoSite({ titulo: `${titulo} · Brennimark`, descricao: resumo });
 }
 
 export function PaginaDoSite({ children }: { children: React.ReactNode }) {
