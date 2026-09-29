@@ -1,7 +1,12 @@
-import { metadadosEmMontagem, PaginaEmMontagem } from "@/components/site/PaginaEmMontagem";
+import { ConteudoLicencaDeFontes } from "@/components/site/paginas/LicencaDeFontes";
+import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosEmMontagem("licenca-de-fontes");
+export const metadata = metadadosDaPagina("licenca-de-fontes");
 
 export default function Pagina() {
-  return <PaginaEmMontagem slug="licenca-de-fontes" />;
+  return (
+    <PaginaDoSite>
+      <ConteudoLicencaDeFontes />
+    </PaginaDoSite>
+  );
 }

@@ -13,8 +13,10 @@ import { Titulo } from "./Titulo";
  * André. O que mudou é só a forma: imagens como arquivos otimizados, títulos
  * já em palavras, links para as páginas internas com endereço próprio.
  *
- * Os depoimentos, os planos "a definir" e o e-mail comercial seguem como no
- * protótipo: são layout, e precisam ser confirmados antes de publicar.
+ * Os depoimentos são layout e levam a marcação "Depoimento fictício" no lugar
+ * do nome (decisão do André, 29/09): o site pode ir ao ar para teste, e
+ * ninguém deve tomar o texto por depoimento verdadeiro. Os planos e o e-mail
+ * comercial seguem "a definir", como no protótipo.
  */
 export function CapitulosDaHome() {
   return (
@@ -329,15 +331,15 @@ export function CapitulosDaHome() {
             <div className="quotes">
               <figure className="quote">
                 <blockquote>A pergunta que mais chegava no nosso WhatsApp era &quot;qual é o laranja certo?&quot;. Hoje a equipe encontra a resposta com a página, e a gente volta a falar de ideia.</blockquote>
-                <figcaption><i>CM</i><div>Carolina Menezes<span>Diretora de criação · Estúdio Alvéolo</span></div></figcaption>
+                <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
               </figure>
               <figure className="quote">
                 <blockquote>Entregamos a marca e ela continua trabalhando. O manual deixou de ser um arquivo que ninguém abre.</blockquote>
-                <figcaption><i>RB</i><div>Rafael Bittencourt<span>Sócio · Agência Coxilha</span></div></figcaption>
+                <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
               </figure>
               <figure className="quote">
                 <blockquote>Mandar o kit para a gráfica com link que expira mudou nosso fim de tarde. E ela sempre recebe a versão atual.</blockquote>
-                <figcaption><i>JL</i><div>Juliana Lima<span>Gerente de marca · Grupo Varanda Sul</span></div></figcaption>
+                <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
               </figure>
             </div>
           </div>

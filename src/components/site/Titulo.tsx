@@ -32,7 +32,7 @@ export function palavras(partes: readonly ParteDoTitulo[]): ReactNode[] {
   );
 }
 
-type Nivel = "h1" | "h2";
+type Nivel = "h1" | "h2" | "p";
 
 export function Titulo({
   como: Tag = "h2",

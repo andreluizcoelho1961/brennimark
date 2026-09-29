@@ -137,6 +137,19 @@ export function ComportamentoDoSite() {
       "click",
       (e) => {
         const alvo = e.target as Element;
+        // A migalha "Plataforma · …" abre o menu do cabeçalho em vez de navegar.
+        const migalha = alvo.closest<HTMLElement>("[data-open-menu]");
+        if (migalha) {
+          e.preventDefault();
+          window.scrollTo(0, 0);
+          const botao = botoes.find((b) => b.getAttribute("aria-controls") === migalha.dataset.openMenu);
+          if (botao) {
+            fecharMenus(botao);
+            botao.setAttribute("aria-expanded", "true");
+            menuDe(botao)?.classList.add("open");
+          }
+          return;
+        }
         if (!alvo.closest(".nav-item")) fecharMenus();
         const abre = alvo.closest<HTMLElement>("[data-open]");
         if (abre) {

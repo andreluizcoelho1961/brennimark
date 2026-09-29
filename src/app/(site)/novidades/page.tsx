@@ -1,7 +1,12 @@
-import { metadadosEmMontagem, PaginaEmMontagem } from "@/components/site/PaginaEmMontagem";
+import { ConteudoNovidades } from "@/components/site/paginas/Novidades";
+import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosEmMontagem("novidades");
+export const metadata = metadadosDaPagina("novidades");
 
 export default function Pagina() {
-  return <PaginaEmMontagem slug="novidades" />;
+  return (
+    <PaginaDoSite>
+      <ConteudoNovidades />
+    </PaginaDoSite>
+  );
 }

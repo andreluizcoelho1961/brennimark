@@ -130,18 +130,26 @@ test("o menu Plataforma leva a uma página com endereço próprio", async ({ pag
   await menu.getByRole("link", { name: /Vini Max/ }).click();
   await expect(page).toHaveURL(/\/vini$/);
   await expect(page).toHaveTitle("Vini Max · Brennimark");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Vini Max.");
-  await expect(page.getByText("Em montagem", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("O Vini Max ajuda você a trabalhar com a marca.");
+
+  // A migalha "Plataforma · Vini Max" abre o menu do cabeçalho, sem navegar.
+  await page.locator(".crumb").getByRole("link", { name: "Plataforma" }).click();
+  await expect(page.locator("#m-plat")).toBeVisible();
+  await expect(page).toHaveURL(/\/vini$/);
 });
 
 test("cada página do site responde, com o próprio título", async ({ page }) => {
   // Dezesseis aberturas seguidas; sob a suíte inteira, cada uma pode levar segundos.
   test.setTimeout(120_000);
+  // Sem erro no console: a conversão do protótipo para JSX é onde nasceria um
+  // erro de hidratação (tabela sem <tbody>, atributo trocado).
+  const erros = await semErros(page);
   for (const { slug, titulo } of PAGINAS_DO_SITE) {
     const resposta = await abrir(page, `/${slug}`);
     expect(resposta?.status(), `/${slug}`).toBe(200);
     await expect(page).toHaveTitle(`${titulo} · Brennimark`);
   }
+  expect(erros).toEqual([]);
 });
 
 test("o vídeo do Vini só carrega quando o capítulo chega", async ({ page }) => {
@@ -169,6 +177,58 @@ test("abrir estreito e alargar a janela não muda o capítulo", async ({ page })
   // E continua andando normalmente.
   await page.keyboard.press("ArrowRight");
   await expect(page.locator("#chap-t")).toHaveText("O problema");
+});
+
+test("todo depoimento leva a marcação de fictício, sem nome de pessoa", async ({ page }) => {
+  // Decisão do André (29/09/2026): o site pode ir ao ar para teste ainda com
+  // depoimentos de layout, e ninguém pode tomá-los por verdadeiros.
+  await abrir(page, "/");
+  const semMarcacao = await page.evaluate(async (rotas) => {
+    const faltas: string[] = [];
+    for (const rota of rotas) {
+      const doc = new DOMParser().parseFromString(await (await fetch(rota)).text(), "text/html");
+      doc.querySelectorAll(".bm-site figure.quote, .bm-site figure.big-quote").forEach((f) => {
+        if (!f.querySelector("figcaption")?.textContent?.includes("Depoimento fictício")) faltas.push(rota);
+      });
+    }
+    return faltas;
+  }, ["/", ...PAGINAS_DO_SITE.map((p) => `/${p.slug}`)]);
+  expect(semMarcacao).toEqual([]);
+  await expect(page.locator(".quote figcaption").first()).toContainText("Depoimento fictício");
+});
+
+test("nenhuma classe do site coincide com uma regra de fora dele", async ({ page }) => {
+  // O site usa os nomes do protótipo (`grow`, `wrap`, `tag`…) e a plataforma
+  // gera utilitários do Tailwind com nomes curtos. `grow` já colidiu uma vez
+  // (29/09/2026) e esticou os botões das maquetes. Esta guarda acusa a próxima.
+  await abrir(page, "/");
+  const colisoes = await page.evaluate(async (rotas) => {
+    const alheias = new Set<string>();
+    const percorrer = (regras: CSSRuleList) => {
+      for (const r of Array.from(regras)) {
+        const regra = r as CSSStyleRule & { cssRules?: CSSRuleList };
+        if (regra.cssRules && !regra.selectorText) percorrer(regra.cssRules);
+        if (!regra.selectorText || regra.selectorText.includes("bm-site")) continue;
+        for (const m of regra.selectorText.matchAll(/\.((?:\\.|[\w-])+)/g)) alheias.add(m[1].replace(/\\/g, ""));
+      }
+    };
+    for (const folha of Array.from(document.styleSheets)) {
+      try {
+        percorrer(folha.cssRules);
+      } catch {
+        // Folha de outra origem: não é da plataforma.
+      }
+    }
+    const achadas: string[] = [];
+    for (const rota of rotas) {
+      const doc = new DOMParser().parseFromString(await (await fetch(rota)).text(), "text/html");
+      doc.querySelectorAll(".bm-site [class]").forEach((el) =>
+        el.classList.forEach((c) => alheias.has(c) && achadas.push(`${rota} .${c}`)),
+      );
+    }
+    return [...new Set(achadas)];
+  }, ["/", ...PAGINAS_DO_SITE.map((p) => `/${p.slug}`)]);
+  expect(colisoes).toEqual([]);
 });
 
 test.describe("movimento reduzido", () => {

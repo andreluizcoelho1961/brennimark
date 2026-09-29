@@ -1,7 +1,12 @@
-import { metadadosEmMontagem, PaginaEmMontagem } from "@/components/site/PaginaEmMontagem";
+import { ConteudoPrivacidade } from "@/components/site/paginas/Privacidade";
+import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosEmMontagem("privacidade");
+export const metadata = metadadosDaPagina("privacidade");
 
 export default function Pagina() {
-  return <PaginaEmMontagem slug="privacidade" />;
+  return (
+    <PaginaDoSite>
+      <ConteudoPrivacidade />
+    </PaginaDoSite>
+  );
 }

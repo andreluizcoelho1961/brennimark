@@ -31,6 +31,13 @@ body:has(.bm-site){overflow:hidden}
 .bm-site button{padding:1px 6px;letter-spacing:normal}
 .bm-site svg{display:inline;vertical-align:baseline}
 .bm-site dialog{margin:auto}
+.bm-site input{padding:1px 2px}
+/*
+ * O protótipo chamava `grow` o item empurrado para a direita numa barra, e
+ * `grow` também é utilitário do Tailwind (`flex-grow:1`) que a plataforma
+ * gera: os botões das maquetes esticavam. Renomeado para `a-direita`. A guarda
+ * em `e2e/site.spec.ts` acusa a próxima colisão de nome.
+ */
 
 .bm-site{
   color-scheme:dark;
@@ -406,7 +413,7 @@ body:has(.bm-site.on-page){overflow:auto}
 /* maquetes das páginas (tela clara do aplicativo) */
 .bm-site .mk{background:var(--app-bg);color:var(--app-ink);border-radius:4px;overflow:hidden;font-size:11px}
 .bm-site .mk-bar{display:flex;align-items:center;gap:12px;padding:9px 12px;background:var(--app-paper);border-bottom:1px solid var(--app-line)}
-.bm-site .mk-bar .grow{margin-left:auto}
+.bm-site .mk-bar .a-direita{margin-left:auto}
 .bm-site .mk-btn{padding:6px 11px;border-radius:4px;background:var(--app-ink);color:var(--app-paper);font-size:10.5px;font-weight:500;white-space:nowrap}
 .bm-site .mk-btn--line{background:transparent;color:var(--app-ink);border:1px solid var(--app-line)}
 .bm-site .mk-body{padding:14px}
@@ -791,3 +798,11 @@ body:has(.bm-site.mnav-open){overflow:hidden}
  * e sem largura própria encolhia a zero. No protótipo a largura vinha da foto.
  */
 @media (max-width:767px){.bm-site .hero-photo{align-self:stretch}}
+/*
+ * No computador o cabeçalho é fixo e flutua sobre a página, que reserva a
+ * altura dele no topo (`.page{padding-top}`). No celular o cabeçalho passa a
+ * ocupar o próprio lugar (sticky), e a reserva virava 72 px de vazio a mais
+ * antes do título. No protótipo isso ficava escondido porque abrir `#pg-…`
+ * rolava a página até o artigo.
+ */
+@media (max-width:767px){.bm-site .page{padding-top:0}}
