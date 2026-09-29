@@ -158,20 +158,25 @@ export function TrilhoDaHome({ children }: { children: ReactNode }) {
     window.addEventListener("popstate", peloEndereco, { signal });
     window.addEventListener("resize", () => !celular.matches && (track.scrollLeft = cur * track.clientWidth), { signal });
 
-    let observador: IntersectionObserver | undefined;
-    if (celular.matches) {
-      observador = new IntersectionObserver(
-        (entradas) =>
-          entradas.forEach((en) => {
-            if (!en.isIntersecting) return;
-            const i = paineis.indexOf(en.target as HTMLElement);
-            marcar(i);
-            lembrar(i, false);
-          }),
-        { rootMargin: "-45% 0px -50% 0px" },
-      );
-      paineis.forEach((p) => observador!.observe(p));
-    }
+    // No celular o trilho é uma coluna: o capítulo é o que cruza o meio da tela.
+    // A largura é lida A CADA aviso, e não uma vez na montagem: quem abre numa
+    // janela estreita e depois a alarga (ou gira o tablet) ficava com o
+    // observador da coluna ligado sobre o trilho horizontal, e o capítulo
+    // mudava sozinho. O protótipo tinha o mesmo defeito.
+    const observador = new IntersectionObserver(
+      (entradas) =>
+        entradas.forEach((en) => {
+          if (!celular.matches || !en.isIntersecting) return;
+          const i = paineis.indexOf(en.target as HTMLElement);
+          marcar(i);
+          lembrar(i, false);
+        }),
+      { rootMargin: "-45% 0px -50% 0px" },
+    );
+    paineis.forEach((p) => observador.observe(p));
+
+    // Ao trocar de forma, o trilho volta ao capítulo em que a pessoa estava.
+    celular.addEventListener("change", () => pular(cur), { signal });
 
     // Chegada: o capítulo do endereço, ou o primeiro.
     const inicial = indice(location.hash.slice(1));
@@ -181,7 +186,7 @@ export function TrilhoDaHome({ children }: { children: ReactNode }) {
 
     return () => {
       fim.abort();
-      observador?.disconnect();
+      observador.disconnect();
       window.clearTimeout(assentar);
       irPara.current = () => {};
     };

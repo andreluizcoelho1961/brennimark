@@ -153,6 +153,24 @@ test("o vídeo do Vini só carrega quando o capítulo chega", async ({ page }) =
   await expect(video).toHaveAttribute("src", "/site/vini.webm");
 });
 
+test("abrir estreito e alargar a janela não muda o capítulo", async ({ page }) => {
+  // Defeito herdado do protótipo: o observador do celular ficava ligado depois
+  // que a janela virava de computador, e o trilho pulava de capítulo sozinho.
+  await page.setViewportSize({ width: 390, height: 844 });
+  await abrir(page, "/");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.mouse.move(700, 450);
+  await expect(page.locator("#chap-t")).toHaveText("Início");
+  // No celular o endereço registra o capítulo à vista (`#inicio`); o que não
+  // pode é ele pular para outro.
+  await expect(page).toHaveURL(/\/(#inicio)?$/);
+  await expect(page.locator("#inicio")).toHaveClass(/is-active/);
+  expect(await page.locator("#track").evaluate((t) => t.scrollLeft)).toBe(0);
+  // E continua andando normalmente.
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#chap-t")).toHaveText("O problema");
+});
+
 test.describe("movimento reduzido", () => {
   test("nada fica escondido à espera de animação", async ({ page }) => {
     // Antes de abrir: o script da moldura decide na primeira pintura.
