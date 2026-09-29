@@ -481,7 +481,6 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/components/admin/AdminPanel.tsx",
   "src/components/admin/VersionHistory.tsx",
   "src/components/assets/AssetLibrary.tsx",
-  "src/components/ai/AIRoutingPanel.tsx",
   "src/components/vini/RespostaDoVini.tsx",
   "src/components/vini/JanelaDoVini.tsx",
   "src/components/vini/PainelDaAnalise.tsx",
@@ -494,7 +493,6 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/page.tsx",
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/historico/page.tsx",
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/biblioteca/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/configuracoes/ia/page.tsx",
   "src/app/api/admin/content/route.ts",
   "src/app/api/ai/chat/route.ts",
   "src/lib/ai/errors.ts",
@@ -1447,42 +1445,25 @@ test("o portão vem antes do provedor, nas duas rotas", () => {
   }
 });
 
-test("as rotas de chave e roteamento exigem quem administra", () => {
-  // A RLS já recusa a escrita, mas recusa em silêncio: um update sem linhas
-  // afetadas parece sucesso, e a tela diria "salvo" sobre algo que não foi.
-  for (const arquivo of [
-    "src/app/api/ai/settings/route.ts",
-    "src/app/api/ai/settings/[id]/route.ts",
-    "src/app/api/ai/routing/route.ts",
-  ]) {
+test("nenhuma rota recebe, grava ou testa chave de IA de conta", () => {
+  // A IA é da plataforma desde 29/09/2026 (ADR-0008): as chaves moram na
+  // Vercel e as rotas no Console. As rotas `/api/ai/settings`, `/api/ai/routing`
+  // e `/api/ai/test-connection` saíram; esta guarda impede que uma tela de
+  // "conecte sua IA" volte por uma porta lateral.
+  const rotas = listarArquivos("src/app/api").filter((f) => /route\.tsx?$/.test(f));
+  for (const arquivo of rotas) {
     const codigo = lerCodigo(arquivo);
-    assert.match(codigo, /donoDaRota\(/, `${arquivo} aceita qualquer membro`);
     assert.doesNotMatch(
       codigo,
-      /await workspaceDaRota\(/,
-      `${arquivo} ainda resolve sem exigir papel`,
+      /from\(["'](ai_settings|ai_routing_policies)["']\)\s*\.(insert|update|upsert|delete)\(/,
+      `${arquivo} grava configuração de IA de conta`,
     );
+    assert.doesNotMatch(codigo, /encryptApiKey\(/, `${arquivo} cifra uma chave recebida do cliente`);
+  }
+  for (const removida of ["src/app/api/ai/settings", "src/app/api/ai/routing", "src/app/api/ai/test-connection"]) {
+    assert.ok(!rotas.some((f) => f.startsWith(removida)), `${removida} voltou`);
   }
 });
-
-test("o teste de conexão não é uma chamada paga lateral", () => {
-  const codigo = lerCodigo("src/app/api/ai/test-connection/route.ts");
-  const portao = codigo.indexOf("marcaDaRota(request)");
-  const papel = codigo.indexOf('contexto.papel !== "owner"');
-  const validacao = codigo.indexOf("validarConfiguracaoDoTeste(body)");
-  const orcamento = codigo.indexOf("testarConexaoComOrcamento({");
-  const provedor = codigo.indexOf("streamText({");
-
-  assert.ok(portao > 0, "o teste não resolve conta e marca no servidor");
-  assert.ok(papel > portao, "um member consegue testar uma chave paga");
-  assert.ok(validacao > papel, "a chave chega à validação antes do papel");
-  assert.ok(orcamento > validacao, "o teste não atravessa o contrato de orçamento");
-  assert.ok(provedor > orcamento, "o provedor é chamado antes de reservar orçamento");
-  assert.doesNotMatch(codigo, /generateText\(/, "voltou o caminho lateral sem liquidação");
-  assert.match(codigo, /maxOutputTokens/, "o teste não limita a resposta real");
-  assert.match(codigo, /maxRetries:\s*0/, "retry automático pode cobrar sem reserva própria");
-});
-
 test("a matriz de permissão não conhece Supabase nem rede", () => {
   // Ela autoriza gasto de IA e leitura de credencial. Uma regra dessas precisa
   // ser contável sem subir aplicação nenhuma.

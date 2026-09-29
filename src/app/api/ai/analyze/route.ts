@@ -181,13 +181,16 @@ export async function POST(request: Request) {
 
   const modelosComVisao = attempts.filter((attempt) => supportsVision(attempt.config));
   if (modelosComVisao.length === 0) {
-    const configuredModels = attempts.map((attempt) => attempt.config.model).join(", ");
+    // A IA é da plataforma (ADR-0008) e o Console só oferece modelo com visão
+    // para a análise: chegar aqui é problema da Brennimark, não do cliente —
+    // que não tem o que configurar, nem precisa saber quais modelos rodam.
+    console.warn("[ia] análise sem modelo com visão", { modelos: attempts.map((a) => a.config.model) });
     return NextResponse.json(
       {
         error: "model_no_vision",
         message: isEnglish
-          ? `The configured models (${configuredModels}) don't support image analysis. Configure at least one vision-capable model in Settings — Connect Your AI.`
-          : `Os modelos configurados (${configuredModels}) não suportam análise de imagens. Configure ao menos um modelo com visão em Configurações — Conecte sua IA.`,
+          ? "Artwork review is unavailable right now. If it keeps happening, contact Brennimark support."
+          : "A análise de peças está indisponível no momento. Se continuar, fale com o suporte da Brennimark.",
       },
       { status: 422 }
     );

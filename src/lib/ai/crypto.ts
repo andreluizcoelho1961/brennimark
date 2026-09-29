@@ -1,5 +1,13 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
+/*
+ * Sem chamador desde 29/09/2026: a IA é da plataforma (ADR-0008), e nenhuma
+ * rota recebe mais chave de conta. O módulo FICA porque `ai_settings` continua
+ * no banco com chaves cifradas por ele — é o que documenta o formato e o que
+ * leria esses dados se um dia fosse preciso. Pelo mesmo motivo,
+ * `AI_SETTINGS_ENCRYPTION_KEY` não deve ser apagada da Vercel.
+ */
+
 const ALGORITHM = "aes-256-gcm";
 const IV_LENGTH = 12;
 

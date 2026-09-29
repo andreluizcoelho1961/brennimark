@@ -42,14 +42,6 @@ const CATALOGO_DE_UTILIDADES: Record<
   chat: { href: "/docs/chat", pt: "Chat da marca", en: "Brand assistant" },
   analysis: { href: "/docs/analise", pt: "Análise de aplicações", en: "Application review" },
   history: { href: "/docs/historico", pt: "Histórico e calibração", en: "History & calibration" },
-  "ai-settings": {
-    href: "/docs/configuracoes/ia",
-    // Curto o bastante para caber na coluna. O rótulo anterior —
-    // "Configurações — Conecte sua IA" — era cortado no meio pela largura da
-    // barra, e um destino cujo nome não cabe é um destino que não se lê.
-    pt: "Provedores de IA",
-    en: "AI providers",
-  },
 };
 
 
@@ -150,7 +142,6 @@ export function shellSections({
       destinations: [
         { href: "/docs/importar", label: t("Importar manual", "Import a manual"), requires: "administrar", foraDaMarca: true },
         { href: "/docs/admin", label: t("Administração", "Administration"), requires: "administrar" },
-        ...porChave("ai-settings").map((d) => ({ ...d, requires: "administrar" as const })),
       ],
     },
   ];

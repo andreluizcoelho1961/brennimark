@@ -37,20 +37,12 @@ test("sem sessão não usa nada, nem o que a marca contratou", () => {
   );
 });
 
-test("member não governa configurações de IA", () => {
-  // Chave e roteamento são governo da conta: quem paga a fatura decide.
+test("ai-settings gravado numa marca antiga não abre nada", () => {
+  // A utilidade saiu em 29/09/2026 (ADR-0008). Uma marca importada antes pode
+  // ter o valor na lista: ele não habilita o chat nem nenhuma outra coisa.
   assert.deepEqual(
-    podeUsar({ utilidade: "ai-settings", capabilities: MEMBER, utilityLinks: ["ai-settings"] }),
-    { permitido: false, motivo: "sem-papel" },
-  );
-});
-
-test("owner governa configurações mesmo sem marca que use IA", () => {
-  // Amarrar as duas coisas criaria o ovo e a galinha: configurar a IA exigiria
-  // uma marca que já usa IA.
-  assert.deepEqual(
-    podeUsar({ utilidade: "ai-settings", capabilities: OWNER, utilityLinks: [] }),
-    { permitido: true },
+    podeUsar({ utilidade: "chat", capabilities: OWNER, utilityLinks: ["ai-settings"] }),
+    { permitido: false, motivo: "nao-contratada" },
   );
 });
 

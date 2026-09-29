@@ -37,9 +37,3 @@ test("as rotas passam a conta que o portão resolveu", () => {
   assert.match(analise, /workspaceId = portao\.auth\.workspaceId/);
   assert.match(analise, /resolveAnalysisRouting\(workspaceId\)/);
 });
-
-test("a tela de configuração continua com a sessão — só o dono lê e muda", () => {
-  const fonte = ler("lib/ai/settings.ts");
-  const listar = fonte.slice(fonte.indexOf("export async function listSettings"), fonte.indexOf("export async function listSettings") + 300);
-  assert.match(listar, /await createClient\(\)/);
-});

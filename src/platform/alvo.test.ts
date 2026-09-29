@@ -4,13 +4,13 @@ import { comAlvo } from "./alvo";
 
 test("os dois presentes viram w e b, como sempre", () => {
   assert.equal(
-    comAlvo("/api/ai/settings", { workspaceSlug: "agencia-norte", brandKey: "padaria" }),
-    "/api/ai/settings?w=agencia-norte&b=padaria",
+    comAlvo("/api/registros", { workspaceSlug: "agencia-norte", brandKey: "padaria" }),
+    "/api/registros?w=agencia-norte&b=padaria",
   );
 });
 
 test("nenhum dos dois presentes devolve a URL intocada", () => {
-  assert.equal(comAlvo("/api/ai/settings", {}), "/api/ai/settings");
+  assert.equal(comAlvo("/api/registros", {}), "/api/registros");
 });
 
 test("só a conta, sem marca, ainda anexa w", () => {
@@ -20,8 +20,8 @@ test("só a conta, sem marca, ainda anexa w", () => {
   // 409 workspace_ambiguo para quem tem duas. Nenhuma tela assim existe hoje;
   // o teste existe para que a primeira delas já nasça certa.
   assert.equal(
-    comAlvo("/api/ai/settings", { workspaceSlug: "agencia-norte" }),
-    "/api/ai/settings?w=agencia-norte",
+    comAlvo("/api/registros", { workspaceSlug: "agencia-norte" }),
+    "/api/registros?w=agencia-norte",
   );
 });
 

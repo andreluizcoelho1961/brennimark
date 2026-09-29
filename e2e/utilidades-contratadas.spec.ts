@@ -16,7 +16,10 @@ import { expect, test } from "@playwright/test";
 const SEM_UTILIDADES = "/dev/marcas?marca=sobria";
 const COM_UTILIDADES = "/dev/marcas?marca=festival";
 
-const UTILIDADES = ["chat", "analise", "historico", "configuracoes/ia"] as const;
+// "configuracoes/ia" (Provedores de IA) saiu em 29/09/2026: a IA é da
+// plataforma (ADR-0008). O laço do menu, acima, continua procurando
+// "configuracoes" — nenhuma marca pode voltar a mostrá-la.
+const UTILIDADES = ["chat", "analise", "historico"] as const;
 
 test("marca sem utilidades não mostra nenhuma na navegação", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });

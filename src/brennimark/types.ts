@@ -1,6 +1,12 @@
 import type { DocPageEntry, DocStatus } from "../content/docs";
 
-export type BrennimarkUtilityKey = "chat" | "analysis" | "history" | "ai-settings";
+/**
+ * As funcionalidades que uma marca pode oferecer. `ai-settings` (a tela
+ * "Provedores de IA") saiu em 29/09/2026 — a IA é da plataforma (ADR-0008).
+ * Marcas importadas antes ainda podem ter o valor gravado na lista; ele é
+ * ignorado, e o dado não é regravado.
+ */
+export type BrennimarkUtilityKey = "chat" | "analysis" | "history";
 
 export interface BrennimarkTheme {
   background: string;

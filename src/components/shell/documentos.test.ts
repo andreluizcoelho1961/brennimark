@@ -125,7 +125,7 @@ test("marca sem utilidades não ganha destino de utilidade", () => {
     utilityLinks: [],
   });
   const destinos = semNada.flatMap((s) => s.destinations.map((d) => d.href));
-  for (const rota of ["/docs/chat", "/docs/analise", "/docs/historico", "/docs/configuracoes/ia"]) {
+  for (const rota of ["/docs/chat", "/docs/analise", "/docs/historico"]) {
     assert.ok(!destinos.includes(rota), `${rota} apareceu com lista vazia`);
   }
   // Nenhuma seção fica vazia: cabeçalho sem nada embaixo é ruído.
@@ -157,47 +157,32 @@ test("o manual vem antes das ferramentas, e a conta por último", () => {
   const secoes = shellSections({
     capabilities: ["consultar", "editar", "aprovar", "administrar"],
     locale: "pt-BR",
-    utilityLinks: ["chat", "analysis", "history", "ai-settings"],
+    utilityLinks: ["chat", "analysis", "history"],
   });
   assert.deepEqual(secoes.map((s) => s.id), ["manual", "consultar", "library", "account"]);
 });
 
-test("provedores de IA ficam na conta, não na marca", () => {
-  // `ai_settings` é por workspace. Deixá-lo na hierarquia da marca sugeria que
-  // configurar IA fosse configurar AQUELA marca — e trocar de marca não troca
-  // de provedor nem de fatura.
+test("nenhum menu leva a configurar IA: a IA é da plataforma", () => {
+  // Até 29/09/2026 havia "Provedores de IA" na área de conta. A IA passou a
+  // ser da Brennimark (ADR-0008): nenhuma conta escolhe nem configura. Uma
+  // marca importada antes ainda pode ter `ai-settings` gravado na lista de
+  // utilidades — o valor é ignorado, e o menu não ressuscita a tela.
   const secoes = shellSections({
     capabilities: ["consultar", "editar", "aprovar", "administrar"],
     locale: "pt-BR",
-    utilityLinks: ["chat", "ai-settings"],
+    utilityLinks: ["chat", "ai-settings"] as unknown as ["chat"],
   });
-  const conta = secoes.find((s) => s.id === "account");
-  assert.ok(conta?.destinations.some((d) => d.href === "/docs/configuracoes/ia"));
-  const consultar = secoes.find((s) => s.id === "consultar");
-  assert.ok(!consultar?.destinations.some((d) => d.href === "/docs/configuracoes/ia"));
+  const destinos = secoes.flatMap((s) => s.destinations.map((d) => d.href));
+  assert.ok(!destinos.some((d) => d.includes("configuracoes/ia")), destinos.join(", "));
 });
 
 test("quem só consulta não vê a área de conta", () => {
-  // Importar, administrar e configurar IA exigem `administrar`. Sem ela a área
-  // inteira desaparece — não fica vazia nem com botão desabilitado.
+  // Importar e administrar exigem `administrar`. Sem ela a área inteira
+  // desaparece — não fica vazia nem com botão desabilitado.
   const secoes = shellSections({
     capabilities: ["consultar"],
     locale: "pt-BR",
-    utilityLinks: ["chat", "ai-settings"],
+    utilityLinks: ["chat"],
   });
   assert.ok(!secoes.some((s) => s.id === "account"));
-});
-
-test("o rótulo dos provedores de IA cabe na coluna", () => {
-  // O anterior — "Configurações — Conecte sua IA" — era cortado no meio pela
-  // largura da barra, e um destino cujo nome não se lê não é um destino.
-  const secoes = shellSections({
-    capabilities: ["consultar", "editar", "aprovar", "administrar"],
-    locale: "pt-BR",
-    utilityLinks: ["ai-settings"],
-  });
-  const rotulo = secoes
-    .flatMap((s) => s.destinations)
-    .find((d) => d.href === "/docs/configuracoes/ia")?.label;
-  assert.ok((rotulo?.length ?? 99) <= 20, `rótulo longo demais: ${rotulo}`);
 });
