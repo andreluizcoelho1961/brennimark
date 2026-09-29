@@ -1,0 +1,186 @@
+import { expect, test, type Page } from "@playwright/test";
+import { CAPITULOS_DA_HOME, PAGINAS_DO_SITE } from "../src/lib/site/paginas";
+
+/**
+ * O site público, remontado do protótipo (29/09/2026) — fatia 1: a home e a
+ * porta para a plataforma.
+ *
+ * A suíte roda com `BRENNIMARK_DEV_SKIP_AUTH`, que desliga o `proxy`: aqui não
+ * se prova quem passa sem sessão (isso é `caminhos-publicos.test.ts`), e sim o
+ * que o site faz no navegador.
+ *
+ * A fidelidade visual ao protótipo foi medida elemento a elemento na
+ * remontagem (616 caixas, em quatro larguras); estes testes guardam o
+ * comportamento, que é o que uma refatoração quebra sem ninguém ver.
+ */
+
+/**
+ * Abre uma página do site e espera o JavaScript DELE estar ligado.
+ *
+ * Não espera o evento `load`: ele aguarda cada imagem e cada pedaço de script
+ * de desenvolvimento, e com a suíte inteira em paralelo o servidor de
+ * desenvolvimento chegou a levar 33 s para entregar tudo (29/09/2026) — com as
+ * asserções todas verdes, o teste estourava o tempo só no `goto`. O que estes
+ * testes precisam é o comportamento ligado, e `data-site-vivo` diz exatamente
+ * isso.
+ */
+async function abrir(page: Page, url: string) {
+  const resposta = await page.goto(url, { waitUntil: "domcontentloaded" });
+  await expect(page.locator("html")).toHaveAttribute("data-site-vivo", "", { timeout: 25_000 });
+  return resposta;
+}
+
+async function semErros(page: Page) {
+  const erros: string[] = [];
+  page.on("pageerror", (e) => erros.push(e.message));
+  page.on("console", (m) => m.type() === "error" && erros.push(m.text()));
+  return erros;
+}
+
+test("a home abre no primeiro capítulo, com o título inteiro visível", async ({ page }) => {
+  const erros = await semErros(page);
+  await abrir(page, "/");
+  await expect(page).toHaveTitle("Brennimark · Plataforma de gestão de marca");
+  const titulo = page.getByRole("heading", { level: 1 });
+  await expect(titulo).toHaveText("Uma marca passa por muitas mãos. A ideia tem que passar por todas.");
+  // A animação termina com cada palavra no lugar; um título preso no ponto de
+  // partida é texto invisível para quem visita.
+  await expect(titulo).toHaveClass(/\bin\b/);
+  await expect(page.locator("#chap-n")).toHaveText("01 / 13");
+  await expect(page.locator("#chap-t")).toHaveText("Início");
+  expect(erros).toEqual([]);
+});
+
+test("as setas andam pelos capítulos e o endereço acompanha", async ({ page }) => {
+  await abrir(page, "/");
+  await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/#problema$/);
+  await expect(page.locator("#chap-t")).toHaveText("O problema");
+  await expect(page.locator("#problema")).toHaveClass(/is-active/);
+  const largura = await page.locator("#track").evaluate((t) => t.clientWidth);
+  await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(largura - 4);
+
+  await page.getByRole("button", { name: "Próximo capítulo" }).click();
+  await expect(page.locator("#chap-t")).toHaveText("O dia a dia");
+  await page.getByRole("button", { name: "Capítulo anterior" }).click();
+  await expect(page.locator("#chap-t")).toHaveText("O problema");
+});
+
+test("os pontos e os links de capítulo deslizam o trilho, sem recarregar", async ({ page }) => {
+  await abrir(page, "/");
+  const pontos = page.locator(".chapnav .dot");
+  await expect(pontos).toHaveCount(CAPITULOS_DA_HOME.length);
+
+  await pontos.nth(3).click();
+  await expect(page.locator("#chap-t")).toHaveText("A plataforma");
+
+  // "Planos" do cabeçalho aponta para /#planos; na home, o trilho desliza.
+  await page.evaluate(() => ((window as unknown as { __mesmaPagina: boolean }).__mesmaPagina = true));
+  await page.locator(".site-head .nav-link", { hasText: "Planos" }).click();
+  await expect(page).toHaveURL(/\/#planos$/);
+  await expect(page.locator("#chap-t")).toHaveText("Planos");
+  expect(await page.evaluate(() => (window as unknown as { __mesmaPagina?: boolean }).__mesmaPagina)).toBe(true);
+});
+
+test("abrir num capítulo pelo endereço cai nele", async ({ page }) => {
+  await abrir(page, "/#depoimentos");
+  await expect(page.locator("#chap-t")).toHaveText("Quem usa");
+  await expect(page.locator("#depoimentos")).toHaveClass(/is-active/);
+});
+
+test("o selo de demonstração sai de cena nos capítulos que já têm o chamado", async ({ page }) => {
+  await abrir(page, "/");
+  const selo = page.locator(".stamp-cta");
+  await expect(page.locator(".bm-site")).toHaveClass(/stamp-off-home/);
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(".bm-site")).not.toHaveClass(/stamp-off-home/);
+  await expect(selo).toBeVisible();
+});
+
+test("Entrar leva ao login; com sessão, a porta vira Abrir a plataforma", async ({ page, context }) => {
+  await abrir(page, "/vini");
+  const porta = page.locator(".site-head [data-porta]");
+  await expect(porta).toHaveText("Entrar");
+  await expect(porta).toHaveAttribute("href", "/login");
+
+  // O rótulo lê o cookie de sessão do Supabase; quem autoriza é o `proxy`.
+  await context.addCookies([{ name: "sb-127-auth-token", value: "base64-e30", url: page.url() }]);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await expect(porta).toHaveText("Abrir a plataforma");
+  await expect(porta).toHaveAttribute("href", "/docs");
+});
+
+test("o diálogo de demonstração abre no centro e fecha", async ({ page }) => {
+  await abrir(page, "/");
+  await page.locator(".site-head").getByRole("button", { name: /Agendar demonstração/ }).click();
+  const dialogo = page.getByRole("dialog", { name: "Vamos mostrar o Brennimark funcionando." });
+  await expect(dialogo).toBeVisible();
+  const caixa = await dialogo.boundingBox();
+  const tela = page.viewportSize()!;
+  expect(Math.abs(caixa!.x + caixa!.width / 2 - tela.width / 2)).toBeLessThan(2);
+  await dialogo.getByRole("button", { name: "Fechar" }).click();
+  await expect(dialogo).toBeHidden();
+});
+
+test("o menu Plataforma leva a uma página com endereço próprio", async ({ page }) => {
+  await abrir(page, "/");
+  await page.locator(".site-head").getByRole("button", { name: /Plataforma/ }).hover();
+  const menu = page.locator("#m-plat");
+  await expect(menu).toBeVisible();
+  await menu.getByRole("link", { name: /Vini Max/ }).click();
+  await expect(page).toHaveURL(/\/vini$/);
+  await expect(page).toHaveTitle("Vini Max · Brennimark");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Vini Max.");
+  await expect(page.getByText("Em montagem", { exact: true })).toBeVisible();
+});
+
+test("cada página do site responde, com o próprio título", async ({ page }) => {
+  // Dezesseis aberturas seguidas; sob a suíte inteira, cada uma pode levar segundos.
+  test.setTimeout(120_000);
+  for (const { slug, titulo } of PAGINAS_DO_SITE) {
+    const resposta = await abrir(page, `/${slug}`);
+    expect(resposta?.status(), `/${slug}`).toBe(200);
+    await expect(page).toHaveTitle(`${titulo} · Brennimark`);
+  }
+});
+
+test("o vídeo do Vini só carrega quando o capítulo chega", async ({ page }) => {
+  await abrir(page, "/");
+  const video = page.locator("#vini-video");
+  expect(await video.getAttribute("src")).toBeNull();
+  await page.locator(".chapnav .dot").nth(4).click();
+  // Chromium lê o WebM com transparência; o Safari receberia o HEVC.
+  await expect(video).toHaveAttribute("src", "/site/vini.webm");
+});
+
+test.describe("movimento reduzido", () => {
+  test("nada fica escondido à espera de animação", async ({ page }) => {
+    // Antes de abrir: o script da moldura decide na primeira pintura.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await abrir(page, "/");
+    await expect(page.locator("html")).not.toHaveAttribute("data-site-movimento", /.*/);
+    const palavra = page.locator(".hero h1 .w > span").first();
+    await expect(palavra).toHaveCSS("transform", "none");
+    // O vídeo fica no quadro de pôster.
+    await page.locator(".chapnav .dot").nth(4).click();
+    expect(await page.locator("#vini-video").getAttribute("src")).toBeNull();
+  });
+});
+
+test.describe("celular", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("a foto do topo ocupa a largura, e o menu abre e fecha", async ({ page }) => {
+    await abrir(page, "/");
+    const foto = page.locator(".hero-photo");
+    await expect.poll(async () => (await foto.boundingBox())?.width).toBe(390);
+
+    const alternador = page.getByRole("button", { name: "Menu" });
+    await alternador.click();
+    const menu = page.locator("#mnav");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("link", { name: "Entrar" })).toHaveAttribute("href", "/login");
+    await page.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+  });
+});
