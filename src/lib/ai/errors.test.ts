@@ -31,13 +31,16 @@ test("o detalhe técnico existe, e vem separado", () => {
 
 test("provedor ausente tem mensagem própria, e ela diz a quem pedir", () => {
   // "Erro desconhecido" mandaria a pessoa tentar de novo para sempre. O estado
-  // é do produto, não do provedor: falta configuração, e quem configura é quem
-  // administra a conta.
+  // é do produto, não do provedor. Desde 29/09/2026 a IA é da plataforma:
+  // nenhuma conta configura provedor, então quem resolve é o suporte da
+  // Brennimark — mandar o cliente "configurar" apontaria para uma tela que não
+  // é dele.
   const erro = new Error("nenhum provedor de IA configurado para esta conta");
   erro.name = "SemProvedorDeIA";
   const { code, message } = classifyAIError(erro);
   assert.equal(code, "no_provider");
-  assert.match(message, /administra|administers/i);
+  assert.match(message, /suporte da Brennimark|Brennimark support/i);
+  assert.doesNotMatch(message, /configur|conectar|administ/i);
   assert.doesNotMatch(message, /GROQ|env|API_KEY/i);
 });
 

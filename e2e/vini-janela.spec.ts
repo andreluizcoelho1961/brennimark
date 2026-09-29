@@ -130,13 +130,13 @@ test("a recusa do servidor aparece como ele a escreveu, com como tentar de novo"
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.route("**/api/ai/chat**", (rota) => rota.fulfill({
     status: 503, contentType: "application/json",
-    body: JSON.stringify({ message: "A IA desta conta ainda não está configurada." }),
+    body: JSON.stringify({ message: "O Vini está indisponível no momento. Se continuar, fale com o suporte da Brennimark." }),
   }));
   await page.goto(MARCA);
   await perguntar(page, "cores?");
 
   const erro = page.locator("[data-vini-erro]");
-  await expect(erro).toContainText("ainda não está configurada");
+  await expect(erro).toContainText("fale com o suporte da Brennimark");
   await expect(erro.getByRole("button", { name: "Tentar de novo" })).toBeVisible();
 });
 

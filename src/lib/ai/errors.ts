@@ -28,7 +28,7 @@ export type AIErrorCode =
  * política de fronteiras de erro que o Q1 estabeleceu.
  */
 /**
- * A resposta para "esta conta não tem IA configurada" — direta, sem exceção.
+ * A resposta para "não há rota de IA utilizável" — direta, sem exceção.
  *
  * Antes, este estado só era alcançado LANÇANDO um erro nomeado `SemProvedorDeIA`
  * de dentro de `getDemoConfig()`, que por sua vez só existia porque
@@ -44,9 +44,12 @@ export type AIErrorCode =
 export function semProvedorConfigurado(): { code: "no_provider"; message: string } {
   return {
     code: "no_provider",
+    // A IA é da plataforma (29/09/2026): nenhuma conta configura provedor, e
+    // mandar o cliente "conectar um provedor" apontaria para uma tela que não
+    // é dele. Sem rota utilizável é a Brennimark que resolve.
     message: isEnglish
-      ? "This account's AI isn't set up yet. Ask whoever administers the account to connect a provider."
-      : "A IA desta conta ainda não está configurada. Peça a quem administra a conta para conectar um provedor.",
+      ? "Vini is unavailable right now. If it keeps happening, contact Brennimark support."
+      : "O Vini está indisponível no momento. Se continuar, fale com o suporte da Brennimark.",
   };
 }
 
