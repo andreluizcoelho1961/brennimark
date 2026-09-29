@@ -75,6 +75,7 @@ export type MotivoDeRecusa =
   | "kill_switch_marca"
   | "sem_orcamento_configurado"
   | "orcamento_do_workspace_esgotado"
+  | "orcamento_mensal_esgotado"
   | "orcamento_da_marca_esgotado";
 
 /** O estado do LEDGER para esta execução — não confundir com o resultado da chamada. */
@@ -316,12 +317,27 @@ export function mensagemDeOrcamento(
   motivo: MotivoDeRecusa | "erro_de_consulta",
   ingles: boolean,
 ): string {
+  /*
+   * A IA é da PLATAFORMA (28/09/2026): o cliente não configura nada, então
+   * nenhuma mensagem manda "verificar as configurações". Quem resolve é a
+   * Brennimark.
+   */
   if (motivo === "kill_switch_workspace" || motivo === "kill_switch_marca") {
     return ingles
-      ? "AI usage for this account is currently paused. Ask whoever administers the account."
-      : "O uso de IA desta conta está pausado no momento. Peça a quem administra a conta.";
+      ? "The assistant is paused for this account. Contact Brennimark support."
+      : "O Vini está pausado nesta conta. Fale com o suporte da Brennimark.";
+  }
+  if (motivo === "orcamento_do_workspace_esgotado" || motivo === "orcamento_da_marca_esgotado") {
+    return ingles
+      ? "This account reached today's assistant limit. It resets tomorrow; to raise it, contact Brennimark support."
+      : "Esta conta chegou ao limite de uso do Vini por hoje. Ele volta amanhã; para ampliar, fale com o suporte da Brennimark.";
+  }
+  if (motivo === "orcamento_mensal_esgotado") {
+    return ingles
+      ? "This account reached this month's assistant limit. To raise it, contact Brennimark support."
+      : "Esta conta chegou ao limite de uso do Vini neste mês. Para ampliar, fale com o suporte da Brennimark.";
   }
   return ingles
-    ? "This account's AI usage isn't configured or doesn't have demonstration budget available. Ask whoever administers the account to check the settings."
-    : "A IA desta conta ainda não está configurada ou não possui saldo de demonstração disponível. Peça a quem administra a conta para verificar as configurações.";
+    ? "The assistant isn't available for this account right now. Contact Brennimark support."
+    : "O Vini não está disponível para esta conta agora. Fale com o suporte da Brennimark.";
 }

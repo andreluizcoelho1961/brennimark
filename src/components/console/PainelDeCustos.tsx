@@ -123,8 +123,8 @@ export function PainelDeCustos() {
           )}
 
           <section aria-label="Limites de hoje">
-            <h2 className="font-display text-sm font-black uppercase tracking-wider text-platform-text">Limites de hoje</h2>
-            <p className="mt-1 text-xs text-platform-text-muted">O teto diário de IA de cada conta e quanto já foi usado hoje (dia em UTC, a mesma conta que o portão faz).</p>
+            <h2 className="font-display text-sm font-black uppercase tracking-wider text-platform-text">Limites</h2>
+            <p className="mt-1 text-xs text-platform-text-muted">O teto de IA de cada conta, por dia e por mês, e quanto já foi usado no período (em UTC, a mesma conta que o portão faz).</p>
             {alertas.length > 0 && (
               <p data-alerta-de-limite role="status" className="mt-3 text-sm font-bold text-platform-text">
                 {alertas.length === 1 ? "1 conta pede atenção" : `${alertas.length} contas pedem atenção`}: {alertas.map((l) => l.marca ? `${l.conta} · ${l.marca}` : l.conta).join(", ")}.
@@ -133,7 +133,7 @@ export function PainelDeCustos() {
             <div className="mt-3 overflow-x-auto">
               <table data-tabela-limites className="w-full min-w-[40rem] text-left text-sm">
                 <thead><tr className="border-b border-platform-border text-[11px] uppercase tracking-wider text-platform-text-muted">
-                  <th className={TH}>Conta</th><th className={TH}>Limite</th><th className={TH}>Usado hoje</th><th className={TH}>Situação</th>
+                  <th className={TH}>Conta</th><th className={TH}>Limite</th><th className={TH}>Usado no período</th><th className={TH}>Situação</th>
                 </tr></thead>
                 <tbody>
                   {dados.limites.map((l) => {
@@ -141,7 +141,7 @@ export function PainelDeCustos() {
                     return (
                       <tr key={`${l.workspace_id}-${l.brand_id ?? "conta"}-${l.period}`} data-limite={uso.estado} className="border-b border-platform-border">
                         <td className="py-2 pr-4 text-platform-text">{l.conta}{l.marca ? ` · ${l.marca}` : ""}</td>
-                        <td className="py-2 pr-4 font-mono text-xs">{dinheiro(l.limit_micros, l.currency)} / {l.period === "daily" ? "dia" : l.period}</td>
+                        <td className="py-2 pr-4 font-mono text-xs">{dinheiro(l.limit_micros, l.currency)} / {l.period === "daily" ? "dia" : l.period === "monthly" ? "mês" : l.period}</td>
                         <td className="py-2 pr-4 font-mono text-xs">{dinheiro(l.gasto_hoje_micros, l.currency)} · {uso.pct}%</td>
                         <td className="py-2 pr-4 text-platform-text">{uso.estado === "desligado" ? "IA desligada" : uso.estado === "esgotado" ? "Esgotado" : uso.estado === "alerta" ? "Perto do limite" : "Normal"}</td>
                       </tr>
