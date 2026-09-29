@@ -72,12 +72,10 @@ const PENDENTES_ESPERADAS: string[] = [
    * inteiro para receber um erro conhecido antes do primeiro byte.
    */
   "bucket_alinhado_ao_plano_gratuito",
-  /**
-   * A IA da plataforma, etapa 2 do Console (29/09/2026): rotas e parâmetros da
-   * plataforma, limites padrão e mensal, registro da equipe, e o cliente sem
-   * escrita no próprio limite. Aguarda autorização nominal do André.
-   */
-  "ia_da_plataforma",
+  // `ia_da_plataforma` saiu daqui em 29/09/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20260929124331`; impressão
+  // digital igual à do local (funções, constraints, política, gatilho, rotas
+  // e parâmetros; as tabelas privadas sem permissão para anon/authenticated).
   // `console_custo_incerto` saiu daqui em 28/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260928221302`;
   // impressão digital igual à do local (definição, SECURITY DEFINER,
