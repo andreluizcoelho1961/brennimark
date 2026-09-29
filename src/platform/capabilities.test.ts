@@ -65,9 +65,9 @@ const OWNER = capabilitiesForRole("owner");
  * As utilidades, onde quer que a navegação as ponha.
  *
  * Elas viviam numa seção só, "Inteligência". A reorganização as distribuiu por
- * área de uso — chat e análise em "Consultar", histórico em "Acervo",
- * provedores de IA em "Conta", porque `ai_settings` é do workspace e não da
- * marca.
+ * área de uso — chat e análise em "Consultar", histórico em "Acervo". Os
+ * "Provedores de IA", que ficavam em "Conta", saíram em 29/09/2026: a IA é da
+ * plataforma (ADR-0008).
  *
  * O que estes testes garantem nunca foi "existe uma seção chamada X": é que a
  * marca mostra o que declarou, não mostra o que não declarou, e que uma
@@ -78,7 +78,6 @@ const CATALOGO = [
   "/docs/chat",
   "/docs/analise",
   "/docs/historico",
-  "/docs/configuracoes/ia",
 ];
 
 function utilidadesVisiveis(secoes: ReturnType<typeof shellSections>) {
@@ -104,18 +103,17 @@ test("a marca sem utilidades e a marca omissa dão no mesmo", () => {
   assert.deepEqual(utilidadesVisiveis(omissa), []);
 });
 
-test("a marca completa mostra as quatro funcionalidades", () => {
+test("a marca completa mostra as três funcionalidades", () => {
   const secoes = shellSections({
     capabilities: OWNER,
     locale: "pt-BR",
-    utilityLinks: ["chat", "analysis", "history", "ai-settings"],
+    utilityLinks: ["chat", "analysis", "history"],
   });
-  // Todas as quatro aparecem. A ORDEM entre elas passou a ser da área de uso,
+  // Todas as três aparecem. A ORDEM entre elas passou a ser da área de uso,
   // não do catálogo, então o teste compara conjunto e não sequência.
   assert.deepEqual(utilidadesVisiveis(secoes).sort(), [
     "/docs/analise",
     "/docs/chat",
-    "/docs/configuracoes/ia",
     "/docs/historico",
   ]);
 });

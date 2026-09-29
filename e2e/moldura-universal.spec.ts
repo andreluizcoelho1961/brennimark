@@ -560,10 +560,10 @@ test("cada marca mostra as funcionalidades que declarou, e só elas", async ({ p
   await expect(pergunta(janela)).toBeVisible();
   await expect(janela.getByRole("button", { name: "Anexar peça para análise" })).toBeVisible();
   await expect(janela.getByRole("link", { name: "Histórico" })).toBeVisible();
-  // Provedores de IA é configuração, não conversa: fica na coluna até
-  // Configurações existir.
+  // "Provedores de IA" ficava na coluna até 29/09/2026. A IA passou a ser da
+  // plataforma (ADR-0008): nenhuma marca, nem a que declara tudo, mostra a tela.
   const coluna = page.getByRole("navigation", { name: "Navegação principal" });
-  await expect(coluna.getByRole("link", { name: "Provedores de IA" })).toBeVisible();
+  await expect(coluna.getByRole("link", { name: "Provedores de IA" })).toHaveCount(0);
   // E nada de IA sobrou na coluna.
   await expect(coluna.getByRole("link", { name: "Chat da marca" })).toHaveCount(0);
   await expect(coluna.getByRole("link", { name: "Análise de aplicações" })).toHaveCount(0);

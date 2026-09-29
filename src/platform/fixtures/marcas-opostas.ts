@@ -118,7 +118,7 @@ export const MARCA_EXPRESSIVA = linha(
     accent: "#ff2d95", accentSecondary: "#00c2a8", border: "#5a2d82", focus: "#ffe66d",
   },
   { ready: "Documented", draft: "Under review", pending: "No guidance" },
-  ["chat", "analysis", "history", "ai-settings"], // Todas.
+  ["chat", "analysis", "history"], // Todas.
 );
 
 export const MARCAS_OPOSTAS = [

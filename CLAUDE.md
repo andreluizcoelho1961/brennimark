@@ -107,8 +107,11 @@ chave nunca vai ao banco nem a tela nenhuma; o Console mostra só se ela existe.
 por conta. **Manual de cliente real nunca passa por chave de plano gratuito.**
 
 `ai_settings` e `ai_routing_policies` (a era em que cada conta trazia a sua chave) ficam no banco,
-sem uso pelo Vini. Enquanto existirem: chaves cifradas em AES-256-GCM (`src/lib/ai/crypto.ts`), e
-nunca retornar `api_key_ciphertext` nem `api_key_iv` de uma rota — só `api_key_last4`.
+sem uso. A tela "Provedores de IA" e as rotas `/api/ai/settings`, `/api/ai/routing` e
+`/api/ai/test-connection` saíram em 29/09/2026; a guarda em `leak-guard.test.ts` impede rota que
+grave nessas tabelas. As chaves antigas seguem cifradas em AES-256-GCM (`src/lib/ai/crypto.ts`, sem
+chamador, mantido para ler esse dado): nunca retornar `api_key_ciphertext` nem `api_key_iv`, e não
+apagar `AI_SETTINGS_ENCRYPTION_KEY` da Vercel.
 
 Qualquer função `SECURITY DEFINER` nova precisa de `revoke execute` de `anon` e `authenticated`, e
 `search_path` vazio com nomes qualificados.

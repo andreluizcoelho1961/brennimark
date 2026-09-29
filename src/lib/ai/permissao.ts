@@ -13,7 +13,7 @@ import type { BrandCapability } from "../../platform/capabilities";
  * credencial, e precisa ser contável sem subir aplicação nenhuma.
  */
 
-export type Utilidade = "chat" | "analysis" | "history" | "ai-settings";
+export type Utilidade = "chat" | "analysis" | "history";
 
 export type Veredito =
   | { permitido: true }
@@ -42,13 +42,9 @@ export function marcaOferece(
  *
  *   chat, analysis   consultar, E a marca precisa ter contratado
  *   history          consultar, E contratada
- *   ai-settings      administrar. Chave e roteamento são governo da conta,
- *                    não uso — e a fatura é de quem administra.
  *
- * `ai-settings` NÃO depende de `utilityLinks`: quem administra configura a
- * conta mesmo que nenhuma marca dela ofereça assistente ainda. Amarrar as duas
- * coisas criaria o ovo e a galinha — configurar a IA exigiria uma marca que já
- * usa IA.
+ * `ai-settings` (configurar a IA da conta, só quem administrava) saiu em
+ * 29/09/2026: a IA é da plataforma e nenhuma conta a configura (ADR-0008).
  */
 export function podeUsar({
   utilidade,
@@ -59,12 +55,6 @@ export function podeUsar({
   capabilities: readonly BrandCapability[];
   utilityLinks: readonly string[] | undefined;
 }): Veredito {
-  if (utilidade === "ai-settings") {
-    return capabilities.includes("administrar")
-      ? { permitido: true }
-      : { permitido: false, motivo: "sem-papel" };
-  }
-
   // A ordem importa: "não contratada" é respondido antes de "sem papel".
   // O contrário revelaria, a quem não tem papel, quais funcionalidades a marca
   // contratou — pela diferença entre 403 e 404.

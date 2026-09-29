@@ -75,9 +75,11 @@ test("as funcionalidades são escolha explícita, e nenhuma vem marcada", async 
   await page.setInputFiles('input[type="file"]', PDF);
 
   // O PDF não decide o que a instalação contratou.
+  // Três: chat, análise e histórico. "Configurações de IA" saiu em 29/09/2026 —
+  // a IA é da plataforma (ADR-0008).
   const caixas = page.getByRole("checkbox");
-  await expect(caixas).toHaveCount(4);
-  for (let i = 0; i < 4; i += 1) await expect(caixas.nth(i)).not.toBeChecked();
+  await expect(caixas).toHaveCount(3);
+  for (let i = 0; i < 3; i += 1) await expect(caixas.nth(i)).not.toBeChecked();
 });
 
 test("o nome da marca vira chave, e ela aparece antes de publicar", async ({ page }) => {

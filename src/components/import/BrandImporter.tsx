@@ -31,7 +31,6 @@ const FUNCIONALIDADES: { chave: BrennimarkUtilityKey; pt: string; en: string }[]
   { chave: "chat", pt: "Chat da marca", en: "Brand assistant" },
   { chave: "analysis", pt: "Análise de aplicações", en: "Application review" },
   { chave: "history", pt: "Histórico e calibração", en: "History & calibration" },
-  { chave: "ai-settings", pt: "Configurações de IA", en: "AI settings" },
 ];
 
 /** Neutro de propósito: a paleta da marca é decisão de quem cura, não do PDF. */

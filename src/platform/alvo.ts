@@ -26,7 +26,7 @@
  * de comportamento, e nenhum defeito visível é consertado agora.
  *
  * O que ela impede: uma tela escopada só na CONTA (sem marca na URL)
- * chamando uma API de conta — `/api/ai/settings`, `/api/ai/routing` — sairia
+ * chamando uma API de conta (como eram `/api/ai/settings` e `/api/ai/routing`) sairia
  * sem `w` nenhum. `workspaceDaRota` (`contexto-da-rota.ts`) então cai no
  * palpite de "resolve se houver só uma conta", e devolve 409
  * `workspace_ambiguo` para quem tem duas. O defeito só aparece com dois

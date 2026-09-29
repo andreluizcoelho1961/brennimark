@@ -44,7 +44,7 @@ test("com as caixas desmarcadas, o payload leva utilityLinks vazio", async ({ pa
   const marcadas = await page
     .getByRole("checkbox")
     .evaluateAll((els) => els.map((e) => (e as HTMLInputElement).checked));
-  expect(marcadas, "alguma caixa nasceu marcada").toEqual([false, false, false, false]);
+  expect(marcadas, "alguma caixa nasceu marcada").toEqual([false, false, false]);
 
   await page.getByRole("button", { name: /Criar a marca/ }).click();
   await expect.poll(() => rpc.length, { timeout: 15_000 }).toBeGreaterThan(0);

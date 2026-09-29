@@ -101,9 +101,10 @@ export async function POST(request: Request) {
     // Só quem vê imagem lê uma tabela de amostras.
     const attempts = routing.attempts.filter((a) => modeloVePaginas(capacidadesDe(a.config.provider, a.config.model)));
     if (attempts.length === 0) {
+      // A IA é da plataforma (ADR-0008): não há o que o cliente configurar.
       return recusa(422, "model_no_vision", t(
-        "None of the configured AIs reads images. Configure one with vision in Settings.",
-        "Nenhuma das IAs configuradas lê imagem. Configure uma com visão nas Configurações.",
+        "Palette suggestion is unavailable right now. If it keeps happening, contact Brennimark support.",
+        "A sugestão de paleta está indisponível no momento. Se continuar, fale com o suporte da Brennimark.",
       ));
     }
 
