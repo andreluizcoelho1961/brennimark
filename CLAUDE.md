@@ -35,6 +35,8 @@ Os ADRs vigentes, em ordem:
   leitura; as páginas remontadas saem da navegação
 - [`docs/adr/0007`](./docs/adr/0007-biblioteca-de-assets-da-marca.md) — a biblioteca de assets da
   marca, a entrega governada por link com prazo, e a hospedagem de fonte
+- [`docs/adr/0008`](./docs/adr/0008-a-ia-e-da-plataforma.md) — a IA é da plataforma: nenhuma conta
+  escolhe ou configura IA; rotas no Console, chaves na Vercel
 
 `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRENNIMARK_MATRIX.md` são
 **históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
@@ -96,10 +98,17 @@ cliente dele.
 ## Camada de IA
 
 Nunca importar `@ai-sdk/*` direto de código de feature — sempre via `getModel()` em
-`src/lib/ai/provider.ts`. Resolução de configuração em `src/lib/ai/settings.ts`.
+`src/lib/ai/provider.ts`. Resolução da rota em `src/lib/ai/settings.ts`.
 
-Chaves cifradas em AES-256-GCM (`src/lib/ai/crypto.ts`). Nunca retornar `api_key_ciphertext` nem
-`api_key_iv` de uma rota — só `api_key_last4`.
+**A IA é da plataforma — mudou em 29/09/2026, ver ADR-0008.** Nenhuma conta escolhe ou configura
+IA. O Vini lê as rotas do Console (`rotas_de_ia_da_plataforma()`, só chave de serviço) e a chave de
+cada provedor da Vercel (`BRENNIMARK_CHAVE_<PROVEDOR>`, `src/lib/ai/chaves-da-plataforma.ts`). A
+chave nunca vai ao banco nem a tela nenhuma; o Console mostra só se ela existe. O orçamento continua
+por conta. **Manual de cliente real nunca passa por chave de plano gratuito.**
+
+`ai_settings` e `ai_routing_policies` (a era em que cada conta trazia a sua chave) ficam no banco,
+sem uso pelo Vini. Enquanto existirem: chaves cifradas em AES-256-GCM (`src/lib/ai/crypto.ts`), e
+nunca retornar `api_key_ciphertext` nem `api_key_iv` de uma rota — só `api_key_last4`.
 
 Qualquer função `SECURITY DEFINER` nova precisa de `revoke execute` de `anon` e `authenticated`, e
 `search_path` vazio com nomes qualificados.

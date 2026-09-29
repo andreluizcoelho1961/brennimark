@@ -1,8 +1,6 @@
 import { resolverWorkspaceAtivo } from "@/lib/brennimark/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { decryptApiKey } from "@/lib/ai/crypto";
 import {
   type AIProvider,
   type AIProviderConfig,
@@ -10,7 +8,7 @@ import {
   type AIRoutingPolicy,
   type AIRole,
 } from "@/lib/ai/provider";
-import { modeloAutorizado } from "@/lib/ai/catalogo";
+import { montarRotas, type LinhaDeRota } from "@/lib/ai/rotas-da-plataforma";
 
 export type StoredAISetting = {
   id: string;
@@ -118,70 +116,6 @@ export async function listRoutingPolicies(workspaceId: string): Promise<AIRoutin
   });
 }
 
-/** The workspace's active saved config for a role, decrypted — or null if none is set. */
-export async function getActiveConfig(
-  workspaceId: string,
-  role: "chat" | "analysis",
-  supabase: SupabaseClient,
-): Promise<AIProviderConfig | null> {
-  const { data, error } = await supabase
-    .from("ai_settings")
-    .select("provider, model, api_key_ciphertext, api_key_iv")
-    .eq("workspace_id", workspaceId)
-    .eq("is_active", true)
-    .in("role", [role, "both"])
-    // Este `limit(1)` NÃO decide workspace nem marca: o workspace já veio
-    // resolvido no parâmetro, e a ordenação por `updated_at` torna a escolha
-    // determinística — a configuração mais recente daquele papel. É o único
-    // limite de uma linha que sobreviveu ao M1, e sobreviveu por isso.
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) return null;
-
-  /*
-   * Revalida contra o catálogo NA HORA da chamada, não só ao salvar.
-   *
-   * `ai/settings/route.ts` já recusa gravar um par fora do catálogo — mas o
-   * catálogo pode mudar DEPOIS de uma configuração ter sido salva (um
-   * modelo descatalogado, por exemplo). Sem esta checagem aqui, uma
-   * configuração salva quando válida continuaria sendo usada mesmo depois
-   * de deixar de ser autorizada — o catálogo vira decoração na hora de
-   * salvar e nada mais.
-   */
-  if (!modeloAutorizado(data.provider, data.model)) return null;
-
-  return {
-    provider: data.provider as AIProvider,
-    model: data.model,
-    apiKey: decryptApiKey(data.api_key_ciphertext, data.api_key_iv),
-  };
-}
-
-/*
- * Aqui viviam três fallbacks implícitos: `getDemoConfig` (chave de ambiente
- * `GROQ_API_KEY`, sempre ausente em qualquer ambiente real deste projeto),
- * `getExplicitChatFallbackConfig` (três variáveis paralelas só para chat) e
- * `getSameProviderFallback` (trocava de modelo dentro do mesmo provedor sem
- * ninguém pedir).
- *
- * O briefing do piloto Qwen é explícito: "o fallback global por
- * GROQ_API_KEY deve ser removido ou explicitamente desabilitado" — e nenhum
- * fallback implícito pode consumir crédito de outro perfil ou workspace sem
- * ser uma escolha registrada.
- *
- * Removidos, não desabilitados: `GROQ_API_KEY` nunca esteve definida em
- * nenhum ambiente deste produto (confirmado por inspeção — ver
- * docs/plan/parecer-piloto-qwen-p0.md §1), então o caminho existia só para
- * lançar uma exceção que a camada de erro convertia em mensagem de produto.
- * Chegar à mensagem certa por acidente de uma variável ausente é o padrão
- * exato que este produto rejeita em todo outro lugar — falha por design, não
- * por acaso. Ver `resolveLegacyRouting` abaixo: sem config, `attempts` fica
- * vazio, e é o CHAMADOR que decide a mensagem — de propósito.
- */
-
 export type ResolvedChatAttempt = {
   config: AIProviderConfig;
   isDemo: boolean;
@@ -194,125 +128,39 @@ export type ResolvedAIRouting = {
   allowCrossProvider: boolean;
 };
 
-async function getSettingConfig(
-  workspaceId: string,
-  settingId: string | null,
-  feature: AIRoutingFeature,
-  supabase: SupabaseClient,
-): Promise<ResolvedChatAttempt | null> {
-  if (!settingId) return null;
-  const { data, error } = await supabase
-    .from("ai_settings")
-    .select("id, provider, model, role, api_key_ciphertext, api_key_iv, is_active")
-    .eq("workspace_id", workspaceId)
-    .eq("id", settingId)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data || !data.is_active || !roleCoversFeature(data.role as AIRole, feature)) return null;
-  // Mesma revalidação de getActiveConfig: o catálogo pode ter mudado desde
-  // que esta linha foi salva.
-  if (!modeloAutorizado(data.provider, data.model)) return null;
-
-  return {
-    settingId: data.id,
-    isDemo: false,
-    config: {
-      provider: data.provider as AIProvider,
-      model: data.model,
-      apiKey: decryptApiKey(data.api_key_ciphertext, data.api_key_iv),
-    },
-  };
-}
-
 /**
- * Sem `ai_routing_policies`, ou sem workspace: o único config possível é o
- * `ai_settings` ativo do workspace, se existir. `attempts` vazio é uma
- * resposta válida — "não há perfil configurado" — e não uma exceção. Quem
- * chama decide a mensagem: ver `conhecimentoIndisponivel`-e-equivalentes nas
- * rotas, que tratam `attempts.length === 0` como o estado esperado de uma
- * conta sem IA configurada, não como falha.
- */
-async function resolveLegacyRouting(
-  feature: AIRoutingFeature,
-  workspaceId: string | null,
-  supabase: SupabaseClient,
-): Promise<ResolvedAIRouting> {
-  const config = workspaceId ? await getActiveConfig(workspaceId, feature, supabase) : null;
-  const attempts = config ? [{ config, isDemo: false }] : [];
-
-  return {
-    attempts,
-    timeoutMs: DEFAULT_ROUTING_TIMEOUT_MS[feature],
-    allowCrossProvider: false,
-  };
-}
-
-/**
- * O perfil de IA que ATENDE um pedido — lido com a chave de serviço.
+ * A rota de IA que ATENDE um pedido — a da PLATAFORMA (29/09/2026).
  *
- * ⚖️ Quem pede é qualquer pessoa que alcança a marca (a rota já passou por
- * `portaoDeIA`, que confere a capacidade na marca). Quem pode LER e MUDAR a
- * configuração continua sendo só quem administra a conta (as policies de
- * `ai_settings` e `ai_routing_policies` não mudam, e a tela de configuração
- * usa a sessão da pessoa).
+ * Decisão do André (28/09): a IA é da Brennimark, nenhuma conta escolhe nem
+ * configura. Modelo, reservas e espera vêm do Console
+ * (`rotas_de_ia_da_plataforma()`, que só a chave de serviço executa); as
+ * chaves, da Vercel. Ver `rotas-da-plataforma.ts` e o ADR-0008.
  *
- * Até 19/09/2026 esta leitura usava a sessão de quem pedia. As policies só
- * deixam o DONO ler, e a primeira pessoa de consulta a usar o chat (ensaio de
- * 19/09) recebeu "a IA desta conta ainda não está configurada" numa conta
- * configurada. Abrir a tabela a todo membro exporia a chave cifrada pela API;
- * ler aqui, no servidor, deixa a chave onde ela sempre esteve.
+ * O `workspaceId` segue no contrato porque o que continua sendo POR CONTA é o
+ * orçamento: a reserva no razão (`reservar_execucao_de_ia_server`) confere o
+ * limite do dia e do mês daquela conta. A rota, não — é a mesma para todas.
  *
- * O `workspaceId` é o que o portão resolveu — nunca o que o cliente mandou.
+ * Até esta data, a rota lia `ai_routing_policies` e as chaves cifradas de
+ * `ai_settings` de cada conta. Essas tabelas ficam no banco, sem uso por aqui;
+ * a tela que as edita sai na parte 3.
  */
 export async function resolveFeatureRouting(
   feature: AIRoutingFeature,
   workspaceId: string,
 ): Promise<ResolvedAIRouting> {
   const supabase = createServiceClient();
-  const { data: policy, error } = await supabase
-    .from("ai_routing_policies")
-    .select("primary_setting_id, fallback_setting_id, first_chunk_timeout_ms, allow_cross_provider")
-    .eq("workspace_id", workspaceId)
-    .eq("feature", feature)
-    .maybeSingle();
-
+  const { data, error } = await supabase.rpc("rotas_de_ia_da_plataforma");
   if (error) throw error;
-  if (!policy) return resolveLegacyRouting(feature, workspaceId, supabase);
 
-  const [primary, fallback] = await Promise.all([
-    getSettingConfig(workspaceId, policy.primary_setting_id, feature, supabase),
-    getSettingConfig(workspaceId, policy.fallback_setting_id, feature, supabase),
-  ]);
-  const attempts = [primary, fallback].filter((attempt): attempt is ResolvedChatAttempt => Boolean(attempt));
-  const uniqueAttempts = attempts.filter(
-    (attempt, index) => index === 0 || attempt.settingId !== attempts[0]?.settingId
-  );
-
-  if (
-    uniqueAttempts.length > 1 &&
-    uniqueAttempts[0].config.provider !== uniqueAttempts[1].config.provider &&
-    !policy.allow_cross_provider
-  ) {
-    uniqueAttempts.splice(1);
+  const rotas = montarRotas((data ?? []) as LinhaDeRota[], feature);
+  if (rotas.descartadas.length) {
+    // Só provedor, modelo e motivo — nunca a chave. É o que a equipe precisa
+    // para saber por que o Vini pulou uma reserva.
+    console.warn("[ia] rotas descartadas", { tarefa: feature, conta: workspaceId, descartadas: rotas.descartadas });
   }
-
-  if (uniqueAttempts.length === 0) {
-    const demo = await resolveLegacyRouting(feature, null, supabase);
-    return { ...demo, timeoutMs: policy.first_chunk_timeout_ms };
-  }
-
-  return {
-    attempts: uniqueAttempts,
-    timeoutMs: policy.first_chunk_timeout_ms,
-    allowCrossProvider: policy.allow_cross_provider,
-  };
+  return { attempts: rotas.attempts, timeoutMs: rotas.timeoutMs, allowCrossProvider: rotas.allowCrossProvider };
 }
 
-/**
- * Cross-provider fallback is opt-in through dedicated server variables.
- * Without that consent, Groq may only switch models under the same key/provider.
- */
 export async function resolveChatRouting(workspaceId: string): Promise<ResolvedAIRouting> {
   return resolveFeatureRouting("chat", workspaceId);
 }
