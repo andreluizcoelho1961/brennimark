@@ -17,5 +17,23 @@ test("só o prefixo exato: nada vizinho de manutenção passa", () => {
   assert.equal(caminhoPublico("/api/admin/assets"), false);
   assert.equal(caminhoPublico("/api/assets/kit"), false);
   assert.equal(caminhoPublico("/w/conta/b/marca/docs"), false);
-  assert.equal(caminhoPublico("/"), false);
+});
+
+test("o site passa sem sessão: a home e cada página pública", () => {
+  assert.equal(caminhoPublico("/"), true);
+  assert.equal(caminhoPublico("/vini"), true);
+  assert.equal(caminhoPublico("/licenca-de-fontes"), true);
+});
+
+test("o site casa pelo caminho exato: a home não abre o produto", () => {
+  // `/` como prefixo casaria com TUDO. Estes são o produto, e pedem sessão.
+  assert.equal(caminhoPublico("/docs"), false);
+  assert.equal(caminhoPublico("/console"), false);
+  assert.equal(caminhoPublico("/api/console/ia"), false);
+  assert.equal(caminhoPublico("/w/conta"), false);
+  // Nem o que só começa como uma página do site.
+  assert.equal(caminhoPublico("/vini/"), false);
+  assert.equal(caminhoPublico("/vini/qualquer"), false);
+  assert.equal(caminhoPublico("/vinix"), false);
+  assert.equal(caminhoPublico("/manual-da-marca"), false);
 });

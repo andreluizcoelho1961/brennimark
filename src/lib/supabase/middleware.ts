@@ -1,4 +1,4 @@
-import { destinoDeRetorno } from "@/platform/destino-de-retorno";
+import { DESTINO_PADRAO, destinoDeRetorno } from "@/platform/destino-de-retorno";
 import { CAMINHO_DA_TROCA, desvioDaSenhaProvisoria } from "@/lib/acesso/senha-provisoria";
 import { caminhoPublico } from "@/lib/supabase/caminhos-publicos";
 import { createServerClient } from "@supabase/ssr";
@@ -64,9 +64,20 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
+  // A home é o site, para quem ainda não entrou. Quem já entrou vai direto ao
+  // produto, como era antes de o site existir — e todo link interno que aponta
+  // para "/" continua levando à plataforma.
+  if (user && request.nextUrl.pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = DESTINO_PADRAO;
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // Direto ao produto: "/" agora é o site, e mandar para lá seria um salto a mais.
   if (user && request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = DESTINO_PADRAO;
     url.search = "";
     return NextResponse.redirect(url);
   }
