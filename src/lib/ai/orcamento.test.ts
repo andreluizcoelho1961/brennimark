@@ -158,7 +158,7 @@ test("consolidar e liberar não lançam quando a RPC falha", async () => {
 
 test("a mensagem de orçamento é sempre de produto, nunca o código do motivo", () => {
   for (const motivo of [
-    "sem_orcamento_configurado", "orcamento_do_workspace_esgotado",
+    "sem_orcamento_configurado", "orcamento_do_workspace_esgotado", "orcamento_mensal_esgotado",
     "orcamento_da_marca_esgotado", "erro_de_consulta",
   ] as const) {
     const msg = mensagemDeOrcamento(motivo, false);
@@ -218,7 +218,24 @@ test("mensagem em inglês existe e é diferente da portuguesa", () => {
   const pt = mensagemDeOrcamento("sem_orcamento_configurado", false);
   const en = mensagemDeOrcamento("sem_orcamento_configurado", true);
   assert.notEqual(pt, en);
-  assert.match(en, /administer/i);
+  // A IA é da plataforma (28/09/2026): quem resolve é a Brennimark.
+  assert.match(en, /Brennimark support/i);
+});
+
+test("nenhuma mensagem manda o cliente configurar IA — a IA é da plataforma", () => {
+  for (const motivo of [
+    "kill_switch_workspace", "kill_switch_marca", "sem_orcamento_configurado", "orcamento_do_workspace_esgotado",
+    "orcamento_mensal_esgotado", "orcamento_da_marca_esgotado", "erro_de_consulta",
+  ] as const) {
+    for (const ingles of [false, true]) {
+      const msg = mensagemDeOrcamento(motivo, ingles);
+      assert.doesNotMatch(msg, /configura|settings|administ/i, `${motivo} (${ingles ? "en" : "pt"}): ${msg}`);
+      assert.match(msg, /Brennimark/, `${motivo} (${ingles ? "en" : "pt"}) não diz a quem recorrer`);
+    }
+  }
+  // O limite do mês é dito como do mês, não como do dia.
+  assert.match(mensagemDeOrcamento("orcamento_mensal_esgotado", false), /neste mês/);
+  assert.match(mensagemDeOrcamento("orcamento_do_workspace_esgotado", false), /por hoje/);
 });
 
 // ─── Contenção do item 7: o limiar tem piso ────────────────────────────────

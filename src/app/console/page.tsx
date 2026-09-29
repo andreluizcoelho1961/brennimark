@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { LocaleProvider } from "@/platform/locale-client";
 import { PainelDeCustos } from "@/components/console/PainelDeCustos";
+import { NavDoConsole } from "@/components/console/NavDoConsole";
 
 export const metadata = { title: "Console · Brennimark", robots: { index: false, follow: false } };
 
@@ -28,6 +29,7 @@ export default async function ConsolePage() {
             Quanto cada conta e cada marca consome: IA e armazenamento, por mês. Só a equipe da Brennimark vê esta
             tela, e ela só lê — nada aqui muda a conta de um cliente.
           </p>
+          <NavDoConsole atual="custos" />
           <div className="mt-8"><PainelDeCustos /></div>
         </div>
       </main>
