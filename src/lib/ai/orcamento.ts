@@ -71,6 +71,7 @@ export type SnapshotDeUso =
  */
 
 export type MotivoDeRecusa =
+  | "plataforma_pausada"
   | "kill_switch_workspace"
   | "kill_switch_marca"
   | "sem_orcamento_configurado"
@@ -322,6 +323,14 @@ export function mensagemDeOrcamento(
    * nenhuma mensagem manda "verificar as configurações". Quem resolve é a
    * Brennimark.
    */
+  // A trava geral do Console (30/09/2026): o Vini parado para TODAS as contas.
+  // Não é problema desta conta, e dizer "nesta conta" faria o cliente achar
+  // que foi punido.
+  if (motivo === "plataforma_pausada") {
+    return ingles
+      ? "Vini is under maintenance right now. It will be back shortly."
+      : "O Vini está em manutenção no momento. Volta em breve.";
+  }
   if (motivo === "kill_switch_workspace" || motivo === "kill_switch_marca") {
     return ingles
       ? "The assistant is paused for this account. Contact Brennimark support."
