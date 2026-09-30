@@ -57,6 +57,12 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  /**
+   * A operação do Console, etapa 3 (30/09/2026): a trava geral, o teto vazio
+   * só de marca, as pausas por conta e marca e a ficha da conta. Aguarda
+   * autorização nominal do André.
+   */
+  "operacao_do_console",
   // `kill_switch_excecao_registrada` saiu daqui em 10/09/2026: aplicada ao
   // banco hospedado por decisão do proprietário, carimbada `20260910215914`.
   // Medido depois: só o comentário mudou — corpo, grants, SECURITY DEFINER e

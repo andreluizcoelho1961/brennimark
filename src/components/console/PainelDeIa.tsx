@@ -224,7 +224,7 @@ function FormularioDePadrao({ parametros, aoSalvar }: { parametros: Dados["param
 }
 
 function LinhaDeLimiteEditavel({ limite, aoSalvar }: { limite: LinhaDeLimite; aoSalvar: () => void }) {
-  const [valor, setValor] = useState(String(limite.limit_micros / 1_000_000));
+  const [valor, setValor] = useState(String((limite.limit_micros ?? 0) / 1_000_000));
   const [motivo, setMotivo] = useState("");
   const [msg, setMsg] = useState("");
   const uso = usoDoLimite(limite);
@@ -241,7 +241,7 @@ function LinhaDeLimiteEditavel({ limite, aoSalvar }: { limite: LinhaDeLimite; ao
     <tr data-limite-da-conta={`${limite.workspace_id}-${limite.period}`} className="border-b border-platform-border align-top">
       <td className="py-2 pr-4 text-platform-text">{limite.conta}</td>
       <td className="py-2 pr-4">{limite.period === "monthly" ? "mês" : "dia"}</td>
-      <td className="py-2 pr-4 font-mono text-xs">{dinheiro(limite.gasto_hoje_micros)} de {dinheiro(limite.limit_micros)} · {uso.pct}%</td>
+      <td className="py-2 pr-4 font-mono text-xs">{dinheiro(limite.gasto_hoje_micros)} de {dinheiro(limite.limit_micros ?? 0)} · {uso.pct}%</td>
       <td className="py-2 pr-4">
         <form onSubmit={salvar} className="flex flex-wrap items-center gap-2">
           <input aria-label={`Novo limite de ${limite.conta} por ${limite.period === "monthly" ? "mês" : "dia"}`} value={valor} onChange={(e) => setValor(e.target.value)} className={`${CAMPO} w-24`} />

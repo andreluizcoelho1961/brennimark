@@ -141,9 +141,9 @@ export function PainelDeCustos() {
                     return (
                       <tr key={`${l.workspace_id}-${l.brand_id ?? "conta"}-${l.period}`} data-limite={uso.estado} className="border-b border-platform-border">
                         <td className="py-2 pr-4 text-platform-text">{l.conta}{l.marca ? ` · ${l.marca}` : ""}</td>
-                        <td className="py-2 pr-4 font-mono text-xs">{dinheiro(l.limit_micros, l.currency)} / {l.period === "daily" ? "dia" : l.period === "monthly" ? "mês" : l.period}</td>
-                        <td className="py-2 pr-4 font-mono text-xs">{dinheiro(l.gasto_hoje_micros, l.currency)} · {uso.pct}%</td>
-                        <td className="py-2 pr-4 text-platform-text">{uso.estado === "desligado" ? "IA desligada" : uso.estado === "esgotado" ? "Esgotado" : uso.estado === "alerta" ? "Perto do limite" : "Normal"}</td>
+                        <td className="py-2 pr-4 font-mono text-xs">{l.limit_micros === null ? "sem teto próprio" : `${dinheiro(l.limit_micros, l.currency)} / ${l.period === "daily" ? "dia" : l.period === "monthly" ? "mês" : l.period}`}</td>
+                        <td className="py-2 pr-4 font-mono text-xs">{dinheiro(l.gasto_hoje_micros, l.currency)}{l.limit_micros === null ? "" : ` · ${uso.pct}%`}</td>
+                        <td className="py-2 pr-4 text-platform-text">{uso.estado === "desligado" ? "Vini pausado" : uso.estado === "esgotado" ? "Esgotado" : uso.estado === "alerta" ? "Perto do limite" : "Normal"}</td>
                       </tr>
                     );
                   })}

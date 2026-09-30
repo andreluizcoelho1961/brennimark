@@ -159,7 +159,7 @@ test("consolidar e liberar não lançam quando a RPC falha", async () => {
 test("a mensagem de orçamento é sempre de produto, nunca o código do motivo", () => {
   for (const motivo of [
     "sem_orcamento_configurado", "orcamento_do_workspace_esgotado", "orcamento_mensal_esgotado",
-    "orcamento_da_marca_esgotado", "erro_de_consulta",
+    "orcamento_da_marca_esgotado", "erro_de_consulta", "plataforma_pausada",
   ] as const) {
     const msg = mensagemDeOrcamento(motivo, false);
     assert.ok(!msg.includes(motivo), `a mensagem repete o código técnico: ${motivo}`);
@@ -174,6 +174,15 @@ test("kill switch tem mensagem distinta de orçamento esgotado", () => {
   const esgotado = mensagemDeOrcamento("sem_orcamento_configurado", false);
   assert.notEqual(pausa, esgotado);
   assert.match(pausa, /pausad/i);
+});
+
+test("a trava geral fala de manutenção, não de punição da conta", () => {
+  // Pausa geral é da plataforma inteira: "pausado nesta conta" faria o
+  // cliente procurar o que ELE fez de errado.
+  const geral = mensagemDeOrcamento("plataforma_pausada", false);
+  assert.match(geral, /manutenção/);
+  assert.doesNotMatch(geral, /nesta conta|suporte/);
+  assert.notEqual(geral, mensagemDeOrcamento("kill_switch_workspace", false));
 });
 
 test("killSwitchAtivo traduz os dois escopos e chama a RPC certa", async () => {

@@ -64,4 +64,6 @@ test("o limite do dia: alerta a partir de 80%, esgotado em 100%, e desligado qua
   assert.deepEqual(usoDoLimite({ limit_micros: 1_000_000, gasto_hoje_micros: 800_000, kill_switch: false }), { pct: 80, estado: "alerta" });
   assert.deepEqual(usoDoLimite({ limit_micros: 1_000_000, gasto_hoje_micros: 1_100_000, kill_switch: false }), { pct: 110, estado: "esgotado" });
   assert.deepEqual(usoDoLimite({ limit_micros: 1_000_000, gasto_hoje_micros: 0, kill_switch: true }), { pct: 0, estado: "desligado" });
+  // Linha de marca sem teto próprio (só a trava): nunca "esgotada".
+  assert.deepEqual(usoDoLimite({ limit_micros: null, gasto_hoje_micros: 9_000_000, kill_switch: false }), { pct: 0, estado: "ok" });
 });

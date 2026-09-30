@@ -31,7 +31,8 @@ export type LinhaDeArmazenamento = {
 
 export type LinhaDeLimite = {
   workspace_id: string; conta: string; brand_id: string | null; marca: string | null;
-  period: string; limit_micros: number; currency: string; kill_switch: boolean; gasto_hoje_micros: number;
+  /** `null` só em linha de MARCA: existe para a trava, sem teto próprio (30/09/2026). */
+  period: string; limit_micros: number | null; currency: string; kill_switch: boolean; gasto_hoje_micros: number;
 };
 
 /** "2026-09" → o mês de Brasília em UTC: [início, fim). Mês torto vira o atual. */
@@ -125,6 +126,8 @@ export function milhares(n: number): string {
 /** Quanto do limite do dia já foi usado; "alerta" a partir de 80%. */
 export function usoDoLimite(l: Pick<LinhaDeLimite, "limit_micros" | "gasto_hoje_micros" | "kill_switch">): { pct: number; estado: "ok" | "alerta" | "esgotado" | "desligado" } {
   if (l.kill_switch) return { pct: 0, estado: "desligado" };
+  // Sem teto próprio (linha de marca que só existe para a trava): nada a esgotar.
+  if (l.limit_micros === null) return { pct: 0, estado: "ok" };
   const pct = l.limit_micros > 0 ? Math.round((l.gasto_hoje_micros / l.limit_micros) * 100) : 100;
   return { pct, estado: pct >= 100 ? "esgotado" : pct >= 80 ? "alerta" : "ok" };
 }

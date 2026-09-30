@@ -30,6 +30,21 @@ async function abrir(page: Page, url: string) {
   return resposta;
 }
 
+/**
+ * Aquece a home e uma página interna ANTES dos testes, com folga.
+ *
+ * No servidor de desenvolvimento a primeira visita compila a página. Com a
+ * suíte inteira em paralelo (e o Supabase local no Docker disputando
+ * processador), essa compilação a frio já levou 40 s (30/09/2026) — os quatro
+ * primeiros testes estouravam o tempo no `goto`, com todas as asserções
+ * verdes. Em produção a página é estática e não compila nada.
+ */
+test.beforeAll(async ({ request }) => {
+  test.setTimeout(180_000);
+  await request.get("/", { timeout: 170_000 });
+  await request.get("/vini", { timeout: 170_000 });
+});
+
 async function semErros(page: Page) {
   const erros: string[] = [];
   page.on("pageerror", (e) => erros.push(e.message));
