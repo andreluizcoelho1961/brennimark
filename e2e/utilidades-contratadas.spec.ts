@@ -29,8 +29,11 @@ test("marca sem utilidades não mostra nenhuma na navegação", async ({ page })
   const destinos = await page.evaluate(() =>
     [...document.querySelectorAll("[data-nav-destination]")].map((a) => a.getAttribute("href") ?? ""),
   );
+  // Configurações da CONTA (`/w/<conta>/configuracoes`, 30/09/2026) é da
+  // gestão, não da marca: é o único "configuracoes" que pode aparecer.
+  const daMarca = destinos.filter((d) => !/^\/w\/[^/]+\/configuracoes$/.test(d));
   for (const u of ["chat", "analise", "historico", "configuracoes"]) {
-    expect(destinos.some((d) => d.includes(u)), `${u} apareceu no menu`).toBe(false);
+    expect(daMarca.some((d) => d.includes(u)), `${u} apareceu no menu`).toBe(false);
   }
   // Desde 18/09 chat, análise e histórico são do Vini. Sem nenhum contratado,
   // o Vini não aparece — sem isto, o laço acima passaria no vazio, porque o
