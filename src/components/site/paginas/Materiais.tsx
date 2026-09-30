@@ -90,7 +90,7 @@ export function ConteudoMateriais() {
       <p className="do">✓ Logotipo com pelo menos 120 px ou 30 mm de largura.</p>
       <p className="dont">✕ Não distorcer a proporção nem rotacionar.</p>
       <p className="dont">✕ Não usar outras cores nem contorno.</p>
-      <cite>Manual, p. 23, 25 e 26</cite>
+      <cite>Manual, p. 9, 11 e 12</cite>
       </div>
       </div>
       </div>

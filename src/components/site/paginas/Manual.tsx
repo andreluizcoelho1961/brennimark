@@ -17,8 +17,8 @@ export function ConteudoManual() {
       <div className="frame"><div className="mk" role="img" aria-label="O manual aberto: miniaturas à esquerda, a página ao centro e o índice aberto"><div className="mk-bar"><div className="seg"><span className="on">Manual</span><span>Materiais</span><span>Complementos</span></div><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Índice ▾ · Buscar · Zoom ▾</span></div>
       <div className="viewer"><div className="thumbs"><i></i><i className="on"></i><i></i><i></i><i></i></div>
       <div className="vpage"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>BRENNIMARK · MANUAL DA MARCA</small><b>01</b><strong>Área de proteção</strong><i></i><i></i><i></i></div><div className="pdf-right"><div className="clear"><svg className="sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg></div></div></div>
-      <div className="toc"><small>ÍNDICE</small><p>00 Fundamentos</p><p className="on">01 Marca</p><p>02 Cores</p><p>03 Tipografia</p><p>04 Elementos gráficos</p><p>05 Fotografia</p><p>06 Vini Max</p></div></div></div>
-      <div className="app-folio"><span>23 / 64</span><span>Área de proteção</span><span>ajustado à largura</span></div></div></div>
+      <div className="toc"><small>ÍNDICE</small><p className="on">01 Marca</p><p>02 Cores</p><p>03 Tipografia</p><p>04 Elementos gráficos</p><p>05 Fotografia</p><p>06 Vini Max</p><p>07 Tom de voz</p></div></div></div>
+      <div className="app-folio"><span>9 / 33</span><span>Área de proteção</span><span>ajustado à largura</span></div></div></div>
       </div>
       </section>
 
@@ -37,9 +37,9 @@ export function ConteudoManual() {
       </div>
       <div className="frame"><div className="kit" role="img" aria-label="Publicação do manual em quatro etapas concluídas">
       <h4>Publicando: Manual da marca Brennimark.pdf</h4>
-      <div className="kit-row"><span className="ck">✓</span><b>PDF enviado</b><em>64 páginas</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>PDF enviado</b><em>33 páginas</em></div>
       <div className="kit-row"><span className="ck">✓</span><b>Texto das páginas lido</b><em>concluído</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Índice conferido por você</b><em>9 capítulos</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>Índice conferido por você</b><em>8 capítulos</em></div>
       <div className="kit-row"><span className="ck">✓</span><b>Publicado para a equipe</b><em>12 pessoas</em></div>
       <div className="prog"><i style={{ width: "100%" }}></i></div>
       <div className="kit-foot"><span>Pronto. O tempo de leitura varia com o tamanho do arquivo.</span><span className="mk-btn">Abrir o manual</span></div></div></div>
@@ -63,7 +63,7 @@ export function ConteudoManual() {
       <ul className="ticks"><li>Busca no texto de todas as páginas</li><li>Trecho com a palavra marcada</li><li>Clique e o manual abre na página</li></ul>
       </div>
       <div className="frame"><div className="mk" role="img" aria-label="Busca por laranja com três resultados e as páginas"><div className="mk-bar"><span className="sbox">⌕ Brasa</span><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>3 resultados</span></div>
-      <div className="mk-body res"><p><b>p. 29 · Paleta de cores primárias</b>…um laranja parecido não é o <mark>Brasa</mark>. #FF4103…</p><p><b>p. 29 · Paleta de cores primárias</b>O <mark>Brasa</mark> é muito saturado e provavelmente fica fora da gama CMYK…</p><p><b>p. 48 · Linguagem fotográfica</b>…a Noite Polar nas sombras, a <mark>Brasa</mark> num único ponto.</p></div></div></div>
+      <div className="mk-body res"><p><b>p. 13 · Paleta de cores primárias</b>…um laranja parecido não é o <mark>Brasa</mark>. #FF4103…</p><p><b>p. 13 · Paleta de cores primárias</b>O <mark>Brasa</mark> é muito saturado e provavelmente fica fora da gama CMYK…</p><p><b>p. 24 · Linguagem fotográfica</b>…a Noite Polar nas sombras, a <mark>Brasa</mark> num único ponto.</p></div></div></div>
       </div>
       </div>
       </section>
