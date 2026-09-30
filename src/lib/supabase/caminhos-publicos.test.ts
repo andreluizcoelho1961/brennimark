@@ -37,3 +37,20 @@ test("o site casa pelo caminho exato: a home não abre o produto", () => {
   assert.equal(caminhoPublico("/vinix"), false);
   assert.equal(caminhoPublico("/manual-da-marca"), false);
 });
+
+test("o link de entrega passa sem sessão — a página e o download; a autorização é o código", () => {
+  assert.equal(caminhoPublico("/receber/abc"), true);
+  assert.equal(caminhoPublico("/api/receber/abc/baixar"), true);
+});
+
+test("só o prefixo exato do link público: a gestão dos links pede sessão", () => {
+  assert.equal(caminhoPublico("/receber"), false);
+  assert.equal(caminhoPublico("/receberx/abc"), false);
+  assert.equal(caminhoPublico("/api/receber"), false);
+  assert.equal(caminhoPublico("/api/links"), false);
+  assert.equal(caminhoPublico("/api/links/x/revogar"), false);
+  assert.equal(caminhoPublico("/w/conta/links"), false);
+  // `/entrega` é a página do SITE que apresenta o recurso — casa exato, e só ela.
+  assert.equal(caminhoPublico("/entrega"), true);
+  assert.equal(caminhoPublico("/entrega/abc"), false);
+});

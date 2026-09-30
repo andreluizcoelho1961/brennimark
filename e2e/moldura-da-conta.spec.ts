@@ -76,7 +76,7 @@ test("a coluna abre pelo teclado", async ({ page }) => {
   await expect(coluna).toHaveAttribute("data-expandida", "nao");
 });
 
-test("quem administra vê a gestão; o que não existe está 'em breve' e não é link", async ({ page }) => {
+test("quem administra vê a gestão inteira, cada item com o seu link", async ({ page }) => {
   await page.setViewportSize(desktop);
   await page.goto("/dev/moldura");
   const coluna = page.locator("[data-coluna-da-plataforma]");
@@ -84,11 +84,9 @@ test("quem administra vê a gestão; o que não existe está 'em breve' e não �
   await expect(coluna.locator('[data-item-da-coluna="pessoas"]')).toHaveAttribute("href", "/w/dev/pessoas");
   await expect(coluna.locator('[data-item-da-coluna="registros"]')).toHaveAttribute("href", "/w/dev/registros");
   await expect(coluna.locator('[data-item-da-coluna="configuracoes"]')).toHaveAttribute("href", "/w/dev/configuracoes");
-  for (const id of ["links"]) {
-    const item = coluna.locator(`[data-item-em-breve="${id}"]`);
-    await expect(item).toHaveAttribute("aria-disabled", "true");
-    await expect(item).not.toHaveAttribute("href", /.*/);
-  }
+  await expect(coluna.locator('[data-item-da-coluna="links"]')).toHaveAttribute("href", "/w/dev/links");
+  // Desde 30/09/2026 nada da gestão está "em breve".
+  await expect(coluna.locator("[data-item-em-breve]")).toHaveCount(0);
 });
 
 test("quem só consulta não vê a gestão nem o cartão de nova marca", async ({ page }) => {

@@ -19,5 +19,10 @@ export default async function PaginaDeUmItem({
   // O acesso à marca é conferido pelo layout; aqui só se decide o que aparece.
   const contexto = await resolveWorkspaceContext(alvo);
   const edita = contexto.access === "ready" && contexto.capabilities.includes("editar");
-  return <PaginaDoItem itemId={alvo.item} podeEditar={edita} />;
+  // O atalho para criar link de entrega: a tela de links é da gestão da conta.
+  const administraAConta = contexto.access === "ready"
+    && contexto.capabilities.includes("administrar")
+    && contexto.opcoes.find((w) => w.slug === alvo.workspaceSlug)?.papel === "owner";
+  const linkDeEntrega = administraAConta ? `/w/${alvo.workspaceSlug}/links?marca=${encodeURIComponent(alvo.brandKey)}` : undefined;
+  return <PaginaDoItem itemId={alvo.item} podeEditar={edita} linkDeEntrega={linkDeEntrega} />;
 }

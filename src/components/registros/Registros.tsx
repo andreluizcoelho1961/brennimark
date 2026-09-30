@@ -217,6 +217,11 @@ export function Registros({ marcas }: { marcas: Marca[] }) {
                             <td className="py-2 pr-4 text-platform-text">
                               {l.oque}
                               <span className="ml-2 font-mono text-xs text-platform-text-muted">{l.arquivo}</span>
+                              {l.tipo === "link" && (
+                                <span data-via-link className="block text-xs text-platform-text-muted">
+                                  {t(`By delivery link "${l.via}" · name and email typed by the person, not verified`, `Por link de entrega "${l.via}" · nome e e-mail digitados pela pessoa, sem verificação`)}
+                                </span>
+                              )}
                             </td>
                           </>}
                           {consulta.aba === "acessos" && "autor" in l && "antes" in l && <>

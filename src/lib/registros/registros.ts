@@ -80,7 +80,10 @@ export function intervalo(f: Pick<Filtros, "de" | "ate" | "antes">): { desde: st
 
 export type LinhaDeDownload = {
   id: string;
-  tipo: "material" | "manual";
+  /** `link`: baixado por link de entrega (30/09/2026) — quem baixou se identificou sem conta. */
+  tipo: "material" | "manual" | "link";
+  /** Só em `link`: o nome do link por onde o arquivo saiu. */
+  via?: string;
   marca: string;
   pessoa: string;
   /** O que foi baixado, como estava rotulado na hora. */
