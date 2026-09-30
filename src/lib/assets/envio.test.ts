@@ -45,3 +45,28 @@ test("o tamanho total vem do Content-Range", () => {
   assert.equal(tamanhoDoContentRange(null), null);
   assert.equal(tamanhoDoContentRange("bytes 0-511/*"), null);
 });
+
+test("registro duplicado não apaga o arquivo de quem registrou primeiro", async () => {
+  // Achado da revisão de 30/09/2026: dois pedidos simultâneos, um registra e o
+  // outro recebe 23505 — e o segundo apagava o arquivo do primeiro.
+  const { caminhosADescartar } = await import("./envio");
+  assert.deepEqual(caminhosADescartar("23505", "marca/arquivo.svg", null), []);
+  assert.deepEqual(caminhosADescartar("23505", "marca/arquivo.svg", "marca/miniatura.png"), ["marca/miniatura.png"]);
+});
+
+test("qualquer outra recusa do registro descarta o arquivo, que ficou sem dono", async () => {
+  const { caminhosADescartar } = await import("./envio");
+  assert.deepEqual(caminhosADescartar("23514", "marca/arquivo.svg", "marca/miniatura.png"), ["marca/arquivo.svg", "marca/miniatura.png"]);
+  assert.deepEqual(caminhosADescartar(undefined, "marca/arquivo.svg", null), ["marca/arquivo.svg"]);
+});
+
+test("a rota de envio decide o descarte antes de apagar, quando o registro falha", async () => {
+  // A guarda do código-fonte: a função acima só protege se a rota a usar. Sem
+  // banco nem Storage na suíte de unidade, confere-se a ordem no texto.
+  const { readFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const fonte = readFileSync(join(process.cwd(), "src/app/api/admin/assets/route.ts"), "utf8");
+  const bloco = fonte.slice(fonte.indexOf("if (error) {"), fonte.indexOf('if (error.code === "23505")'));
+  assert.ok(bloco.indexOf("caminhosADescartar(") >= 0, "o bloco de falha do registro não usa caminhosADescartar");
+  assert.doesNotMatch(bloco, /apagar\(miniaturaPath \? \[path, miniaturaPath\] : \[path\]\)/, "voltou a apagar o arquivo antes de olhar o motivo");
+});

@@ -20,6 +20,7 @@ export type ArquivoDoKit = { id: string; storagePath: string; fileName: string; 
 export type ResultadoDoKit =
   | { tipo: "emitir"; nome: string; arquivos: { url: string; caminho: string }[] }
   | { tipo: "vazio" }
+  | { tipo: "grande-demais"; total: number; maximo: number }
   | { tipo: "nao-encontrado" }
   | { tipo: "falha"; etapa: "busca" | "assinatura" | "registro" };
 
@@ -34,8 +35,12 @@ export async function liberarKit(deps: {
   if (!busca.ok) return { tipo: "falha", etapa: "busca" };
   if (!busca.item) return { tipo: "nao-encontrado" };
 
-  const servidos = busca.arquivos.filter((a) => deps.pertenceAMarca(a.storagePath)).slice(0, MAXIMO_DO_KIT);
+  const servidos = busca.arquivos.filter((a) => deps.pertenceAMarca(a.storagePath));
   if (servidos.length === 0) return { tipo: "vazio" };
+  // Acima do máximo, RECUSA — nunca entrega os primeiros 60 como se fossem o
+  // kit (achado da revisão de 30/09/2026: o ZIP vinha com 60 de 61, sem aviso).
+  // Mesma regra da assinatura parcial abaixo: kit com buraco parece completo.
+  if (servidos.length > MAXIMO_DO_KIT) return { tipo: "grande-demais", total: servidos.length, maximo: MAXIMO_DO_KIT };
 
   const enderecos = await deps.assinar(servidos.map((a) => a.storagePath));
   // Assinatura parcial é falha inteira: um kit com buraco pareceria completo.

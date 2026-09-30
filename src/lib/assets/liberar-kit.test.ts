@@ -60,3 +60,28 @@ test("item de outra marca, item vazio e busca que falha", async () => {
   assert.deepEqual(await liberarKit(deps({ buscar: async () => ({ ok: true as const, item: { nome: "L" }, arquivos: [] }) }).d), { tipo: "vazio" });
   assert.deepEqual(await liberarKit(deps({ buscar: async () => ({ ok: false as const }) }).d), { tipo: "falha", etapa: "busca" });
 });
+
+test("kit acima do máximo é recusado com o total — nada é assinado nem registrado", async () => {
+  // Achado da revisão de 30/09/2026: 61 arquivos viravam um ZIP de 60, sem
+  // aviso. Kit incompleto que parece completo é o defeito que a assinatura
+  // parcial já recusava.
+  const muitos = Array.from({ length: 61 }, (_, i) => arq(`f${i}`));
+  const { d, chamadas } = deps({ buscar: async () => ({ ok: true as const, item: { nome: "Fotos" }, arquivos: muitos }) });
+  assert.deepEqual(await liberarKit(d), { tipo: "grande-demais", total: 61, maximo: 60 });
+  assert.deepEqual(chamadas, []);
+});
+
+test("exatamente o máximo ainda sai inteiro", async () => {
+  const sessenta = Array.from({ length: 60 }, (_, i) => arq(`f${i}`));
+  const { d } = deps({ buscar: async () => ({ ok: true as const, item: { nome: "Fotos" }, arquivos: sessenta }) });
+  const r = await liberarKit(d);
+  assert.equal(r.tipo === "emitir" && r.arquivos.length, 60);
+});
+
+test("o máximo conta só o que pertence à marca", async () => {
+  // Arquivo com caminho fora da marca não entra — e não conta para recusar o kit.
+  const arquivos = [...Array.from({ length: 60 }, (_, i) => arq(`f${i}`)), arq("intruso", "outra/marca/x.svg")];
+  const { d } = deps({ buscar: async () => ({ ok: true as const, item: { nome: "Fotos" }, arquivos }) });
+  const r = await liberarKit(d);
+  assert.equal(r.tipo === "emitir" && r.arquivos.length, 60);
+});
