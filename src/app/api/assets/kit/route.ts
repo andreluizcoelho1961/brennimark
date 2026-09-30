@@ -3,6 +3,7 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { liberarKit } from "@/lib/assets/liberar-kit";
+import { MAXIMO_DO_KIT } from "@/lib/assets/kit";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Eixos } from "@/lib/assets/eixos";
 
@@ -38,6 +39,11 @@ export async function POST(request: Request) {
   const itemId = typeof corpo?.itemId === "string" ? corpo.itemId : "";
   const ids = Array.isArray(corpo?.ids) ? (corpo.ids as unknown[]).filter((i): i is string => typeof i === "string") : null;
   if (!itemId) return NextResponse.json({ message: isEnglish ? "Choose an item." : "Escolha um item." }, { status: 400 });
+  // Seleção acima do máximo é recusada já aqui, com o número que a pessoa
+  // escolheu — antes, os ids eram cortados em silêncio (200, depois 60).
+  if (ids && ids.length > MAXIMO_DO_KIT) {
+    return NextResponse.json({ message: mensagemDeKitGrande(ids.length, true) }, { status: 400 });
+  }
 
   const resultado = await liberarKit({
     marca: brand.brand.name,
@@ -52,7 +58,7 @@ export async function POST(request: Request) {
             .order("created_at", { ascending: true });
           // O kit inteiro leva só o que está em uso; a seleção leva o que a
           // pessoa escolheu — inclusive o que saiu de uso, se ela pediu.
-          consulta = ids ? consulta.in("id", ids.slice(0, 200)) : consulta.is("descontinuado_em", null);
+          consulta = ids ? consulta.in("id", ids) : consulta.is("descontinuado_em", null);
           return consulta;
         })(),
       ]);
@@ -92,6 +98,8 @@ export async function POST(request: Request) {
 
   const semCache = { "Cache-Control": "no-store" };
   switch (resultado.tipo) {
+    case "grande-demais":
+      return NextResponse.json({ message: mensagemDeKitGrande(resultado.total, Boolean(ids)) }, { status: 400, headers: semCache });
     case "emitir":
       // Endereços assinados são credencial: nada de cache.
       return NextResponse.json({ nome: resultado.nome, arquivos: resultado.arquivos }, { headers: semCache });
@@ -110,4 +118,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: mensagem, etapa: resultado.etapa }, { status: 503, headers: semCache });
     }
   }
+}
+
+/** O kit acima do máximo, dito com números — e o que fazer. */
+function mensagemDeKitGrande(total: number, selecao: boolean): string {
+  if (isEnglish) {
+    return selecao
+      ? `You selected ${total} files; a kit downloads up to ${MAXIMO_DO_KIT} at a time. Select fewer and download in parts.`
+      : `This item has ${total} files in use; a kit downloads up to ${MAXIMO_DO_KIT} at a time. Select the files and download in parts.`;
+  }
+  return selecao
+    ? `Você selecionou ${total} arquivos; um kit baixa até ${MAXIMO_DO_KIT} de cada vez. Selecione menos e baixe em partes.`
+    : `Este item tem ${total} arquivos em uso; um kit baixa até ${MAXIMO_DO_KIT} de cada vez. Selecione os arquivos e baixe em partes.`;
 }

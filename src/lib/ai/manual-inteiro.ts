@@ -70,24 +70,40 @@ export type LeituraDoManual =
  *
  * Falha SOBE, como na busca: "não há diretriz" é afirmação sobre o manual, e
  * só pode ser feita quando o manual foi de fato lido.
+ *
+ * Lido em PÁGINAS até o fim (achado da revisão de 30/09/2026): a API do
+ * Supabase devolve no máximo `max_rows` linhas por consulta (1.000), e uma
+ * consulta só entregava um manual de 1.001 trechos sem o último — com
+ * `ok: true`. A regra que ficou de fora "não existia" para o Vini. O `id` no
+ * fim da ordenação torna a ordem total: sem ele, trechos empatados poderiam
+ * pular ou repetir entre uma página e a seguinte.
  */
-export async function lerManualInteiro(supabase: SupabaseClient, brandId: string): Promise<LeituraDoManual> {
-  const { data, error } = await supabase
-    .from("brand_chunks")
-    .select("slug, title, group_name, section, status, page_start, page_end, content")
-    .eq("brand_id", brandId)
-    .order("page_start", { ascending: true, nullsFirst: false })
-    .order("slug", { ascending: true })
-    .order("ordinal", { ascending: true });
+export const PAGINA_DO_MANUAL = 1000;
 
-  if (error) {
-    console.error(JSON.stringify({ level: "error", msg: "manual_inteiro_indisponivel", code: error.code ?? "unknown", brandId }));
-    return { ok: false, motivo: error.code ?? "unknown" };
+export async function lerManualInteiro(supabase: SupabaseClient, brandId: string): Promise<LeituraDoManual> {
+  const data: Record<string, unknown>[] = [];
+  for (let inicio = 0; ; inicio += PAGINA_DO_MANUAL) {
+    const { data: pagina, error } = await supabase
+      .from("brand_chunks")
+      .select("slug, title, group_name, section, status, page_start, page_end, content")
+      .eq("brand_id", brandId)
+      .order("page_start", { ascending: true, nullsFirst: false })
+      .order("slug", { ascending: true })
+      .order("ordinal", { ascending: true })
+      .order("id", { ascending: true })
+      .range(inicio, inicio + PAGINA_DO_MANUAL - 1);
+
+    if (error) {
+      console.error(JSON.stringify({ level: "error", msg: "manual_inteiro_indisponivel", code: error.code ?? "unknown", brandId }));
+      return { ok: false, motivo: error.code ?? "unknown" };
+    }
+    data.push(...((pagina ?? []) as Record<string, unknown>[]));
+    if (!pagina || pagina.length < PAGINA_DO_MANUAL) break;
   }
 
   return {
     ok: true,
-    trechos: (data ?? []).map((linha: Record<string, unknown>) => ({
+    trechos: data.map((linha) => ({
       documentSlug: String(linha.slug ?? ""),
       documentTitle: String(linha.title ?? ""),
       groupName: String(linha.group_name ?? ""),

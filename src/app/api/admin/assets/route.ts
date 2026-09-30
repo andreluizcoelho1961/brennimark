@@ -6,7 +6,7 @@ import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { decidirRemocao } from "@/lib/assets/remocao";
 import { motivoDaRecusa } from "@/lib/assets/eixos";
 import { BYTES_DO_COMECO, TAMANHO_MAXIMO_DE_MATERIAL, conteudoConfere } from "@/lib/assets/conferir-arquivo";
-import { lerEnvio, tamanhoDoContentRange } from "@/lib/assets/envio";
+import { caminhosADescartar, lerEnvio, tamanhoDoContentRange } from "@/lib/assets/envio";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
@@ -116,7 +116,11 @@ export async function POST(request: Request) {
     miniatura_path: miniaturaPath,
   });
   if (error) {
-    await apagar(miniaturaPath ? [path, miniaturaPath] : [path]);
+    // Registro duplicado: o arquivo já pertence ao pedido que registrou
+    // primeiro, e apagá-lo deixaria aquele asset sem arquivo. Só a miniatura
+    // deste pedido sai (ver `caminhosADescartar`).
+    const descartar = caminhosADescartar(error.code, path, miniaturaPath);
+    if (descartar.length) await apagar(descartar);
     // A recusa do banco com nome conhecido é erro de quem enviou, e diz o quê.
     // Só o que não se reconhece continua sendo "não foi possível".
     const motivo = motivoDaRecusa(`${error.message} ${error.details ?? ""}`);

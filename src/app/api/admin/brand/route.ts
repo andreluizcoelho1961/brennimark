@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
+import { autenticacaoDaRota, conteudoDaRota, donoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { parseTheme } from "@/lib/brennimark/brand-row";
@@ -16,6 +16,34 @@ async function contextoDeAdministracao(request: Request) {
   }
   return { ok: true as const, auth, brand: contexto.brand };
 }
+
+/**
+ * Terminar a limpeza quando a marca do endereço já não existe.
+ *
+ * Achado da revisão de 30/09/2026: a exclusão se dizia idempotente, mas
+ * resolvia a MARCA antes de tudo — depois de apagada, a segunda tentativa
+ * recebia 404 e nunca chegava à fila, e os arquivos ficavam só para o Cron.
+ *
+ * A fila é da CONTA (as policies de `brand_deletions` deixam o dono ler e
+ * fechar), então é na conta que a limpeza continua: exige quem é DONO dela e
+ * drena só a fila dela. Nada é apagado aqui além do que já estava na fila.
+ */
+async function retomarLimpezaNaConta(request: Request) {
+  const dono = await donoDaRota(request);
+  if (!dono.ok) return dono.resposta;
+  const conta = await autenticacaoDaRota(request);
+  if (!conta.ok) return conta.resposta;
+  const fila = await drenarFilaDeExclusao(conta.contexto);
+  return NextResponse.json({
+    ok: true,
+    jaEstavaExcluida: true,
+    arquivosEnfileirados: 0,
+    arquivosRemovidos: fila.removidos,
+    pendentes: fila.pendentes,
+  });
+}
+
+const marcaSumiu = (resposta: NextResponse | null) => resposta?.status === 404;
 
 const SEM_PERMISSAO = {
   message: isEnglish
@@ -37,6 +65,7 @@ const SEM_PERMISSAO = {
  */
 export async function DELETE(request: Request) {
   const resolvido = await contextoDeAdministracao(request);
+  if (!resolvido.ok && marcaSumiu(resolvido.resposta)) return retomarLimpezaNaConta(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const auth = resolvido.ok ? resolvido.auth : null;
   if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
@@ -91,6 +120,8 @@ export async function DELETE(request: Request) {
  */
 export async function POST(request: Request) {
   const resolvido = await contextoDeAdministracao(request);
+  // Drenar não depende de a marca existir: a fila é da conta.
+  if (!resolvido.ok && marcaSumiu(resolvido.resposta)) return retomarLimpezaNaConta(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const auth = resolvido.ok ? resolvido.auth : null;
   if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });

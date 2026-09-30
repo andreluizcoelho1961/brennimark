@@ -97,3 +97,25 @@ export function tamanhoDoContentRange(cabecalho: string | null): number | null {
   const total = cabecalho?.match(/\/(\d+)\s*$/)?.[1];
   return total ? Number(total) : null;
 }
+
+/**
+ * O que apagar do Storage quando o REGISTRO de um envio falha.
+ *
+ * Achado da revisão de 30/09/2026: a rota apagava o arquivo antes de olhar o
+ * motivo. Com dois pedidos simultâneos do mesmo envio (duplo clique, repetição
+ * de rede), o primeiro registra o arquivo e o segundo recebe "já existe"
+ * (23505) — e o segundo apagava o arquivo que o primeiro acabara de registrar.
+ * O asset ficava na biblioteca apontando para o nada.
+ *
+ * Registro duplicado quer dizer que o arquivo JÁ É de alguém: só a miniatura
+ * que ESTE pedido gerou é descartável. Qualquer outra recusa deixa o arquivo
+ * sem dono, e aí ele sai junto.
+ */
+export function caminhosADescartar(
+  codigoDoErro: string | undefined,
+  arquivo: string,
+  miniatura: string | null,
+): string[] {
+  if (codigoDoErro === "23505") return miniatura ? [miniatura] : [];
+  return miniatura ? [arquivo, miniatura] : [arquivo];
+}

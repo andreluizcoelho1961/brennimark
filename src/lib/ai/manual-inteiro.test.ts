@@ -4,6 +4,7 @@ import {
   CARACTERES_POR_TOKEN,
   LIMITE_DO_MANUAL_INTEIRO_TOKENS,
   caracteresDoManual,
+  lerManualInteiro,
   manualCabeNoModelo,
   tokensEstimados,
 } from "./manual-inteiro";
@@ -63,4 +64,55 @@ test("no modo inteiro, nenhum trecho é cortado nem descartado", () => {
   assert.ok(texto.includes(longo), "o trecho longo vai inteiro, sem reticência");
   const { usados: recortados } = montarContextoRecuperado(manual, {}, "", "trechos");
   assert.ok(recortados.length < 12);
+});
+
+/**
+ * Um banco falso com o limite REAL da API do Supabase: nenhuma consulta
+ * devolve mais de 1.000 linhas, peça o intervalo que pedir.
+ */
+function bancoComTrechos(total: number, falhaNaPagina?: number) {
+  const pedidos: [number, number][] = [];
+  const linhas = Array.from({ length: total }, (_, i) => ({
+    slug: `doc-${String(i).padStart(5, "0")}`, title: "Manual", group_name: "Marca", section: null,
+    status: "ready", page_start: i + 1, page_end: i + 1, content: `regra ${i + 1}`,
+  }));
+  const consulta = {
+    select: () => consulta, eq: () => consulta, order: () => consulta,
+    range: async (de: number, ate: number) => {
+      pedidos.push([de, ate]);
+      if (falhaNaPagina !== undefined && pedidos.length === falhaNaPagina) return { data: null, error: { code: "57014" } };
+      return { data: linhas.slice(de, Math.min(ate + 1, de + 1000)), error: null };
+    },
+  };
+  return { cliente: { from: () => consulta } as unknown as Parameters<typeof lerManualInteiro>[0], pedidos };
+}
+
+test("manual com mais de 1.000 trechos chega inteiro ao Vini, até a última regra", async () => {
+  // Achado da revisão de 30/09/2026: 1.001 trechos, 1.000 lidos, e a regra
+  // final sumia com `ok: true`.
+  const { cliente } = bancoComTrechos(1001);
+  const leitura = await lerManualInteiro(cliente, "marca");
+  assert.equal(leitura.ok, true);
+  if (!leitura.ok) return;
+  assert.equal(leitura.trechos.length, 1001);
+  assert.equal(leitura.trechos.at(-1)?.content, "regra 1001");
+});
+
+test("a leitura pede páginas seguidas, sem buraco nem sobreposição", async () => {
+  const { cliente, pedidos } = bancoComTrechos(2500);
+  const leitura = await lerManualInteiro(cliente, "marca");
+  assert.equal(leitura.ok && leitura.trechos.length, 2500);
+  assert.deepEqual(pedidos, [[0, 999], [1000, 1999], [2000, 2999]]);
+});
+
+test("exatamente 1.000 trechos: confere a página seguinte, vazia, e para", async () => {
+  const { cliente, pedidos } = bancoComTrechos(1000);
+  const leitura = await lerManualInteiro(cliente, "marca");
+  assert.equal(leitura.ok && leitura.trechos.length, 1000);
+  assert.equal(pedidos.length, 2);
+});
+
+test("falha no meio da leitura é falha, nunca meio manual com ok", async () => {
+  const { cliente } = bancoComTrechos(2500, 2);
+  assert.deepEqual(await lerManualInteiro(cliente, "marca"), { ok: false, motivo: "57014" });
 });
