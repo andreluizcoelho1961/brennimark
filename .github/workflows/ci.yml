@@ -59,11 +59,12 @@ jobs:
   verify:
     name: Lint, tipos, testes, build e navegador
     runs-on: ubuntu-latest
-    # 30, e não 20 (01/10/2026): o #77 foi cortado duas vezes com a suíte
+    # 45, e não 20 (01/10/2026): o #77 foi cortado três vezes com a suíte
     # inteira verde, porque baixar os navegadores levou de 5 a 19 minutos. O
-    # cache abaixo tira o download do caminho; a folga cobre o dia em que ele
-    # falha.
-    timeout-minutes: 30
+    # cache abaixo tira o download do caminho; a folga cobre a execução que
+    # preenche o cache e o dia em que ele falhar (download lento + ~14 min de
+    # testes de navegador).
+    timeout-minutes: 45
 
     steps:
       - name: Checkout
