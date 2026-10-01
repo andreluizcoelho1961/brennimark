@@ -113,6 +113,12 @@ export default defineConfig({
        */
       NEXT_PUBLIC_SUPABASE_URL: "https://projeto-de-teste.supabase.invalid",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "chave-de-teste-sem-valor",
+
+      // Também falsas: o webhook da cobrança precisa de um segredo para que a
+      // suíte prove que aviso forjado é recusado (`e2e/cobranca-webhook.spec.ts`).
+      // Nenhuma chamada ao Stripe sai daqui.
+      BRENNIMARK_CHAVE_STRIPE: "sk_test_falsa_da_suite",
+      BRENNIMARK_SEGREDO_WEBHOOK_STRIPE: "whsec_falso_da_suite",
     },
   },
 });

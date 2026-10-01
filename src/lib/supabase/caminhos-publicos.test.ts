@@ -54,3 +54,16 @@ test("só o prefixo exato do link público: a gestão dos links pede sessão", (
   assert.equal(caminhoPublico("/entrega"), true);
   assert.equal(caminhoPublico("/entrega/abc"), false);
 });
+
+test("o webhook do Stripe passa sem sessão — a autorização é a assinatura do aviso", () => {
+  assert.equal(caminhoPublico("/api/cobranca/stripe"), true);
+});
+
+test("só o caminho exato do webhook: o resto da cobrança pede sessão", () => {
+  assert.equal(caminhoPublico("/api/cobranca"), false);
+  assert.equal(caminhoPublico("/api/cobranca/"), false);
+  assert.equal(caminhoPublico("/api/cobranca/stripe/"), false);
+  assert.equal(caminhoPublico("/api/cobranca/stripex"), false);
+  assert.equal(caminhoPublico("/api/cobranca/portal"), false);
+  assert.equal(caminhoPublico("/api/cobranca/checkout"), false);
+});
