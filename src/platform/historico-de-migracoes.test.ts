@@ -57,6 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // Cobrança (fatia 1, 01/10/2026): aplicada só no banco local. Vai ao banco
+  // hospedado com autorização nominal do André, antes do merge.
+  "cobranca",
   // `complementos` saiu daqui em 01/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261001133746`; impressão digital
   // igual à do local (10 funções — corpo, SECURITY DEFINER, search_path,

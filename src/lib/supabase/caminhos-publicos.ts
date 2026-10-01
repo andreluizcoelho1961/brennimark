@@ -22,13 +22,22 @@
  * só respondem ao código do link, conferido pelo banco a cada pedido. A barra
  * final é de propósito, como na manutenção.
  *
+ * O WEBHOOK DO STRIPE entrou em 01/10/2026 (cobrança, fatia 1): quem chama é
+ * o Stripe, sem sessão. Casa pelo caminho EXATO, porque as próximas rotas de
+ * `/api/cobranca/` (o checkout, o portal) são de quem tem sessão. Passar sem
+ * sessão não é passar sem autorização: a rota recusa todo aviso cuja
+ * assinatura não confere com o segredo do webhook.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
 
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe"]);
+
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
+  if (CAMINHOS_PUBLICOS_EXATOS.has(pathname)) return true;
   return CAMINHOS_PUBLICOS.some((prefixo) => pathname.startsWith(prefixo));
 }
