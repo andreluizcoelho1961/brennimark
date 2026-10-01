@@ -60,11 +60,15 @@ export function RespostaDoVini({
             // depois de rolar para longe, leva de novo à página.
             router.push(destinoDaCitacao(parte.path, paginas, basePath, String(Date.now())).href, { scroll: false });
           }}
-          title={destino.pagina
-            ? (isEnglish ? `Open the manual at page ${destino.pagina}` : `Abrir o manual na página ${destino.pagina}`)
-            : (isEnglish ? "Open the manual" : "Abrir o manual")}
+          data-citacao-de-complemento={destino.complemento ? "" : undefined}
+          title={destino.complemento
+            ? (isEnglish ? "Open the supplement" : "Abrir o complemento")
+            : destino.pagina
+              ? (isEnglish ? `Open the manual at page ${destino.pagina}` : `Abrir o manual na página ${destino.pagina}`)
+              : (isEnglish ? "Open the manual" : "Abrir o manual")}
           className="mx-0.5 inline-flex flex-wrap items-baseline gap-1 border-b border-platform-border font-medium text-platform-text transition-colors hover:border-platform-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
         >
+          {destino.complemento && <span className="text-platform-text-muted">{isEnglish ? "Supplement:" : "Complemento:"}</span>}
           <span>{parte.title}</span>
           {destino.pagina && <span className="text-platform-text-muted">{isEnglish ? "p." : "p."} {destino.pagina}</span>}
           <span className={`font-display text-[9px] font-bold uppercase tracking-wide ${parte.statusKey ? COR_DO_ESTADO[parte.statusKey] : "text-platform-text-muted"}`}>

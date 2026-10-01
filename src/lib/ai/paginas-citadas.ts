@@ -58,7 +58,8 @@ export function decodificarMapa(valor: string | null | undefined): MapaDePaginas
 }
 
 /**
- * Para onde a citação leva: o manual (PDF) desta marca, na página, se houver.
+ * Para onde a citação leva: o manual (PDF) desta marca, na página, se houver
+ * — ou, se a fonte é um complemento, a página dos complementos, nele.
  * `basePath` é `/w/<conta>/b/<marca>/docs`. `pedido` distingue dois cliques
  * na mesma citação — ver `paginaPedida` no visualizador.
  */
@@ -67,7 +68,10 @@ export function destinoDaCitacao(
   mapa: MapaDePaginas,
   basePath: string,
   pedido: string,
-): { href: string; pagina: number | null } {
+): { href: string; pagina: number | null; complemento?: true } {
+  // O complemento abre a página dos complementos, no complemento citado.
+  const complemento = caminho.match(/^\/complementos\/([a-z0-9-]+)/);
+  if (complemento) return { href: `${basePath}/complementos#${complemento[1]}`, pagina: null, complemento: true };
   const pagina = mapa[caminho] ?? null;
   const manual = `${basePath}/original`;
   return pagina === null

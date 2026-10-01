@@ -181,6 +181,7 @@ export function buildChatSystemPrompt(
   pergunta = "",
   modo: ModoDoContexto = "trechos",
   ficha: readonly Trecho[] = [],
+  complementos: readonly Trecho[] = [],
 ): string {
   const regras = regrasDeFundamentacao(brand);
   const rotulos = rotulosDeStatus(brand);
@@ -189,8 +190,13 @@ export function buildChatSystemPrompt(
   // por cor), e cortada ou deslocada por um trecho ela deixaria de ser a
   // resposta certa justamente na pergunta de cor.
   const { texto: textoDaFicha } = montarContextoRecuperado(ficha, rotulos, "", "inteiro");
-  const conhecimento = [textoDaFicha, texto].filter(Boolean).join("\n\n") || semEvidencia(brand.language === "en");
-  const raciocinio = regrasDeRaciocinio(brand.language, modo) + (textoDaFicha ? regraDaFicha(brand.language) : "");
+  // Os complementos publicados (01/10/2026), com orçamento próprio de trechos:
+  // nem empurram o manual para fora, nem são empurrados por ele.
+  const { texto: textoDosComplementos } = montarContextoRecuperado(complementos, rotulos, pergunta, "trechos");
+  const conhecimento = [textoDaFicha, texto, textoDosComplementos].filter(Boolean).join("\n\n") || semEvidencia(brand.language === "en");
+  const raciocinio = regrasDeRaciocinio(brand.language, modo)
+    + (textoDaFicha ? regraDaFicha(brand.language) : "")
+    + (textoDosComplementos ? regraDosComplementos(brand.language) : "");
 
   if (brand.language === "en") {
     return `${brand.chatRole} Your role is to give direct, useful, verifiable answers for teams and vendors — people who design, and who need the exact value, not a pointer to it.
@@ -226,6 +232,22 @@ Formato recomendado:
 <brand_knowledge>
 ${conhecimento}
 </brand_knowledge>`;
+}
+
+/**
+ * Os complementos — 01/10/2026 (direção §20.1). O manual é o cânone: o
+ * complemento ACRESCENTA, nunca corrige em silêncio. Quando os dois tratam do
+ * mesmo assunto, a resposta cita os dois e diz que há complemento — não
+ * escolhe sozinha qual vale.
+ */
+function regraDosComplementos(language: string): string {
+  return language === "en"
+    ? `
+- Sources with kind="supplement" are SUPPLEMENTS: approved texts the brand wrote for what the manual doesn't cover. Cite them like any source, with their /complementos/ path, and make clear in the sentence that it comes from a supplement, not from the manual.
+- The manual is the reference. If a supplement and the manual speak about the same subject, cite BOTH and say there is a supplement on it — don't pick one on your own, and never present a supplement as if it were the manual.`
+    : `
+- As fontes com kind="supplement" são COMPLEMENTOS: textos aprovados que a marca escreveu para o que o manual não cobre. Cite-os como qualquer fonte, com o caminho /complementos/, e deixe claro na frase que vem de um complemento, não do manual.
+- O manual é a referência. Se um complemento e o manual falarem do mesmo assunto, cite OS DOIS e diga que há complemento sobre isso — não escolha sozinho qual vale, e nunca apresente complemento como se fosse o manual.`;
 }
 
 /**

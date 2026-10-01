@@ -41,7 +41,7 @@ export function PlatformTopBar({
    * Os endereços do segmentado `Manual │ Materiais │ Complementos`. Sem marca
    * aberta, vêm vazios e o segmentado aparece apagado (plano da interface §2).
    */
-  segmentado?: { manual?: string; materiais?: string };
+  segmentado?: { manual?: string; materiais?: string; complementos?: string };
   children?: React.ReactNode;
 }) {
   const isEnglish = useIsEnglish();
@@ -91,7 +91,7 @@ export function PlatformTopBar({
       {/* A barra de cima é do CONTEÚDO da marca. Sempre presente, como os
           menus de um aplicativo de desenho: sem marca aberta, apagada. */}
       <div className="hidden md:block">
-        <SegmentadoDaMarca manual={segmentado?.manual} materiais={segmentado?.materiais} />
+        <SegmentadoDaMarca manual={segmentado?.manual} materiais={segmentado?.materiais} complementos={segmentado?.complementos} />
       </div>
 
       {/*

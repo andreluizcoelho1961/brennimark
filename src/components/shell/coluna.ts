@@ -21,7 +21,7 @@
  */
 
 export type IconeDaColuna =
-  | "manual" | "materiais"
+  | "manual" | "materiais" | "complementos"
   | "marcas" | "pessoas" | "links" | "registros" | "configuracoes"
   | "assistente" | "analise" | "historico" | "importar" | "administracao" | "ia";
 
@@ -57,7 +57,7 @@ export interface DestinoDaMarca {
  * casava pelo trecho e só funcionava em produção por coincidência de formato;
  * a captura da bancada mostrou o manual repetido na coluna (18/09).
  */
-const NA_BARRA_DE_CIMA = ["original", "biblioteca"];
+const NA_BARRA_DE_CIMA = ["original", "biblioteca", "complementos"];
 
 /**
  * O que é do Vini, e por isso sai da coluna: perguntar, analisar peça e o
@@ -153,10 +153,10 @@ export function itemAtivo(item: ItemDaColuna, pathname: string): boolean {
  * "como o Illustrator sem documento aberto"), e não como link morto.
  */
 export function segmentadoDaMarca(basePath?: string): {
-  manual?: string; materiais?: string;
+  manual?: string; materiais?: string; complementos?: string;
 } {
   if (!basePath) return {};
-  return { manual: `${basePath}/original`, materiais: `${basePath}/biblioteca` };
+  return { manual: `${basePath}/original`, materiais: `${basePath}/biblioteca`, complementos: `${basePath}/complementos` };
 }
 
 /**
@@ -169,7 +169,7 @@ export function segmentadoDaMarca(basePath?: string): {
  */
 export function gruposDaGaveta(
   coluna: readonly GrupoDaColuna[],
-  segmentado: { manual?: string; materiais?: string } | undefined,
+  segmentado: { manual?: string; materiais?: string; complementos?: string } | undefined,
   ingles = false,
 ): GrupoDaColuna[] {
   if (!segmentado?.manual) return [...coluna];
@@ -178,6 +178,9 @@ export function gruposDaGaveta(
   ];
   if (segmentado.materiais) {
     itens.push({ id: "materiais", rotulo: ingles ? "Materials" : "Materiais", icone: "materiais", href: segmentado.materiais });
+  }
+  if (segmentado.complementos) {
+    itens.push({ id: "complementos", rotulo: ingles ? "Supplements" : "Complementos", icone: "complementos", href: segmentado.complementos });
   }
   return [{ id: "conteudo", rotulo: ingles ? "Brand content" : "Conteúdo da marca", itens }, ...coluna];
 }

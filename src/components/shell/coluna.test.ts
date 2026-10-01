@@ -95,6 +95,7 @@ test("o segmentado só tem endereço com marca aberta", () => {
   assert.deepEqual(segmentadoDaMarca("/w/a/b/solara/docs"), {
     manual: "/w/a/b/solara/docs/original",
     materiais: "/w/a/b/solara/docs/biblioteca",
+    complementos: "/w/a/b/solara/docs/complementos",
   });
 });
 
@@ -108,7 +109,9 @@ test("no celular, a gaveta traz o manual da marca aberta — senão ele é inalc
   const coluna = colunaDaPlataforma({ contaSlug: "a", administraConta: false });
   const gaveta = gruposDaGaveta(coluna, segmentadoDaMarca("/w/a/b/solara/docs"));
   assert.equal(gaveta[0].id, "conteudo");
-  assert.deepEqual(gaveta[0].itens.map((i) => i.href), ["/w/a/b/solara/docs/original", "/w/a/b/solara/docs/biblioteca"]);
+  assert.deepEqual(gaveta[0].itens.map((i) => i.href), [
+    "/w/a/b/solara/docs/original", "/w/a/b/solara/docs/biblioteca", "/w/a/b/solara/docs/complementos",
+  ]);
   // Sem marca aberta, nada é inventado: a gaveta é a própria coluna.
   assert.deepEqual(gruposDaGaveta(coluna, {}), coluna);
 });
