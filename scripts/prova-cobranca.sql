@@ -22,6 +22,9 @@
 --      assinatura não muda nada. Voltar a pagar devolve tudo.
 --   8. O link de primeiro acesso: só a equipe, com motivo; só para o titular
 --      que nasceu da compra e nunca entrou.
+--   9. (revisão de 01/10) O login criado pela compra fica preso à conta que
+--      pagou: não colhe concessão de outra conta. E quem já tinha login criado
+--      por outra agência paga e vira dono da conta que pagou.
 --   6. (fatia 2) Só a equipe lê e ajusta planos e preços no Console, sempre com
 --      motivo registrado; preço novo substitui o antigo sem apagá-lo; o
 --      checkout só acha preço ativo, e pelo site só de plano à venda.
@@ -182,7 +185,9 @@ do $$
 declare m mundo; t record;
 begin
   select * into m from mundo;
-  perform pg_temp.registrar('visitante LE os planos', 'ACEITOU', pg_temp.papel('anon', 'select 1 from public.planos'));
+  perform pg_temp.registrar('visitante LE os planos (o que o site mostra)', 'ACEITOU', pg_temp.papel('anon', 'select codigo, nome, maximo_de_marcas, a_venda, ordem from public.planos'));
+  perform pg_temp.registrar('visitante NAO le o teto de custo do Vini (sem dinheiro para o cliente)', '42501', pg_temp.papel('anon', 'select teto_mensal_do_vini_micros from public.planos'));
+  perform pg_temp.registrar('nem quem tem sessao', '42501', (select estado from pg_temp.como(m.titular, 'select teto_mensal_do_vini_micros from public.planos')));
   perform pg_temp.registrar('o site ve 3 planos a venda; o Piloto nao', '3',
     (select count(*)::text from public.planos where a_venda));
   perform pg_temp.registrar('visitante NAO le precos', '42501', pg_temp.papel('anon', 'select 1 from public.precos_do_plano'));
@@ -548,6 +553,41 @@ begin
   update auth.users set last_sign_in_at = now() where id = u;
   perform pg_temp.registrar('depois do primeiro acesso, nao ha mais link', '22023 cobranca_titular_ja_tem_acesso',
     pg_temp.como_dica(m.equipe, format('select * from public.console_titular_para_primeiro_acesso(%L, ''perdeu a senha'')', c)));
+end $$;
+
+-- ─── 9. O login da compra preso à conta que pagou (revisão de 01/10) ────────
+do $$
+declare
+  u_pago uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0901';
+  u_free uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0902';
+  c uuid; c2 uuid; outra uuid;
+begin
+  insert into auth.users (id, email, aud, role, raw_app_meta_data) values
+    (u_pago, 'prova-cob-preso@local.test', 'authenticated', 'authenticated', '{"criado_pela_cobranca": true}');
+  c := pg_temp.sincronizar('sub_prova_preso', 'price_prova_basico_brl_v2', 'ativa', null, 'prova-cob-preso@local.test', 'Agência Presa');
+  perform pg_temp.registrar('o login criado pela compra fica preso a conta que pagou', c::text,
+    (select raw_app_meta_data->>'criado_pela_conta' from auth.users where id = u_pago));
+  perform pg_temp.registrar('e o titular e dono dela, com a concessao registrada como convertida', 'owner ativa',
+    (select wm.role || ' ' || ca.situacao from public.workspace_members wm
+       join public.concessoes_de_acesso ca on ca.workspace_id = wm.workspace_id and ca.convertida_para = wm.user_id
+      where wm.workspace_id = c and wm.user_id = u_pago));
+
+  insert into public.workspaces (name, slug) values ('Agência Alheia da Prova', 'prova-cob-alheia') returning id into outra;
+  insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por)
+  values (outra, null, 'prova-cob-preso@local.test', 'administrador', u_pago);
+  perform pg_temp.registrar('concessao de OUTRA conta NAO vira acesso para o login da compra', '0',
+    private.converter_concessoes(u_pago, 'prova-cob-preso@local.test')::text);
+  perform pg_temp.registrar('e fica pendente, sem membro novo', 'pendente 0',
+    (select ca.situacao || ' ' || (select count(*) from public.workspace_members where workspace_id = outra)
+       from public.concessoes_de_acesso ca where ca.workspace_id = outra));
+
+  insert into auth.users (id, email, aud, role, raw_app_meta_data) values
+    (u_free, 'prova-cob-freelancer@local.test', 'authenticated', 'authenticated', jsonb_build_object('criado_pela_conta', outra));
+  c2 := pg_temp.sincronizar('sub_prova_free', 'price_prova_basico_brl_v2', 'ativa', null, 'prova-cob-freelancer@local.test', 'Freelancer');
+  perform pg_temp.registrar('quem ja tinha login de outra agencia paga e vira dono da conta que pagou', 'owner',
+    (select role from public.workspace_members where workspace_id = c2 and user_id = u_free));
+  perform pg_temp.registrar('e o login dele continua preso a agencia que o criou', outra::text,
+    (select raw_app_meta_data->>'criado_pela_conta' from auth.users where id = u_free));
 end $$;
 
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;

@@ -79,3 +79,31 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    o link de primeiro acesso cai no endereço padrão e não abre a tela de criar senha.
 7. Testar com o cartão de teste `4242 4242 4242 4242` e o Pix de teste; a conta aparece no Console
    → Cobrança → Assinaturas.
+
+## Pontas conhecidas (revisão de 01/10/2026)
+
+Corrigido na revisão (migration `cobranca_primeiro_acesso`, #77):
+
+- o login criado pela compra colhia concessões de qualquer conta; agora fica preso à conta que
+  pagou, como os logins criados por uma conta desde 18/09;
+- quem já tinha login criado por outra agência pagava e não virava dono da conta; agora vira;
+- `planos` entregava ao público o teto de custo do Vini em dólares; agora o público lê só o que o
+  site mostra.
+
+A conferir no primeiro teste real, em modo de teste do Stripe:
+
+- **Pix no checkout:** a página manda o mandato do Pix Automático quando a moeda é real. Se o Pix
+  não estiver ligado no painel, o Stripe pode recusar a sessão inteira. Ligar o Pix antes do
+  primeiro teste em reais.
+- **Teto do mandato Pix = valor do plano.** Se o preço subir (reajuste, troca de plano para cima,
+  imposto somado pelo Stripe Tax), a cobrança por Pix acima do teto falha e a pessoa precisa
+  autorizar de novo no banco.
+- **Troca de plano pelo Portal:** o Portal só pode oferecer preços que estejam ligados no Console.
+  Um preço que não está lá faz o aviso falhar (e o Stripe repetir) até ele ser ligado.
+
+Dependem de decisão do André:
+
+- **Quem volta depois de cancelar** compra de novo e ganha conta nova; a antiga fica cancelada e só
+  para leitura, com tudo dentro. Juntar as duas faz parte da decisão sobre os dados de quem
+  cancelou.
+- Serviço de e-mail, botão "Assinar" do site e emissor de nota fiscal.

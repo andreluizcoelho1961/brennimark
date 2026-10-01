@@ -111,9 +111,12 @@ begin
     (w1, a, gen_random_uuid(), 'assist', 'google', 'gemini-x', 'settled', 500, 5000, now() - interval '2 days', null, 'USD', '{"inputTokens":9,"outputTokens":9}', now() - interval '2 days'),
     (w2, c, gen_random_uuid(), 'analyse-image', 'groq', 'qwen', 'settled', 50, 40, now(), null, 'USD', '{"inputTokens":10,"outputTokens":5}', now());
 
+  -- Desde 29/09 (`ia_da_plataforma`) toda conta nasce com limites padrão, e o
+  -- `do nothing` daqui deixava o padrão no lugar: a prova passou a ler o teto
+  -- errado. Corrigido na revisão de 01/10: o teto da prova SUBSTITUI o padrão.
   insert into public.ai_budgets (workspace_id, brand_id, period, limit_micros, currency, kill_switch)
   values (w1, null, 'daily', 1000, 'USD', false)
-  on conflict do nothing;
+  on conflict (workspace_id, brand_id, period) do update set limit_micros = excluded.limit_micros;
 
   -- Armazenamento: duas fotografias da conta 1; vale a mais recente.
   insert into public.consumo_de_armazenamento (dia, workspace_id, brand_id, bucket_id, objetos, bytes) values
@@ -179,7 +182,7 @@ begin
       hoje, amanha, m.w1, m.w2)));
   perform pg_temp.registrar('limite: gasto de hoje = liquidadas + reservada (100+300+700), sem a liberada nem a de anteontem',
     '1000 1100',
-    pg_temp.valor(m.equipe, format('select limit_micros||'' ''||gasto_hoje_micros from public.console_limites() where workspace_id = %L', m.w1)));
+    pg_temp.valor(m.equipe, format('select limit_micros||'' ''||gasto_hoje_micros from public.console_limites() where workspace_id = %L and brand_id is null and period = ''daily''', m.w1)));
   perform pg_temp.registrar('armazenamento: vale a fotografia mais recente (300 bytes, nao 100)', '300 50',
     pg_temp.valor(m.equipe, format(
       'select string_agg(bytes::text, '' '' order by bytes desc) from public.console_armazenamento(current_date) where workspace_id = %L', m.w1)));
