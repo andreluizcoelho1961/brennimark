@@ -28,13 +28,18 @@
  * sessão não é passar sem autorização: a rota recusa todo aviso cuja
  * assinatura não confere com o segredo do webhook.
  *
+ * A COMPRA entrou no mesmo dia (fatia 2): `/assinar`, `/assinar/obrigado` e
+ * `/api/cobranca/checkout`. Quem compra ainda não tem conta. Nenhuma das três
+ * dá acesso a nada: a rota só abre a página de pagamento do Stripe, com o
+ * preço que o banco escolhe, e a conta continua nascendo só do webhook.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
