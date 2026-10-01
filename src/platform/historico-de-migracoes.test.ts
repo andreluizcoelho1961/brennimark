@@ -57,9 +57,10 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Cobrança, fatia 3 (01/10/2026): a regra de atraso, o limite de marcas e o
-  // Vini em conta só leitura. Aplicada só no banco local.
-  "cobranca_vida",
+  // `cobranca_vida` saiu daqui em 01/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261001204510`; impressão digital
+  // igual à do local, junto das outras duas da cobrança (12 funções — a reserva
+  // do Vini com o bloco novo —, 10 gatilhos, grants de `planos`).
   // `cobranca_compra` saiu daqui em 01/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261001204421`; impressão digital
   // igual à do local (as funções do Console e do checkout).
