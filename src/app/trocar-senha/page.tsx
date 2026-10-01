@@ -22,7 +22,8 @@ export default async function PaginaDaTrocaDeSenha() {
 
   return (
     <main className="flex min-h-full flex-1 items-center justify-center px-page-inline py-24">
-      <TrocaDeSenha email={user.email ?? ""} validaAte={ate.toISOString()} vencida={senhaProvisoriaVencida(ate)} />
+      <TrocaDeSenha email={user.email ?? ""} validaAte={ate.toISOString()} vencida={senhaProvisoriaVencida(ate)}
+        porLink={user.app_metadata?.primeiro_acesso_por_link === true} />
     </main>
   );
 }

@@ -16,7 +16,8 @@ export type AcaoDeCobranca =
       armazenamentoGb: number | null; aVenda: boolean; ordem: number }
   | { tipo: "registrar_preco"; plano: string; idExterno: string; moeda: "BRL" | "USD" }
   | { tipo: "desativar_preco"; id: string }
-  | { tipo: "link_de_piloto"; pedido: PedidoDeCompra };
+  | { tipo: "link_de_piloto"; pedido: PedidoDeCompra }
+  | { tipo: "link_de_acesso"; workspaceId: string };
 
 type Leitura = { ok: true; acao: AcaoDeCobranca } | { ok: false; motivo: string };
 
@@ -61,6 +62,10 @@ export function lerAcaoDeCobranca(corpo: unknown): Leitura {
       if (typeof c.id !== "string" || !UUID.test(c.id)) return { ok: false, motivo: "Preço inválido." };
       return { ok: true, acao: { tipo: "desativar_preco", id: c.id } };
     }
+    case "link_de_acesso": {
+      if (typeof c.workspaceId !== "string" || !UUID.test(c.workspaceId)) return { ok: false, motivo: "Conta inválida." };
+      return { ok: true, acao: { tipo: "link_de_acesso", workspaceId: c.workspaceId } };
+    }
     case "link_de_piloto": {
       const lido = lerPedidoDeCompra(c);
       return lido.ok ? { ok: true, acao: { tipo: "link_de_piloto", pedido: lido.valor } } : lido;
@@ -71,7 +76,7 @@ export function lerAcaoDeCobranca(corpo: unknown): Leitura {
 }
 
 /** A função do banco e os parâmetros de cada ação que passa pelo banco. */
-export function chamadaDaAcaoDeCobranca(acao: Exclude<AcaoDeCobranca, { tipo: "link_de_piloto" }>, motivo: string) {
+export function chamadaDaAcaoDeCobranca(acao: Exclude<AcaoDeCobranca, { tipo: "link_de_piloto" | "link_de_acesso" }>, motivo: string) {
   switch (acao.tipo) {
     case "definir_plano":
       return { funcao: "console_definir_plano", parametros: {

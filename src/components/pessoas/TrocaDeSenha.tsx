@@ -19,8 +19,13 @@ import { conferirSenhaNova } from "@/lib/acesso/senha-provisoria";
  * a bancada `/dev/trocar-senha` os finge para a suíte de navegador.
  */
 export function TrocaDeSenha({
-  email, validaAte, vencida,
-}: { email: string; validaAte: string; vencida: boolean }) {
+  email, validaAte, vencida, porLink = false,
+}: {
+  email: string; validaAte: string; vencida: boolean;
+  /** Quem assinou pelo site entra pelo LINK de primeiro acesso, que a equipe
+   *  da Brennimark gera (cobrança, 01/10/2026): não recebeu senha nenhuma. */
+  porLink?: boolean;
+}) {
   const isEnglish = useIsEnglish();
   const router = useRouter();
   const t = (pt: string, en: string) => (isEnglish ? en : pt);
@@ -80,7 +85,9 @@ export function TrocaDeSenha({
         {platformIdentity.displayName}
       </p>
       <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-platform-text">
-        {vencida ? t("A senha provisória venceu", "The temporary password expired") : t("Crie a sua senha", "Create your password")}
+        {vencida
+          ? (porLink ? t("O prazo para criar a senha venceu", "The time to create your password expired") : t("A senha provisória venceu", "The temporary password expired"))
+          : t("Crie a sua senha", "Create your password")}
       </h1>
       <p className="mt-4 text-sm leading-relaxed text-platform-text-muted">
         {t("Entrou como", "Signed in as")} <strong className="text-platform-text">{email}</strong>
@@ -89,7 +96,10 @@ export function TrocaDeSenha({
       {vencida ? (
         <div data-senha-vencida className="mt-6 flex flex-col gap-4">
           <p className="text-sm leading-relaxed text-platform-text-muted">
-            {t(
+            {porLink
+              ? t(`Valia até ${prazo}. Peça um novo link de acesso à equipe da Brennimark.`,
+                  `It was valid until ${prazo}. Ask the Brennimark team for a new access link.`)
+              : t(
               `Ela valia até ${prazo}. Peça uma nova a quem administra a conta — a pessoa gera outra na tela Pessoas e acesso.`,
               `It was valid until ${prazo}. Ask your account administrator for a new one — they can generate it in People & access.`,
             )}
@@ -102,7 +112,10 @@ export function TrocaDeSenha({
       ) : (
         <form onSubmit={trocar} data-form-troca className="mt-6 flex flex-col gap-4">
           <p className="text-sm leading-relaxed text-platform-text-muted">
-            {t(
+            {porLink
+              ? t(`Você entrou pelo link de primeiro acesso. Crie a sua senha até ${prazo} para usar a conta.`,
+                  `You signed in with your first-access link. Create your password by ${prazo} to use the account.`)
+              : t(
               `A senha que você recebeu é provisória e vale até ${prazo}. Escolha uma sua para liberar o acesso.`,
               `The password you received is temporary and valid until ${prazo}. Choose your own to unlock access.`,
             )}

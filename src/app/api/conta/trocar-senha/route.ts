@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     // nova e a marca ainda diz "provisória", nem o contrário.
     const { error } = await createServiceClient().auth.admin.updateUserById(user.id, {
       password: corpo.senha,
-      app_metadata: { senha_provisoria_ate: null },
+      app_metadata: { senha_provisoria_ate: null, primeiro_acesso_por_link: null },
     });
     if (error) {
       console.error(JSON.stringify({ level: "error", msg: "troca_de_senha_falhou", code: error.code ?? "unknown" }));

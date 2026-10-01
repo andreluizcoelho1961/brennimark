@@ -72,3 +72,12 @@ test("senha vencida não oferece formulário — diz a quem pedir outra", async 
   await expect(page.locator("[data-senha-vencida]")).toContainText(/Pessoas e acesso/);
   await expect(page.locator("[data-form-troca]")).toHaveCount(0);
 });
+
+test("quem entrou pelo link de primeiro acesso não recebeu senha nenhuma, e a tela diz isso", async ({ page }) => {
+  await page.goto("/dev/trocar-senha?link=1");
+  await expect(page.getByText("Você entrou pelo link de primeiro acesso")).toBeVisible();
+  await expect(page.getByText("A senha que você recebeu é provisória")).toHaveCount(0);
+  await page.goto("/dev/trocar-senha?link=1&vencida=1");
+  await expect(page.getByRole("heading", { name: "O prazo para criar a senha venceu" })).toBeVisible();
+  await expect(page.getByText("Peça um novo link de acesso à equipe da Brennimark")).toBeVisible();
+});

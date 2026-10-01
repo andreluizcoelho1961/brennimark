@@ -73,3 +73,9 @@ test("Console: o preço registrado é sempre mensal", () => {
   assert.deepEqual(chamadaDaAcaoDeCobranca(lida.acao, "novo preço").parametros,
     { p_plano: "medio", p_id_externo: "price_1AbC", p_moeda: "USD", p_intervalo: "mes", p_motivo: "novo preço" });
 });
+
+test("Console: o link de primeiro acesso só aceita uma conta válida, e não passa pelas funções de plano e preço", () => {
+  assert.deepEqual(lerAcaoDeCobranca({ tipo: "link_de_acesso", workspaceId: "33333333-3333-4333-8333-333333333333" }),
+    { ok: true, acao: { tipo: "link_de_acesso", workspaceId: "33333333-3333-4333-8333-333333333333" } });
+  assert.match((lerAcaoDeCobranca({ tipo: "link_de_acesso", workspaceId: "qualquer" }) as { motivo: string }).motivo, /inválida/);
+});

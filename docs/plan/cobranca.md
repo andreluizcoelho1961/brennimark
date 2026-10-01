@@ -51,6 +51,11 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    - **aviso na moldura** para todos da conta, em tolerância ou só leitura.
    Para o Portal funcionar, configurá-lo no painel do Stripe (Settings → Billing → Customer portal):
    o que o cliente pode fazer lá (trocar plano, cancelar) é escolhido ali.
+3b. **Link de primeiro acesso** (#77): enquanto o acesso não chega sozinho por e-mail, a equipe
+   gera no Console → Cobrança → Assinaturas um link que abre a sessão do titular e leva à tela de
+   criar a senha. Só para titular que nasceu da compra e nunca entrou (o banco decide), com motivo
+   no registro da equipe. O link vale ~1 hora (`otp_expiry`). É o mesmo mecanismo que o e-mail vai
+   usar: quando houver serviço de e-mail, o link segue por ele.
 4. **Nota fiscal automática**: um serviço emissor ligado ao webhook. No piloto, o MEI emite à mão.
 5. **Imposto internacional** (Stripe Tax), quando houver venda fora do Brasil.
 
@@ -69,5 +74,8 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    e colar cada `price_…` no Console → Cobrança → Preços no Stripe.
 5. No painel do Stripe, ligar os meios de pagamento: cartão e **Pix**. O Pix entra como Pix
    Automático (o comprador autoriza no banco uma cobrança mensal de até o valor do plano).
-6. Testar com o cartão de teste `4242 4242 4242 4242` e o Pix de teste; a conta aparece no Console
+6. No Supabase (Authentication → URL Configuration), conferir que **Redirect URLs** inclui
+   `https://brennimark.vercel.app/auth/callback` (e o domínio definitivo, quando houver). Sem isso,
+   o link de primeiro acesso cai no endereço padrão e não abre a tela de criar senha.
+7. Testar com o cartão de teste `4242 4242 4242 4242` e o Pix de teste; a conta aparece no Console
    → Cobrança → Assinaturas.

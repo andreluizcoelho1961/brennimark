@@ -57,6 +57,8 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // Cobrança, link de primeiro acesso do titular (01/10/2026). Só local.
+  "cobranca_primeiro_acesso",
   // Cobrança, fatia 3 (01/10/2026): a regra de atraso, o limite de marcas e o
   // Vini em conta só leitura. Aplicada só no banco local.
   "cobranca_vida",
