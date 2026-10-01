@@ -124,6 +124,40 @@ function DesativarPreco({ preco, aoConcluir }: { preco: Preco; aoConcluir: () =>
   );
 }
 
+/**
+ * O link de primeiro acesso do titular: abre a sessão e leva à tela de criar a
+ * senha. Só serve para titular que nasceu da compra e nunca entrou — o banco
+ * decide e registra. Vale pouco tempo; gere quando for mandar.
+ */
+function LinkDeAcesso({ workspaceId }: { workspaceId: string }) {
+  const [aberto, setAberto] = useState(false);
+  const [motivo, setMotivo] = useState("");
+  const [link, setLink] = useState("");
+  const [aviso, setAviso] = useState("");
+  async function gerar() {
+    setLink("");
+    const { erro, dados } = await enviar({ tipo: "link_de_acesso", workspaceId, motivo });
+    setAviso(erro ?? "");
+    if (!erro && typeof dados.url === "string") setLink(dados.url);
+  }
+  if (!aberto) return <button type="button" className={BOTAO_LINHA} onClick={() => setAberto(true)}>Link de acesso</button>;
+  return (
+    <div data-link-de-acesso className="flex min-w-[18rem] flex-col gap-2">
+      <span className="flex flex-wrap gap-2">
+        <input aria-label="Motivo do link de acesso" className={`${CAMPO} flex-1`} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Motivo" />
+        <button type="button" className={BOTAO} onClick={gerar}>Gerar</button>
+      </span>
+      {aviso && <span role="alert" className="text-xs text-platform-text">{aviso}</span>}
+      {link && (
+        <>
+          <span className="text-xs text-platform-text">Mande à pessoa agora: o link vale cerca de 1 hora e leva à tela de criar a senha.</span>
+          <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} className={`${CAMPO} font-mono text-xs`} aria-label="Link de primeiro acesso" />
+        </>
+      )}
+    </div>
+  );
+}
+
 /** O link de pagamento do piloto: qualquer plano, inclusive o Piloto, que não está à venda. */
 function LinkDePiloto({ planos }: { planos: Plano[] }) {
   const [link, setLink] = useState("");
@@ -196,7 +230,7 @@ export function PainelDeCobranca() {
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-left text-sm text-platform-text">
               <thead className="text-[11px] uppercase tracking-wide text-platform-text-muted">
-                <tr><th className={TH}>Conta</th><th className={TH}>Plano</th><th className={TH}>Situação</th><th className={TH}>Pago até</th><th className={TH}>Titular</th><th className={TH}>Desde</th></tr>
+                <tr><th className={TH}>Conta</th><th className={TH}>Plano</th><th className={TH}>Situação</th><th className={TH}>Pago até</th><th className={TH}>Titular</th><th className={TH}>Desde</th><th className={TH}>Primeiro acesso</th></tr>
               </thead>
               <tbody>
                 {painel.assinaturas.map((a) => (
@@ -211,6 +245,7 @@ export function PainelDeCobranca() {
                     <td className="py-2 pr-4 font-mono">{data(a.periodo_pago_ate)}</td>
                     <td className="py-2 pr-4">{a.titular_email}</td>
                     <td className="py-2 pr-4 font-mono">{data(a.desde)}</td>
+                    <td className="py-2 pr-4"><LinkDeAcesso workspaceId={a.workspace_id} /></td>
                   </tr>
                 ))}
               </tbody>

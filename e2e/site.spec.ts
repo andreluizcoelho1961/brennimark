@@ -113,6 +113,9 @@ test("o selo de demonstração sai de cena nos capítulos que já têm o chamado
 });
 
 test("Entrar leva ao login; com sessão, a porta vira Abrir a plataforma", async ({ page, context }) => {
+  // Abrir e recarregar compilam páginas do `next dev` pela primeira vez; com a
+  // máquina carregada, passa dos 30 s padrão (achado em 01/10/2026).
+  test.setTimeout(90_000);
   await abrir(page, "/vini");
   const porta = page.locator(".site-head [data-porta]");
   await expect(porta).toHaveText("Entrar");
@@ -138,12 +141,16 @@ test("o diálogo de demonstração abre no centro e fecha", async ({ page }) => 
 });
 
 test("o menu Plataforma leva a uma página com endereço próprio", async ({ page }) => {
+  // O clique leva a /vini, que o `next dev` pode estar compilando pela primeira
+  // vez: com a máquina carregada, a navegação passou dos 5 s da asserção três
+  // vezes em 01/10/2026. O prazo maior vale só para a navegação.
+  test.setTimeout(90_000);
   await abrir(page, "/");
   await page.locator(".site-head").getByRole("button", { name: /Plataforma/ }).hover();
   const menu = page.locator("#m-plat");
   await expect(menu).toBeVisible();
   await menu.getByRole("link", { name: /Vini Max/ }).click();
-  await expect(page).toHaveURL(/\/vini$/);
+  await expect(page).toHaveURL(/\/vini$/, { timeout: 30_000 });
   await expect(page).toHaveTitle("Vini Max · Brennimark");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("O Vini Max ajuda você a trabalhar com a marca.");
 

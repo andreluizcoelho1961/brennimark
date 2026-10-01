@@ -20,6 +20,11 @@
 --      e a edição param no banco, o download e a revogação de link seguem;
 --      marca nova para, e o limite de marcas do plano vale. Conta sem
 --      assinatura não muda nada. Voltar a pagar devolve tudo.
+--   8. O link de primeiro acesso: só a equipe, com motivo; só para o titular
+--      que nasceu da compra e nunca entrou.
+--   9. (revisão de 01/10) O login criado pela compra fica preso à conta que
+--      pagou: não colhe concessão de outra conta. E quem já tinha login criado
+--      por outra agência paga e vira dono da conta que pagou.
 --   6. (fatia 2) Só a equipe lê e ajusta planos e preços no Console, sempre com
 --      motivo registrado; preço novo substitui o antigo sem apagá-lo; o
 --      checkout só acha preço ativo, e pelo site só de plano à venda.
@@ -180,7 +185,9 @@ do $$
 declare m mundo; t record;
 begin
   select * into m from mundo;
-  perform pg_temp.registrar('visitante LE os planos', 'ACEITOU', pg_temp.papel('anon', 'select 1 from public.planos'));
+  perform pg_temp.registrar('visitante LE os planos (o que o site mostra)', 'ACEITOU', pg_temp.papel('anon', 'select codigo, nome, maximo_de_marcas, a_venda, ordem from public.planos'));
+  perform pg_temp.registrar('visitante NAO le o teto de custo do Vini (sem dinheiro para o cliente)', '42501', pg_temp.papel('anon', 'select teto_mensal_do_vini_micros from public.planos'));
+  perform pg_temp.registrar('nem quem tem sessao', '42501', (select estado from pg_temp.como(m.titular, 'select teto_mensal_do_vini_micros from public.planos')));
   perform pg_temp.registrar('o site ve 3 planos a venda; o Piloto nao', '3',
     (select count(*)::text from public.planos where a_venda));
   perform pg_temp.registrar('visitante NAO le precos', '42501', pg_temp.papel('anon', 'select 1 from public.precos_do_plano'));
@@ -516,6 +523,71 @@ begin
   perform pg_temp.valor((select equipe from mundo), 'select public.console_definir_plano(''basico'', ''Básico'', null, 30000000, null, true, 1::smallint, ''sem limite para a prova'')::text');
   perform pg_temp.registrar('plano sem limite: a 6a passa', 'ACEITOU',
     pg_temp.direto(format('insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal) values (%L, ''vida-6'', ''6'', ''6'', ''x'', ''pt-BR'', ''{}'',''{}'',''{}'',''{}'',''{}'')', c)));
+end $$;
+
+-- ─── 8. O link de primeiro acesso do titular ────────────────────────────────
+do $$
+declare m mundo; u uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0008'; c uuid; livre uuid; t record; n_antes integer;
+begin
+  select * into m from mundo;
+  insert into auth.users (id, email, aud, role, raw_app_meta_data) values
+    (u, 'prova-cob-acesso@local.test', 'authenticated', 'authenticated', '{"criado_pela_cobranca": true}'::jsonb);
+  c := pg_temp.sincronizar('sub_prova_acesso', 'price_prova_basico_brl_v2', 'ativa', null, 'prova-cob-acesso@local.test', 'Agência do Acesso');
+  insert into public.workspaces (name, slug) values ('Sem Assinatura do Acesso', 'prova-cob-acesso-livre') returning id into livre;
+
+  select * into t from pg_temp.como(u, format('select * from public.console_titular_para_primeiro_acesso(%L, ''quero entrar'')', c));
+  perform pg_temp.registrar('o proprio cliente NAO gera link de acesso', '42501', t.estado);
+  perform pg_temp.registrar('conta sem assinatura nao tem titular', 'P0002 cobranca_sem_assinatura',
+    pg_temp.como_dica(m.equipe, format('select * from public.console_titular_para_primeiro_acesso(%L, ''piloto novo'')', livre)));
+  perform pg_temp.registrar('login que a pessoa ja tinha (nao nasceu da compra) NAO recebe link', '22023 cobranca_titular_ja_tem_acesso',
+    pg_temp.como_dica(m.equipe, format('select * from public.console_titular_para_primeiro_acesso(%L, ''piloto novo'')', m.conta_outra)));
+  perform pg_temp.registrar('sem motivo de verdade, nada sai', '23514',
+    split_part(pg_temp.como_dica(m.equipe, format('select * from public.console_titular_para_primeiro_acesso(%L, ''x'')', c)), ' ', 1));
+
+  select count(*) into n_antes from private.registro_da_equipe where acao = 'gerar link de primeiro acesso';
+  perform pg_temp.registrar('a equipe recebe o titular que nasceu da compra e nunca entrou', 'prova-cob-acesso@local.test',
+    pg_temp.valor(m.equipe, format('select email from public.console_titular_para_primeiro_acesso(%L, ''piloto pagou, mandar acesso'')', c)));
+  perform pg_temp.registrar('e o pedido fica no registro da equipe', (n_antes + 1)::text,
+    (select count(*)::text from private.registro_da_equipe where acao = 'gerar link de primeiro acesso'));
+
+  update auth.users set last_sign_in_at = now() where id = u;
+  perform pg_temp.registrar('depois do primeiro acesso, nao ha mais link', '22023 cobranca_titular_ja_tem_acesso',
+    pg_temp.como_dica(m.equipe, format('select * from public.console_titular_para_primeiro_acesso(%L, ''perdeu a senha'')', c)));
+end $$;
+
+-- ─── 9. O login da compra preso à conta que pagou (revisão de 01/10) ────────
+do $$
+declare
+  u_pago uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0901';
+  u_free uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0902';
+  c uuid; c2 uuid; outra uuid;
+begin
+  insert into auth.users (id, email, aud, role, raw_app_meta_data) values
+    (u_pago, 'prova-cob-preso@local.test', 'authenticated', 'authenticated', '{"criado_pela_cobranca": true}');
+  c := pg_temp.sincronizar('sub_prova_preso', 'price_prova_basico_brl_v2', 'ativa', null, 'prova-cob-preso@local.test', 'Agência Presa');
+  perform pg_temp.registrar('o login criado pela compra fica preso a conta que pagou', c::text,
+    (select raw_app_meta_data->>'criado_pela_conta' from auth.users where id = u_pago));
+  perform pg_temp.registrar('e o titular e dono dela, com a concessao registrada como convertida', 'owner ativa',
+    (select wm.role || ' ' || ca.situacao from public.workspace_members wm
+       join public.concessoes_de_acesso ca on ca.workspace_id = wm.workspace_id and ca.convertida_para = wm.user_id
+      where wm.workspace_id = c and wm.user_id = u_pago));
+
+  insert into public.workspaces (name, slug) values ('Agência Alheia da Prova', 'prova-cob-alheia') returning id into outra;
+  insert into public.concessoes_de_acesso (workspace_id, brand_id, email, papel, concedida_por)
+  values (outra, null, 'prova-cob-preso@local.test', 'administrador', u_pago);
+  perform pg_temp.registrar('concessao de OUTRA conta NAO vira acesso para o login da compra', '0',
+    private.converter_concessoes(u_pago, 'prova-cob-preso@local.test')::text);
+  perform pg_temp.registrar('e fica pendente, sem membro novo', 'pendente 0',
+    (select ca.situacao || ' ' || (select count(*) from public.workspace_members where workspace_id = outra)
+       from public.concessoes_de_acesso ca where ca.workspace_id = outra));
+
+  insert into auth.users (id, email, aud, role, raw_app_meta_data) values
+    (u_free, 'prova-cob-freelancer@local.test', 'authenticated', 'authenticated', jsonb_build_object('criado_pela_conta', outra));
+  c2 := pg_temp.sincronizar('sub_prova_free', 'price_prova_basico_brl_v2', 'ativa', null, 'prova-cob-freelancer@local.test', 'Freelancer');
+  perform pg_temp.registrar('quem ja tinha login de outra agencia paga e vira dono da conta que pagou', 'owner',
+    (select role from public.workspace_members where workspace_id = c2 and user_id = u_free));
+  perform pg_temp.registrar('e o login dele continua preso a agencia que o criou', outra::text,
+    (select raw_app_meta_data->>'criado_pela_conta' from auth.users where id = u_free));
 end $$;
 
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;

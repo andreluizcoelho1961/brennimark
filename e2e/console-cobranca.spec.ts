@@ -80,3 +80,27 @@ test("o link de piloto aparece pronto para copiar, com o prazo dito", async ({ p
   await expect(form.getByLabel("Link de pagamento")).toHaveValue("https://checkout.stripe.com/c/pay/cs_test_piloto");
   expect(pedidos[0]).toMatchObject({ tipo: "link_de_piloto", plano: "piloto", moeda: "BRL", empresa: "Agência Piloto" });
 });
+
+test("o link de primeiro acesso do titular: com motivo, pronto para copiar; a recusa vem com frase", async ({ page }) => {
+  const pedidos: Pedido[] = [];
+  await fingir(page, pedidos, { status: 200, json: { url: "http://127.0.0.1:54321/auth/v1/verify?token=x&type=magiclink", titular: "dona@piloto.com", validaAte: "2026-10-04T12:00:00Z" } });
+  await page.goto("/dev/console-cobranca");
+  const linha = page.locator('[data-assinatura="33333333-3333-4333-8333-333333333333"]');
+  await linha.getByRole("button", { name: "Link de acesso" }).click();
+  await linha.getByLabel("Motivo do link de acesso").fill("piloto pagou");
+  await linha.getByRole("button", { name: "Gerar" }).click();
+  await expect(linha.getByLabel("Link de primeiro acesso")).toHaveValue(/verify\?token=x/);
+  await expect(linha.locator("[data-link-de-acesso]")).toContainText("vale cerca de 1 hora");
+  expect(pedidos[0]).toEqual({ tipo: "link_de_acesso", workspaceId: "33333333-3333-4333-8333-333333333333", motivo: "piloto pagou" });
+});
+
+test("titular que já entrou não recebe link — a frase do servidor aparece", async ({ page }) => {
+  await fingir(page, [], { status: 400, json: { message: "O titular já entrou na conta (ou o login não nasceu da compra): link de primeiro acesso não serve mais." } });
+  await page.goto("/dev/console-cobranca");
+  const linha = page.locator('[data-assinatura="33333333-3333-4333-8333-333333333333"]');
+  await linha.getByRole("button", { name: "Link de acesso" }).click();
+  await linha.getByLabel("Motivo do link de acesso").fill("perdeu a senha");
+  await linha.getByRole("button", { name: "Gerar" }).click();
+  await expect(linha.getByRole("alert")).toContainText("já entrou na conta");
+  await expect(linha.getByLabel("Link de primeiro acesso")).toHaveCount(0);
+});
