@@ -59,7 +59,11 @@ jobs:
   verify:
     name: Lint, tipos, testes, build e navegador
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # 30, e não 20 (01/10/2026): o #77 foi cortado duas vezes com a suíte
+    # inteira verde, porque baixar os navegadores levou de 5 a 19 minutos. O
+    # cache abaixo tira o download do caminho; a folga cobre o dia em que ele
+    # falha.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -97,8 +101,23 @@ jobs:
       # manual que abre no Chrome e falha no Safari e um manual que nao abre
       # para metade dos designers. So a suite do importador roda nos tres; o
       # resto e HTML e CSS comuns.
+      # Os navegadores ficam em cache entre execuções, pela versão do lockfile:
+      # o download (~500 MB) era o passo mais lento e o mais instável do CI.
+      # Com o cache, só as dependências do sistema são instaladas.
+      - name: Cache dos navegadores
+        id: cache-navegadores
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - name: Navegadores do Playwright
+        if: steps.cache-navegadores.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium webkit firefox
+
+      - name: Dependências dos navegadores
+        if: steps.cache-navegadores.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium webkit firefox
 
       # Sobe `next dev` com BRENNIMARK_DEV_SKIP_AUTH e nada mais: sem Supabase,
       # sem segredo, sem rede. Ver playwright.config.ts.
