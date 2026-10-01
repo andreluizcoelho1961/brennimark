@@ -26,18 +26,16 @@ test("quem só consulta não vê a gestão", () => {
   assert.deepEqual(grupos.map((g) => g.id), ["plataforma"]);
 });
 
-test("quem administra vê Pessoas, Registros e Configurações funcionando e o resto como 'em breve', sem link", () => {
+test("quem administra vê Pessoas, Links, Registros e Configurações funcionando", () => {
   const gestao = colunaDaPlataforma({ contaSlug: "agencia", administraConta: true })
     .find((g) => g.id === "gestao")!;
   const pessoas = gestao.itens.find((i) => i.id === "pessoas")!;
   assert.equal(pessoas.href, "/w/agencia/pessoas");
   assert.equal(gestao.itens.find((i) => i.id === "registros")!.href, "/w/agencia/registros");
   assert.equal(gestao.itens.find((i) => i.id === "configuracoes")!.href, "/w/agencia/configuracoes");
-  for (const id of ["links"]) {
-    const item = gestao.itens.find((i) => i.id === id)!;
-    assert.equal(item.emBreve, true, `${id} deveria estar em breve`);
-    assert.equal(item.href, undefined, `${id} não pode levar a uma tela que não existe`);
-  }
+  assert.equal(gestao.itens.find((i) => i.id === "links")!.href, "/w/agencia/links");
+  // Desde 30/09/2026 (links de entrega) nada da gestão está "em breve".
+  assert.deepEqual(gestao.itens.filter((i) => i.emBreve).map((i) => i.id), []);
 });
 
 test("Manual e Materiais saem da coluna: moram na barra de cima", () => {

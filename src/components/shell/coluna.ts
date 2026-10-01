@@ -118,7 +118,7 @@ export function colunaDaPlataforma({
       rotulo: t("Gestão", "Management"),
       itens: [
         { id: "pessoas", rotulo: t("Pessoas e acesso", "People & access"), icone: "pessoas", href: `/w/${contaSlug}/pessoas` },
-        { id: "links", rotulo: t("Links de entrega", "Delivery links"), icone: "links", emBreve: true },
+        { id: "links", rotulo: t("Links de entrega", "Delivery links"), icone: "links", href: `/w/${contaSlug}/links` },
         { id: "registros", rotulo: t("Registros", "Records"), icone: "registros", href: `/w/${contaSlug}/registros` },
         { id: "configuracoes", rotulo: t("Configurações", "Settings"), icone: "configuracoes", href: `/w/${contaSlug}/configuracoes` },
       ],

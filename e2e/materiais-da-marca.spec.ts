@@ -295,3 +295,26 @@ test("item com UM arquivo: o botão baixa o próprio arquivo, sem ZIP, e não of
   await pedido;
   expect(pediuKit).toBe(false);
 });
+
+test("quem administra a conta cria link de entrega com os escolhidos — e o fora de uso não vai junto", async ({ page }) => {
+  await comAcervo(page);
+  await page.goto("/dev/materiais/item-logo?links=1");
+  await page.locator("[data-escolher-arquivos]").click();
+  const lista = page.locator("[data-lista-de-arquivos]");
+  const atalho = page.locator("[data-criar-link-com-selecionados]");
+  await expect(atalho).toHaveAttribute("aria-disabled", "true");
+  await expect(atalho).not.toHaveAttribute("href", /.*/);
+
+  await lista.getByLabel(/Mostrar fora de uso/).check();
+  await lista.getByLabel("vaio-h.svg").check();
+  await lista.getByLabel("vaio-v.eps").check();
+  await lista.getByLabel("vaio-antigo.svg").check();
+  await expect(atalho).toHaveAttribute("href", "/dev/links?marca=marca-um&arquivos=v-h,v-v");
+});
+
+test("sem administrar a conta, o atalho de link de entrega não aparece", async ({ page }) => {
+  await comAcervo(page);
+  await page.goto("/dev/materiais/item-logo");
+  await page.locator("[data-escolher-arquivos]").click();
+  await expect(page.locator("[data-criar-link-com-selecionados]")).toHaveCount(0);
+});

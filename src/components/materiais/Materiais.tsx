@@ -229,7 +229,12 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
 
 // ─── Página do item ─────────────────────────────────────────────────────────
 
-export function PaginaDoItem({ itemId, podeEditar, raiz }: { itemId: string; podeEditar: boolean; raiz?: string }) {
+/**
+ * `linkDeEntrega`: o endereço da criação de link já com a marca
+ * (`/w/<conta>/links?marca=<chave>`). Só vem para quem administra a marca E a
+ * conta — é quem abre a tela de links. A seleção vira `&arquivos=`.
+ */
+export function PaginaDoItem({ itemId, podeEditar, raiz, linkDeEntrega }: { itemId: string; podeEditar: boolean; raiz?: string; linkDeEntrega?: string }) {
   const t = useT();
   const en = useIsEnglish();
   const alvo = useAlvo();
@@ -356,6 +361,16 @@ export function PaginaDoItem({ itemId, podeEditar, raiz }: { itemId: string; pod
                 ? t("Baixar selecionado", "Download selected")
                 : t(`Baixar ${marcados.length} selecionados (ZIP)`, `Download ${marcados.length} selected (ZIP)`)}
             </button>
+            {linkDeEntrega && item.tipo !== "fonte" && (
+              <a
+                data-criar-link-com-selecionados
+                aria-disabled={marcados.length === 0}
+                href={marcados.length === 0 ? undefined : `${linkDeEntrega}&arquivos=${marcados.filter((id) => emUso.some((v) => v.id === id)).join(",")}`}
+                className={`inline-flex h-8 items-center rounded-[var(--radius-control)] border border-platform-border px-3 text-[13px] hover:border-platform-signal-soft ${marcados.length === 0 ? "pointer-events-none opacity-40" : ""}`}
+              >
+                {t("Criar link de entrega com os selecionados", "Create a delivery link with the selected")}
+              </a>
+            )}
           </div>
           <ul className="divide-y divide-platform-border">
             {listaParaEscolher.map((v) => (

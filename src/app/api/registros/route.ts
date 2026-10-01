@@ -54,17 +54,28 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
   let manual = supabase.from("downloads_do_manual")
     .select("id, brand_id, pessoa_email, file_name, created_at")
     .eq("workspace_id", workspaceId);
+  // Por link de entrega (30/09/2026): quem baixou não tem conta e se
+  // identificou com nome e e-mail autodeclarados.
+  let porLink = supabase.from("acessos_de_link")
+    .select("id, brand_id, nome, email, link_nome, asset_label, file_name, created_at")
+    .eq("workspace_id", workspaceId)
+    .eq("evento", "baixou");
   materiais = aplicarFiltros(materiais, f);
   manual = aplicarFiltros(manual, f);
+  porLink = aplicarFiltros(porLink, f);
   if (f.pessoa) {
     materiais = materiais.ilike("pessoa_email", `%${f.pessoa}%`);
     manual = manual.ilike("pessoa_email", `%${f.pessoa}%`);
+    // Mesmo cuidado dos acessos: `lerFiltros` só deixa passar caracteres
+    // seguros, e o valor vai ENTRE ASPAS no filtro.
+    porLink = porLink.or(`email.ilike."%${f.pessoa}%",nome.ilike."%${f.pessoa}%"`);
   }
-  const [a, b] = await Promise.all([
+  const [a, b, c] = await Promise.all([
     materiais.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
     manual.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
+    porLink.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
   ]);
-  if (a.error || b.error) return null;
+  if (a.error || b.error || c.error) return null;
   const deMateriais: LinhaDeDownload[] = (a.data ?? []).map((l) => ({
     id: l.id, tipo: "material", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),
     oque: l.asset_label, arquivo: l.file_name, quando: l.created_at,
@@ -73,7 +84,11 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
     id: l.id, tipo: "manual", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),
     oque: isEnglish ? "Manual (PDF)" : "Manual (PDF)", arquivo: l.file_name, quando: l.created_at,
   }));
-  return mesclarPorData([deMateriais, doManual]);
+  const deLinks: LinhaDeDownload[] = (c.data ?? []).map((l) => ({
+    id: l.id, tipo: "link", via: l.link_nome, marca: marcas.get(l.brand_id) ?? "—",
+    pessoa: `${l.nome} · ${l.email}`, oque: l.asset_label, arquivo: l.file_name, quando: l.created_at,
+  }));
+  return mesclarPorData([deMateriais, doManual, deLinks]);
 }
 
 async function acessos(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>) {

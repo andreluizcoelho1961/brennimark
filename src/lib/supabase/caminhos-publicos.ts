@@ -16,11 +16,17 @@
  * rota que um dia comece assim. Página do site é HTML gerado no deploy e não
  * lê dado nenhum; passar sem sessão não expõe nada.
  *
+ * Os LINKS DE ENTREGA entraram em 30/09/2026 (ADR-0007 §2.5): `/receber/` é a
+ * página de quem recebeu o link e não tem conta, e `/api/receber/` o download
+ * dela. Também aqui, passar sem sessão não é passar sem autorização: as duas
+ * só respondem ao código do link, conferido pelo banco a cada pedido. A barra
+ * final é de propósito, como na manutenção.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
-export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/"] as const;
+export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
