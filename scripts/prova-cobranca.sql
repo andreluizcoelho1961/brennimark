@@ -16,6 +16,10 @@
 --      administra não leem.
 --   5. Um aviso repetido não tem efeito duas vezes, e o registro dos avisos
 --      não se apaga nem se reescreve depois de concluído.
+--   7. (fatia 3) Atraso: até 7 dias tudo funciona; depois, só leitura — o Vini
+--      e a edição param no banco, o download e a revogação de link seguem;
+--      marca nova para, e o limite de marcas do plano vale. Conta sem
+--      assinatura não muda nada. Voltar a pagar devolve tudo.
 --   6. (fatia 2) Só a equipe lê e ajusta planos e preços no Console, sempre com
 --      motivo registrado; preço novo substitui o antigo sem apagá-lo; o
 --      checkout só acha preço ativo, e pelo site só de plano à venda.
@@ -97,6 +101,25 @@ declare v text;
 begin
   execute p_sql into v;
   return v;
+end $f$;
+
+-- Como uma pessoa, devolvendo SQLSTATE e o hint (o gatilho da cobrança não
+-- tem constraint, tem hint).
+create function pg_temp.como_dica(p_quem uuid, p_sql text) returns text
+language plpgsql as $f$
+declare estado text; dica text;
+begin
+  begin
+    perform set_config('request.jwt.claims', json_build_object('sub', p_quem, 'role', 'authenticated')::text, true);
+    execute 'set local role authenticated';
+    execute p_sql;
+    execute 'reset role';
+    perform set_config('request.jwt.claims', '', true);
+    return 'ACEITOU';
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate, dica = pg_exception_hint;
+    return estado || ' ' || coalesce(dica, '');
+  end;
 end $f$;
 
 create function pg_temp.valor(p_quem uuid, p_sql text) returns text
@@ -402,6 +425,97 @@ begin
 
   perform pg_temp.registrar('cada acao da equipe que valeu ficou no registro, com quem fez', '4 Equipe da Prova',
     (select count(*) || ' ' || max(quem_nome) from private.registro_da_equipe where quem = m.equipe));
+end $$;
+
+-- ─── 7. A vida da assinatura: atraso, só leitura e limite de marcas (fatia 3)
+do $$
+declare
+  u uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0007';
+  livre uuid; c uuid; marca uuid; i integer; r record;
+  reservar text := 'select motivo from public.reservar_execucao_de_ia_server(%L, %L, null, gen_random_uuid(), ''assist'', 1000, ''USD'')';
+begin
+  insert into auth.users (id, email, aud, role) values (u, 'prova-cob-vida@local.test', 'authenticated', 'authenticated');
+  c := pg_temp.sincronizar('sub_prova_vida', 'price_prova_basico_brl_v2', 'ativa', u, 'prova-cob-vida@local.test', 'Agência da Vida');
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal)
+  values (c, 'vida-a', 'Marca da Vida', 'V', 'x', 'pt-BR', '{}','{}','{}','{}','{}') returning id into marca;
+
+  -- Uma conta SEM assinatura, como as de hoje.
+  insert into public.workspaces (name, slug) values ('Conta Livre da Prova', 'prova-cob-livre') returning id into livre;
+  insert into public.workspace_members (workspace_id, user_id, role) values (livre, u, 'owner');
+
+  perform pg_temp.registrar('conta sem assinatura fica livre', '{"acesso": "livre", "so_leitura_a_partir_de": null}',
+    pg_temp.valor(u, format('select public.situacao_de_cobranca_da_conta(%L)::text', livre)));
+  perform pg_temp.registrar('assinatura em dia: ativa', 'ativa',
+    pg_temp.valor(u, format('select public.situacao_de_cobranca_da_conta(%L)->>''acesso''', c)));
+  perform pg_temp.registrar('quem nao e da conta NAO pergunta a situacao dela', '42501',
+    (select estado from pg_temp.como((select outro from mundo), format('select public.situacao_de_cobranca_da_conta(%L)', c))));
+
+  -- Atraso de 2 dias: tolerância. Tudo funciona.
+  perform pg_temp.sincronizar('sub_prova_vida', 'price_prova_basico_brl_v2', 'em_atraso', u, 'prova-cob-vida@local.test');
+  update public.assinaturas set em_atraso_desde = now() - interval '2 days' where workspace_id = c;
+  perform pg_temp.registrar('atraso de 2 dias e tolerancia, com a data do fim', 'tolerancia true',
+    pg_temp.valor(u, format('select (public.situacao_de_cobranca_da_conta(%1$L)->>''acesso'') || '' '' || ((public.situacao_de_cobranca_da_conta(%1$L)->>''so_leitura_a_partir_de'')::timestamptz between now() + interval ''4 days 23 hours'' and now() + interval ''5 days 1 hour'')', c)));
+  execute 'set local role service_role';
+  execute format(reservar, u, c) into r;
+  execute 'reset role';
+  perform pg_temp.registrar('na tolerancia o Vini responde (a reserva passa)', 'reservado', r.motivo);
+  perform pg_temp.registrar('na tolerancia a edicao segue', 'ACEITOU',
+    pg_temp.como_dica(u, format('select public.criar_complemento(%L, ''Na tolerância'', ''texto'')', marca)));
+
+  -- Atraso de 8 dias: só leitura.
+  update public.assinaturas set em_atraso_desde = now() - interval '8 days' where workspace_id = c;
+  perform pg_temp.registrar('atraso de 8 dias: so leitura', 'so_leitura',
+    pg_temp.valor(u, format('select public.situacao_de_cobranca_da_conta(%L)->>''acesso''', c)));
+  execute 'set local role service_role';
+  execute format(reservar, u, c) into r;
+  execute 'reset role';
+  perform pg_temp.registrar('em so leitura o Vini para', 'conta_so_leitura', r.motivo);
+  perform pg_temp.registrar('em so leitura a edicao para, no banco', '42501 cobranca_conta_so_leitura',
+    pg_temp.como_dica(u, format('select public.criar_complemento(%L, ''Em só leitura'', ''texto'')', marca)));
+  perform pg_temp.registrar('nem editar o complemento que ja existe', '42501 cobranca_conta_so_leitura',
+    pg_temp.como_dica(u, format('select public.salvar_rascunho_de_complemento((select id from public.complementos where brand_id = %L limit 1), ''x'', ''y'')', marca)));
+  perform pg_temp.registrar('nem a chave de servico importa marca nova', '42501 cobranca_conta_so_leitura',
+    pg_temp.direto(format('insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal) values (%L, ''vida-b'', ''B'', ''B'', ''x'', ''pt-BR'', ''{}'',''{}'',''{}'',''{}'',''{}'')', c)));
+  perform pg_temp.registrar('nem renomeia a marca', '42501 cobranca_conta_so_leitura',
+    pg_temp.direto(format('update public.brands set name = ''Outro nome'' where id = %L', marca)));
+  perform pg_temp.registrar('o complemento continua la (nada apagado)', '1',
+    (select count(*)::text from public.complementos where brand_id = marca));
+  perform pg_temp.registrar('e a pessoa continua lendo', '1',
+    pg_temp.valor(u, format('select count(*)::text from public.complementos where brand_id = %L', marca)));
+  perform pg_temp.registrar('a conta sem assinatura do mesmo dono NAO e afetada', 'ACEITOU',
+    pg_temp.direto(format('insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal) values (%L, ''livre-a'', ''L'', ''L'', ''x'', ''pt-BR'', ''{}'',''{}'',''{}'',''{}'',''{}'')', livre)));
+
+  -- O que segue funcionando, pela forma dos gatilhos.
+  perform pg_temp.registrar('downloads e acessos NAO tem a trava (download segue)', '0',
+    (select count(*)::text from pg_trigger t where t.tgname like 'cobranca%' and t.tgrelid in
+      ('public.brand_asset_downloads'::regclass, 'public.downloads_do_manual'::regclass, 'public.acessos_de_link'::regclass, 'public.concessoes_de_acesso'::regclass)));
+  perform pg_temp.registrar('no link de entrega a trava e so ao criar (revogar segue)', 'INSERT',
+    (select case when (t.tgtype & 4) <> 0 and (t.tgtype & 16) = 0 then 'INSERT' else 'OUTRO' end
+       from pg_trigger t where t.tgname = 'cobranca_so_leitura' and t.tgrelid = 'public.links_de_entrega'::regclass));
+  perform pg_temp.registrar('a trava esta nas 9 tabelas de conteudo', '9',
+    (select count(*)::text from pg_trigger where tgname = 'cobranca_so_leitura'));
+
+  -- Cancelada também é só leitura; voltar a pagar devolve tudo.
+  perform pg_temp.sincronizar('sub_prova_vida', 'price_prova_basico_brl_v2', 'cancelada', u, 'prova-cob-vida@local.test');
+  perform pg_temp.registrar('cancelada: so leitura', 'so_leitura',
+    pg_temp.valor(u, format('select public.situacao_de_cobranca_da_conta(%L)->>''acesso''', c)));
+  perform pg_temp.sincronizar('sub_prova_vida', 'price_prova_basico_brl_v2', 'ativa', u, 'prova-cob-vida@local.test');
+  perform pg_temp.registrar('voltou a pagar: a edicao volta', 'ACEITOU',
+    pg_temp.como_dica(u, format('select public.criar_complemento(%L, ''De volta'', ''texto'')', marca)));
+
+  -- O limite de marcas do plano (Básico: 5).
+  for i in 2..5 loop
+    insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal)
+    values (c, 'vida-' || i, 'Marca ' || i, 'M', 'x', 'pt-BR', '{}','{}','{}','{}','{}');
+  end loop;
+  perform pg_temp.registrar('a conta chegou a 5 marcas, o limite do Basico', '5', (select count(*)::text from public.brands where workspace_id = c));
+  perform pg_temp.registrar('a 6a marca e recusada pelo banco', '23514 cobranca_limite_de_marcas',
+    pg_temp.direto(format('insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal) values (%L, ''vida-6'', ''6'', ''6'', ''x'', ''pt-BR'', ''{}'',''{}'',''{}'',''{}'',''{}'')', c)));
+  perform pg_temp.registrar('editar uma das 5 continua valendo', 'ACEITOU',
+    pg_temp.direto(format('update public.brands set name = ''Marca renomeada'' where id = %L', marca)));
+  perform pg_temp.valor((select equipe from mundo), 'select public.console_definir_plano(''basico'', ''Básico'', null, 30000000, null, true, 1::smallint, ''sem limite para a prova'')::text');
+  perform pg_temp.registrar('plano sem limite: a 6a passa', 'ACEITOU',
+    pg_temp.direto(format('insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal) values (%L, ''vida-6'', ''6'', ''6'', ''x'', ''pt-BR'', ''{}'',''{}'',''{}'',''{}'',''{}'')', c)));
 end $$;
 
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;

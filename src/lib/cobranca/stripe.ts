@@ -46,3 +46,9 @@ export async function criarCheckoutNoStripe(chave: string, parametros: Parametro
   if (!sessao.url) throw new Error("o Stripe não devolveu o endereço do checkout");
   return sessao.url;
 }
+
+/** O Portal do assinante: trocar cartão, mudar de plano, cancelar, baixar faturas. */
+export async function abrirPortalNoStripe(chave: string, idDoCliente: string, volta: string): Promise<string> {
+  const sessao = await new Stripe(chave).billingPortal.sessions.create({ customer: idDoCliente, return_url: volta });
+  return sessao.url;
+}

@@ -11,6 +11,7 @@ import { gruposDaGaveta, type DestinoDaMarca, type GrupoDaColuna } from "./colun
 import { JanelaDoVini } from "@/components/vini/JanelaDoVini";
 import { NavigationDrawer } from "./NavigationDrawer";
 import { PlatformTopBar } from "./PlatformTopBar";
+import { AvisoDaCobranca } from "./AvisoDaCobranca";
 import type { ShellSection } from "./navigation";
 
 /**
@@ -291,6 +292,7 @@ export function AppShellV2({
              * nada fora da caixa para cortar. Quem rola de verdade é o
              * `<main>` ao redor, que já tinha `overflow-y-auto`.
              */}
+            <AvisoDaCobranca />
             <div className="mx-auto min-h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
               {children}
             </div>
