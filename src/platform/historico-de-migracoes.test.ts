@@ -60,9 +60,9 @@ const PENDENTES_ESPERADAS: string[] = [
   // Cobrança, fatia 3 (01/10/2026): a regra de atraso, o limite de marcas e o
   // Vini em conta só leitura. Aplicada só no banco local.
   "cobranca_vida",
-  // Cobrança, fatia 2 (01/10/2026): só funções do Console e do checkout.
-  // Aplicada só no banco local; vai ao hospedado com autorização nominal.
-  "cobranca_compra",
+  // `cobranca_compra` saiu daqui em 01/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261001204421`; impressão digital
+  // igual à do local (as funções do Console e do checkout).
   // `cobranca` saiu daqui em 01/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261001170535`; impressão digital
   // igual à do local (5 funções — corpo, SECURITY DEFINER, search_path,
