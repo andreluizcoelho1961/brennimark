@@ -39,9 +39,18 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    **Antes de abrir a venda, decisão do André:** como o comprador recebe o acesso. O login nasce sem
    senha; o produto não manda e-mail, e o e-mail padrão do Supabase só envia para a equipe do
    projeto. A página de volta já promete "instruções de acesso no e-mail".
-3. **Vida da assinatura**: o Portal do Stripe, a regra de atraso (tolerância e só leitura), o limite
-   de marcas imposto pelo banco, a assinatura em Configurações e no Console, e a edição dos planos
-   no Console.
+3. **Vida da assinatura** (#76):
+   - **regra de atraso no banco** (`private.acesso_pela_cobranca`): até 7 dias em atraso, tudo
+     funciona; depois, ou se cancelada, só leitura. O Vini recusa (`conta_so_leitura`); a edição
+     para por um gatilho nas 9 tabelas de conteúdo; marca nova para. Download, revogar link e
+     administrar pessoas seguem. Nada é apagado. Conta sem assinatura (as abertas à mão) não muda;
+   - **limite de marcas do plano**, imposto pelo banco na criação da marca;
+   - **Configurações → Plano** (quem administra): plano, marcas do limite, pago até, o aviso de
+     atraso e o botão **Gerenciar assinatura** → Portal do Stripe (cartão, plano, cancelamento,
+     faturas);
+   - **aviso na moldura** para todos da conta, em tolerância ou só leitura.
+   Para o Portal funcionar, configurá-lo no painel do Stripe (Settings → Billing → Customer portal):
+   o que o cliente pode fazer lá (trocar plano, cancelar) é escolhido ali.
 4. **Nota fiscal automática**: um serviço emissor ligado ao webhook. No piloto, o MEI emite à mão.
 5. **Imposto internacional** (Stripe Tax), quando houver venda fora do Brasil.
 

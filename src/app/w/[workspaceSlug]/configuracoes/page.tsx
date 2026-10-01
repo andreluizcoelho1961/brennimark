@@ -32,8 +32,8 @@ export default async function ConfiguracoesPage({
         <div className="mx-auto max-w-[68rem]">
           <h1 className="font-display text-2xl font-black uppercase text-platform-text">Configurações</h1>
           <p className="mt-3 max-w-[46rem] text-sm leading-relaxed text-platform-text-muted">
-            O que {conta.nome} usa do Vini e quanto espaço as marcas ocupam. Só quem administra a conta vê
-            esta tela.
+            O que {conta.nome} usa do Vini, quanto espaço as marcas ocupam e o plano da conta. Só quem
+            administra a conta vê esta tela.
           </p>
           <div className="mt-8">
             <Configuracoes />

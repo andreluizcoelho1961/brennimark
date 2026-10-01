@@ -43,9 +43,9 @@ test("mostra os tetos de agora, a tabela por marca e nenhum valor em dinheiro", 
   await page.goto("/dev/configuracoes");
 
   await expect(page.locator('[data-parte="consumo"]')).toHaveAttribute("aria-current", "page");
-  for (const id of ["plano", "aceites"]) {
-    await expect(page.locator(`[data-parte-em-breve="${id}"]`)).toHaveAttribute("aria-disabled", "true");
-  }
+  // Plano entrou em 01/10/2026 (cobrança); Aceites segue "em breve".
+  await expect(page.locator('[data-parte="plano"]')).not.toHaveAttribute("aria-current", "page");
+  await expect(page.locator('[data-parte-em-breve="aceites"]')).toHaveAttribute("aria-disabled", "true");
 
   const dia = page.locator('[data-teto="dia"]');
   await expect(dia).toHaveAttribute("data-estado", "alerta");

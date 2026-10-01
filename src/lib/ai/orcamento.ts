@@ -72,6 +72,7 @@ export type SnapshotDeUso =
 
 export type MotivoDeRecusa =
   | "plataforma_pausada"
+  | "conta_so_leitura"
   | "kill_switch_workspace"
   | "kill_switch_marca"
   | "sem_orcamento_configurado"
@@ -330,6 +331,13 @@ export function mensagemDeOrcamento(
     return ingles
       ? "Vini is under maintenance right now. It will be back shortly."
       : "O Vini está em manutenção no momento. Volta em breve.";
+  }
+  // A assinatura em atraso há mais de 7 dias, ou cancelada (cobrança, 01/10/2026).
+  // Quem resolve é quem administra a conta, não o suporte.
+  if (motivo === "conta_so_leitura") {
+    return ingles
+      ? "This account's subscription is overdue, so the account is read-only. Vini is back as soon as the payment is settled."
+      : "A assinatura desta conta está em atraso, e a conta está só para leitura. O Vini volta assim que o pagamento for regularizado.";
   }
   if (motivo === "kill_switch_workspace" || motivo === "kill_switch_marca") {
     return ingles
