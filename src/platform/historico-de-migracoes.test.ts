@@ -57,12 +57,11 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  /**
-   * Links de entrega (ADR-0007 §2.5), escritos em 30/09/2026 com o desenho
-   * autorizado pelo André. Aplicar ao banco hospedado pede autorização
-   * própria; ao aplicar, sai daqui e o carimbo entra em `historico-remoto.txt`.
-   */
-  "links_de_entrega",
+  // `links_de_entrega` saiu daqui em 30/09/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20260930235824`; impressão
+  // digital igual à do local (5 funções — corpo, SECURITY DEFINER, search_path,
+  // grants —, 19 constraints, 29 colunas, 9 índices, 3 políticas, grants e RLS
+  // das 3 tabelas).
   // `operacao_do_console` saiu daqui em 30/09/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20260930120834`;
   // impressão digital igual à do local (6 funções — corpo, SECURITY DEFINER,
