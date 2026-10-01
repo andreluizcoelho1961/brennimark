@@ -11,6 +11,7 @@ import { idDeConversa } from "@/lib/ai/conversas";
 import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos, perguntaDasMensagens } from "@/lib/ai/buscar";
+import { buscarComplementos } from "@/lib/ai/complementos";
 import { caracteresDoManual, lerManualInteiro, manualCabeNoModelo } from "@/lib/ai/manual-inteiro";
 import { capacidadesDe } from "@/lib/ai/catalogo";
 import { comPaginasVistas, lerPaginasVistas, modeloVePaginas, paginasParaVer, type PaginaVista } from "@/lib/ai/paginas-para-ver";
@@ -80,6 +81,8 @@ export async function POST(request: Request) {
   // A ficha da paleta (27/09/2026): vai com qualquer modo, e para cores vale
   // sobre o texto do manual. Vazia quando a marca não tem ficha.
   let ficha: Trecho[] = [];
+  // Os complementos publicados da marca (01/10/2026): fonte própria, citada como complemento.
+  let complementos: Trecho[] = [];
   let brandPrompt: BrandPromptContext;
   let executionId: string | undefined;
   let maxOutputTokens: number;
@@ -157,13 +160,15 @@ export async function POST(request: Request) {
      */
     const paleta = await lerPaleta(portao.auth.supabase, portao.brand.id);
     if (paleta.ok) ficha = trechosDaFicha(paleta.cores, brandPrompt.language === "en");
+    // Os complementos publicados (01/10/2026). Falhar não derruba a conversa.
+    complementos = await buscarComplementos(portao.auth.supabase, portao.brand.id, perguntaDasMensagens(messages ?? []), brandPrompt.language === "en");
     const tamanhoDoManual = caracteresDoManual(manual);
     const cabeNo = (attempt: ResolvedChatAttempt) =>
       manual.length > 0 && manualCabeNoModelo(tamanhoDoManual, capacidadesDe(attempt.config.provider, attempt.config.model) ?? undefined);
     const algumLeInteiro = attempts.some(cabeNo);
     // A reserva conta o MAIOR que pode ir: se alguma IA da fila lê o manual
     // inteiro, reservar pelos trechos subestimaria.
-    const fontesDaReserva = [...ficha, ...(algumLeInteiro ? manual : trechos)];
+    const fontesDaReserva = [...ficha, ...(algumLeInteiro ? manual : trechos), ...complementos];
 
     /*
      * O Vini VÊ as páginas mais relevantes (26/09/2026): o texto de uma página
@@ -227,8 +232,8 @@ export async function POST(request: Request) {
         const result = streamText({
           model: getModel(attempt.config),
           system: cabeNo(attempt)
-            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha)
-            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha),
+            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha, complementos)
+            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha, complementos),
           messages: veNo(attempt) ? comPaginasVistas(messages, vistas, isEnglish) : messages,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
@@ -248,7 +253,7 @@ export async function POST(request: Request) {
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
       provider: execucao.attempt.config.provider, model: execucao.attempt.config.model,
-      modo: cabeNo(execucao.attempt) ? "inteiro" : "trechos", ficha: ficha.length > 0,
+      modo: cabeNo(execucao.attempt) ? "inteiro" : "trechos", ficha: ficha.length > 0, complementos: complementos.length,
       paginasVistas: veNo(execucao.attempt) ? vistas.map((v) => v.pagina) : [],
       reserva: execucao.fallbackUsed, executionId: execucao.executionId,
     }));

@@ -18,6 +18,7 @@ import type { IconeDaColuna } from "./coluna";
 const DESENHOS: Record<IconeDaColuna, React.ReactNode> = {
   manual: (<><path d="M4 5.5C6.5 4.5 9.5 4.5 12 6c2.5-1.5 5.5-1.5 8-.5v13c-2.5-1-5.5-1-8 .5-2.5-1.5-5.5-1.5-8-.5v-13z" /><path d="M12 6v13" /></>),
   materiais: (<><rect x="4" y="4" width="16" height="4" /><rect x="4" y="10" width="16" height="4" /><rect x="4" y="16" width="16" height="4" /></>),
+  complementos: (<><path d="M6 3.5h8l4 4v13H6z" /><path d="M14 3.5v4h4" /><path d="M9 12h6M9 15.5h6M9 19h3" /></>),
   marcas: (<><rect x="3.5" y="3.5" width="6" height="6" /><rect x="14.5" y="3.5" width="6" height="6" /><rect x="3.5" y="14.5" width="6" height="6" /><rect x="14.5" y="14.5" width="6" height="6" /></>),
   pessoas: (<><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /><circle cx="17" cy="9" r="2.5" /><path d="M17.5 14.5c2.2.3 3.6 1.9 4 4.5" /></>),
   links: (<><path d="M10 14l4-4" /><path d="M8.5 10.5L6 13a3.5 3.5 0 005 5l2.5-2.5" /><path d="M15.5 13.5L18 11a3.5 3.5 0 00-5-5l-2.5 2.5" /></>),

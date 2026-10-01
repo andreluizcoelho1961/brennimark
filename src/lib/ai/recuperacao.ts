@@ -20,6 +20,12 @@ export interface Trecho {
   pageStart: number | null;
   pageEnd: number | null;
   content: string;
+  /**
+   * De onde vem. Ausente = o manual. `complemento` (01/10/2026): texto que o
+   * assinante escreveu para o que o manual não cobre — citado como
+   * complemento, nunca como página do manual.
+   */
+  origem?: "complemento";
 }
 
 /**
@@ -262,8 +268,15 @@ export function montarContextoRecuperado(
     const paginas = trecho.pageStart !== null
       ? `\nPÁGINAS DO PDF: ${trecho.pageStart}${trecho.pageEnd !== null && trecho.pageEnd !== trecho.pageStart ? `–${trecho.pageEnd}` : ""}`
       : "";
-    partes.push(
-      `<source id="doc:${trecho.documentSlug}" status="${status}" kind="guide-page">
+    partes.push(trecho.origem === "complemento"
+      ? `<source id="complemento:${trecho.documentSlug}" status="${status}" kind="supplement">
+TÍTULO: ${trecho.documentTitle}
+GRUPO: ${trecho.groupName}
+CAMINHO: /complementos/${trecho.documentSlug}${secao}
+CONTEÚDO:
+${conteudo}
+</source>`
+      : `<source id="doc:${trecho.documentSlug}" status="${status}" kind="guide-page">
 TÍTULO: ${trecho.documentTitle}
 GRUPO: ${trecho.groupName}
 CAMINHO: /docs/${trecho.documentSlug}${secao}${paginas}

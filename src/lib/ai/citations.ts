@@ -20,7 +20,9 @@ export interface CitationText {
 
 export type CitationSegment = BrandCitation | CitationText;
 
-const PATH_PATTERN = "\\/docs\\/[^\\]\\s]+";
+// `/complementos/<slug>` desde 01/10/2026: o complemento é citado pelo
+// caminho dele, e nunca como página do manual.
+const PATH_PATTERN = "\\/(?:docs|complementos)\\/[^\\]\\s]+";
 
 function escapar(valor: string) {
   return valor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

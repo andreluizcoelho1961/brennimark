@@ -23,7 +23,7 @@ export function molduraDaMarcaAberta({
   ingles: boolean;
 }): {
   coluna: GrupoDaColuna[];
-  segmentado: { manual?: string; materiais?: string };
+  segmentado: { manual?: string; materiais?: string; complementos?: string };
   vini: DestinoDaMarca[];
 } {
   const destinos = sections.flatMap((secao) =>

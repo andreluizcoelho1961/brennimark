@@ -71,7 +71,7 @@ export function AppShellV2({
    */
   coluna: GrupoDaColuna[];
   /** Endereços do segmentado da barra de cima; vazios sem marca aberta. */
-  segmentado?: { manual?: string; materiais?: string };
+  segmentado?: { manual?: string; materiais?: string; complementos?: string };
   /** O que o Vini oferece na marca aberta. Vazio sem marca: sem marca, não
    *  há sobre o que perguntar, e o botão não aparece. */
   vini?: readonly DestinoDaMarca[];

@@ -15,17 +15,17 @@ import { useIsEnglish } from "@/platform/locale-client";
  * Illustrator sem documento aberto": os menus estão lá, e acendem quando há
  * sobre o que agir. Apagado não é link morto: é `aria-disabled`, sem `href`.
  *
- * Complementos ainda não existe (plano §3, depois do ensaio): aparece sempre
- * apagado, com o mesmo "em breve" da coluna.
+ * Complementos existe desde 01/10/2026: textos do assinante para o que o
+ * manual não cobre, ao lado do PDF (direção §20).
  */
-export function SegmentadoDaMarca({ manual, materiais }: { manual?: string; materiais?: string }) {
+export function SegmentadoDaMarca({ manual, materiais, complementos }: { manual?: string; materiais?: string; complementos?: string }) {
   const isEnglish = useIsEnglish();
   const pathname = usePathname() ?? "";
 
   const partes: { id: string; rotulo: string; href?: string; emBreve?: boolean }[] = [
     { id: "manual", rotulo: "Manual", href: manual },
     { id: "materiais", rotulo: isEnglish ? "Materials" : "Materiais", href: materiais },
-    { id: "complementos", rotulo: isEnglish ? "Supplements" : "Complementos", emBreve: true },
+    { id: "complementos", rotulo: isEnglish ? "Supplements" : "Complementos", href: complementos },
   ];
 
   return (
