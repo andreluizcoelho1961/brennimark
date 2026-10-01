@@ -2,6 +2,7 @@ import "server-only";
 import Stripe from "stripe";
 import { assinaturaDoStripe, type AssinaturaDoStripe } from "./stripe-traducao";
 import type { AssinaturaNoProvedor } from "./webhook";
+import type { ParametrosDoCheckout } from "./compra";
 
 export { lerAvisoAssinado } from "./aviso-assinado";
 
@@ -30,4 +31,18 @@ export async function buscarAssinaturaNoStripe(chave: string, idAssinatura: stri
   const stripe = new Stripe(chave);
   const sub = await stripe.subscriptions.retrieve(idAssinatura, { expand: ["customer"] });
   return assinaturaDoStripe(sub as unknown as AssinaturaDoStripe);
+}
+
+/** O valor do preço, em centavos — o teto do mandato do Pix Automático. */
+export async function valorDoPrecoNoStripe(chave: string, idDoPreco: string): Promise<number> {
+  const preco = await new Stripe(chave).prices.retrieve(idDoPreco);
+  if (typeof preco.unit_amount !== "number") throw new Error("preço sem valor fixo");
+  return preco.unit_amount;
+}
+
+/** Abre a página de pagamento do Stripe e devolve o endereço dela. */
+export async function criarCheckoutNoStripe(chave: string, parametros: ParametrosDoCheckout): Promise<string> {
+  const sessao = await new Stripe(chave).checkout.sessions.create(parametros as Stripe.Checkout.SessionCreateParams);
+  if (!sessao.url) throw new Error("o Stripe não devolveu o endereço do checkout");
+  return sessao.url;
 }

@@ -65,5 +65,13 @@ test("só o caminho exato do webhook: o resto da cobrança pede sessão", () => 
   assert.equal(caminhoPublico("/api/cobranca/stripe/"), false);
   assert.equal(caminhoPublico("/api/cobranca/stripex"), false);
   assert.equal(caminhoPublico("/api/cobranca/portal"), false);
-  assert.equal(caminhoPublico("/api/cobranca/checkout"), false);
+});
+
+test("a compra passa sem sessão — quem compra ainda não tem conta", () => {
+  assert.equal(caminhoPublico("/assinar"), true);
+  assert.equal(caminhoPublico("/assinar/obrigado"), true);
+  assert.equal(caminhoPublico("/api/cobranca/checkout"), true);
+  assert.equal(caminhoPublico("/assinar/qualquer"), false);
+  assert.equal(caminhoPublico("/assinarx"), false);
+  assert.equal(caminhoPublico("/api/cobranca/checkoutx"), false);
 });

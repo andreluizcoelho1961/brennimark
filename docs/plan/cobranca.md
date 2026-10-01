@@ -30,11 +30,15 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 
 ## Fatias
 
-1. **Base** (esta): tabelas, webhook e abertura de conta, provados no banco local, nos testes de
-   unidade e no navegador.
-2. **Compra**: `/assinar` ligado aos planos do site e o link de piloto no Console. **Antes dela,
-   decisão do André:** como o comprador recebe o acesso. O produto não manda e-mail, e o e-mail
-   padrão do Supabase só envia para a equipe do projeto.
+1. **Base** (#74, no ar): tabelas, webhook e abertura de conta.
+2. **Compra** (#75): `/assinar` (planos à venda, moeda, quem assina → página do Stripe), a volta
+   `/assinar/obrigado`, e a aba **Cobrança** do Console (assinaturas, planos editáveis, preços do
+   Stripe, link de pagamento do piloto). Sem chaves ou sem preço ligado, a compra diz que "ainda não
+   está aberta". **O botão do site continua "Conversar sobre a implantação"**: trocar para "Assinar"
+   é decisão do André, quando a venda abrir.
+   **Antes de abrir a venda, decisão do André:** como o comprador recebe o acesso. O login nasce sem
+   senha; o produto não manda e-mail, e o e-mail padrão do Supabase só envia para a equipe do
+   projeto. A página de volta já promete "instruções de acesso no e-mail".
 3. **Vida da assinatura**: o Portal do Stripe, a regra de atraso (tolerância e só leitura), o limite
    de marcas imposto pelo banco, a assinatura em Configurações e no Console, e a edição dos planos
    no Console.
@@ -52,5 +56,9 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
      `customer.subscription.deleted`, `invoice.paid` e `invoice.payment_failed`.
 3. Colar na Vercel `BRENNIMARK_CHAVE_STRIPE` (`sk_test_…`) e `BRENNIMARK_SEGREDO_WEBHOOK_STRIPE`
    (`whsec_…`).
-4. Criar os produtos e os preços no Stripe e registrar cada preço em `precos_do_plano` (pelo
-   Console, fatia 3; até lá, por migration).
+4. Criar no Stripe um produto por plano, com preço **mensal** em BRL (e em USD, para vender fora),
+   e colar cada `price_…` no Console → Cobrança → Preços no Stripe.
+5. No painel do Stripe, ligar os meios de pagamento: cartão e **Pix**. O Pix entra como Pix
+   Automático (o comprador autoriza no banco uma cobrança mensal de até o valor do plano).
+6. Testar com o cartão de teste `4242 4242 4242 4242` e o Pix de teste; a conta aparece no Console
+   → Cobrança → Assinaturas.

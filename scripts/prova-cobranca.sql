@@ -16,6 +16,9 @@
 --      administra não leem.
 --   5. Um aviso repetido não tem efeito duas vezes, e o registro dos avisos
 --      não se apaga nem se reescreve depois de concluído.
+--   6. (fatia 2) Só a equipe lê e ajusta planos e preços no Console, sempre com
+--      motivo registrado; preço novo substitui o antigo sem apagá-lo; o
+--      checkout só acha preço ativo, e pelo site só de plano à venda.
 
 \set ON_ERROR_STOP on
 \pset pager off
@@ -23,7 +26,7 @@
 begin;
 
 create temp table resultado (ordem serial, caso text, esperado text, obtido text, passou boolean);
-create temp table mundo (titular uuid, outro uuid, membro uuid, conta uuid, conta_outra uuid);
+create temp table mundo (titular uuid, outro uuid, membro uuid, conta uuid, conta_outra uuid, equipe uuid);
 
 create function pg_temp.como(p_quem uuid, p_sql text, out estado text, out nome text)
 language plpgsql as $f$
@@ -88,6 +91,14 @@ begin
   end;
 end $f$;
 
+create function pg_temp.direto_valor(p_sql text) returns text
+language plpgsql as $f$
+declare v text;
+begin
+  execute p_sql into v;
+  return v;
+end $f$;
+
 create function pg_temp.valor(p_quem uuid, p_sql text) returns text
 language plpgsql as $f$
 declare v text;
@@ -126,16 +137,19 @@ declare
   u_titular uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0001';
   u_outro uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0002';
   u_membro uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0003';
+  u_equipe uuid := 'cb0b0b0b-0b0b-4b0b-8b0b-0b0b0b0b0004';
 begin
   insert into auth.users (id, email, aud, role) values
     (u_titular, 'prova-cob-titular@local.test', 'authenticated', 'authenticated'),
     (u_outro, 'prova-cob-outro@local.test', 'authenticated', 'authenticated'),
-    (u_membro, 'prova-cob-membro@local.test', 'authenticated', 'authenticated');
+    (u_membro, 'prova-cob-membro@local.test', 'authenticated', 'authenticated'),
+    (u_equipe, 'prova-cob-equipe@local.test', 'authenticated', 'authenticated');
+  insert into private.equipe_brennimark (user_id, nome, motivo) values (u_equipe, 'Equipe da Prova', 'prova da cobrança');
   insert into public.precos_do_plano (plano, provedor, id_externo, moeda, intervalo) values
     ('basico', 'stripe', 'price_prova_basico_brl', 'BRL', 'mes'),
     ('medio', 'stripe', 'price_prova_medio_brl', 'BRL', 'mes'),
     ('basico', 'stripe', 'price_prova_basico_usd', 'USD', 'mes');
-  insert into mundo values (u_titular, u_outro, u_membro, null, null);
+  insert into mundo values (u_titular, u_outro, u_membro, null, null, u_equipe);
 end $$;
 
 -- ─── 1. Ninguém pela sessão ─────────────────────────────────────────────────
@@ -318,6 +332,76 @@ begin
     pg_temp.direto('insert into public.eventos_de_cobranca (provedor, id_externo, tipo) values (''stripe'', ''evt_prova_1'', ''x'')'));
   perform pg_temp.registrar('concluido exige data, e data exige conclusao', '23514 eventos_de_cobranca_conclusao_coerente',
     pg_temp.direto('insert into public.eventos_de_cobranca (provedor, id_externo, tipo, resultado) values (''stripe'', ''evt_prova_2'', ''x'', ''processado'')'));
+end $$;
+
+-- ─── 6. O Console da cobrança e o preço do checkout (fatia 2) ───────────────
+do $$
+declare m mundo; t record; antigo uuid; n_registro integer;
+begin
+  select * into m from mundo;
+  select count(*) into n_registro from private.registro_da_equipe;
+
+  select * into t from pg_temp.como(m.titular, 'select public.console_cobranca()');
+  perform pg_temp.registrar('cliente NAO le o painel da cobranca', '42501', t.estado);
+  select * into t from pg_temp.como(m.titular, 'select public.console_definir_plano(''basico'', ''Básico'', 99, 999999999, null, true, 1::smallint, ''tentativa'')');
+  perform pg_temp.registrar('cliente NAO ajusta plano', '42501', t.estado);
+  select * into t from pg_temp.como(m.titular, 'select public.console_registrar_preco(''premium'', ''price_pirata'', ''BRL'', ''mes'', ''tentativa'')');
+  perform pg_temp.registrar('cliente NAO registra preco', '42501', t.estado);
+  select * into t from pg_temp.como(m.titular, 'select public.cobranca_preco_ativo(''basico'', ''BRL'', ''mes'', true)');
+  perform pg_temp.registrar('cliente NAO consulta o preco do checkout', '42501', t.estado);
+  perform pg_temp.registrar('visitante NAO consulta o preco do checkout', '42501',
+    pg_temp.papel('anon', 'select public.cobranca_preco_ativo(''basico'', ''BRL'', ''mes'', true)'));
+
+  perform pg_temp.registrar('a equipe le os 4 planos e os precos', '4 3',
+    pg_temp.valor(m.equipe, 'select jsonb_array_length(public.console_cobranca()->''planos'') || '' '' || jsonb_array_length(public.console_cobranca()->''precos'')'));
+  perform pg_temp.registrar('e as assinaturas, com o nome da conta', 'Agência da Prova',
+    pg_temp.valor(m.equipe, format('select x->>''conta'' from jsonb_array_elements(public.console_cobranca()->''assinaturas'') x where x->>''workspace_id'' = %L', m.conta)));
+
+  perform pg_temp.valor(m.equipe, 'select public.console_definir_plano(''medio'', ''Médio'', 20, 70000000, null, true, 2::smallint, ''ajuste da prova'')::text');
+  perform pg_temp.registrar('a equipe ajusta o plano', '20 70000000',
+    (select maximo_de_marcas || ' ' || teto_mensal_do_vini_micros from public.planos where codigo = 'medio'));
+  perform pg_temp.registrar('ajustar o plano NAO mexe no teto de quem ja assina', '60000000',
+    (select limit_micros::text from public.ai_budgets where workspace_id = m.conta and brand_id is null and period = 'monthly'));
+  perform pg_temp.valor(m.equipe, 'select public.console_definir_plano(''agencia-grande'', ''Agência grande'', null, 200000000, null, false, 9::smallint, ''plano sob medida'')::text');
+  perform pg_temp.registrar('a equipe cria um plano novo, sem limite de marcas e fora de venda', 'Agência grande - false',
+    (select nome || ' ' || coalesce(maximo_de_marcas::text, '-') || ' ' || a_venda from public.planos where codigo = 'agencia-grande'));
+  select * into t from pg_temp.como(m.equipe, 'select public.console_definir_plano(''x'', ''X'', 1, 0, null, false, 0::smallint, ''ajuste'')');
+  perform pg_temp.registrar('codigo de plano invalido e recusado', '23514 planos_codigo_check', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.como(m.equipe, 'select public.console_definir_plano(''medio'', ''Médio'', 20, 1, null, true, 2::smallint, ''x'')');
+  perform pg_temp.registrar('sem motivo de verdade, nada muda', '23514 registro_da_equipe_motivo_check', t.estado || ' ' || t.nome);
+  perform pg_temp.registrar('e o teto ficou como estava', '70000000', (select teto_mensal_do_vini_micros::text from public.planos where codigo = 'medio'));
+
+  select id into antigo from public.precos_do_plano where id_externo = 'price_prova_basico_brl';
+  perform pg_temp.valor(m.equipe, 'select public.console_registrar_preco(''basico'', ''price_prova_basico_brl_v2'', ''brl'', ''mes'', ''reajuste da prova'')::text');
+  perform pg_temp.registrar('o preco novo substitui o antigo no checkout', 'price_prova_basico_brl_v2',
+    pg_temp.direto_valor('select public.cobranca_preco_ativo(''basico'', ''BRL'', ''mes'', true)'));
+  perform pg_temp.registrar('o antigo fica, inativo — assinaturas antigas seguem nele', 'false',
+    (select ativo::text from public.precos_do_plano where id = antigo));
+  perform pg_temp.registrar('e o webhook ainda o reconhece', 'ACEITOU',
+    pg_temp.servidor('select public.cobranca_sincronizar_assinatura(''stripe'', ''cus_prova'', ''sub_prova_2'', ''price_prova_basico_brl'', ''ativa'', now(), false, ''brl'', null, ''prova-cob-outro@local.test'', ''x'')'));
+  select * into t from pg_temp.como(m.equipe, 'select public.console_registrar_preco(''basico'', ''prod_errado'', ''BRL'', ''mes'', ''engano'')');
+  perform pg_temp.registrar('identificador que nao e de preco e recusado', '22023', t.estado);
+
+  perform pg_temp.registrar('o Piloto NAO sai pelo site', null,
+    pg_temp.direto_valor('select public.cobranca_preco_ativo(''piloto'', ''BRL'', ''mes'', true)'));
+  insert into public.precos_do_plano (plano, provedor, id_externo, moeda, intervalo) values ('piloto', 'stripe', 'price_prova_piloto', 'BRL', 'mes');
+  perform pg_temp.registrar('mesmo com preco, o Piloto NAO sai pelo site', null,
+    pg_temp.direto_valor('select public.cobranca_preco_ativo(''piloto'', ''BRL'', ''mes'', true)'));
+  perform pg_temp.registrar('mas sai pelo link da equipe', 'price_prova_piloto',
+    pg_temp.direto_valor('select public.cobranca_preco_ativo(''piloto'', ''BRL'', ''mes'', false)'));
+  perform pg_temp.registrar('moeda sem preco nao acha nada', null,
+    pg_temp.direto_valor('select public.cobranca_preco_ativo(''medio'', ''USD'', ''mes'', true)'));
+
+  perform pg_temp.valor(m.equipe, format('select public.console_desativar_preco(%L, ''fim da prova'')::text',
+    (select id from public.precos_do_plano where id_externo = 'price_prova_piloto')));
+  perform pg_temp.registrar('preco desativado sai do checkout', null,
+    pg_temp.direto_valor('select public.cobranca_preco_ativo(''piloto'', ''BRL'', ''mes'', false)'));
+  select * into t from pg_temp.como(m.equipe, format('select public.console_desativar_preco(%L, ''de novo'')',
+    (select id from public.precos_do_plano where id_externo = 'price_prova_piloto')));
+  perform pg_temp.registrar('desativar de novo diz que nao achou', 'P0002', t.estado);
+
+  perform pg_temp.registrar('cada acao da equipe que valeu ficou no registro, com quem fez', '4 Equipe da Prova',
+    (select count(*) || ' ' || max(quem_nome) from private.registro_da_equipe where quem = m.equipe));
 end $$;
 
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;
