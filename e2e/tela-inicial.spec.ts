@@ -7,6 +7,10 @@ import { expect, test } from "@playwright/test";
  * quem tinha uma marca só nunca a via: o login caía direto dentro do manual, e
  * o produto ficava sem uma tela que dissesse onde a pessoa está.
  *
+ * Exceção desde 02/10/2026: quem só consulta (não administra conta) e tem uma
+ * marca só vai direto ao manual — a regra é de `resolverSemAlvo` e está nos
+ * testes de unidade. Esta bancada monta a TELA, que continua igual.
+ *
  * A bancada `/dev/inicio?marcas=N` monta a tela sem banco e sem sessão — a
  * suíte é hermética, e a tela real depende das duas coisas.
  */

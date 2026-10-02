@@ -133,7 +133,20 @@ export function resolverSemAlvo(estado: EstadoDaPessoa): Resolucao {
    *
    * `resolverAlvo` não muda: quem chega com endereço de marca continua indo
    * direto para ela, e é isso que mantém o link compartilhado valendo.
+   *
+   * EXCEÇÃO, decisão do André em 02/10/2026: quem NÃO administra conta
+   * nenhuma e tem UMA marca só cai direto no manual dela. É o cliente que só
+   * consulta (ADR-0002, modo consulta: "uma marca só, sem sinal de que
+   * existem outras"); para ele, a tela inicial com um cartão era um clique
+   * sem pergunta (achado do ensaio de 26/09). Quem administra — a agência —
+   * continua passando pela porta. Mostrar as outras marcas da conta apagadas
+   * foi considerado e recusado: revelaria ao cliente os outros clientes.
    */
+  const administraAlguma = estado.disponiveis.some((w) => w.papel === "owner");
+  if (!administraAlguma && pares.length === 1) {
+    const [{ workspace, marca }] = pares;
+    return { tipo: "ir-para", destino: { workspaceSlug: workspace.slug, brandKey: marca.key } };
+  }
   return { tipo: "escolher", opcoes: estado.disponiveis };
 }
 

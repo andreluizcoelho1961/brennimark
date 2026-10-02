@@ -74,16 +74,36 @@ test("existir e não participar é indistinguível de não existir", () => {
   assert.deepEqual(naoParticipa, naoExiste);
 });
 
-test("uma única marca TAMBÉM passa pela tela inicial", () => {
+test("quem administra, com uma marca só, TAMBÉM passa pela tela inicial", () => {
   /*
    * Mudou em 12/09/2026, por decisão do André, e o caso antigo afirmava o
    * contrário: com uma marca só, o login redirecionava direto para dentro dela.
    * A tela inicial passou a ser a porta do produto — é onde a pessoa entende
    * onde está e vê as marcas da conta, mesmo que seja uma.
    */
-  const r = resolverSemAlvo(pessoa({ disponiveis: [clienteSolo] }));
+  const agenciaComUma: WorkspaceDisponivel = { ...agencia, marcas: [agencia.marcas[0]] };
+  const r = resolverSemAlvo(pessoa({ disponiveis: [agenciaComUma] }));
   assert.equal(r.tipo, "escolher");
-  assert.deepEqual(r.tipo === "escolher" && r.opcoes.flatMap((o) => o.marcas.map((m) => m.key)), ["oficina"]);
+  assert.deepEqual(r.tipo === "escolher" && r.opcoes.flatMap((o) => o.marcas.map((m) => m.key)), ["padaria"]);
+});
+
+test("quem só consulta uma marca cai direto no manual dela (02/10/2026)", () => {
+  // O cliente da agência: não administra conta nenhuma e tem uma marca só.
+  const r = resolverSemAlvo(pessoa({ disponiveis: [clienteSolo] }));
+  assert.deepEqual(r, { tipo: "ir-para", destino: { workspaceSlug: "sul", brandKey: "oficina" } });
+});
+
+test("quem só consulta mas tem duas marcas escolhe — e só entre as suas", () => {
+  const clienteComDuas: WorkspaceDisponivel = { ...clienteSolo, marcas: [...clienteSolo.marcas, { id: "b-4", key: "loja", nome: "Loja" }] };
+  const r = resolverSemAlvo(pessoa({ disponiveis: [clienteComDuas] }));
+  assert.equal(r.tipo, "escolher");
+  assert.deepEqual(r.tipo === "escolher" && r.opcoes.flatMap((o) => o.marcas.map((m) => m.key)), ["oficina", "loja"]);
+});
+
+test("quem administra uma conta e consulta outra continua passando pela porta", () => {
+  const agenciaSemMarca: WorkspaceDisponivel = { ...agencia, marcas: [] };
+  const r = resolverSemAlvo(pessoa({ disponiveis: [agenciaSemMarca, clienteSolo] }));
+  assert.equal(r.tipo, "escolher");
 });
 
 test("duas marcas no mesmo workspace perguntam, não escolhem", () => {
