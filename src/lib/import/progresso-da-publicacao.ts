@@ -9,7 +9,7 @@
  *
  * Vive fora do componente porque é a regra, e regra se testa sem navegador.
  */
-export type EtapaDaPublicacao = "renderizando" | "enviando" | "gravando";
+export type EtapaDaPublicacao = "renderizando" | "enviando" | "gravando" | "preparando";
 
 export interface ProgressoDaPublicacao {
   etapa: EtapaDaPublicacao;
@@ -39,6 +39,10 @@ export function rotuloDoProgresso(
   // genérico: sugere trabalho que não existe.
   if (total <= 0) return t("Publicando…", "Publishing…");
 
+  // As imagens de leitura do Vini, no fim da importação (02/10/2026).
+  if (etapa === "preparando") {
+    return t(`Preparando o manual para o Vini: página ${feito} de ${total}…`, `Preparing the manual for Vini: page ${feito} of ${total}…`);
+  }
   return etapa === "renderizando"
     ? t(`Renderizando página ${feito} de ${total}…`, `Rendering page ${feito} of ${total}…`)
     : t(`Enviando imagem ${feito} de ${total}…`, `Uploading image ${feito} of ${total}…`);

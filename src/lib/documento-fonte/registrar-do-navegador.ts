@@ -24,6 +24,8 @@ export interface PedidoDoNavegador {
 export type RespostaDoRegistro =
   | {
       ok: true;
+      /** O documento-fonte registrado: é nele que as imagens de leitura se penduram. */
+      documentoId: string;
       paginas: number;
       /** `null` quando o servidor não mediu. Nunca vira `0` aqui. */
       paginasSemSecao: number | null;
@@ -82,6 +84,7 @@ export async function registrarImportacao(
 
   return {
     ok: true,
+    documentoId: corpo.documentoId,
     paginas: typeof corpo.paginas === "number" ? corpo.paginas : 0,
     /*
      * Ausente ou nulo continua `null`. Converter para `0` aqui refaria, do
