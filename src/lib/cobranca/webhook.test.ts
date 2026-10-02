@@ -13,7 +13,7 @@ function assinar(corpo: string, segredo = SEGREDO, timestamp?: number) {
 
 const SUB: AssinaturaDoStripe = {
   id: "sub_1", status: "active", currency: "brl", cancel_at_period_end: false,
-  metadata: { nome_da_conta: " Agência Exemplo " },
+  metadata: { nome_da_conta: " Agência Exemplo ", comprador: " Fulana de Tal " },
   customer: { id: "cus_1", email: " Dona@Agencia.COM ", name: "Fulana" },
   items: { data: [{ price: { id: "price_basico_brl" }, current_period_end: 1_790_000_000 }] },
 };
@@ -23,6 +23,7 @@ const PAGA: AssinaturaNoProvedor = assinaturaDoStripe(SUB);
 /** Portas falsas que anotam cada chamada, na ordem. */
 function portasFalsas(opcoes: { recebimento?: Recebimento; assinatura?: AssinaturaNoProvedor; falharEm?: string } = {}) {
   const chamadas: string[] = [];
+  const logins: { nome: string | null; idAssinatura: string }[] = [];
   const portas: Portas = {
     async receber(_p, id) { chamadas.push(`receber ${id}`); return opcoes.recebimento ?? "novo"; },
     async concluir(_p, id, resultado, detalhe) { chamadas.push(`concluir ${id} ${resultado}${detalhe ? ` (${detalhe})` : ""}`); },
@@ -31,14 +32,14 @@ function portasFalsas(opcoes: { recebimento?: Recebimento; assinatura?: Assinatu
       if (opcoes.falharEm === "buscar") throw new Error("Stripe fora do ar");
       return opcoes.assinatura ?? PAGA;
     },
-    async garantirLogin(email) { chamadas.push(`login ${email}`); },
+    async garantirLogin(email, nome, idAssinatura) { chamadas.push(`login ${email}`); logins.push({ nome, idAssinatura }); },
     async sincronizar(a) {
       chamadas.push(`sincronizar ${a.idAssinatura} ${a.situacao}`);
       if (opcoes.falharEm === "sincronizar") throw new Error("sincronizar: 22023 cobranca_preco_desconhecido");
       return a.situacao === "ativa" ? "conta-1" : null;
     },
   };
-  return { portas, chamadas };
+  return { portas, chamadas, logins };
 }
 
 const aviso = (type: string, object: unknown, id = "evt_1"): Aviso => ({ id, type, data: { object } });
@@ -71,8 +72,9 @@ test("a assinatura do Stripe vira a do produto: e-mail normalizado, nome do chec
   assert.deepEqual(PAGA, {
     idCliente: "cus_1", idAssinatura: "sub_1", idPreco: "price_basico_brl", situacao: "ativa",
     periodoPagoAte: new Date(1_790_000_000 * 1000).toISOString(), cancelarNoFim: false, moeda: "BRL",
-    emailDoTitular: "dona@agencia.com", nomeDaConta: "Agência Exemplo",
+    emailDoTitular: "dona@agencia.com", nomeDaConta: "Agência Exemplo", nomeDoComprador: "Fulana de Tal",
   });
+  assert.equal(assinaturaDoStripe({ ...SUB, metadata: {} }).nomeDoComprador, null);
   assert.equal(assinaturaDoStripe({ ...SUB, metadata: {} }).nomeDaConta, "Fulana");
   assert.equal(assinaturaDoStripe({ ...SUB, customer: "cus_1" }).emailDoTitular, null);
   assert.throws(() => assinaturaDoStripe({ ...SUB, items: { data: [...SUB.items.data, ...SUB.items.data] } }), /2 itens/);
@@ -89,10 +91,12 @@ test("de que assinatura o aviso fala, em cada tipo", () => {
 });
 
 test("pagamento confirmado: garante o login, sincroniza e conclui — nessa ordem", async () => {
-  const { portas, chamadas } = portasFalsas();
+  const { portas, chamadas, logins } = portasFalsas();
   const d = await processarAviso("stripe", aviso("invoice.paid", { parent: { subscription_details: { subscription: "sub_1" } } }), portas);
   assert.deepEqual(d, { resultado: "processado", detalhe: null, conta: "conta-1" });
   assert.deepEqual(chamadas, ["receber evt_1", "buscar sub_1", "login dona@agencia.com", "sincronizar sub_1 ativa", "concluir evt_1 processado"]);
+  // O login leva o nome de QUEM COMPROU (não o da empresa) e a assinatura que o criou.
+  assert.deepEqual(logins, [{ nome: "Fulana de Tal", idAssinatura: "sub_1" }]);
 });
 
 test("o estado vem do Stripe AGORA, não do retrato do aviso", async () => {

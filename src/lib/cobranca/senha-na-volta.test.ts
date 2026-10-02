@@ -6,8 +6,8 @@ import {
 } from "./senha-na-volta";
 
 const AGORA = Date.UTC(2026, 9, 2, 18, 0, 0);
-const SESSAO: SessaoDaCompra = { paga: true, criadaEm: AGORA - 60_000, email: "fulana@agencia.com", idAssinatura: "sub_1", resumoDaProva: "r" };
-const LOGIN_NOVO: LoginDaCompra = { criadoPelaCobranca: true, jaEntrou: false, senhaJaCriada: false };
+const SESSAO: SessaoDaCompra = { paga: true, criadaEm: AGORA - 60_000, email: "fulana@agencia.com", idAssinatura: "sub_1", resumoDaProva: "r", comprador: "Fulana", empresa: "Agência" };
+const LOGIN_NOVO: LoginDaCompra = { criadoPelaCobranca: true, assinaturaDeOrigem: "sub_1", jaEntrou: false, senhaJaCriada: false };
 const BASE = { provaConfere: true, sessao: SESSAO, contaExiste: true, login: LOGIN_NOVO, agora: AGORA };
 
 test("o caminho feliz: pago, conta aberta, login nascido da compra que nunca entrou → criar senha", () => {
@@ -39,8 +39,18 @@ test("login que já existia, que já entrou, ou que já criou a senha NUNCA tem 
   assert.equal(momentoDaVolta({ ...BASE, login: { ...LOGIN_NOVO, senhaJaCriada: true } }), "ja-tem-acesso");
 });
 
+test("só a compra que CRIOU o login cria a senha dele — uma segunda compra com o mesmo e-mail não", () => {
+  // O ataque: alguém compra com o e-mail de um cliente que ainda não criou a senha.
+  assert.equal(momentoDaVolta({ ...BASE, sessao: { ...SESSAO, idAssinatura: "sub_2" } }), "ja-tem-acesso");
+  // Login nascido de compra antes desta marca existir: sem origem, sem senha por aqui.
+  assert.equal(momentoDaVolta({ ...BASE, login: { ...LOGIN_NOVO, assinaturaDeOrigem: null } }), "ja-tem-acesso");
+  assert.equal(momentoDaVolta({ ...BASE, sessao: { ...SESSAO, idAssinatura: null }, login: { ...LOGIN_NOVO, assinaturaDeOrigem: null } }), "ja-tem-acesso");
+});
+
 test("o login é lido de forma defensiva: só `true` conta como nascido da compra", () => {
-  assert.deepEqual(loginDaCompra({ app_metadata: { criado_pela_cobranca: true }, last_sign_in_at: null }), LOGIN_NOVO);
+  assert.deepEqual(loginDaCompra({ app_metadata: { criado_pela_cobranca: true, criado_pela_assinatura: "sub_1" }, last_sign_in_at: null }), LOGIN_NOVO);
+  assert.equal(loginDaCompra({ app_metadata: { criado_pela_cobranca: true } }).assinaturaDeOrigem, null);
+  assert.equal(loginDaCompra({ app_metadata: { criado_pela_assinatura: 7 } }).assinaturaDeOrigem, null);
   assert.equal(loginDaCompra({ app_metadata: { criado_pela_cobranca: "true" } }).criadoPelaCobranca, false);
   assert.equal(loginDaCompra({ app_metadata: null }).criadoPelaCobranca, false);
   assert.equal(loginDaCompra({ last_sign_in_at: "2026-10-02T18:00:00Z" }).jaEntrou, true);

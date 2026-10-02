@@ -62,13 +62,14 @@ export async function POST(request: Request) {
         if (error) throw new Error(`concluir: ${error.code}`);
       },
       buscarAssinatura: (idAssinatura) => buscarAssinaturaNoStripe(chaves.chave, idAssinatura),
-      async garantirLogin(email, nome) {
-        // Sem senha: o caminho de acesso do comprador é a fatia 2.
+      async garantirLogin(email, nome, idAssinatura) {
+        // Sem senha: quem comprou a cria na volta do pagamento, e só a volta
+        // desta compra pode (`criado_pela_assinatura`, ver senha-na-volta.ts).
         const { error } = await servico.auth.admin.createUser({
           email,
           email_confirm: true,
           user_metadata: nome ? { full_name: nome } : {},
-          app_metadata: { criado_pela_cobranca: true },
+          app_metadata: { criado_pela_cobranca: true, criado_pela_assinatura: idAssinatura },
         });
         if (error && error.code !== "email_exists" && error.code !== "user_already_exists") {
           throw new Error(`login: ${error.code ?? "desconhecido"}`);

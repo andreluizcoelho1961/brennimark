@@ -53,7 +53,8 @@ export type AssinaturaDoStripe = {
  * abriria conta no plano errado — então é erro, e o aviso falha visível.
  *
  * O nome da conta vem do `metadata` que o NOSSO checkout grava
- * (`nome_da_conta`); na falta dele, o nome do cliente no Stripe.
+ * (`nome_da_conta`); na falta dele, o nome do cliente no Stripe. O nome de
+ * quem comprou (`comprador`) vira o nome do perfil do login.
  */
 export function assinaturaDoStripe(sub: AssinaturaDoStripe): AssinaturaNoProvedor {
   if (sub.items.data.length !== 1) {
@@ -73,5 +74,6 @@ export function assinaturaDoStripe(sub: AssinaturaDoStripe): AssinaturaNoProvedo
     moeda: sub.currency.toUpperCase(),
     emailDoTitular: cliente?.email?.trim().toLowerCase() || null,
     nomeDaConta: sub.metadata?.nome_da_conta?.trim() || cliente?.name?.trim() || null,
+    nomeDoComprador: sub.metadata?.comprador?.trim() || null,
   };
 }

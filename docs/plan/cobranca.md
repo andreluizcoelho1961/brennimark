@@ -39,7 +39,7 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    **Como o comprador entra (decisão de 02/10/2026): cria a senha na própria volta do pagamento** —
    ver 2b.
 2b. **Senha na volta do pagamento** (02/10/2026): pagou pelo site, a volta espera o webhook abrir a
-   conta (segundos, no cartão), pede a senha duas vezes e entra. A trava é a **prova do navegador**:
+   conta (segundos, no cartão), pede a senha duas vezes e entra. A trava é a **prova do navegador**, e só a compra que CRIOU o login cria a senha dele (corrigido em 02/10: a 1ª versão aceitava qualquer compra com o mesmo e-mail):
    o checkout deixa um segredo num cookie que só o servidor lê (e que só viaja para
    `/api/cobranca/senha`), e o Stripe guarda só o resumo dele nos metadados da sessão. Sem o cookie,
    a rota responde sempre "sem-prova" e não diz nada da compra — um link da volta copiado não serve.

@@ -49,6 +49,8 @@ export async function buscarSessaoNoStripe(chave: string, idDaSessao: string): P
     email: (sessao.customer_details?.email ?? sessao.customer_email ?? null)?.toLowerCase() ?? null,
     idAssinatura: assinatura,
     resumoDaProva: sessao.metadata?.[CHAVE_DA_PROVA_NO_STRIPE] ?? null,
+    comprador: sessao.metadata?.comprador?.trim() || null,
+    empresa: sessao.metadata?.nome_da_conta?.trim() || null,
   };
 }
 
