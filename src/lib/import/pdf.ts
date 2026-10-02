@@ -308,7 +308,7 @@ export async function renderizarPaginasComoImagem(
  * aqui — a tarefa volta a esperar quadro — e quem reprova é
  * `e2e/importador-aba-oculta.spec.ts`, que publica com os quadros suspensos.
  */
-function desenharSemEsperarQuadro(tarefa: object) {
+export function desenharSemEsperarQuadro(tarefa: object) {
   const interna = (tarefa as { _internalRenderTask?: { _useRequestAnimationFrame?: boolean } })
     ._internalRenderTask;
   if (interna && "_useRequestAnimationFrame" in interna) {
@@ -338,4 +338,20 @@ function cederAoNavegador(): Promise<void> {
 function descricaoTecnica(erro: unknown): string {
   const e = erro as { name?: string; message?: string } | null;
   return `${e?.name ?? "Error"}: ${(e?.message ?? "").slice(0, 200)}`;
+}
+
+/**
+ * O PDF aberto para DESENHAR as imagens de leitura do Vini, no fim da
+ * importação (02/10/2026). O mesmo preparo de ambiente e de worker da leitura.
+ * Quem chama fecha com `loadingTask.destroy()` ao terminar.
+ */
+export async function abrirPdfParaDesenho(arquivo: File) {
+  const buffer = await arquivo.arrayBuffer();
+  prepararAmbienteDePdf();
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url,
+  ).toString();
+  return pdfjs.getDocument({ data: buffer }).promise;
 }

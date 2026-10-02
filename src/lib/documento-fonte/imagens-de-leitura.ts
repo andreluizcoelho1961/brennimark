@@ -1,5 +1,6 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { desenharSemEsperarQuadro } from "@/lib/import/pdf";
 
 /**
  * As imagens de LEITURA das páginas — para o Vini ver o manual (26/09/2026).
@@ -47,7 +48,12 @@ async function desenhar(documento: PDFDocumentProxy, numero: number): Promise<Bl
   // Fundo branco: JPEG não tem transparência, e página sem fundo sairia preta.
   contexto.fillStyle = "#ffffff";
   contexto.fillRect(0, 0, canvas.width, canvas.height);
-  await pagina.render({ canvas, canvasContext: contexto, viewport }).promise;
+  const tarefa = pagina.render({ canvas, canvasContext: contexto, viewport });
+  // Sem esperar quadro: desde 02/10 o preparo roda no fim da importação, e
+  // aba oculta não tem quadro — o desenho pararia no meio (o defeito de 10/09,
+  // ver `desenharSemEsperarQuadro`).
+  desenharSemEsperarQuadro(tarefa);
+  await tarefa.promise;
   const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, "image/jpeg", QUALIDADE_DE_LEITURA));
   // Libera a memória do canvas antes da próxima página.
   canvas.width = 0;

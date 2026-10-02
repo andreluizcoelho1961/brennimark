@@ -40,3 +40,9 @@ test("o rótulo atravessa o idioma da interface", () => {
   );
   assert.equal(rotuloDoProgresso({ etapa: "gravando", feito: 0, total: 0 }, en), "Saving the brand…");
 });
+
+test("o preparo das imagens do Vini diz a página e o total", () => {
+  const t = (pt: string) => pt;
+  assert.equal(rotuloDoProgresso({ etapa: "preparando", feito: 3, total: 47 }, t), "Preparando o manual para o Vini: página 3 de 47…");
+  assert.equal(rotuloDoProgresso({ etapa: "preparando", feito: 0, total: 0 }, t), "Publicando…");
+});

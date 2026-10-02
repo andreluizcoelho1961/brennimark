@@ -243,3 +243,9 @@ test("a pendência de seção não é apresentada como perda", () => {
   assert.doesNotMatch(relato.pt, /perdid|erro|falh/i);
   assert.match(relato.pt, /registradas/);
 });
+
+test("o sucesso devolve o documento registrado, onde as imagens de leitura se penduram", async () => {
+  const r = await registrarImportacao({ workspace: "w", marca: "m", importId: "i" },
+    async () => new Response(JSON.stringify({ documentoId: "doc-9", paginas: 4 }), { status: 200 }));
+  assert.equal(r.ok && r.documentoId, "doc-9");
+});

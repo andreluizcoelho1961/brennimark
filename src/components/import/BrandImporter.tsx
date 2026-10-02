@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
@@ -110,6 +110,9 @@ export function BrandImporter({
     { codigo: string; repetivel: boolean; marca: string; importId: string } | null
   >(null);
   const [concluindo, setConcluindo] = useState(false);
+  // O preparo das imagens de leitura no fim da importação, e como pulá-lo.
+  const [preparando, setPreparando] = useState(false);
+  const preparoRef = useRef<AbortController | null>(null);
   const [mensagem, setMensagem] = useState("");
   const [nome, setNome] = useState("");
   const [utilidades, setUtilidades] = useState<BrennimarkUtilityKey[]>([]);
@@ -483,7 +486,7 @@ export function BrandImporter({
      * ser nulo. Navegar agora mostraria uma marca aparentemente pronta cuja
      * procedência por página não existe, e ninguém saberia que faltou algo.
      */
-    await concluirRegistro(chave, importId);
+    await concluirRegistro(chave, importId, brandId);
   }
 
   /**
@@ -494,7 +497,12 @@ export function BrandImporter({
    * sem este componente guardar nada, e por isso que a recuperação funciona
    * até de outro aparelho — ver `documento-fonte/registrar.ts`.
    */
-  async function concluirRegistro(marca: string, importacao: string) {
+  /**
+   * `brandId` só vem da publicação desta aba, que ainda tem o PDF na mão. A
+   * repetição a partir de uma pendência não tem: ali o manual nasce sem as
+   * imagens de leitura, e o botão do visualizador as prepara depois.
+   */
+  async function concluirRegistro(marca: string, importacao: string, brandId?: string) {
     setConcluindo(true);
     setProgresso({ etapa: "gravando", feito: 0, total: 0 });
     const registro = await registrarImportacao({
@@ -521,6 +529,49 @@ export function BrandImporter({
      * de onde sobrevive a um recarregamento e é vista por quem cura, que não é
      * necessariamente quem importou.
      */
+
+    /*
+     * As imagens de leitura do Vini, AQUI, enquanto o PDF ainda está aberto
+     * nesta aba (02/10/2026; antes era um botão no visualizador que quem
+     * importava precisava descobrir). Sem elas, o Vini lê só o texto, e
+     * página visual — a tabela de cores — é uma sopa de códigos para ele.
+     *
+     * A marca já está completa neste ponto: o preparo é melhoria, não
+     * condição. Falha numa página não para as outras; "Pular" interrompe; e
+     * o que faltar continua no botão do visualizador.
+     */
+    if (brandId && arquivo && totalDePaginas > 0) {
+      const controle = new AbortController();
+      preparoRef.current = controle;
+      setPreparando(true);
+      setProgresso({ etapa: "preparando", feito: 0, total: totalDePaginas });
+      try {
+        const [{ abrirPdfParaDesenho }, { prepararImagensDeLeitura }] = await Promise.all([
+          import("@/lib/import/pdf"), import("@/lib/documento-fonte/imagens-de-leitura"),
+        ]);
+        const documento = await abrirPdfParaDesenho(arquivo);
+        try {
+          await prepararImagensDeLeitura({
+            documento,
+            supabase: createClient(),
+            workspaceId,
+            brandId,
+            sourceDocumentId: registro.documentoId,
+            paginas: Array.from({ length: totalDePaginas }, (_, i) => i + 1),
+            aoProgredir: (feitas, total) => setProgresso({ etapa: "preparando", feito: feitas, total }),
+            sinal: controle.signal,
+          });
+        } finally {
+          void documento.loadingTask.destroy();
+        }
+      } catch {
+        // O PDF não reabriu: a marca segue, e o botão do visualizador prepara depois.
+      } finally {
+        preparoRef.current = null;
+        setPreparando(false);
+        setProgresso(null);
+      }
+    }
 
     // Agora sim: a marca nasceu completa, e o endereço já existe porque a
     // chave foi escolhida nesta tela.
@@ -822,14 +873,24 @@ export function BrandImporter({
 
               <button
                 type="button"
-                disabled={!podePublicar || publicando || concluindo}
+                disabled={!podePublicar || publicando || concluindo || preparando}
                 onClick={publicar}
                 className="mt-[var(--space-shell-5)] flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40"
               >
-                {publicando || concluindo
+                {publicando || concluindo || preparando
                   ? rotuloDoProgresso(progresso, t)
                   : t("Criar a marca com estes rascunhos", "Create the brand with these drafts")}
               </button>
+              {preparando && (
+                <p data-preparo-do-vini className="mt-[var(--space-shell-3)] text-[13px] text-platform-text-muted">
+                  {t("A marca já foi criada. Agora o Vini ganha uma imagem de cada página, para ler tabelas e páginas visuais.",
+                     "The brand is created. Now Vini gets an image of each page, to read tables and visual pages.")}{" "}
+                  <button type="button" data-pular-preparo onClick={() => preparoRef.current?.abort()}
+                    className="underline hover:text-platform-text">
+                    {t("Pular — preparar depois, no manual", "Skip — prepare later, in the manual")}
+                  </button>
+                </p>
+              )}
             </div>
           </section>
         )}
