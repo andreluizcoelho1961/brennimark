@@ -64,7 +64,10 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 1. Abrir a conta no Stripe com o CNPJ.
 2. Em **modo de teste**, criar o endpoint do webhook:
    - URL: `https://<domínio>/api/cobranca/stripe`;
-   - **versão da API `2026-09-30.endive`**, a mesma do SDK;
+   - versão da API: a mais recente que o painel oferecer (em 02/10/2026, `2026-08-26.dahlia`; a
+     `2026-09-30.endive` do SDK ainda não aparecia). Serve qualquer uma a partir de 2025-03-31: o
+     código só lê do aviso o identificador da assinatura e relê a assinatura no Stripe com a versão
+     do SDK — que o Stripe aceita (conferido no registro de requisições);
    - eventos: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
      `customer.subscription.created`, `customer.subscription.updated`,
      `customer.subscription.deleted`, `invoice.paid` e `invoice.payment_failed`.
@@ -92,9 +95,9 @@ Corrigido na revisão (migration `cobranca_primeiro_acesso`, #77):
 
 A conferir no primeiro teste real, em modo de teste do Stripe:
 
-- **Pix no checkout:** a página manda o mandato do Pix Automático quando a moeda é real. Se o Pix
-  não estiver ligado no painel, o Stripe pode recusar a sessão inteira. Ligar o Pix antes do
-  primeiro teste em reais.
+- **Pix no checkout:** a página manda o mandato do Pix Automático quando a moeda é real. **Achado no
+  primeiro teste (02/10):** em modo assinatura o Stripe recusa `amount_type` no mandato; só
+  `amount` e `payment_schedule`. Corrigido. Ligar o Pix no painel antes de testar em reais.
 - **Teto do mandato Pix = valor do plano.** Se o preço subir (reajuste, troca de plano para cima,
   imposto somado pelo Stripe Tax), a cobrança por Pix acima do teto falha e a pessoa precisa
   autorizar de novo no banco.
