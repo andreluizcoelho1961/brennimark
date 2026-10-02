@@ -185,6 +185,11 @@ function removerPagina(intervalos: readonly Intervalo[], pagina: number): Interv
  * O que distingue de verdade é o DESTAQUE: a linha é sensivelmente maior que o
  * corpo da página. Cabeçalho e rodapé já saíram antes de chegar aqui.
  */
+export function ehPreenchimento(texto: string): boolean {
+  const letras = texto.replace(/[^\p{L}]/gu, "");
+  return (letras.length >= 3 && /^x+$/i.test(letras)) || /^lorem ipsum\b/i.test(texto.trim());
+}
+
 function tituloVisual(linhas: readonly Linha[]): { texto: string; confianca: number } | null {
   if (linhas.length === 0) return null;
 
@@ -231,9 +236,25 @@ function tituloVisual(linhas: readonly Linha[]): { texto: string; confianca: num
     .some((palavra) => palavra.replace(/[^\p{L}\p{N}]/gu, "").length >= 2);
   if (!temPalavra) return null;
 
+  /*
+   * Texto de preenchimento esquecido no manual não é título (ensaio de
+   * 26/09/2026: o Bradesco tinha uma seção "XXxxxxxx"). Só letras x, ou
+   * "lorem ipsum": a página cai na faixa de páginas, que é o honesto.
+   */
+  if (ehPreenchimento(candidata.texto)) return null;
+
+  /*
+   * Duas manchetes lado a lado viram uma linha só ("Logo horizontal Logo
+   * vertical"). O título mostra as duas, separadas: a página trata das duas,
+   * e juntá-las sem separador inventava um nome que o manual não tem.
+   */
+  const texto = candidata.segmentos && candidata.segmentos.length > 1
+    ? candidata.segmentos.join(" · ")
+    : candidata.texto;
+
   // Quanto maior o destaque, mais confiança — com teto, porque geometria não
   // prova intenção.
-  return { texto: candidata.texto, confianca: Math.min(0.85, 0.45 + (proporcao - 1.25) * 0.4) };
+  return { texto, confianca: Math.min(0.85, 0.45 + (proporcao - 1.25) * 0.4) };
 }
 
 /**
@@ -288,10 +309,13 @@ export function agrupar({
   paginas,
   outline = [],
   repetidos = new Set<string>(),
+  removidosAntes = [],
 }: {
   paginas: readonly PaginaExtraida[];
   outline?: readonly ItemDeOutline[];
   repetidos?: ReadonlySet<string>;
+  /** O que já saiu antes de chegar aqui (o menu, por posição), para entrar na mesma lista. */
+  removidosAntes?: readonly RemocaoDeExtracao[];
 }): Agrupamento {
   const linhasPorPagina = new Map<number, Linha[]>();
   const ignoradas: PaginaIgnorada[] = [];
@@ -302,7 +326,8 @@ export function agrupar({
     if (uteis.length === 0) ignoradas.push({ pagina: pagina.numero, motivo: "sem-texto" });
   }
 
-  const removidos = registrarRemocoes(paginas, repetidos);
+  const removidos = [...removidosAntes, ...registrarRemocoes(paginas, repetidos)]
+    .sort((a, b) => b.ocorrencias - a.ocorrencias);
   const comTexto = paginas
     .map((p) => p.numero)
     .filter((n) => (linhasPorPagina.get(n)?.length ?? 0) > 0);

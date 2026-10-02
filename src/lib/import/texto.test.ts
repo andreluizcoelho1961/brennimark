@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { chaveDeRepeticao, detectarRepetidos, linhasDe, linhasUteis } from "./texto";
+import {
+  chaveDeRepeticao, detectarRepetidos, detectarRepetidosPorPosicao, linhasDe, linhasUteis, removidosPorPosicao, semRepetidosPorPosicao,
+} from "./texto";
 import type { ItemDeTexto, PaginaExtraida } from "./texto";
 
 const item = (texto: string, x: number, y: number, altura = 10, fonte = "F1"): ItemDeTexto =>
@@ -93,4 +95,71 @@ test("texto de corpo no alto da mancha nao e confundido com cabecalho", () => {
   const repetidos = detectarRepetidos(paginas);
   const uteis = linhasUteis(paginas[2], repetidos).map((l) => l.texto);
   assert.deepEqual(uteis, ["Conteudo da pagina 3"]);
+});
+
+// ─── Repetição por posição: o menu lateral (26/09/2026) ─────────────────────
+
+function paginaDeManual(numero: number, corpo: ItemDeTexto[]): PaginaExtraida {
+  const menu: ItemDeTexto[] = ["Logotipo", "Cores", "Tipografia", "Fotografia"].map((texto, i) => ({
+    texto, x: 20, y: 700 - i * 20, altura: 9, fonte: "Menu",
+  }));
+  return { numero, alturaDaPagina: 800, larguraPt: 600, alturaPt: 800, rotacao: 0, itens: [...menu, ...corpo] };
+}
+
+const MANUAL = [
+  paginaDeManual(1, [{ texto: "Manual da Marca", x: 200, y: 400, altura: 40, fonte: "Titulo" }]),
+  paginaDeManual(2, [
+    { texto: "Logotipo", x: 200, y: 740, altura: 28, fonte: "Titulo" },
+    // Na MESMA altura do item "Logotipo" do menu: sem o filtro por posição, viraria uma linha só.
+    { texto: "Use o símbolo sobre fundo escuro.", x: 200, y: 700, altura: 10, fonte: "Corpo" },
+  ]),
+  paginaDeManual(3, [
+    { texto: "Cores", x: 200, y: 740, altura: 28, fonte: "Titulo" },
+    { texto: "O azul principal é o Cobalto.", x: 200, y: 680, altura: 10, fonte: "Corpo" },
+  ]),
+  paginaDeManual(4, [
+    { texto: "Tipografia", x: 200, y: 740, altura: 28, fonte: "Titulo" },
+    { texto: "Use o símbolo sobre fundo escuro.", x: 300, y: 300, altura: 10, fonte: "Corpo" },
+  ]),
+  paginaDeManual(5, [{ texto: "Contato", x: 200, y: 740, altura: 28, fonte: "Titulo" }]),
+];
+
+test("o menu que se repete no mesmo lugar sai antes de virar linha junto com o corpo", () => {
+  const repetidos = detectarRepetidosPorPosicao(MANUAL);
+  assert.equal(repetidos.size, 4);
+  const limpas = semRepetidosPorPosicao(MANUAL, repetidos);
+  const pagina2 = linhasDe(limpas[1]).map((l) => l.texto);
+  // O título da página continua: ele está em outro lugar, não é o item do menu.
+  assert.deepEqual(pagina2, ["Logotipo", "Use o símbolo sobre fundo escuro."]);
+  assert.deepEqual(linhasDe(limpas[2]).map((l) => l.texto), ["Cores", "O azul principal é o Cobalto."]);
+  // Sem o filtro, o menu grudava no corpo: é o defeito que o ensaio achou.
+  assert.ok(linhasDe(MANUAL[1]).some((l) => l.texto === "Logotipo Use o símbolo sobre fundo escuro."));
+});
+
+test("texto que se repete em lugares diferentes é conteúdo, e fica", () => {
+  const limpas = semRepetidosPorPosicao(MANUAL, detectarRepetidosPorPosicao(MANUAL));
+  assert.ok(linhasDe(limpas[3]).some((l) => l.texto === "Use o símbolo sobre fundo escuro."));
+  assert.ok(linhasDe(limpas[1]).some((l) => l.texto === "Use o símbolo sobre fundo escuro."));
+});
+
+test("o que se repete em menos de 60% das páginas fica; manual curto não perde nada", () => {
+  const comMenuEmDuas = MANUAL.map((p, i) => (i < 2 ? p : { ...p, itens: p.itens.filter((it) => it.fonte !== "Menu") }));
+  assert.equal(detectarRepetidosPorPosicao(comMenuEmDuas).size, 0);
+  assert.equal(detectarRepetidosPorPosicao(MANUAL.slice(0, 2)).size, 0);
+});
+
+test("o que saiu por posição vai para a prévia, com o número de páginas", () => {
+  const removidos = removidosPorPosicao(MANUAL, detectarRepetidosPorPosicao(MANUAL));
+  assert.deepEqual(removidos.map((r) => `${r.texto}:${r.ocorrencias}`).sort(),
+    ["Cores:5", "Fotografia:5", "Logotipo:5", "Tipografia:5"]);
+  assert.equal(MANUAL[1].itens.length, 6, "a entrada não é alterada");
+});
+
+test("título numerado no mesmo lugar é conteúdo: 'Capítulo 1', 'Capítulo 2'… ficam", () => {
+  const paginas = [1, 2, 3, 4, 5].map((n) => paginaDeManual(n, [
+    { texto: `Capítulo ${n}`, x: 200, y: 740, altura: 28, fonte: "Titulo" },
+    { texto: `Corpo do capítulo ${n}.`, x: 200, y: 600, altura: 10, fonte: "Corpo" },
+  ]));
+  const limpas = semRepetidosPorPosicao(paginas, detectarRepetidosPorPosicao(paginas));
+  assert.deepEqual(linhasDe(limpas[2]).map((l) => l.texto), ["Capítulo 3", "Corpo do capítulo 3."]);
 });

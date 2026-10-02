@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  agrupar, dividir, ehVisualDominante, faixaLegivel, fimDe, inicioDe, moverPagina, normalizar,
+  agrupar, dividir, ehPreenchimento, ehVisualDominante, faixaLegivel, fimDe, inicioDe, moverPagina, normalizar,
   paginasDe, renomear, unir, validarInvariantes, MAXIMO_DE_SECOES, type Secao,
 } from "./secoes";
-import { detectarRepetidos, type ItemDeTexto, type PaginaExtraida } from "./texto";
+import { detectarRepetidos, linhasDe, type ItemDeTexto, type PaginaExtraida } from "./texto";
 import type { ItemDeOutline } from "./tipos";
 
 const item = (texto: string, y: number, altura = 12): ItemDeTexto =>
@@ -426,4 +426,51 @@ test("um manual dentro do teto nao e unido a toa", () => {
   const agrupamento = agrupar({ paginas, outline });
   assert.equal(agrupamento.unidasPeloLimite, 0);
   assert.equal(agrupamento.secoes.length, 40);
+});
+
+// ─── Títulos: duas manchetes lado a lado e texto de preenchimento (26/09) ───
+
+test("duas manchetes lado a lado viram um título com as duas, separadas", () => {
+  const paginaDupla: PaginaExtraida = {
+    numero: 1, alturaDaPagina: 800, larguraPt: 600, alturaPt: 800, rotacao: 0,
+    itens: [
+      { texto: "Logo horizontal", x: 40, y: 740, altura: 24, fonte: "T" },
+      { texto: "Logo vertical", x: 330, y: 740, altura: 24, fonte: "T" },
+      { texto: "Use a versão horizontal quando houver espaço.", x: 40, y: 600, altura: 10, fonte: "C" },
+      { texto: "A vertical serve a espaços estreitos.", x: 40, y: 580, altura: 10, fonte: "C" },
+    ],
+  };
+  const linha = linhasDe(paginaDupla)[0];
+  assert.equal(linha.texto, "Logo horizontal Logo vertical", "a busca continua lendo a linha inteira");
+  assert.deepEqual(linha.segmentos, ["Logo horizontal", "Logo vertical"]);
+  const r = agrupar({ paginas: [paginaDupla] });
+  assert.equal(r.secoes[0].titulo, "Logo horizontal · Logo vertical");
+});
+
+test("palavras próximas na mesma linha continuam um título só", () => {
+  const p: PaginaExtraida = {
+    numero: 1, alturaDaPagina: 800, larguraPt: 600, alturaPt: 800, rotacao: 0,
+    itens: [
+      { texto: "Paleta", x: 40, y: 740, altura: 24, fonte: "T" },
+      { texto: "de cores", x: 120, y: 740, altura: 24, fonte: "T" },
+      { texto: "Corpo.", x: 40, y: 600, altura: 10, fonte: "C" },
+    ],
+  };
+  assert.equal(agrupar({ paginas: [p] }).secoes[0].titulo, "Paleta de cores");
+});
+
+test("texto de preenchimento não é título", () => {
+  assert.equal(ehPreenchimento("XXxxxxxx"), true);
+  assert.equal(ehPreenchimento("xxx xxxx"), true);
+  assert.equal(ehPreenchimento("Lorem ipsum dolor sit amet"), true);
+  assert.equal(ehPreenchimento("Box"), false);
+  assert.equal(ehPreenchimento("XL"), false);
+  const p: PaginaExtraida = {
+    numero: 1, alturaDaPagina: 800, larguraPt: 600, alturaPt: 800, rotacao: 0,
+    itens: [
+      { texto: "XXxxxxxx", x: 40, y: 740, altura: 24, fonte: "T" },
+      { texto: "Corpo da página.", x: 40, y: 600, altura: 10, fonte: "C" },
+    ],
+  };
+  assert.notEqual(agrupar({ paginas: [p] }).secoes[0].titulo, "XXxxxxxx");
 });
