@@ -9,7 +9,7 @@ import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
 import { lerPdf, FalhaDeLeitura, type ItemDeOutline } from "@/lib/import/pdf";
 import { rotuloDoProgresso, type ProgressoDaPublicacao } from "@/lib/import/progresso-da-publicacao";
 import { diagnosticar } from "@/lib/import/pdf-erros";
-import { detectarRepetidos, linhasUteis } from "@/lib/import/texto";
+import { detectarRepetidos, detectarRepetidosPorPosicao, linhasUteis, removidosPorPosicao, semRepetidosPorPosicao } from "@/lib/import/texto";
 import {
   agrupar, faixaLegivel, fimDe, inicioDe, type Agrupamento, type Secao,
 } from "@/lib/import/secoes";
@@ -143,13 +143,18 @@ export function BrandImporter({
        */
       const documento = await lerPdf(selecionado, limites);
 
-      // Cabeçalho e rodapé saem antes de qualquer heurística de título: eles
-      // são exatamente o que "linha curta no alto" elegeria por engano.
-      const repetidos = detectarRepetidos(documento.paginas);
+      // O que se repete no mesmo lugar em quase todas as páginas (o menu
+      // lateral, as abas) sai primeiro, peça por peça — antes de virar linha
+      // junto com o corpo. Depois, cabeçalho e rodapé, antes de qualquer
+      // heurística de título: eles são o que "linha curta no alto" elegeria.
+      const porPosicao = detectarRepetidosPorPosicao(documento.paginas);
+      const paginas = semRepetidosPorPosicao(documento.paginas, porPosicao);
+      const repetidos = detectarRepetidos(paginas);
       const resultado = agrupar({
-        paginas: documento.paginas,
+        paginas,
         outline: documento.outline,
         repetidos,
+        removidosAntes: removidosPorPosicao(documento.paginas, porPosicao),
       });
 
       setHash(documento.sha256);
@@ -158,7 +163,7 @@ export function BrandImporter({
       setAgrupamento(resultado);
       setSecoes(resultado.secoes);
       setTotalDePaginas(documento.totalDePaginas);
-      setLinhasPorPagina(new Map(documento.paginas.map((pagina) => [
+      setLinhasPorPagina(new Map(paginas.map((pagina) => [
         pagina.numero,
         linhasUteis(pagina, repetidos).map((linha) => linha.texto),
       ])));
@@ -168,7 +173,7 @@ export function BrandImporter({
        * conta o texto ÚTIL — sem cabeçalho e rodapé —, porque é ele que
        * decide se a página tem texto para busca ou é só visual.
        */
-      setGeometria(documento.paginas.map((pagina) => ({
+      setGeometria(paginas.map((pagina) => ({
         numero: pagina.numero,
         larguraPt: pagina.larguraPt,
         alturaPt: pagina.alturaPt,
@@ -379,7 +384,7 @@ export function BrandImporter({
           confianca: secao.confianca,
         })),
         ignoradas: agrupamento.ignoradas,
-        // Cabeçalho e rodapé removidos: decisão de extração, não perda.
+        // Cabeçalho, rodapé e menu removidos: decisão de extração, não perda.
         removidosNaExtracao: agrupamento.removidos,
         secoesUnidasPeloLimite: agrupamento.unidasPeloLimite,
         arquivo: arquivo.name,
@@ -670,8 +675,8 @@ export function BrandImporter({
               <details className="mt-[var(--space-shell-4)] text-[13px] text-platform-text-muted">
                 <summary className="min-h-11 cursor-pointer py-2 text-platform-text">
                   {t(
-                    `${agrupamento.removidos.length} trechos removidos como cabeçalho ou rodapé`,
-                    `${agrupamento.removidos.length} passages removed as header or footer`,
+                    `${agrupamento.removidos.length} trechos removidos por se repetirem em quase todas as páginas (cabeçalho, rodapé, menu)`,
+                    `${agrupamento.removidos.length} passages removed for repeating on almost every page (header, footer, menu)`,
                   )}
                 </summary>
                 <p className="mt-[var(--space-shell-2)] leading-relaxed">
