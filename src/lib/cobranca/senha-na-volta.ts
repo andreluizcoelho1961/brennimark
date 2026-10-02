@@ -20,10 +20,14 @@
  *
  * E mesmo com a prova:
  *   - só vale por {@link PRAZO_DA_SENHA_NA_VOLTA_HORAS} horas depois da compra;
- *   - só vale para login que NASCEU da compra (`criado_pela_cobranca`) e que
- *     nunca entrou. Login que já existia antes (o e-mail já tinha acesso a
- *     outra conta) NUNCA tem a senha trocada por aqui: isso abriria a porta
- *     para tomar a conta de quem já existe comprando com o e-mail dele;
+ *   - só vale para o login que nasceu DESTA compra (`criado_pela_assinatura`
+ *     igual à assinatura da sessão) e que nunca entrou. Login que já existia
+ *     — de outra conta, ou de uma compra ANTERIOR com o mesmo e-mail — NUNCA
+ *     tem a senha criada por aqui. Corrigido em 02/10/2026: a primeira versão
+ *     aceitava qualquer login nascido de compra, e quem comprasse com o
+ *     e-mail de um cliente que ainda não criou a senha tomaria a conta dele
+ *     (o Stripe não confere se o e-mail é de quem paga). Achado no teste
+ *     real, quando uma segunda compra criou a senha do login da primeira;
  *   - vale uma vez: criada a senha, o login fica marcado e entra; a próxima
  *     tentativa vê "já tem acesso".
  *
@@ -75,10 +79,16 @@ export type SessaoDaCompra = {
   email: string | null;
   idAssinatura: string | null;
   resumoDaProva: string | null;
+  /** O nome que a pessoa digitou no `/assinar` — vai para o perfil. */
+  comprador: string | null;
+  /** O nome da empresa digitado no `/assinar`. */
+  empresa: string | null;
 };
 
 export type LoginDaCompra = {
   criadoPelaCobranca: boolean;
+  /** A assinatura cuja compra criou o login; `null` em login sem a marca. */
+  assinaturaDeOrigem: string | null;
   jaEntrou: boolean;
   senhaJaCriada: boolean;
 };
@@ -103,7 +113,9 @@ export function momentoDaVolta(p: {
   if (!p.provaConfere || !p.sessao) return "sem-prova";
   if (p.agora - p.sessao.criadaEm > PRAZO_DA_SENHA_NA_VOLTA_HORAS * 3_600_000) return "expirado";
   if (!p.sessao.paga || !p.contaExiste || !p.login) return "aguardando";
-  if (!p.login.criadoPelaCobranca || p.login.jaEntrou || p.login.senhaJaCriada) return "ja-tem-acesso";
+  if (!p.login.criadoPelaCobranca || p.login.assinaturaDeOrigem === null
+      || p.login.assinaturaDeOrigem !== p.sessao.idAssinatura
+      || p.login.jaEntrou || p.login.senhaJaCriada) return "ja-tem-acesso";
   return "criar-senha";
 }
 
@@ -112,6 +124,8 @@ export function loginDaCompra(usuario: { app_metadata?: unknown; last_sign_in_at
   const meta = (usuario.app_metadata && typeof usuario.app_metadata === "object" ? usuario.app_metadata : {}) as Record<string, unknown>;
   return {
     criadoPelaCobranca: meta.criado_pela_cobranca === true,
+    assinaturaDeOrigem: typeof meta.criado_pela_assinatura === "string" && meta.criado_pela_assinatura.length > 0
+      ? meta.criado_pela_assinatura : null,
     jaEntrou: typeof usuario.last_sign_in_at === "string" && usuario.last_sign_in_at.length > 0,
     senhaJaCriada: meta.senha_criada_na_compra !== undefined && meta.senha_criada_na_compra !== null,
   };

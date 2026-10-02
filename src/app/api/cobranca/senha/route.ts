@@ -28,7 +28,10 @@ import {
  * A senha não vai para log nem para a resposta. O e-mail volta só a quem tem a
  * prova — é o e-mail que essa mesma pessoa digitou na compra.
  */
-type Contexto = { momento: Momento; email: string | null; userId: string | null; conta: string | null; metadados: Record<string, unknown> };
+type Contexto = {
+  momento: Momento; email: string | null; userId: string | null; conta: string | null; metadados: Record<string, unknown>;
+  comprador: string | null; empresa: string | null;
+};
 
 const SEM_PROVA = (status = 200) => NextResponse.json({ momento: "sem-prova" }, { status, headers: { "Cache-Control": "no-store" } });
 
@@ -87,7 +90,7 @@ async function contexto(request: NextRequest, idDaSessao: string): Promise<Conte
 
   return {
     momento: momentoDaVolta({ provaConfere, sessao, contaExiste: conta !== null, login, agora }),
-    email: sessao.email, userId, conta, metadados,
+    email: sessao.email, userId, conta, metadados, comprador: sessao.comprador, empresa: sessao.empresa,
   };
 }
 
@@ -141,6 +144,18 @@ export async function POST(request: NextRequest) {
   const { error: erroDaAtivacao } = await servico.rpc("ativar_login", { p_user_id: c.userId });
   if (erroDaAtivacao) {
     console.error(JSON.stringify({ level: "error", msg: "senha_na_volta_ativacao_falhou", code: erroDaAtivacao.code ?? "unknown" }));
+  }
+
+  // O nome e a empresa já foram digitados no `/assinar`. Sem eles no perfil,
+  // a entrada mandaria a pessoa ao cadastro para digitá-los de novo (achado no
+  // teste real, 02/10/2026). Só preenche o que está vazio.
+  if (c.comprador) {
+    const { error: erroDoPerfil } = await servico.from("profiles")
+      .update({ full_name: c.comprador, ...(c.empresa ? { company: c.empresa } : {}) })
+      .eq("id", c.userId).or("full_name.is.null,full_name.eq.");
+    if (erroDoPerfil) {
+      console.error(JSON.stringify({ level: "error", msg: "senha_na_volta_perfil_falhou", code: erroDoPerfil.code ?? "unknown" }));
+    }
   }
 
   const resposta = NextResponse.json(

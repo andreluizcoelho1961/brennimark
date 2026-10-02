@@ -73,6 +73,8 @@ export type AssinaturaNoProvedor = {
   moeda: string;
   emailDoTitular: string | null;
   nomeDaConta: string | null;
+  /** Quem preencheu o `/assinar` — vira o nome do perfil. */
+  nomeDoComprador: string | null;
 };
 
 export type Recebimento = "novo" | "repetir" | "concluido";
@@ -83,8 +85,12 @@ export type Portas = {
   concluir(provedor: string, idDoAviso: string, resultado: Resultado | "falhou",
            detalhe: string | null, idAssinatura: string | null): Promise<void>;
   buscarAssinatura(idAssinatura: string): Promise<AssinaturaNoProvedor>;
-  /** Cria o login do titular se ainda não existir. Login que já existe não é erro. */
-  garantirLogin(email: string, nome: string | null): Promise<void>;
+  /**
+   * Cria o login do titular se ainda não existir. Login que já existe não é
+   * erro. O login novo leva a assinatura que o criou: só a volta DESSA compra
+   * pode criar a senha dele (`senha-na-volta.ts`).
+   */
+  garantirLogin(email: string, nome: string | null, idAssinatura: string): Promise<void>;
   sincronizar(assinatura: AssinaturaNoProvedor & { situacao: Situacao; emailDoTitular: string }): Promise<string | null>;
 };
 
@@ -110,7 +116,7 @@ export async function processarAviso(provedor: string, aviso: Aviso, portas: Por
     if (!assinatura.emailDoTitular) throw new Error("assinatura sem e-mail do titular");
 
     if (assinatura.situacao === "ativa") {
-      await portas.garantirLogin(assinatura.emailDoTitular, assinatura.nomeDaConta);
+      await portas.garantirLogin(assinatura.emailDoTitular, assinatura.nomeDoComprador, assinatura.idAssinatura);
     }
     const conta = await portas.sincronizar({
       ...assinatura, situacao: assinatura.situacao, emailDoTitular: assinatura.emailDoTitular,
