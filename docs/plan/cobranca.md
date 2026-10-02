@@ -9,7 +9,7 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 |---|---|---|
 | Provedor | **Stripe** | vender no mundo inteiro desde o início; trocar de provedor com assinantes ativos é caro. O Paddle foi descartado porque a agência brasileira precisa de nota fiscal do CNPJ brasileiro, e o Asaas porque é limitado fora do Brasil |
 | Entrada | **pagou, entrou**, sem período de teste | coerente com "a conta só nasce de assinatura paga" (especificação do site) |
-| Pagamento | cartão e Pix (o Pix Automático do Stripe faz a cobrança recorrente) | |
+| Pagamento | **só cartão** (decisão de 02/10/2026; rever mais adiante) | agências assinam com cartão, e o Pix serve mais à compra à vista. E o Stripe não faz Pix em assinatura para conta brasileira: "O Pix Automático não está disponível no Brasil", e o checkout descarta o Pix sem erro. Caminhos guardados: Pix pela fatura do mês, plano anual por Pix (teto de R$ 3.000 por Pix) ou um segundo provedor |
 | Empresa | o MEI do André no piloto; ME no Simples depois | o sistema não depende do tipo de empresa: a chave do Stripe fica na Vercel |
 | Atraso | **7 dias** com tudo funcionando e aviso ao dono; depois **só leitura** (consulta e download sim; Vini, edição e marca nova não); **nada é apagado** | |
 | Cancelado de vez | **em aberto.** A ideia do André: a pessoa pode baixar os dados; guardar uns 6 meses caso volte; depois liberar o espaço | |
@@ -36,9 +36,18 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    Stripe, link de pagamento do piloto). Sem chaves ou sem preço ligado, a compra diz que "ainda não
    está aberta". **O botão do site continua "Conversar sobre a implantação"**: trocar para "Assinar"
    é decisão do André, quando a venda abrir.
-   **Antes de abrir a venda, decisão do André:** como o comprador recebe o acesso. O login nasce sem
-   senha; o produto não manda e-mail, e o e-mail padrão do Supabase só envia para a equipe do
-   projeto. A página de volta já promete "instruções de acesso no e-mail".
+   **Como o comprador entra (decisão de 02/10/2026): cria a senha na própria volta do pagamento** —
+   ver 2b.
+2b. **Senha na volta do pagamento** (02/10/2026): pagou pelo site, a volta espera o webhook abrir a
+   conta (segundos, no cartão), pede a senha duas vezes e entra. A trava é a **prova do navegador**:
+   o checkout deixa um segredo num cookie que só o servidor lê (e que só viaja para
+   `/api/cobranca/senha`), e o Stripe guarda só o resumo dele nos metadados da sessão. Sem o cookie,
+   a rota responde sempre "sem-prova" e não diz nada da compra — um link da volta copiado não serve.
+   Além disso: 24 horas de prazo, uma vez só, e **só para login que nasceu da compra e nunca
+   entrou**; e-mail que já tinha login é mandado ao login, nunca tem a senha trocada. Regras em
+   `src/lib/cobranca/senha-na-volta.ts`. Quem fecha a aba antes, quem compra pelo link de piloto (o
+   checkout abre no navegador da equipe) e quem esquece a senha ainda dependem do link do Console
+   (3b) até haver serviço de e-mail e "Esqueci a senha".
 3. **Vida da assinatura** (#76):
    - **regra de atraso no banco** (`private.acesso_pela_cobranca`): até 7 dias em atraso, tudo
      funciona; depois, ou se cancelada, só leitura. O Vini recusa (`conta_so_leitura`); a edição
@@ -75,12 +84,12 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
    (`whsec_…`).
 4. Criar no Stripe um produto por plano, com preço **mensal** em BRL (e em USD, para vender fora),
    e colar cada `price_…` no Console → Cobrança → Preços no Stripe.
-5. No painel do Stripe, ligar os meios de pagamento: cartão e **Pix**. O Pix entra como Pix
-   Automático (o comprador autoriza no banco uma cobrança mensal de até o valor do plano).
+5. No painel do Stripe, deixar o **cartão** ligado (Settings → Payment methods). O Pix pode ficar
+   ligado ou não: em assinatura o Stripe o descarta para conta brasileira.
 6. No Supabase (Authentication → URL Configuration), conferir que **Redirect URLs** inclui
    `https://brennimark.vercel.app/auth/callback` (e o domínio definitivo, quando houver). Sem isso,
    o link de primeiro acesso cai no endereço padrão e não abre a tela de criar senha.
-7. Testar com o cartão de teste `4242 4242 4242 4242` e o Pix de teste; a conta aparece no Console
+7. Testar com o cartão de teste `4242 4242 4242 4242`; a conta aparece no Console
    → Cobrança → Assinaturas.
 
 ## Pontas conhecidas (revisão de 01/10/2026)
@@ -95,12 +104,8 @@ Corrigido na revisão (migration `cobranca_primeiro_acesso`, #77):
 
 A conferir no primeiro teste real, em modo de teste do Stripe:
 
-- **Pix no checkout:** a página manda o mandato do Pix Automático quando a moeda é real. **Achado no
-  primeiro teste (02/10):** em modo assinatura o Stripe recusa `amount_type` no mandato; só
-  `amount` e `payment_schedule`. Corrigido. Ligar o Pix no painel antes de testar em reais.
-- **Teto do mandato Pix = valor do plano.** Se o preço subir (reajuste, troca de plano para cima,
-  imposto somado pelo Stripe Tax), a cobrança por Pix acima do teto falha e a pessoa precisa
-  autorizar de novo no banco.
+- **Pix no checkout:** saiu em 02/10. O mandato do Pix Automático era descartado pelo Stripe para
+  conta brasileira (e antes, com `amount_type`, recusado). Assinatura é só cartão.
 - **Troca de plano pelo Portal:** o Portal só pode oferecer preços que estejam ligados no Console.
   Um preço que não está lá faz o aviso falhar (e o Stripe repetir) até ele ser ligado.
 

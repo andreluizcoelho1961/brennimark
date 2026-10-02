@@ -179,7 +179,7 @@ function LinkDePiloto({ planos }: { planos: Plano[] }) {
       <label><span className={ROTULO}>Plano</span>
         <select name="plano" defaultValue="piloto" className={`${CAMPO} w-full`}>{planos.map((p) => <option key={p.codigo} value={p.codigo}>{p.nome}{p.a_venda ? "" : " (fora de venda)"}</option>)}</select></label>
       <label><span className={ROTULO}>Moeda</span>
-        <select name="moeda" className={`${CAMPO} w-full`}><option value="BRL">BRL (cartão ou Pix)</option><option value="USD">USD (cartão)</option></select></label>
+        <select name="moeda" className={`${CAMPO} w-full`}><option value="BRL">BRL (cartão)</option><option value="USD">USD (cartão)</option></select></label>
       <label><span className={ROTULO}>Empresa (nome da conta)</span><input name="empresa" className={`${CAMPO} w-full`} /></label>
       <label><span className={ROTULO}>Nome de quem assina</span><input name="nome" className={`${CAMPO} w-full`} /></label>
       <label><span className={ROTULO}>E-mail de quem assina</span><input name="email" type="email" className={`${CAMPO} w-full`} /></label>

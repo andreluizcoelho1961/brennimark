@@ -6,7 +6,7 @@ export type PlanoAVenda = { codigo: string; nome: string; maximoDeMarcas: number
 
 type Moeda = "BRL" | "USD";
 const MOEDAS: { valor: Moeda; rotulo: string; detalhe: string }[] = [
-  { valor: "BRL", rotulo: "Brasil · R$", detalhe: "cartão ou Pix" },
+  { valor: "BRL", rotulo: "Brasil · R$", detalhe: "cartão" },
   { valor: "USD", rotulo: "Outros países · US$", detalhe: "cartão" },
 ];
 

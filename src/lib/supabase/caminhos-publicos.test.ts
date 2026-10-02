@@ -75,3 +75,9 @@ test("a compra passa sem sessão — quem compra ainda não tem conta", () => {
   assert.equal(caminhoPublico("/assinarx"), false);
   assert.equal(caminhoPublico("/api/cobranca/checkoutx"), false);
 });
+
+test("a senha na volta do pagamento passa sem sessão, pelo caminho exato", () => {
+  assert.equal(caminhoPublico("/api/cobranca/senha"), true);
+  assert.equal(caminhoPublico("/api/cobranca/senha/"), false);
+  assert.equal(caminhoPublico("/api/cobranca/senhax"), false);
+});

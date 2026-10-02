@@ -1,6 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/service";
-import { chavesDoStripe, criarCheckoutNoStripe, valorDoPrecoNoStripe } from "./stripe";
+import { chavesDoStripe, criarCheckoutNoStripe } from "./stripe";
 import { parametrosDoCheckout, type PedidoDeCompra } from "./compra";
 
 /**
@@ -14,7 +14,9 @@ export type Abertura =
   | { ok: true; url: string }
   | { ok: false; status: 409 | 500 | 503; motivo: string };
 
-export async function abrirCheckout(pedido: PedidoDeCompra, origem: string, opcoes: { piloto: boolean }): Promise<Abertura> {
+export async function abrirCheckout(
+  pedido: PedidoDeCompra, origem: string, opcoes: { piloto: boolean; resumoDaProva?: string },
+): Promise<Abertura> {
   const chaves = chavesDoStripe();
   if (!chaves) return { ok: false, status: 503, motivo: "A compra online ainda não está aberta. Fale com a equipe da Brennimark." };
 
@@ -34,9 +36,8 @@ export async function abrirCheckout(pedido: PedidoDeCompra, origem: string, opco
   }
 
   try {
-    const valorEmCentavos = pedido.moeda === "BRL" ? await valorDoPrecoNoStripe(chaves.chave, idDoPreco) : 0;
     const url = await criarCheckoutNoStripe(chaves.chave,
-      parametrosDoCheckout({ pedido, idDoPreco, valorEmCentavos, origem, piloto: opcoes.piloto }));
+      parametrosDoCheckout({ pedido, idDoPreco, origem, piloto: opcoes.piloto, resumoDaProva: opcoes.resumoDaProva }));
     return { ok: true, url };
   } catch (erro) {
     console.error(JSON.stringify({ level: "error", msg: "cobranca_checkout_falhou", plano: pedido.plano, moeda: pedido.moeda,

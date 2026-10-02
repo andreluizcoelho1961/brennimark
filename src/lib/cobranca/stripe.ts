@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { assinaturaDoStripe, type AssinaturaDoStripe } from "./stripe-traducao";
 import type { AssinaturaNoProvedor } from "./webhook";
 import type { ParametrosDoCheckout } from "./compra";
+import { CHAVE_DA_PROVA_NO_STRIPE, type SessaoDaCompra } from "./senha-na-volta";
 
 export { lerAvisoAssinado } from "./aviso-assinado";
 
@@ -33,11 +34,22 @@ export async function buscarAssinaturaNoStripe(chave: string, idAssinatura: stri
   return assinaturaDoStripe(sub as unknown as AssinaturaDoStripe);
 }
 
-/** O valor do preço, em centavos — o teto do mandato do Pix Automático. */
-export async function valorDoPrecoNoStripe(chave: string, idDoPreco: string): Promise<number> {
-  const preco = await new Stripe(chave).prices.retrieve(idDoPreco);
-  if (typeof preco.unit_amount !== "number") throw new Error("preço sem valor fixo");
-  return preco.unit_amount;
+/**
+ * A sessão de checkout como está AGORA no Stripe — o que a volta do pagamento
+ * precisa para decidir se a senha pode ser criada (`senha-na-volta.ts`).
+ * "Paga" é a sessão concluída com pagamento confirmado; sessão em aberto ou
+ * expirada não conta.
+ */
+export async function buscarSessaoNoStripe(chave: string, idDaSessao: string): Promise<SessaoDaCompra> {
+  const sessao = await new Stripe(chave).checkout.sessions.retrieve(idDaSessao);
+  const assinatura = typeof sessao.subscription === "string" ? sessao.subscription : sessao.subscription?.id ?? null;
+  return {
+    paga: sessao.status === "complete" && sessao.payment_status === "paid",
+    criadaEm: sessao.created * 1000,
+    email: (sessao.customer_details?.email ?? sessao.customer_email ?? null)?.toLowerCase() ?? null,
+    idAssinatura: assinatura,
+    resumoDaProva: sessao.metadata?.[CHAVE_DA_PROVA_NO_STRIPE] ?? null,
+  };
 }
 
 /** Abre a página de pagamento do Stripe e devolve o endereço dela. */

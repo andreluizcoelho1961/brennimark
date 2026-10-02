@@ -33,13 +33,18 @@
  * dá acesso a nada: a rota só abre a página de pagamento do Stripe, com o
  * preço que o banco escolhe, e a conta continua nascendo só do webhook.
  *
+ * A SENHA NA VOLTA entrou em 02/10/2026: `/api/cobranca/senha`, onde quem
+ * acabou de pagar cria a senha. Ainda não há sessão. A trava é a prova do
+ * navegador — o cookie de quem abriu o checkout, conferido contra o resumo que
+ * o Stripe guardou — antes de qualquer consulta (`senha-na-volta.ts`).
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
