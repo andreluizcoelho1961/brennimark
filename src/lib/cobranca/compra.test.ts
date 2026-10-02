@@ -21,28 +21,32 @@ test("o pedido nunca traz preço: o que vier a mais é ignorado", () => {
   if (lido.ok) assert.equal(Object.keys(lido.valor).sort().join(","), "email,empresa,moeda,nome,plano");
 });
 
-test("o checkout em reais: Pix Automático mensal no valor do plano, nome da conta no metadata da assinatura", () => {
+test("o checkout em reais: só cartão, nome da conta no metadata da assinatura, prova só na sessão", () => {
   const pedido = (lerPedidoDeCompra(PEDIDO) as { ok: true; valor: PedidoDeCompra }).valor;
-  const p = parametrosDoCheckout({ pedido, idDoPreco: "price_basico_brl", valorEmCentavos: 49900, origem: "https://exemplo.test" });
+  const p = parametrosDoCheckout({ pedido, idDoPreco: "price_basico_brl", origem: "https://exemplo.test", resumoDaProva: "abc123" });
   assert.equal(p.mode, "subscription");
   assert.deepEqual(p.line_items, [{ price: "price_basico_brl", quantity: 1 }]);
   assert.equal(p.customer_email, "fulana@agencia.com");
   assert.equal(p.subscription_data.metadata.nome_da_conta, "Agência Exemplo");
   assert.equal(p.locale, "pt-BR");
-  // Sem `amount_type`: em modo assinatura o Stripe recusa o campo (sandbox, 02/10/2026).
-  assert.deepEqual(p.payment_method_options, { pix: { mandate_options: { amount: 49900, payment_schedule: "monthly" } } });
+  // Só cartão (02/10/2026): o Stripe não faz Pix em assinatura para conta brasileira.
+  assert.equal("payment_method_options" in p, false);
+  // O resumo da prova do navegador vai na SESSÃO, nunca na assinatura.
+  assert.equal((p.metadata as Record<string, string>).prova_do_navegador, "abc123");
+  assert.equal("prova_do_navegador" in p.subscription_data.metadata, false);
   assert.equal(p.success_url, "https://exemplo.test/assinar/obrigado?sessao={CHECKOUT_SESSION_ID}");
   assert.equal(p.cancel_url, "https://exemplo.test/assinar?plano=basico");
   assert.deepEqual(p.tax_id_collection, { enabled: true });
   assert.equal("piloto" in p.metadata, false);
 });
 
-test("o checkout em dólar: sem Pix, em inglês; o do piloto vem marcado", () => {
+test("o checkout em dólar: em inglês; o do piloto vem marcado e sem prova", () => {
   const pedido = (lerPedidoDeCompra({ ...PEDIDO, moeda: "USD" }) as { ok: true; valor: PedidoDeCompra }).valor;
-  const p = parametrosDoCheckout({ pedido, idDoPreco: "price_basico_usd", valorEmCentavos: 0, origem: "https://exemplo.test", piloto: true });
+  const p = parametrosDoCheckout({ pedido, idDoPreco: "price_basico_usd", origem: "https://exemplo.test", piloto: true });
   assert.equal("payment_method_options" in p, false);
   assert.equal(p.locale, "en");
   assert.equal(p.subscription_data.metadata.piloto, "sim");
+  assert.equal("prova_do_navegador" in p.metadata, false);
 });
 
 test("Console: ajustar plano converte dólares em micros e GB em bytes; vazio é sem limite", () => {

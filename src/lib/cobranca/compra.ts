@@ -7,6 +7,8 @@
  * ninguém compra o Premium pelo preço do Básico mexendo no pedido.
  */
 
+import { CHAVE_DA_PROVA_NO_STRIPE } from "./senha-na-volta";
+
 export type Moeda = "BRL" | "USD";
 export const MOEDAS: readonly Moeda[] = ["BRL", "USD"];
 
@@ -50,36 +52,35 @@ export function lerPedidoDeCompra(corpo: unknown): Leitura<PedidoDeCompra> {
  *   - assinatura mensal, um item, o preço que o BANCO escolheu;
  *   - o nome da conta vai no `metadata` da assinatura, que é de onde o webhook
  *     o lê ao abrir a conta (`stripe-traducao.ts`);
- *   - em reais, o Pix entra como Pix Automático: o comprador autoriza no banco
- *     uma cobrança mensal no valor do plano. Os outros meios (cartão) vêm do
- *     que estiver ligado no painel do Stripe. Só `amount` e `payment_schedule`:
- *     em modo assinatura o Stripe RECUSA `amount_type` (achado no primeiro
- *     teste real, no sandbox, em 02/10/2026 — a sessão em reais não abria);
+ *   - SÓ CARTÃO, decisão do André em 02/10/2026. O Stripe não oferece Pix em
+ *     assinatura para conta brasileira ("O Pix Automático não está disponível
+ *     no Brasil", na documentação dele) e o descarta da sessão sem erro. Os
+ *     meios vêm do que estiver ligado no painel do Stripe;
  *   - o CNPJ/CPF é pedido para a nota fiscal (fatia 4);
- *   - a volta leva o identificador da sessão, que a página de volta só usa para
- *     dizer "recebemos" — a conta nasce do webhook, nunca dela.
+ *   - o resumo da prova do navegador vai nos metadados da SESSÃO, não da
+ *     assinatura: é com ele que a volta confere quem pode criar a senha
+ *     (`senha-na-volta.ts`). O link de piloto não leva prova;
+ *   - a volta leva o identificador da sessão. Sozinho ele não dá nada — a
+ *     conta nasce do webhook, e a senha exige também a prova do navegador.
  */
 export function parametrosDoCheckout(p: {
   pedido: PedidoDeCompra;
   idDoPreco: string;
-  valorEmCentavos: number;
   origem: string;
   piloto?: boolean;
+  resumoDaProva?: string;
 }) {
-  const { pedido, idDoPreco, valorEmCentavos, origem } = p;
+  const { pedido, idDoPreco, origem } = p;
   const metadata = { nome_da_conta: pedido.empresa, plano: pedido.plano, comprador: pedido.nome, ...(p.piloto ? { piloto: "sim" } : {}) };
   return {
     mode: "subscription" as const,
     line_items: [{ price: idDoPreco, quantity: 1 }],
     customer_email: pedido.email,
-    metadata,
+    metadata: { ...metadata, ...(p.resumoDaProva ? { [CHAVE_DA_PROVA_NO_STRIPE]: p.resumoDaProva } : {}) },
     subscription_data: { metadata },
     locale: pedido.moeda === "BRL" ? ("pt-BR" as const) : ("en" as const),
     billing_address_collection: "required" as const,
     tax_id_collection: { enabled: true },
-    ...(pedido.moeda === "BRL"
-      ? { payment_method_options: { pix: { mandate_options: { amount: valorEmCentavos, payment_schedule: "monthly" as const } } } }
-      : {}),
     success_url: `${origem}/assinar/obrigado?sessao={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origem}/assinar?plano=${encodeURIComponent(pedido.plano)}`,
   };
