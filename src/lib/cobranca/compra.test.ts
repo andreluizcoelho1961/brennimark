@@ -21,7 +21,7 @@ test("o pedido nunca traz preço: o que vier a mais é ignorado", () => {
   if (lido.ok) assert.equal(Object.keys(lido.valor).sort().join(","), "email,empresa,moeda,nome,plano");
 });
 
-test("o checkout em reais: Pix Automático mensal até o valor do plano, nome da conta no metadata da assinatura", () => {
+test("o checkout em reais: Pix Automático mensal no valor do plano, nome da conta no metadata da assinatura", () => {
   const pedido = (lerPedidoDeCompra(PEDIDO) as { ok: true; valor: PedidoDeCompra }).valor;
   const p = parametrosDoCheckout({ pedido, idDoPreco: "price_basico_brl", valorEmCentavos: 49900, origem: "https://exemplo.test" });
   assert.equal(p.mode, "subscription");
@@ -29,7 +29,8 @@ test("o checkout em reais: Pix Automático mensal até o valor do plano, nome da
   assert.equal(p.customer_email, "fulana@agencia.com");
   assert.equal(p.subscription_data.metadata.nome_da_conta, "Agência Exemplo");
   assert.equal(p.locale, "pt-BR");
-  assert.deepEqual(p.payment_method_options, { pix: { mandate_options: { amount: 49900, amount_type: "maximum", payment_schedule: "monthly" } } });
+  // Sem `amount_type`: em modo assinatura o Stripe recusa o campo (sandbox, 02/10/2026).
+  assert.deepEqual(p.payment_method_options, { pix: { mandate_options: { amount: 49900, payment_schedule: "monthly" } } });
   assert.equal(p.success_url, "https://exemplo.test/assinar/obrigado?sessao={CHECKOUT_SESSION_ID}");
   assert.equal(p.cancel_url, "https://exemplo.test/assinar?plano=basico");
   assert.deepEqual(p.tax_id_collection, { enabled: true });

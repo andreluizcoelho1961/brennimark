@@ -51,8 +51,10 @@ export function lerPedidoDeCompra(corpo: unknown): Leitura<PedidoDeCompra> {
  *   - o nome da conta vai no `metadata` da assinatura, que é de onde o webhook
  *     o lê ao abrir a conta (`stripe-traducao.ts`);
  *   - em reais, o Pix entra como Pix Automático: o comprador autoriza no banco
- *     uma cobrança mensal de até o valor do plano. Os outros meios (cartão)
- *     vêm do que estiver ligado no painel do Stripe;
+ *     uma cobrança mensal no valor do plano. Os outros meios (cartão) vêm do
+ *     que estiver ligado no painel do Stripe. Só `amount` e `payment_schedule`:
+ *     em modo assinatura o Stripe RECUSA `amount_type` (achado no primeiro
+ *     teste real, no sandbox, em 02/10/2026 — a sessão em reais não abria);
  *   - o CNPJ/CPF é pedido para a nota fiscal (fatia 4);
  *   - a volta leva o identificador da sessão, que a página de volta só usa para
  *     dizer "recebemos" — a conta nasce do webhook, nunca dela.
@@ -76,7 +78,7 @@ export function parametrosDoCheckout(p: {
     billing_address_collection: "required" as const,
     tax_id_collection: { enabled: true },
     ...(pedido.moeda === "BRL"
-      ? { payment_method_options: { pix: { mandate_options: { amount: valorEmCentavos, amount_type: "maximum" as const, payment_schedule: "monthly" as const } } } }
+      ? { payment_method_options: { pix: { mandate_options: { amount: valorEmCentavos, payment_schedule: "monthly" as const } } } }
       : {}),
     success_url: `${origem}/assinar/obrigado?sessao={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origem}/assinar?plano=${encodeURIComponent(pedido.plano)}`,
