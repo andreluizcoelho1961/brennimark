@@ -99,17 +99,20 @@
     gazeTimer=setTimeout(()=>{gazeTimer=null;if(gazeVisible&&!document.hidden&&!reduced.matches)callback();},delay);
   }
   function jumpGaze(){
-    // Corte seco, pequena perda de sinal e reacquisição. Não há interpolação nem arrasto.
+    // O rosto muda só durante o apagão; apenas o foco no papel dá pequenos passos.
     gazeGroup.style.opacity='0';
-    later(random(55,130),()=>{
-      drawGaze(nextFace(),nextSketch());
+    later(random(220,420),()=>{
+      const face=nextFace(),sketch=nextSketch();
+      drawGaze(face,sketch);
+      gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
       gazeGroup.style.opacity='1';
-      const disrupted=Math.random()<.45;
-      gazeLine.style.opacity=disrupted?'0':'1';
-      sketchFrame.style.opacity=disrupted?'.35':'1';
-      later(disrupted?random(65,115):35,()=>{
-        gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
-        later(random(500,1100),jumpGaze);
+      const dx=random(-28,28),dy=random(-14,14);
+      later(random(230,380),()=>{
+        drawGaze(face,[sketch[0]+dx*.45,sketch[1]+dy*.45]);
+        later(random(110,220),()=>{
+          drawGaze(face,[sketch[0]+dx,sketch[1]+dy]);
+          later(random(250,450),jumpGaze);
+        });
       });
     });
   }
