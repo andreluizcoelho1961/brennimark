@@ -58,6 +58,76 @@
   document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
   function clock(){document.querySelector('#clock').textContent='PORTO ALEGRE_'+new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date());}
   clock();setInterval(clock,60000);
+  // Um único olhar: três rostos e seis pontos marcados à mão nos esboços.
+  // Transformações sincronizadas mantêm a linha reta presa às bordas dos retângulos.
+  const faceFrame=document.querySelector('#face-frame');
+  const sketchFrame=document.querySelector('#sketch-frame');
+  const gazeLine=document.querySelector('#gaze-line');
+  const gazes=[
+    {face:[355,190],sketch:[770,842]},
+    {face:[700,235],sketch:[555,925]},
+    {face:[1060,195],sketch:[1140,902]},
+    {face:[355,190],sketch:[385,914]},
+    {face:[700,235],sketch:[875,968]},
+    {face:[1060,195],sketch:[970,832]},
+  ];
+  function drawGaze(face,sketch){
+    faceFrame.setAttribute('transform',`translate(${face[0]} ${face[1]})`);
+    sketchFrame.setAttribute('transform',`translate(${sketch[0]} ${sketch[1]})`);
+    const x=face[0]+80,y=face[1]+200,dx=sketch[0]+40-x,dy=sketch[1]-y;
+    gazeLine.setAttribute('transform',`translate(${x} ${y}) rotate(${Math.atan2(dy,dx)*180/Math.PI}) scale(${Math.hypot(dx,dy)} 1)`);
+  }
+  const gazeGroup=document.querySelector('.annotation');
+  const faces=[gazes[0].face,gazes[1].face,gazes[2].face];
+  const sketches=gazes.map(g=>g.sketch);
+  let gazeVisible=false,gazeTimer=null,faceBag=[],lastFace=-1,lastSketch=-1;
+  const random=(min,max)=>min+Math.random()*(max-min);
+  function nextFace(){
+    // Sacola embaralhada: os três aparecem, mas a sequência não vira um ciclo fixo.
+    if(!faceBag.length){
+      faceBag=[0,1,2];
+      for(let i=faceBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[faceBag[i],faceBag[j]]=[faceBag[j],faceBag[i]];}
+      if(faceBag[0]===lastFace)[faceBag[0],faceBag[1]]=[faceBag[1],faceBag[0]];
+    }
+    lastFace=faceBag.shift();return faces[lastFace];
+  }
+  function nextSketch(){
+    let i;do{i=Math.floor(Math.random()*sketches.length);}while(i===lastSketch);
+    lastSketch=i;return sketches[i];
+  }
+  function later(delay,callback){
+    gazeTimer=setTimeout(()=>{gazeTimer=null;if(gazeVisible&&!document.hidden&&!reduced.matches)callback();},delay);
+  }
+  function jumpGaze(){
+    // Corte seco, pequena perda de sinal e reacquisição. Não há interpolação nem arrasto.
+    gazeGroup.style.opacity='0';
+    later(random(55,130),()=>{
+      drawGaze(nextFace(),nextSketch());
+      gazeGroup.style.opacity='1';
+      const disrupted=Math.random()<.45;
+      gazeLine.style.opacity=disrupted?'0':'1';
+      sketchFrame.style.opacity=disrupted?'.35':'1';
+      later(disrupted?random(65,115):35,()=>{
+        gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
+        later(random(500,1100),jumpGaze);
+      });
+    });
+  }
+  function syncGaze(){
+    clearTimeout(gazeTimer);gazeTimer=null;
+    if(reduced.matches){
+      drawGaze(gazes[0].face,gazes[0].sketch);
+      gazeGroup.style.opacity='1';gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
+      return;
+    }
+    if(gazeVisible&&!document.hidden)later(random(180,350),jumpGaze);
+  }
+  drawGaze(gazes[0].face,gazes[0].sketch);
+  const gazeObserver=new IntersectionObserver(entries=>{gazeVisible=entries[0].isIntersecting;syncGaze();},{threshold:.1});
+  gazeObserver.observe(document.querySelector('.photo-stage'));
+  document.addEventListener('visibilitychange',syncGaze);
+  reduced.addEventListener('change',syncGaze);
+  addEventListener('pagehide',()=>{clearTimeout(gazeTimer);gazeObserver.disconnect();},{once:true});
   const words=[['MANUAL','p6.jpg','Logotipo / Manual de demonstração, p. 6'],['MATERIAIS',null,'Logotipo e formatos / exemplo de materiais da marca'],['REGRAS','p9.jpg','Área de proteção / Manual de demonstração, p. 9'],['NUM SÓ LUGAR','p1.jpg','Manual de demonstração do Brennimark']];
   const buttons=[...document.querySelectorAll('[data-word]')];let selected=0,manualUntil=0;
   function selectWord(i){

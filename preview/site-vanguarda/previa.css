@@ -30,25 +30,13 @@
 .bm-site .hero-photo:before,.bm-site .hero-photo:after{display:none}
 .bm-site .photo-stage:after{content:"";position:absolute;inset:0;background:#001621;opacity:.14;pointer-events:none}
 .bm-site .annotations{position:absolute;inset:0;width:100%;height:100%;z-index:2;overflow:visible}
-.bm-site .annotation rect,.bm-site .annotation path{fill:none;stroke:var(--brasa);stroke-width:2;vector-effect:non-scaling-stroke}
-.bm-site .annotation.secondary rect,.bm-site .annotation.secondary path{stroke:var(--text);stroke-width:1}
-.bm-site .person-tag,.bm-site .rule-tag,.bm-site .second-person,.bm-site .second-rule{position:absolute;z-index:2;background:#001621ee;font:10px/1.4 var(--mono);padding:6px 9px;letter-spacing:.02em;white-space:nowrap}
-.bm-site .person-tag{left:22.3%;top:13.9%;color:var(--text);border-left:2px solid var(--brasa)}
-.bm-site .rule-tag{left:46.2%;top:86%;color:var(--text);border-left:2px solid var(--brasa)}
-.bm-site .rule-tag b,.bm-site .second-rule b{display:block;font-weight:400;color:var(--muted);font-size:9px;margin-top:2px}
-.bm-site .second-person{left:66.2%;top:13.9%}
-.bm-site .second-rule{left:67%;top:90%}
-.bm-site .photo-foot{font:10px var(--mono);color:var(--muted);margin:20px 5vw 0 0;text-align:right;text-transform:uppercase;letter-spacing:.04em}
+.bm-site .annotation rect,.bm-site .annotation line{fill:none;stroke:var(--brasa);stroke-width:1.5;vector-effect:non-scaling-stroke}
 @media (prefers-reduced-motion:no-preference){
- .bm-site .annotation.primary{animation:connection 7s ease-in-out infinite}
- .bm-site .annotation.secondary,.bm-site .second-person,.bm-site .second-rule{animation:secondary 7s ease-in-out infinite}
  .bm-site .is-active .hero-copy,.bm-site .is-active .wrap{animation:arrive .65s cubic-bezier(.22,1,.36,1) both}
  .bm-site .is-active .viva-flow>div{animation:arrive .7s both}
  .bm-site .is-active .viva-flow>div:nth-of-type(2){animation-delay:.25s}
  .bm-site .is-active .viva-flow>div:nth-of-type(3){animation-delay:.5s}
 }
-@keyframes connection{0%,100%{opacity:.75}45%,65%{opacity:1}}
-@keyframes secondary{0%,18%,100%{opacity:0}35%,78%{opacity:1}}
 @keyframes arrive{from{opacity:.25;transform:translateY(22px)}to{opacity:1;transform:none}}
 .bm-site .phrase-wrap{max-width:1500px}
 .bm-site .phrase-display{position:relative;min-height:300px;display:flex;align-items:center;justify-content:center;margin:3vh -3vw 7vh}
@@ -164,7 +152,6 @@
  .bm-site .clock{display:none}.bm-site .chapter-links{gap:18px}
  .bm-site .phrase-display{min-height:220px}.bm-site .plans{gap:18px}
  .bm-site .traits{grid-template-columns:1fr}
- .bm-site .person-tag,.bm-site .rule-tag,.bm-site .second-person,.bm-site .second-rule{font-size:8px;padding:4px 5px}
 }
 @media(max-height:780px) and (min-width:768px){
  .bm-site .hero h1{font-size:clamp(39px,4.3vw,62px)}.bm-site .hero-copy{padding-top:3vh;padding-bottom:3vh}
@@ -190,12 +177,8 @@
  .bm-site .hero .actions{display:grid;grid-template-columns:1fr;gap:9px}
  .bm-site .hero .btn{justify-content:space-between;min-height:46px;font-size:12px;padding:12px 20px}
  .bm-site .hero-photo{position:relative;inset:auto;width:100%;height:auto;min-height:0;order:1}
- .bm-site .photo-foot{font-size:8px;text-align:left;margin:14px 22px 0}
  .bm-site .photo-stage{aspect-ratio:1.5}
- .bm-site .person-tag,.bm-site .rule-tag,.bm-site .second-person,.bm-site .second-rule{font-size:6px;padding:3px 4px}
- .bm-site .rule-tag b,.bm-site .second-rule b{font-size:5.5px;margin-top:1px}
- .bm-site .annotation rect,.bm-site .annotation path{stroke-width:1}
- .bm-site .second-rule{top:87%}
+ .bm-site .annotation rect,.bm-site .annotation line{stroke-width:1}
  .bm-site .title{font-size:39px;line-height:1.04}.bm-site .intro{font-size:14px}
  .bm-site .phrase-display{min-height:145px;margin:28px -8px 35px}
  .bm-site .phrase-display h2{font-size:22vw}.bm-site .phrase-display h2.long-word{font-size:15vw}
