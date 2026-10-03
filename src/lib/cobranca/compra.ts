@@ -8,6 +8,7 @@
  */
 
 import { CHAVE_DA_PROVA_NO_STRIPE } from "./senha-na-volta";
+import { POLITICA_DE_PRIVACIDADE, TERMOS_DE_USO } from "../site/documentos-legais";
 
 export type Moeda = "BRL" | "USD";
 export const MOEDAS: readonly Moeda[] = ["BRL", "USD"];
@@ -71,7 +72,13 @@ export function parametrosDoCheckout(p: {
   resumoDaProva?: string;
 }) {
   const { pedido, idDoPreco, origem } = p;
-  const metadata = { nome_da_conta: pedido.empresa, plano: pedido.plano, comprador: pedido.nome, ...(p.piloto ? { piloto: "sim" } : {}) };
+  // A versão dos textos que a pessoa aceitou ao ir para o pagamento — fica na
+  // sessão E na assinatura, para se saber depois qual texto valeu para quem.
+  const metadata = {
+    nome_da_conta: pedido.empresa, plano: pedido.plano, comprador: pedido.nome,
+    termos_versao: TERMOS_DE_USO.versao, privacidade_versao: POLITICA_DE_PRIVACIDADE.versao,
+    ...(p.piloto ? { piloto: "sim" } : {}),
+  };
   return {
     mode: "subscription" as const,
     line_items: [{ price: idDoPreco, quantity: 1 }],
