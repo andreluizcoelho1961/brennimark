@@ -359,19 +359,19 @@ export function CapitulosDaHome() {
                 <h3>Básico</h3><p className="plan-for">Para quem cuida de poucas marcas.</p>
                 <div className="price">A definir<span>valor da assinatura</span></div>
                 <dl><div><dt>Marcas</dt><dd className="hi">até 5</dd></div><div><dt>Pessoas</dt><dd>ilimitadas</dd></div><div><dt>Armazenamento</dt><dd>a definir</dd></div><div><dt>Uso do Vini</dt><dd>limite do plano</dd></div><div><dt>Implantação assistida</dt><dd>—</dd></div></dl>
-                <button className="btn" type="button" data-open="dlg-demo">Conversar sobre a implantação</button>
+                <a className="btn" href="/assinar?plano=basico" data-assinar="basico">Assinar</a>
               </article>
               <article className="plan">
                 <h3>Médio</h3><p className="plan-for">Para estúdios com carteira em crescimento.</p>
                 <div className="price">A definir<span>valor da assinatura</span></div>
                 <dl><div><dt>Marcas</dt><dd className="hi">10 ou 15</dd></div><div><dt>Pessoas</dt><dd>ilimitadas</dd></div><div><dt>Armazenamento</dt><dd>a definir</dd></div><div><dt>Uso do Vini</dt><dd>limite do plano</dd></div><div><dt>Implantação assistida</dt><dd>a definir</dd></div></dl>
-                <button className="btn" type="button" data-open="dlg-demo">Conversar sobre a implantação</button>
+                <a className="btn" href="/assinar?plano=medio" data-assinar="medio">Assinar</a>
               </article>
               <article className="plan feat">
                 <h3>Premium</h3><p className="plan-for">Para agências com muitas marcas.</p>
                 <div className="price">A definir<span>valor da assinatura</span></div>
                 <dl><div><dt>Marcas</dt><dd className="hi">cerca de 30</dd></div><div><dt>Pessoas</dt><dd>ilimitadas</dd></div><div><dt>Armazenamento</dt><dd>a definir</dd></div><div><dt>Uso do Vini</dt><dd>limite do plano</dd></div><div><dt>Implantação assistida</dt><dd>incluída</dd></div></dl>
-                <button className="btn" type="button" data-open="dlg-demo">Conversar sobre a implantação</button>
+                <a className="btn" href="/assinar?plano=premium" data-assinar="premium">Assinar</a>
               </article>
               <article className="plan">
                 <h3>Corporativo</h3><p className="plan-for">Para empresas e grupos com necessidades próprias.</p>
@@ -380,7 +380,7 @@ export function CapitulosDaHome() {
                 <button className="btn" type="button" data-open="dlg-demo">Falar com a equipe</button>
               </article>
             </div>
-            <p className="plans-note">Valores, limites e serviços incluídos estão sendo definidos com as primeiras agências. Por enquanto, a gente conversa sobre a sua carteira e monta a implantação junto. Uso do Vini acima do limite poderá ser contratado à parte.</p>
+            <p className="plans-note">A assinatura é mensal, no cartão, e a conta abre assim que o pagamento é confirmado. Os valores aparecem na página de assinatura. Prefere conversar antes? <button className="link" type="button" data-open="dlg-demo">Fale com a equipe</button>. Uso do Vini acima do limite poderá ser contratado à parte.</p>
           </div>
         </section>
 

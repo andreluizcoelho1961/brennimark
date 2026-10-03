@@ -305,3 +305,13 @@ test.describe("celular", () => {
     await expect(menu).toBeHidden();
   });
 });
+
+test("os planos levam à assinatura com o plano escolhido; o Corporativo e a nota levam à conversa", async ({ page }) => {
+  await page.goto("/");
+  for (const plano of ["basico", "medio", "premium"]) {
+    await expect(page.locator(`[data-assinar="${plano}"]`)).toHaveAttribute("href", `/assinar?plano=${plano}`);
+    await expect(page.locator(`[data-assinar="${plano}"]`)).toHaveText("Assinar");
+  }
+  await expect(page.locator("#planos").getByRole("button", { name: "Falar com a equipe" }).first()).toHaveAttribute("data-open", "dlg-demo");
+  await expect(page.locator(".plans-note [data-open='dlg-demo']")).toHaveText("Fale com a equipe");
+});

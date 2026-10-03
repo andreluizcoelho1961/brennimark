@@ -299,6 +299,7 @@ body:has(.bm-site){overflow:hidden}
 .bm-site .plan dd.hi{color:var(--text);font-weight:500}
 .bm-site .plan .btn{width:100%;justify-content:center;background:transparent;border-color:var(--line);color:var(--text)}
 .bm-site .plan .btn:hover{background:var(--brasa);border-color:var(--brasa);color:var(--bg)}
+.bm-site .plans-note .link{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .bm-site .plans-note{margin:18px 0 0;font-size:12px;color:var(--muted)}
 
 /* ---------- 8 · fechamento ---------- */
