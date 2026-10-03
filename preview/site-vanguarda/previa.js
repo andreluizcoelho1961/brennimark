@@ -131,19 +131,19 @@
   document.addEventListener('visibilitychange',syncGaze);
   reduced.addEventListener('change',syncGaze);
   addEventListener('pagehide',()=>{clearTimeout(gazeTimer);gazeObserver.disconnect();},{once:true});
-  const words=[['MANUAL','p6.jpg','Logotipo / Manual de demonstração, p. 6'],['MATERIAIS','p1.jpg','Capa / Manual de demonstração'],['REGRAS','p9.jpg','Área de proteção / Manual de demonstração, p. 9'],['NUM SÓ LUGAR','p6.jpg','Logotipo / Manual de demonstração, p. 6']];
+  const words=[['MANUAL','agencia-desktop.jpg','40%'],['MATERIAIS','agencia-dupla.jpg','55%'],['REGRAS','agencia-telao.jpg','60%'],['NUM SÓ LUGAR','agencia-laptop.jpg','55%']];
   const buttons=[...document.querySelectorAll('[data-word]')];
   const pages=[...document.querySelectorAll('.manual-page')];
   let selected=0,manualUntil=0,pageLayer=0,pageRequest=0,pagesPaused=false;
   async function selectWord(i){
-    const request=++pageRequest,[word,src,caption]=words[i];
+    const request=++pageRequest,[word,src,position]=words[i];
     const incoming=pages[1-pageLayer];
     incoming.src='assets/'+src;
+    incoming.style.objectPosition=position+' center';
     try{await incoming.decode();}catch{return;}
     if(request!==pageRequest)return;
     selected=i;
     document.querySelector('#big-word').textContent=word;
-    document.querySelector('#word-caption').textContent=caption;
     pages[pageLayer].classList.remove('is-shown');
     incoming.classList.add('is-shown');pageLayer=1-pageLayer;
     buttons.forEach((b,k)=>b.setAttribute('aria-pressed',String(k===i)));
@@ -153,7 +153,7 @@
   pausePages.addEventListener('click',()=>{
     pagesPaused=!pagesPaused;
     pausePages.setAttribute('aria-pressed',String(pagesPaused));
-    pausePages.setAttribute('aria-label',pagesPaused?'Retomar troca de páginas':'Pausar troca de páginas');
+    pausePages.setAttribute('aria-label',pagesPaused?'Retomar troca de imagens':'Pausar troca de imagens');
     pausePages.textContent=pagesPaused?'Retomar':'Pausar';
   });
   // Troca somente enquanto o capítulo está visível; o texto completo não depende do ciclo.

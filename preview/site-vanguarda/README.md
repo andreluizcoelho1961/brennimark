@@ -37,3 +37,7 @@ As telas do produto reutilizam os estudos de interface existentes da home, ident
 ## Seção “Num só lugar”
 
 As páginas do manual ocupam o fundo inteiro, com máscara em Noite Polar e troca por dissolução. Todos os títulos do ciclo usam a mesma escala tipográfica, inclusive “Num só lugar”. No celular, a frase pode quebrar em linhas sem reduzir a letra. As abas escolhem a página e suspendem temporariamente o ciclo; Pausar/Retomar controla a troca automática. A troca só acontece com a seção visível e respeita redução de movimento.
+
+## Fotografia de uso na agência
+
+Fundos provisórios selecionados do banco próprio `Human Images/Brennimark Image Bank`: 25 (desktop), 29 (dupla no monitor), 26 (telão) e 32 (laptop). As imagens foram exportadas para JPEG de até 2000 pixels. Elas mostram o símbolo ou a home existentes; a próxima rodada deve substituí-las por mockups com o manual aberto nos dispositivos, conforme orientação do André. A direção prioriza dispositivo grande, pessoas parcialmente visíveis e contexto de agência.
