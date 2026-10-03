@@ -96,22 +96,29 @@
   function later(delay,callback){
     gazeTimer=setTimeout(()=>{gazeTimer=null;if(gazeVisible&&!document.hidden&&!reduced.matches)callback();},delay);
   }
+  function scanSketch(face,remaining,previous){
+    if(!remaining){later(random(240,420),jumpGaze);return;}
+    const [x,y]=gazes[lastFace].sketch;
+    let point;
+    for(let attempt=0;attempt<8;attempt++){
+      const angle=random(0,Math.PI*2),radius=random(.35,1);
+      point=[x+Math.cos(angle)*58*radius,y+Math.sin(angle)*32*radius];
+      if(Math.hypot(point[0]-previous[0],point[1]-previous[1])>22)break;
+    }
+    // Saltos locais em torno do dedo, sem acumular deslocamento para fora da prancha.
+    drawGaze(face,point);
+    later(Math.random()<.22?random(260,380):random(100,210),()=>scanSketch(face,remaining-1,point));
+  }
   function jumpGaze(){
-    // O rosto muda só durante o apagão; apenas o foco no papel dá pequenos passos.
+    // O mesmo rosto acompanha toda a exploração. A pessoa só muda no apagão.
     gazeGroup.style.opacity='0';
     later(random(220,420),()=>{
       const face=nextFace(),sketch=nextSketch();
       drawGaze(face,sketch);
       gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
       gazeGroup.style.opacity='1';
-      const dx=random(-10,10),dy=random(-6,6);
-      later(random(230,380),()=>{
-        drawGaze(face,[sketch[0]+dx*.45,sketch[1]+dy*.45]);
-        later(random(110,220),()=>{
-          drawGaze(face,[sketch[0]+dx,sketch[1]+dy]);
-          later(random(250,450),jumpGaze);
-        });
-      });
+      const steps=Math.floor(random(4,8));
+      later(random(220,350),()=>scanSketch(face,steps,sketch));
     });
   }
   function syncGaze(){
