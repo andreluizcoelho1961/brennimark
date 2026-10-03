@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buscarAssinaturaNoStripe, chavesDoStripe, lerAvisoAssinado } from "@/lib/cobranca/stripe";
 import { processarAviso, type Recebimento } from "@/lib/cobranca/webhook";
+import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
+import { mensagemDeBoasVindas } from "@/lib/email/mensagens";
 
 /**
  * O webhook do Stripe — por onde a conta paga NASCE (fatia 1 da cobrança,
@@ -73,6 +75,17 @@ export async function POST(request: Request) {
         });
         if (error && error.code !== "email_exists" && error.code !== "user_already_exists") {
           throw new Error(`login: ${error.code ?? "desconhecido"}`);
+        }
+        // Login NOVO: a confirmação da assinatura vai ao e-mail da compra, e
+        // manda quem não criou a senha na volta ao "Esqueci a senha" — que é o
+        // que prova que o e-mail é da pessoa. Falha no e-mail não falha o
+        // aviso: a conta precisa nascer de qualquer jeito.
+        if (!error && emailConfigurado()) {
+          const origem = new URL(request.url).origin;
+          const envio = await enviarEmail(email, mensagemDeBoasVindas({
+            conta: null, linkDeEntrar: `${origem}/login`, linkDeSenha: `${origem}/esqueci-senha`,
+          }));
+          if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "cobranca_boas_vindas_falhou", motivo: envio.motivo }));
         }
       },
       async sincronizar(a) {

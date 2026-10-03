@@ -81,7 +81,9 @@ export function senhaProvisoriaVencida(ate: Date, agora: Date = new Date()): boo
  * seria lido como resposta pelo `fetch` e quebraria em silêncio.
  */
 export const CAMINHO_DA_TROCA = "/trocar-senha";
-const LIVRES = [CAMINHO_DA_TROCA, "/api/conta/trocar-senha", "/auth/callback"];
+// `/nova-senha` (03/10/2026): quem esqueceu a senha provisória também passa pelo
+// "Esqueci a senha", e a troca por lá resolve a provisória junto.
+const LIVRES = [CAMINHO_DA_TROCA, "/api/conta/trocar-senha", "/auth/callback", "/nova-senha", "/api/conta/nova-senha"];
 
 export function desvioDaSenhaProvisoria(
   pathname: string,

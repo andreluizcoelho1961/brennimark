@@ -38,13 +38,18 @@
  * navegador — o cookie de quem abriu o checkout, conferido contra o resumo que
  * o Stripe guardou — antes de qualquer consulta (`senha-na-volta.ts`).
  *
+ * O "ESQUECI A SENHA" entrou em 03/10/2026: `/esqueci-senha` e
+ * `/api/conta/esqueci-senha`. Quem esqueceu a senha não tem sessão. A rota
+ * responde o mesmo exista o login ou não, e o que ela faz é mandar um e-mail
+ * ao dono do endereço; a troca em si (`/nova-senha`) exige sessão.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
