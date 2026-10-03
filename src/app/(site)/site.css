@@ -812,3 +812,40 @@ body:has(.bm-site.mnav-open){overflow:hidden}
  * rolava a página até o artigo.
  */
 @media (max-width:767px){.bm-site .page{padding-top:0}}
+
+/* ── "Num só lugar" (03/10/2026), da prévia do Codex ────────────────────────
+   A foto de agência é cenário em tela cheia; a escala tipográfica e o
+   contraste ficam constantes por cima dela. A máscara é sempre Noite Polar
+   (#001621), em qualquer tema: o texto branco depende dela. */
+.bm-site .phrase-panel{position:relative;isolation:isolate;align-items:stretch;background:#001621}
+.bm-site .manual-backdrop{position:absolute;inset:0;z-index:-2;overflow:hidden;pointer-events:none}
+.bm-site .manual-page{object-fit:cover;opacity:0;transition:opacity .65s ease}
+.bm-site .manual-page.is-shown{opacity:1}
+.bm-site .phrase-panel:before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,#001621c9 0%,#00162166 52%,#00162126 100%),linear-gradient(0deg,#001621e6 0%,#00162100 58%,#00162155 100%)}
+.bm-site .phrase-wrap{width:100%;max-width:1500px;margin:0 auto;display:grid;grid-template-rows:auto 1fr auto;gap:24px;position:relative;color:#fff;align-self:stretch}
+.bm-site .phrase-header{display:flex;justify-content:space-between;align-items:center;gap:24px}
+.bm-site .phrase-header .eyebrow{margin:0;color:#ffffffc9}
+.bm-site .phrase-pause{font:12px var(--sans);color:#fff;background:transparent;border:1px solid #ffffff55;border-radius:4px;padding:10px 16px;min-height:44px;cursor:pointer}
+.bm-site .phrase-pause:hover{background:#ffffff14}
+.bm-site .phrase-display{display:flex;align-items:center;min-height:0;margin:0}
+.bm-site .phrase-word{margin:0;color:#fff;font-size:clamp(48px,9vw,144px);line-height:1.02;font-weight:500;letter-spacing:-.065em;white-space:nowrap}
+.bm-site .phrase-bottom{display:grid;grid-template-columns:1fr .65fr;gap:6vw;align-items:end}
+.bm-site .complete-sentence{font-size:clamp(27px,3vw,44px);line-height:1.12;letter-spacing:-.035em;font-weight:500;margin:0;color:#fff}
+.bm-site .complete-sentence em{font-style:normal;color:#fff}
+.bm-site .phrase-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
+.bm-site .phrase-tabs button{background:transparent;border:0;border-bottom:1px solid #ffffff55;padding:15px 0;text-align:left;font:13px var(--sans);color:#ffffffb8;min-height:44px;cursor:pointer}
+.bm-site .phrase-tabs button[aria-pressed=true]{color:#fff;border-color:var(--brasa)}
+.bm-site .phrase-tabs button:hover{color:#fff}
+.bm-site .phrase-panel button:focus-visible{outline:2px solid #fff;outline-offset:5px}
+@media (prefers-reduced-motion:reduce){.bm-site .manual-page{transition:none}}
+@media (max-height:780px) and (min-width:768px){.bm-site .phrase-panel .complete-sentence{font-size:30px}}
+@media (max-width:767px){
+  .bm-site .phrase-panel{min-height:calc(100svh - 65px);padding:32px 22px 38px}
+  .bm-site .phrase-wrap{min-height:620px;gap:30px}
+  .bm-site .phrase-word{font-size:clamp(42px,12vw,70px);letter-spacing:-.06em;white-space:normal;max-width:100%}
+  .bm-site .manual-page{object-position:65% center!important}
+  .bm-site .phrase-panel:before{background:linear-gradient(0deg,#001621ed 0%,#00162180 55%,#00162173 100%)}
+  .bm-site .phrase-bottom{grid-template-columns:1fr;gap:30px}
+  .bm-site .phrase-panel .complete-sentence{font-size:30px;line-height:1.12}
+  .bm-site .phrase-tabs{gap:6px 20px}
+}

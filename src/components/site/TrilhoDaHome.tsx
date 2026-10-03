@@ -15,9 +15,10 @@ import { CAPITULOS_DA_HOME } from "@/lib/site/paginas";
  * link a alguém, abre no mesmo capítulo.
  *
  * O selo de demonstração sai de cena nos capítulos que já têm o próprio
- * chamado (início, planos, demonstração): a classe `stamp-off-home` na raiz.
+ * chamado (início, planos, demonstração) e no "Num só lugar", onde cobriria as
+ * abas: a classe `stamp-off-home` na raiz.
  */
-const SEM_SELO = new Set<string>(["inicio", "planos", "demonstracao"]);
+const SEM_SELO = new Set<string>(["inicio", "num-so-lugar", "planos", "demonstracao"]);
 const doisDigitos = (n: number) => String(n).padStart(2, "0");
 
 export function TrilhoDaHome({ children }: { children: ReactNode }) {

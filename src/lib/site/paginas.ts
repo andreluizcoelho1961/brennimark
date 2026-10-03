@@ -61,6 +61,7 @@ export const CAMINHOS_DO_SITE: ReadonlySet<string> = new Set(["/", ...PAGINAS_DO
 /** Os capítulos da home, na ordem do trilho. O `id` é a âncora (`/#planos`). */
 export const CAPITULOS_DA_HOME = [
   { id: "inicio", titulo: "Início" },
+  { id: "num-so-lugar", titulo: "Num só lugar" },
   { id: "problema", titulo: "O problema" },
   { id: "fluxo", titulo: "O dia a dia" },
   { id: "plataforma", titulo: "A plataforma" },
