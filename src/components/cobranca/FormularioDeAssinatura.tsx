@@ -99,6 +99,11 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
         </div>
       </div>
 
+      <p className="text-xs leading-relaxed text-platform-text-muted" data-aceite-dos-termos>
+        Ao ir para o pagamento, você aceita os <a href="/termos" target="_blank" rel="noopener" className="underline">Termos de uso</a> e
+        a <a href="/privacidade" target="_blank" rel="noopener" className="underline">Política de privacidade</a>.
+      </p>
+
       <div>
         <button type="submit" disabled={enviando} data-ir-ao-pagamento
           className="border border-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-text transition-colors duration-150 hover:bg-platform-text hover:text-platform-bg disabled:opacity-50">

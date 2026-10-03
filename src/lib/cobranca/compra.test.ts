@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { lerPedidoDeCompra, parametrosDoCheckout, type PedidoDeCompra } from "./compra";
 import { chamadaDaAcaoDeCobranca, lerAcaoDeCobranca } from "../console/cobranca";
+import { POLITICA_DE_PRIVACIDADE, TERMOS_DE_USO } from "../site/documentos-legais";
 
 const PEDIDO = { plano: "basico", moeda: "BRL", nome: "  Fulana   de Tal ", email: " Fulana@Agencia.COM ", empresa: "Agência Exemplo" };
 
@@ -34,6 +35,10 @@ test("o checkout em reais: só cartão, nome da conta no metadata da assinatura,
   // O resumo da prova do navegador vai na SESSÃO, nunca na assinatura.
   assert.equal((p.metadata as Record<string, string>).prova_do_navegador, "abc123");
   assert.equal("prova_do_navegador" in p.subscription_data.metadata, false);
+  // A versão dos Termos e da Privacidade aceita vai junto, na sessão e na assinatura.
+  assert.equal(p.subscription_data.metadata.termos_versao, TERMOS_DE_USO.versao);
+  assert.equal(p.subscription_data.metadata.privacidade_versao, POLITICA_DE_PRIVACIDADE.versao);
+  assert.equal(p.metadata.termos_versao, TERMOS_DE_USO.versao);
   assert.equal(p.success_url, "https://exemplo.test/assinar/obrigado?sessao={CHECKOUT_SESSION_ID}");
   assert.equal(p.cancel_url, "https://exemplo.test/assinar?plano=basico");
   assert.deepEqual(p.tax_id_collection, { enabled: true });
