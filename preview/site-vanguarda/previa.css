@@ -39,11 +39,12 @@
 }
 @keyframes arrive{from{opacity:.25;transform:translateY(22px)}to{opacity:1;transform:none}}
 .bm-site .phrase-wrap{max-width:1500px}
-.bm-site .phrase-display{position:relative;min-height:300px;display:flex;align-items:center;justify-content:center;margin:3vh -3vw 7vh}
+.bm-site .phrase-display{position:relative;min-height:clamp(330px,32vw,460px);display:flex;align-items:flex-end;justify-content:center;margin:3vh -3vw 7vh}
 .bm-site .phrase-display h2{margin:0;color:var(--text);font-size:clamp(100px,17.2vw,275px);line-height:.9;font-weight:500;letter-spacing:-.07em;white-space:nowrap;transition:opacity .2s,transform .3s}
 .bm-site .phrase-display h2.long-word{font-size:clamp(80px,12.2vw,195px)}
-.bm-site .content-window{position:absolute;margin:0;width:26%;left:49%;top:9%;transform:rotate(-4deg);box-shadow:0 20px 45px #001621aa;background:var(--bg);border:1px solid #b0c3ca77}
+.bm-site .content-window{position:absolute;margin:0;width:22%;max-width:280px;right:8%;bottom:clamp(78px,13.8vw,220px);transform:rotate(-4deg);box-shadow:0 20px 45px #001621aa;background:var(--bg);border:1px solid #b0c3ca77}
 .bm-site .content-window img{aspect-ratio:16/9;object-fit:contain;width:100%;background:var(--bg)}
+.bm-site .content-window img[hidden]{display:none}
 .bm-site .content-window figcaption{background:var(--bg);font:9px/1.5 var(--mono);color:var(--muted);padding:10px 12px}
 .bm-site .phrase-bottom{display:grid;grid-template-columns:1fr .48fr;gap:4vw;align-items:end}
 .bm-site .complete-sentence{font-size:clamp(28px,3.6vw,52px);line-height:1.06;letter-spacing:-.045em;margin:0}
@@ -150,13 +151,13 @@
  .bm-site .hero h1{font-size:5vw}.bm-site .hero-copy{padding-left:4vw;width:48%}
  .bm-site .hero .actions{gap:8px}.bm-site .hero .btn{font-size:11px;padding:12px 15px}
  .bm-site .clock{display:none}.bm-site .chapter-links{gap:18px}
- .bm-site .phrase-display{min-height:220px}.bm-site .plans{gap:18px}
+ .bm-site .phrase-display{min-height:330px}.bm-site .plans{gap:18px}
  .bm-site .traits{grid-template-columns:1fr}
 }
 @media(max-height:780px) and (min-width:768px){
  .bm-site .hero h1{font-size:clamp(39px,4.3vw,62px)}.bm-site .hero-copy{padding-top:3vh;padding-bottom:3vh}
  .bm-site .hero-lede{font-size:13px;margin-bottom:20px}.bm-site .hero-jump{margin-top:16px}
- .bm-site .phrase-display{min-height:210px;margin-bottom:4vh}.bm-site .complete-sentence{font-size:36px}
+ .bm-site .phrase-display{min-height:300px;margin-bottom:4vh}.bm-site .complete-sentence{font-size:36px}
  .bm-site .title{font-size:45px}.bm-site .flow-head{margin-bottom:20px}
  .bm-site .flow-foot{margin-top:12px}.bm-site .art{height:100px}
  .bm-site #plataforma .app{min-height:340px}.bm-site .closing h2{font-size:65px}
@@ -180,9 +181,9 @@
  .bm-site .photo-stage{aspect-ratio:1.5}
  .bm-site .annotation rect,.bm-site .annotation line{stroke-width:1}
  .bm-site .title{font-size:39px;line-height:1.04}.bm-site .intro{font-size:14px}
- .bm-site .phrase-display{min-height:145px;margin:28px -8px 35px}
+ .bm-site .phrase-display{min-height:210px;margin:28px -8px 35px}
  .bm-site .phrase-display h2{font-size:22vw}.bm-site .phrase-display h2.long-word{font-size:15vw}
- .bm-site .content-window{width:37%;left:46%;top:2%}.bm-site .content-window figcaption{font-size:6px;padding:5px}
+ .bm-site .content-window{width:32%;right:6%;bottom:17.5vw}.bm-site .content-window figcaption{font-size:6px;padding:5px}
  .bm-site .phrase-bottom{display:block}.bm-site .complete-sentence{font-size:33px;line-height:1.08}
  .bm-site .phrase-tabs{margin-top:28px}.bm-site .phrase-tabs button{font-size:10px}
  .bm-site .material-window{padding:12px 8px}.bm-site .material-window p{font-size:6px;margin:8px 0 3px}.bm-site .material-window span{font-size:5px}
