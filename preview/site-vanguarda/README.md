@@ -33,3 +33,7 @@ O gerador renderiza os componentes versionados da home como HTML estático. Os a
 - Sintaxe do gerador e do JavaScript validada com `node --check`.
 
 As telas do produto reutilizam os estudos de interface existentes da home, identificados como estudos. Esta é uma prévia de direção de arte, não uma validação funcional das capacidades exibidas. Não é aceite de Safari, Firefox ou aparelhos físicos. A fonte usa Inter quando disponível, com fallback para Helvetica/Arial local.
+
+## Seção “Num só lugar”
+
+As páginas do manual ocupam o fundo inteiro, com máscara em Noite Polar e troca por dissolução. Todos os títulos do ciclo usam a mesma escala tipográfica, inclusive “Num só lugar”. No celular, a frase pode quebrar em linhas sem reduzir a letra. As abas escolhem a página e suspendem temporariamente o ciclo; Pausar/Retomar controla a troca automática. A troca só acontece com a seção visível e respeita redução de movimento.

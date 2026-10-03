@@ -131,17 +131,31 @@
   document.addEventListener('visibilitychange',syncGaze);
   reduced.addEventListener('change',syncGaze);
   addEventListener('pagehide',()=>{clearTimeout(gazeTimer);gazeObserver.disconnect();},{once:true});
-  const words=[['MANUAL','p6.jpg','Logotipo / Manual de demonstração, p. 6'],['MATERIAIS',null,'Logotipo e formatos / exemplo de materiais da marca'],['REGRAS','p9.jpg','Área de proteção / Manual de demonstração, p. 9'],['NUM SÓ LUGAR','p1.jpg','Manual de demonstração do Brennimark']];
-  const buttons=[...document.querySelectorAll('[data-word]')];let selected=0,manualUntil=0;
-  function selectWord(i){
-    selected=i;const [word,src,caption]=words[i],h=document.querySelector('#big-word');
-    h.textContent=word;h.classList.toggle('long-word',i===1||i===3);
-    const img=document.querySelector('#word-image');img.hidden=!src;if(src)img.src='assets/'+src;
-    document.querySelector('.material-window').hidden=!!src;
+  const words=[['MANUAL','p6.jpg','Logotipo / Manual de demonstração, p. 6'],['MATERIAIS','p1.jpg','Capa / Manual de demonstração'],['REGRAS','p9.jpg','Área de proteção / Manual de demonstração, p. 9'],['NUM SÓ LUGAR','p6.jpg','Logotipo / Manual de demonstração, p. 6']];
+  const buttons=[...document.querySelectorAll('[data-word]')];
+  const pages=[...document.querySelectorAll('.manual-page')];
+  let selected=0,manualUntil=0,pageLayer=0,pageRequest=0,pagesPaused=false;
+  async function selectWord(i){
+    const request=++pageRequest,[word,src,caption]=words[i];
+    const incoming=pages[1-pageLayer];
+    incoming.src='assets/'+src;
+    try{await incoming.decode();}catch{return;}
+    if(request!==pageRequest)return;
+    selected=i;
+    document.querySelector('#big-word').textContent=word;
     document.querySelector('#word-caption').textContent=caption;
+    pages[pageLayer].classList.remove('is-shown');
+    incoming.classList.add('is-shown');pageLayer=1-pageLayer;
     buttons.forEach((b,k)=>b.setAttribute('aria-pressed',String(k===i)));
   }
-  buttons.forEach((b,i)=>b.addEventListener('click',()=>{manualUntil=Date.now()+12000;selectWord(i);}));
+  buttons.forEach((b,i)=>b.addEventListener('click',()=>{manualUntil=Date.now()+15000;selectWord(i);}));
+  const pausePages=document.querySelector('#pause-pages');
+  pausePages.addEventListener('click',()=>{
+    pagesPaused=!pagesPaused;
+    pausePages.setAttribute('aria-pressed',String(pagesPaused));
+    pausePages.setAttribute('aria-label',pagesPaused?'Retomar troca de páginas':'Pausar troca de páginas');
+    pausePages.textContent=pagesPaused?'Retomar':'Pausar';
+  });
   // Troca somente enquanto o capítulo está visível; o texto completo não depende do ciclo.
   let phraseVisible=false,closingVisible=false,subjectIndex=0;
   const subjects=['do seu manual','da sua marca','do prazo de sexta','de nada em especial'];
@@ -152,9 +166,9 @@
   const closingObserver=new IntersectionObserver(entries=>closingVisible=entries[0].isIntersecting,{threshold:.35});closingObserver.observe(panels.at(-1));
   const cycle=setInterval(()=>{
     if(reduced.matches||document.hidden)return;
-    if(phraseVisible&&Date.now()>manualUntil)selectWord((selected+1)%4);
+    if(phraseVisible&&!pagesPaused&&Date.now()>manualUntil)selectWord((selected+1)%4);
     if(closingVisible){subjectIndex=(subjectIndex+1)%subjects.length;document.querySelector('#assunto').textContent=subjects[subjectIndex];}
-  },3800);
+  },5200);
   addEventListener('pagehide',()=>clearInterval(cycle),{once:true});
   document.querySelector('.art-page').replaceWith(Object.assign(document.createElement('img'),{src:'assets/p9.jpg',alt:'',loading:'lazy'}));
   const video=document.querySelector('#vini-video');if(video){video.removeAttribute('autoplay');video.removeAttribute('loop');}
