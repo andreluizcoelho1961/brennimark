@@ -12,7 +12,7 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 | Pagamento | **só cartão** (decisão de 02/10/2026; rever mais adiante) | agências assinam com cartão, e o Pix serve mais à compra à vista. E o Stripe não faz Pix em assinatura para conta brasileira: "O Pix Automático não está disponível no Brasil", e o checkout descarta o Pix sem erro. Caminhos guardados: Pix pela fatura do mês, plano anual por Pix (teto de R$ 3.000 por Pix) ou um segundo provedor |
 | Empresa | o MEI do André no piloto; ME no Simples depois | o sistema não depende do tipo de empresa: a chave do Stripe fica na Vercel |
 | Atraso | **7 dias** com tudo funcionando e aviso ao dono; depois **só leitura** (consulta e download sim; Vini, edição e marca nova não); **nada é apagado** | |
-| Cancelado de vez | **em aberto.** A ideia do André: a pessoa pode baixar os dados; guardar uns 6 meses caso volte; depois liberar o espaço | |
+| Cancelado de vez | **os dados ficam guardados** (decisão de 03/10/2026): a conta cancelada continua no banco como cadastro, só para leitura, com tudo dentro. Nada é apagado por prazo | quem volta reencontra o que tinha; o custo de armazenamento dos manuais de quem não volta fica para rever quando pesar |
 | Limites dos planos | **provisórios**, ajustáveis no Console | os valores do site ainda estão "a definir" |
 
 ## Desenho
@@ -34,8 +34,8 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 2. **Compra** (#75): `/assinar` (planos à venda, moeda, quem assina → página do Stripe), a volta
    `/assinar/obrigado`, e a aba **Cobrança** do Console (assinaturas, planos editáveis, preços do
    Stripe, link de pagamento do piloto). Sem chaves ou sem preço ligado, a compra diz que "ainda não
-   está aberta". **O botão do site continua "Conversar sobre a implantação"**: trocar para "Assinar"
-   é decisão do André, quando a venda abrir.
+   está aberta". **O site leva ao `/assinar`** pelo botão "Assinar" de cada plano (decisão de
+   03/10/2026); o Corporativo continua "Falar com a equipe".
    **Como o comprador entra (decisão de 02/10/2026): cria a senha na própria volta do pagamento** —
    ver 2b.
 2b. **Senha na volta do pagamento** (02/10/2026): pagou pelo site, a volta espera o webhook abrir a
