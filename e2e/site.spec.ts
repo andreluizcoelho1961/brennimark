@@ -315,3 +315,15 @@ test("os planos levam à assinatura com o plano escolhido; o Corporativo e a not
   await expect(page.locator("#planos").getByRole("button", { name: "Falar com a equipe" }).first()).toHaveAttribute("data-open", "dlg-demo");
   await expect(page.locator(".plans-note [data-open='dlg-demo']")).toHaveText("Fale com a equipe");
 });
+
+test("Termos e Privacidade mostram o texto com a versão, e o /assinar aponta para os dois", async ({ page }) => {
+  for (const caminho of ["/termos", "/privacidade"]) {
+    await page.goto(caminho);
+    const doc = page.locator("[data-documento-legal]");
+    await expect(doc).toHaveAttribute("data-versao", /^\d{4}-\d{2}-\d{2}$/);
+    await expect(doc.locator("h2").first()).toHaveText(/^1\. /);
+  }
+  await page.goto("/dev/assinar");
+  await expect(page.locator("[data-aceite-dos-termos] a[href='/termos']")).toBeVisible();
+  await expect(page.locator("[data-aceite-dos-termos] a[href='/privacidade']")).toBeVisible();
+});
