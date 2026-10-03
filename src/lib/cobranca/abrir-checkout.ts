@@ -35,6 +35,26 @@ export async function abrirCheckout(
     return { ok: false, status: 409, motivo: "Este plano ainda não está à venda nesta moeda." };
   }
 
+  // Um e-mail, uma assinatura viva — pela compra do site. Sem isto, quem paga
+  // de novo com o mesmo e-mail ganha uma segunda conta e uma segunda cobrança
+  // (aconteceu no teste real de 02/10/2026). Trocar de plano é pelo Portal.
+  //
+  // Tradeoff aceito: a frase confirma, a quem digitar um e-mail, que ele já é
+  // assinante. É conta de empresa, e evitar a cobrança em dobro vale mais;
+  // quando houver e-mail, a resposta pode virar "mandamos as instruções".
+  // O link de piloto do Console não passa por aqui: quem o gera é a equipe.
+  if (!opcoes.piloto) {
+    const { data: viva, error: erroDaBusca } = await servico.from("assinaturas")
+      .select("id").eq("titular_email", pedido.email).in("situacao", ["ativa", "em_atraso"]).limit(1);
+    if (erroDaBusca) return { ok: false, status: 500, motivo: "Não foi possível consultar o plano. Tente de novo." };
+    if ((viva ?? []).length > 0) {
+      return {
+        ok: false, status: 409,
+        motivo: "Este e-mail já tem uma assinatura do Brennimark. Para trocar de plano, entre na sua conta e vá em Configurações → Plano. Para abrir outra conta, use outro e-mail.",
+      };
+    }
+  }
+
   try {
     const url = await criarCheckoutNoStripe(chaves.chave,
       parametrosDoCheckout({ pedido, idDoPreco, origem, piloto: opcoes.piloto, resumoDaProva: opcoes.resumoDaProva }));
