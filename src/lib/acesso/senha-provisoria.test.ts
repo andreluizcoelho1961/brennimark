@@ -66,6 +66,9 @@ test("com senha provisória, a moldura só deixa chegar à troca", () => {
   assert.equal(desvioDaSenhaProvisoria("/", provisoria), "trocar");
   assert.equal(desvioDaSenhaProvisoria(CAMINHO_DA_TROCA, provisoria), "seguir");
   assert.equal(desvioDaSenhaProvisoria("/api/conta/trocar-senha", provisoria), "seguir");
+  // O "Esqueci a senha" resolve a provisória junto (03/10/2026).
+  assert.equal(desvioDaSenhaProvisoria("/nova-senha", provisoria), "seguir");
+  assert.equal(desvioDaSenhaProvisoria("/api/conta/nova-senha", provisoria), "seguir");
   // Na API, recusa: um desvio para HTML seria lido como resposta.
   assert.equal(desvioDaSenhaProvisoria("/api/admin/pessoas", provisoria), "recusar");
   // Prefixo parecido não é o caminho livre.

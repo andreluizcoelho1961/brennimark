@@ -92,6 +92,22 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 7. Testar com o cartão de teste `4242 4242 4242 4242`; a conta aparece no Console
    → Cobrança → Assinaturas.
 
+## E-mail (03/10/2026): "Esqueci a senha" e a confirmação da assinatura
+
+Pronto no código, desligado até o André escolher o serviço. A porta única é `src/lib/email/enviar.ts`
+(Resend; trocar de serviço é reescrever só esse arquivo). Para ligar:
+
+1. Ter um **domínio próprio** e verificá-lo no serviço. O `brennimark.vercel.app` não serve, porque
+   o domínio é da Vercel.
+2. Colar na Vercel `BRENNIMARK_CHAVE_EMAIL` e `BRENNIMARK_EMAIL_REMETENTE` (por exemplo,
+   `Brennimark <acesso@dominio>`) e fazer o redeploy.
+3. No Supabase, em Redirect URLs, incluir `https://<domínio>/**`: o link do e-mail volta com
+   `?next=/nova-senha?r=…`.
+
+O que passa a acontecer: a compra manda "sua assinatura está ativa" ao e-mail do comprador, e quem
+não criou a senha na volta do pagamento usa "Esqueci a senha". O clique no e-mail prova que o e-mail
+é da pessoa. Regras em `src/lib/acesso/recuperacao.ts`.
+
 ## Pontas conhecidas (revisão de 01/10/2026)
 
 Corrigido na revisão (migration `cobranca_primeiro_acesso`, #77):

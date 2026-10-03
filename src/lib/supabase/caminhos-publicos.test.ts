@@ -81,3 +81,11 @@ test("a senha na volta do pagamento passa sem sessão, pelo caminho exato", () =
   assert.equal(caminhoPublico("/api/cobranca/senha/"), false);
   assert.equal(caminhoPublico("/api/cobranca/senhax"), false);
 });
+
+test("o Esqueci a senha passa sem sessão; a troca, não", () => {
+  assert.equal(caminhoPublico("/esqueci-senha"), true);
+  assert.equal(caminhoPublico("/api/conta/esqueci-senha"), true);
+  assert.equal(caminhoPublico("/nova-senha"), false);
+  assert.equal(caminhoPublico("/api/conta/nova-senha"), false);
+  assert.equal(caminhoPublico("/esqueci-senhax"), false);
+});

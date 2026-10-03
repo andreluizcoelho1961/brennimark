@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { platformIdentity } from "@/platform/identity";
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -124,6 +125,12 @@ function LoginForm() {
             </p>
           )}
         </form>
+
+        <p className="mt-4 text-xs text-platform-text-muted">
+          <Link href="/esqueci-senha" className="underline" data-esqueci-a-senha>
+            {isEnglish ? "Forgot your password?" : "Esqueci a senha"}
+          </Link>
+        </p>
 
         {/* Quem chegou aqui sem conta precisa saber a quem pedir — e que o
             caminho é uma pessoa, não um formulário. */}

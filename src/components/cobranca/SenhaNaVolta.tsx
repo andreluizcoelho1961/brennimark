@@ -180,8 +180,8 @@ export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
           {estado === "falhou"
             ? "Não conseguimos conferir a compra agora. Recarregue esta página em instantes."
             : estado === "expirado"
-              ? "O prazo para criar a senha por esta página passou. Fale com a equipe da Brennimark para receber o link de acesso."
-              : "Assim que o Stripe confirmar o pagamento, a sua conta é criada. Para criar a senha aqui, abra esta página no mesmo navegador em que fez a compra; se não for possível, fale com a equipe da Brennimark para receber o link de acesso."}
+              ? "O prazo para criar a senha por esta página passou. Use “Esqueci a senha” na tela de entrar, com o e-mail da compra."
+              : "Assim que o Stripe confirmar o pagamento, a sua conta é criada. Para criar a senha aqui, abra esta página no mesmo navegador em que fez a compra — ou use “Esqueci a senha” na tela de entrar, com o e-mail da compra."}
         </p>
       )}
 
