@@ -30,3 +30,11 @@ test("a privacidade não promete o que o produto não faz", () => {
   assert.match(texto, /Cada conversa é de quem a fez/);
   assert.doesNotMatch(texto, /cookies? de publicidade(?! nem)/);
 });
+
+test("os textos públicos identificam a empresa pelo CNPJ, sem CPF nem endereço residencial", () => {
+  const texto = [TERMOS_DE_USO, POLITICA_DE_PRIVACIDADE].flatMap((d) => d.secoes.flatMap((s) => s.paragrafos)).join(" ");
+  assert.match(texto, /CNPJ 47\.924\.458\/0001-09/);
+  // O nome empresarial do MEI traz o CPF do titular no fim; ele não vai a página pública.
+  assert.doesNotMatch(texto, /\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)(?<!0001-\d{2})/);
+  assert.doesNotMatch(texto, /Vicente da Fontoura|90\.?460/i);
+});

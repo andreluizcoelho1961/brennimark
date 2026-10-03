@@ -21,7 +21,7 @@ export const TERMOS_DE_USO: DocumentoLegal = {
   vigenteDesde: "3 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem somos", paragrafos: [
-      "O Brennimark é uma plataforma de gestão de marca operada por [razão social], inscrita no CNPJ [número], com sede em [cidade/UF] (“Brennimark”, “nós”).",
+      "O Brennimark é uma plataforma de gestão de marca operada por André Luiz Ferreira Coelho, microempreendedor individual inscrito no CNPJ 47.924.458/0001-09, com sede em Porto Alegre/RS (“Brennimark”, “nós”).",
       "Estes termos valem para quem assina o Brennimark e para todas as pessoas que usam a plataforma pela conta de um assinante.",
     ] },
     { titulo: "2. Quem é quem", paragrafos: [
@@ -74,7 +74,7 @@ export const TERMOS_DE_USO: DocumentoLegal = {
       "Quando estes termos mudarem, avisaremos quem administra cada conta com pelo menos 30 dias de antecedência. Continuar usando a plataforma depois da data de vigência significa aceitar a nova versão.",
     ] },
     { titulo: "15. Lei e foro", paragrafos: [
-      "Estes termos seguem a lei brasileira. Fica eleito o foro da comarca de [cidade/UF] para resolver qualquer questão sobre eles.",
+      "Estes termos seguem a lei brasileira. Fica eleito o foro da comarca de Porto Alegre/RS para resolver qualquer questão sobre eles.",
     ] },
   ],
 };
@@ -84,7 +84,7 @@ export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
   vigenteDesde: "3 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem trata os dados", paragrafos: [
-      "Esta política explica como o Brennimark, operado por [razão social], CNPJ [número], trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).",
+      "Esta política explica como o Brennimark, operado por André Luiz Ferreira Coelho, microempreendedor individual inscrito no CNPJ 47.924.458/0001-09, trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).",
       "Para os dados da conta e da assinatura (quem assina, quem paga, quem entra), o Brennimark é o controlador. Para o conteúdo das marcas e os dados das pessoas que o assinante convida, o controlador é o assinante, e o Brennimark trata esses dados em nome dele, como operador, só para prestar o serviço.",
     ] },
     { titulo: "2. Que dados tratamos", paragrafos: [
