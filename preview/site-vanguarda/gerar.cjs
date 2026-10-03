@@ -37,7 +37,7 @@ for(const file of ['equipe-na-mesa.jpg','maos-com-pranchas.webp','vini.webp'])fs
 fs.copyFileSync(path.join(root,'src/app/(site)/site.css'),path.join(out,'base.css'));
 chapters=chapters.replace(/<link[^>]*rel="preload"[^>]*>/g,'');
 chapters=chapters.replace('src="assets/equipe-na-mesa.jpg"','src="assets/hero-37.jpg"');
-chapters=chapters.replace(/(<div class="hero-photo">)([\s\S]*?)(<\/div>)/,'$1<div class="photo-stage">$2<svg class="annotations" viewBox="0 0 1600 1066" aria-hidden="true"><g class="annotation"><rect id="face-frame" width="160" height="200" transform="translate(355 190)"/><line id="gaze-line" x1="0" y1="0" x2="1" y2="0"/><rect id="sketch-frame" width="80" height="42" transform="translate(770 842)"/></g></svg></div>$3');
+chapters=chapters.replace(/(<div class="hero-photo">)([\s\S]*?)(<\/div>)/,'$1<div class="photo-stage">$2<svg class="annotations" viewBox="0 0 1600 1066" aria-hidden="true"><g class="annotation"><rect id="face-frame" width="160" height="200" transform="translate(355 190)"/><line id="gaze-line" x1="0" y1="0" x2="1" y2="0"/><rect id="sketch-frame" width="80" height="42" transform="translate(508 839)"/></g></svg></div>$3');
 chapters=chapters.replace('<section class="panel" id="problema"',fs.readFileSync(path.join(out,'capitulo.html'),'utf8')+'<section class="panel" id="problema"');
 // Cada arquivo mantém sua regra. A prévia não cria contas, envia formulários ou chama IA.
 chapters=chapters.replace(/<button class="copy"[^>]*>/g,'<button class="copy" type="button" id="copy-prompt">');

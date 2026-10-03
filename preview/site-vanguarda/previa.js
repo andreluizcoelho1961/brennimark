@@ -58,18 +58,16 @@
   document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
   function clock(){document.querySelector('#clock').textContent='PORTO ALEGRE_'+new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',minute:'2-digit'}).format(new Date());}
   clock();setInterval(clock,60000);
-  // Um único olhar: três rostos e seis pontos marcados à mão nos esboços.
+  // Um único olhar: três rostos e suas regiões de atenção marcadas à mão nos esboços.
   // Transformações sincronizadas mantêm a linha reta presa às bordas dos retângulos.
   const faceFrame=document.querySelector('#face-frame');
   const sketchFrame=document.querySelector('#sketch-frame');
   const gazeLine=document.querySelector('#gaze-line');
+  // Regiões aproximadas do olhar, junto aos esboços que cada pessoa aponta.
   const gazes=[
-    {face:[355,190],sketch:[770,842]},
-    {face:[700,235],sketch:[555,925]},
-    {face:[1060,195],sketch:[1140,902]},
-    {face:[355,190],sketch:[385,914]},
-    {face:[700,235],sketch:[875,968]},
-    {face:[1060,195],sketch:[970,832]},
+    {face:[355,190],sketch:[508,839]},
+    {face:[700,235],sketch:[665,817]},
+    {face:[1060,195],sketch:[895,829]},
   ];
   function drawGaze(face,sketch){
     faceFrame.setAttribute('transform',`translate(${face[0]} ${face[1]})`);
@@ -79,8 +77,7 @@
   }
   const gazeGroup=document.querySelector('.annotation');
   const faces=[gazes[0].face,gazes[1].face,gazes[2].face];
-  const sketches=gazes.map(g=>g.sketch);
-  let gazeVisible=false,gazeTimer=null,faceBag=[],lastFace=-1,lastSketch=-1;
+  let gazeVisible=false,gazeTimer=null,faceBag=[],lastFace=-1;
   const random=(min,max)=>min+Math.random()*(max-min);
   function nextFace(){
     // Sacola embaralhada: os três aparecem, mas a sequência não vira um ciclo fixo.
@@ -92,8 +89,9 @@
     lastFace=faceBag.shift();return faces[lastFace];
   }
   function nextSketch(){
-    let i;do{i=Math.floor(Math.random()*sketches.length);}while(i===lastSketch);
-    lastSketch=i;return sketches[i];
+    const [x,y]=gazes[lastFace].sketch;
+    // A aleatoriedade fica dentro da região do olhar da pessoa ativa.
+    return [x+random(-12,12),y+random(-8,8)];
   }
   function later(delay,callback){
     gazeTimer=setTimeout(()=>{gazeTimer=null;if(gazeVisible&&!document.hidden&&!reduced.matches)callback();},delay);
@@ -106,7 +104,7 @@
       drawGaze(face,sketch);
       gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
       gazeGroup.style.opacity='1';
-      const dx=random(-28,28),dy=random(-14,14);
+      const dx=random(-10,10),dy=random(-6,6);
       later(random(230,380),()=>{
         drawGaze(face,[sketch[0]+dx*.45,sketch[1]+dy*.45]);
         later(random(110,220),()=>{
