@@ -38,3 +38,9 @@ test("os textos públicos identificam a empresa pelo CNPJ, sem CPF nem endereço
   assert.doesNotMatch(texto, /\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)(?<!0001-\d{2})/);
   assert.doesNotMatch(texto, /Vicente da Fontoura|90\.?460/i);
 });
+
+test("reembolso: 7 dias de arrependimento e cobrança indevida devolvidos por inteiro", () => {
+  const texto = TERMOS_DE_USO.secoes.flatMap((s) => s.paragrafos).join(" ");
+  assert.match(texto, /em até 7 dias depois da primeira contratação recebe de volta o valor pago, por inteiro/);
+  assert.match(texto, /Cobrança indevida, em duplicidade ou causada por falha nossa também é devolvida por inteiro/);
+});

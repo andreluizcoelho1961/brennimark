@@ -58,7 +58,7 @@ export const TERMOS_DE_USO: DocumentoLegal = {
     ] },
     { titulo: "10. Cancelamento", paragrafos: [
       "O assinante pode cancelar a qualquer momento, em Configurações → Plano. O acesso completo continua até o fim do período já pago, e não há nova cobrança depois dele.",
-      "[a confirmar] Não há reembolso proporcional do período já iniciado, salvo quando a lei exigir.",
+      "Reembolsos seguem a lei e o bom senso. Quem cancela em até 7 dias depois da primeira contratação recebe de volta o valor pago, por inteiro. Cobrança indevida, em duplicidade ou causada por falha nossa também é devolvida por inteiro. Nos demais casos, o cancelamento interrompe as próximas cobranças e o acesso segue até o fim do período já pago.",
       "Depois do cancelamento, a conta continua guardada, só para leitura, com todo o conteúdo dentro. O assinante pode pedir a exportação ou a exclusão definitiva dos dados pelo canal de contato.",
     ] },
     { titulo: "11. Limites dos planos", paragrafos: [
