@@ -102,7 +102,7 @@
     let point;
     for(let attempt=0;attempt<8;attempt++){
       const angle=random(0,Math.PI*2),radius=random(.35,1);
-      point=[x+Math.cos(angle)*58*radius,y+Math.sin(angle)*32*radius];
+      point=[x+Math.cos(angle)*76*radius,y+Math.sin(angle)*42*radius];
       if(Math.hypot(point[0]-previous[0],point[1]-previous[1])>22)break;
     }
     // Saltos locais em torno do dedo, sem acumular deslocamento para fora da prancha.
@@ -117,7 +117,7 @@
       drawGaze(face,sketch);
       gazeLine.style.opacity='1';sketchFrame.style.opacity='1';
       gazeGroup.style.opacity='1';
-      const steps=Math.floor(random(4,8));
+      const steps=Math.floor(random(7,11));
       later(random(220,350),()=>scanSketch(face,steps,sketch));
     });
   }
