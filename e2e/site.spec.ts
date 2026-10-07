@@ -61,7 +61,7 @@ test("a home abre no primeiro capítulo, com o título inteiro visível", async 
   // A animação termina com cada palavra no lugar; um título preso no ponto de
   // partida é texto invisível para quem visita.
   await expect(titulo).toHaveClass(/\bin\b/);
-  await expect(page.locator("#chap-n")).toHaveText("01 / 13");
+  await expect(page.locator("#chap-n")).toHaveText("01 / 14");
   await expect(page.locator("#chap-t")).toHaveText("Início");
   expect(erros).toEqual([]);
 });
@@ -69,16 +69,16 @@ test("a home abre no primeiro capítulo, com o título inteiro visível", async 
 test("as setas andam pelos capítulos e o endereço acompanha", async ({ page }) => {
   await abrir(page, "/");
   await page.keyboard.press("ArrowRight");
-  await expect(page).toHaveURL(/#problema$/);
-  await expect(page.locator("#chap-t")).toHaveText("O problema");
-  await expect(page.locator("#problema")).toHaveClass(/is-active/);
+  await expect(page).toHaveURL(/#num-so-lugar$/);
+  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
+  await expect(page.locator("#num-so-lugar")).toHaveClass(/is-active/);
   const largura = await page.locator("#track").evaluate((t) => t.clientWidth);
   await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(largura - 4);
 
   await page.getByRole("button", { name: "Próximo capítulo" }).click();
-  await expect(page.locator("#chap-t")).toHaveText("O dia a dia");
-  await page.getByRole("button", { name: "Capítulo anterior" }).click();
   await expect(page.locator("#chap-t")).toHaveText("O problema");
+  await page.getByRole("button", { name: "Capítulo anterior" }).click();
+  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
 });
 
 test("os pontos e os links de capítulo deslizam o trilho, sem recarregar", async ({ page }) => {
@@ -86,7 +86,7 @@ test("os pontos e os links de capítulo deslizam o trilho, sem recarregar", asyn
   const pontos = page.locator(".chapnav .dot");
   await expect(pontos).toHaveCount(CAPITULOS_DA_HOME.length);
 
-  await pontos.nth(3).click();
+  await pontos.nth(4).click();
   await expect(page.locator("#chap-t")).toHaveText("A plataforma");
 
   // "Planos" do cabeçalho aponta para /#planos; na home, o trilho desliza.
@@ -107,7 +107,12 @@ test("o selo de demonstração sai de cena nos capítulos que já têm o chamado
   await abrir(page, "/");
   const selo = page.locator(".stamp-cta");
   await expect(page.locator(".bm-site")).toHaveClass(/stamp-off-home/);
+  // "Num só lugar": o selo cobriria as abas, então também sai.
   await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
+  await expect(page.locator(".bm-site")).toHaveClass(/stamp-off-home/);
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#chap-t")).toHaveText("O problema");
   await expect(page.locator(".bm-site")).not.toHaveClass(/stamp-off-home/);
   await expect(selo).toBeVisible();
 });
@@ -178,7 +183,7 @@ test("o vídeo do Vini só carrega quando o capítulo chega", async ({ page }) =
   await abrir(page, "/");
   const video = page.locator("#vini-video");
   expect(await video.getAttribute("src")).toBeNull();
-  await page.locator(".chapnav .dot").nth(4).click();
+  await page.locator(".chapnav .dot").nth(5).click();
   // Chromium lê o WebM com transparência; o Safari receberia o HEVC.
   await expect(video).toHaveAttribute("src", "/site/vini.webm");
 });
@@ -198,7 +203,7 @@ test("abrir estreito e alargar a janela não muda o capítulo", async ({ page })
   expect(await page.locator("#track").evaluate((t) => t.scrollLeft)).toBe(0);
   // E continua andando normalmente.
   await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#chap-t")).toHaveText("O problema");
+  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
 });
 
 test("o site fica fora dos buscadores, e a prévia de link funciona", async ({ page, request }) => {
@@ -283,7 +288,7 @@ test.describe("movimento reduzido", () => {
     const palavra = page.locator(".hero h1 .w > span").first();
     await expect(palavra).toHaveCSS("transform", "none");
     // O vídeo fica no quadro de pôster.
-    await page.locator(".chapnav .dot").nth(4).click();
+    await page.locator(".chapnav .dot").nth(5).click();
     expect(await page.locator("#vini-video").getAttribute("src")).toBeNull();
   });
 });
@@ -326,4 +331,18 @@ test("Termos e Privacidade mostram o texto com a versão, e o /assinar aponta pa
   await page.goto("/dev/assinar");
   await expect(page.locator("[data-aceite-dos-termos] a[href='/termos']")).toBeVisible();
   await expect(page.locator("[data-aceite-dos-termos] a[href='/privacidade']")).toBeVisible();
+});
+
+test("o capítulo Num só lugar: a aba escolhe a palavra e a foto, e Pausar alterna", async ({ page }) => {
+  await page.goto("/#num-so-lugar");
+  const painel = page.locator("#num-so-lugar");
+  await expect(painel.locator("[data-palavra]")).toHaveText("MANUAL");
+  await painel.locator("[data-palavra-aba='2']").click();
+  await expect(painel.locator("[data-palavra]")).toHaveText("REGRAS");
+  await expect(painel.locator("[data-palavra-aba='2']")).toHaveAttribute("aria-pressed", "true");
+  await expect(painel.locator(".manual-page.is-shown")).toHaveCount(1);
+  await expect(painel.locator(".complete-sentence")).toContainText("num só lugar.");
+  const pausar = painel.getByRole("button", { name: "Pausar troca de imagens" });
+  await pausar.click();
+  await expect(painel.getByRole("button", { name: "Retomar troca de imagens" })).toHaveAttribute("aria-pressed", "true");
 });

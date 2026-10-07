@@ -4,10 +4,12 @@ import equipeNaMesa from "./imagens/equipe-na-mesa.jpg";
 import maosComPranchas from "./imagens/maos-com-pranchas.webp";
 import vini from "./imagens/vini.webp";
 import { Losango } from "./Losango";
+import { NumSoLugar } from "./NumSoLugar";
 import { Titulo } from "./Titulo";
 
 /**
- * Os 13 capítulos da home, na ordem do trilho.
+ * Os 14 capítulos da home, na ordem do trilho. O segundo, "Num só lugar",
+ * entrou em 03/10/2026, vindo da prévia do Codex (ver `NumSoLugar.tsx`).
  *
  * O texto é o do protótipo de 29/09/2026, convertido sem edição — autoria do
  * André. O que mudou é só a forma: imagens como arquivos otimizados, títulos
@@ -36,6 +38,8 @@ export function CapitulosDaHome() {
             <p className="hero-jump rise-2">Ir direto para <Link href="/#vini" data-go="vini">o Vini</Link> · <Link href="/#publico" data-go="publico">para quem é</Link> · <Link href="/#planos" data-go="planos">planos</Link></p>
           </div>
         </section>
+
+        <NumSoLugar />
 
         <section className="panel" id="problema" aria-label="O problema">
           <div className="wrap pain">
