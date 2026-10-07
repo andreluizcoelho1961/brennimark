@@ -1,8 +1,44 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
 import type { DocumentoLegal as Documento } from "@/lib/site/documentos-legais";
 import { Losango } from "./Losango";
 import { Titulo } from "./Titulo";
 
-/** Termos e privacidade: o mesmo desenho, texto corrido em seções numeradas. */
+/**
+ * Termos e privacidade: o mesmo desenho, texto corrido em seções numeradas.
+ *
+ * O texto é dado (`documentos-legais.ts`) com três marcações: **negrito**,
+ * parágrafo que começa com "- " vira item de lista, e [[pagina#ancora|texto]]
+ * vira link entre os documentos.
+ */
+function trecho(texto: string): ReactNode[] {
+  const partes = texto.split(/(\*\*[^*]+\*\*|\[\[[^\]]+\]\])/g).filter(Boolean);
+  return partes.map((parte, i) => {
+    if (parte.startsWith("**")) return <strong key={i}>{parte.slice(2, -2)}</strong>;
+    if (parte.startsWith("[[")) {
+      const [destino, rotulo] = parte.slice(2, -2).split("|");
+      return <Link key={i} href={`/${destino}`}>{rotulo}</Link>;
+    }
+    return parte;
+  });
+}
+
+function blocos(paragrafos: readonly string[]): ReactNode[] {
+  const saida: ReactNode[] = [];
+  let lista: string[] = [];
+  const fecharLista = () => {
+    if (lista.length) saida.push(<ul key={`l${saida.length}`}>{lista.map((item) => <li key={item}>{trecho(item)}</li>)}</ul>);
+    lista = [];
+  };
+  for (const p of paragrafos) {
+    if (p.startsWith("- ")) { lista.push(p.slice(2)); continue; }
+    fecharLista();
+    saida.push(<p key={p}>{trecho(p)}</p>);
+  }
+  fecharLista();
+  return saida;
+}
+
 export function DocumentoLegal({ titulo, migalha, documento }: { titulo: string; migalha: string; documento: Documento }) {
   return (
     <>
@@ -16,9 +52,9 @@ export function DocumentoLegal({ titulo, migalha, documento }: { titulo: string;
       <section className="pg-sec">
         <div className="pg-wrap legal" data-documento-legal data-versao={documento.versao}>
           {documento.secoes.map((secao) => (
-            <section key={secao.titulo}>
+            <section key={secao.titulo} id={secao.id}>
               <h2>{secao.titulo}</h2>
-              {secao.paragrafos.map((p) => <p key={p}>{p}</p>)}
+              {blocos(secao.paragrafos)}
             </section>
           ))}
         </div>

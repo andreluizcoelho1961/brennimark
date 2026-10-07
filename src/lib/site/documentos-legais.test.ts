@@ -41,12 +41,25 @@ test("os textos públicos identificam a empresa pelo CNPJ, sem CPF nem endereço
 
 test("reembolso: 7 dias de arrependimento e cobrança indevida devolvidos por inteiro", () => {
   const texto = TERMOS_DE_USO.secoes.flatMap((s) => s.paragrafos).join(" ");
-  assert.match(texto, /em até 7 dias depois da primeira contratação recebe de volta o valor pago, por inteiro/);
-  assert.match(texto, /Cobrança indevida, em duplicidade ou causada por falha nossa também é devolvida por inteiro/);
+  assert.match(texto, /em até 7 dias da primeira contratação recebe de volta o valor pago, por inteiro/);
+  assert.match(texto, /cobrança em duplicidade, após o cancelamento ou causada por falha nossa é devolvida por inteiro/);
 });
 
 test("os textos dão um canal de contato de verdade, sem colchete de e-mail", () => {
   const texto = [TERMOS_DE_USO, POLITICA_DE_PRIVACIDADE].flatMap((d) => d.secoes.flatMap((s) => s.paragrafos)).join(" ");
   assert.doesNotMatch(texto, /\[e-mail/);
   assert.match(texto, /contato@brennimark\.com/);
+});
+
+test("revisão de 07/10: nenhum marcador de pendência no texto publicado; o link entre os documentos aponta para uma seção que existe", () => {
+  const todos = [TERMOS_DE_USO, POLITICA_DE_PRIVACIDADE].flatMap((d) => d.secoes.flatMap((s) => s.paragrafos)).join(" ");
+  assert.doesNotMatch(todos, /\[a confirmar/);
+  const links = [...todos.matchAll(/\[\[termos#([a-z-]+)\|/g)].map((m) => m[1]);
+  assert.ok(links.length > 0);
+  for (const ancora of links) assert.ok(TERMOS_DE_USO.secoes.some((s) => s.id === ancora), ancora);
+});
+
+test("o Vini não promete chave própria do assinante: a IA é da plataforma (ADR-0008)", () => {
+  const texto = POLITICA_DE_PRIVACIDADE.secoes.flatMap((s) => s.paragrafos).join(" ");
+  assert.doesNotMatch(texto, /própria chave/);
 });
