@@ -7,6 +7,9 @@
  * como contrato: os trechos entre colchetes são dados que faltam, e os
  * marcados "[a confirmar]" são decisão que ainda não foi tomada.
  *
+ * 07/10/2026: o e-mail de contato e de privacidade passou a contato@brennimark.com
+ * (domínio próprio, recebido pelo iCloud+); a versão subiu.
+ *
  * A VERSÃO vai junto em cada compra (metadados da sessão do Stripe), para
  * que se saiba qual texto cada assinante aceitou. Mudou o texto, muda a
  * versão.
@@ -17,8 +20,8 @@ export type SecaoLegal = { titulo: string; paragrafos: readonly string[] };
 export type DocumentoLegal = { versao: string; vigenteDesde: string; secoes: readonly SecaoLegal[] };
 
 export const TERMOS_DE_USO: DocumentoLegal = {
-  versao: "2026-10-03",
-  vigenteDesde: "3 de outubro de 2026",
+  versao: "2026-10-07",
+  vigenteDesde: "7 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem somos", paragrafos: [
       "O Brennimark é uma plataforma de gestão de marca operada por André Luiz Ferreira Coelho, microempreendedor individual inscrito no CNPJ 47.924.458/0001-09, com sede em Porto Alegre/RS (“Brennimark”, “nós”).",
@@ -35,7 +38,7 @@ export const TERMOS_DE_USO: DocumentoLegal = {
     ] },
     { titulo: "4. Conta, acesso e senha", paragrafos: [
       "O assinante é responsável por quem ele convida e pelo que essas pessoas fazem na plataforma.",
-      "A senha é pessoal. Cada pessoa usa o seu próprio acesso; compartilhar senha não é permitido. Se suspeitar de uso indevido, avise-nos em [e-mail de contato].",
+      "A senha é pessoal. Cada pessoa usa o seu próprio acesso; compartilhar senha não é permitido. Se suspeitar de uso indevido, avise-nos em contato@brennimark.com.",
     ] },
     { titulo: "5. O conteúdo é de quem o criou", paragrafos: [
       "Manuais, materiais, complementos e demais arquivos enviados continuam sendo de quem os criou ou contratou. O Brennimark não se torna dono de nada que o assinante envia.",
@@ -80,8 +83,8 @@ export const TERMOS_DE_USO: DocumentoLegal = {
 };
 
 export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
-  versao: "2026-10-03",
-  vigenteDesde: "3 de outubro de 2026",
+  versao: "2026-10-07",
+  vigenteDesde: "7 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem trata os dados", paragrafos: [
       "Esta política explica como o Brennimark, operado por André Luiz Ferreira Coelho, microempreendedor individual inscrito no CNPJ 47.924.458/0001-09, trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).",
@@ -119,10 +122,10 @@ export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
     ] },
     { titulo: "9. Seus direitos", paragrafos: [
       "Você pode pedir confirmação de que tratamos seus dados, acesso, correção, anonimização, portabilidade, exclusão e informação sobre com quem os compartilhamos, além de revogar consentimentos, nos termos do artigo 18 da LGPD.",
-      "Peça pelo e-mail [e-mail de privacidade]. Respondemos em até 15 dias. Se o pedido for sobre conteúdo de uma marca, encaminhamos ao assinante, que é o controlador desses dados.",
+      "Peça pelo e-mail contato@brennimark.com. Respondemos em até 15 dias. Se o pedido for sobre conteúdo de uma marca, encaminhamos ao assinante, que é o controlador desses dados.",
     ] },
     { titulo: "10. Contato", paragrafos: [
-      "Para qualquer questão sobre privacidade, escreva para [e-mail de privacidade].",
+      "Para qualquer questão sobre privacidade, escreva para contato@brennimark.com.",
     ] },
     { titulo: "11. Mudanças nesta política", paragrafos: [
       "Quando esta política mudar, a nova versão é publicada aqui, com a data. Mudanças relevantes são avisadas a quem administra cada conta.",
