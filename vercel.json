@@ -4,6 +4,10 @@
     {
       "path": "/api/manutencao/materiais-orfaos",
       "schedule": "17 6 * * *"
+    },
+    {
+      "path": "/api/manutencao/registros-de-acesso",
+      "schedule": "41 6 * * *"
     }
   ]
 }

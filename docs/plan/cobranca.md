@@ -116,9 +116,10 @@ com compromissos que precisam virar produto. **Antes do primeiro cliente real:**
 - **IA paga:** as rotas usam Gemini e Groq em chave gratuita; o Gemini gratuito treina com os dados. A
   Política diz que só usamos planos que não treinam. Ligar a cobrança no Google AI Studio (e conferir o
   Groq) antes do primeiro piloto real. Demonstração (Brennimark, ACME) pode seguir gratuita.
-- **Registros de acesso por 6 meses** (Marco Civil, art. 15): IP, data e hora de acesso à aplicação.
-  Hoje nada guarda por 6 meses (Vercel e Supabase no plano gratuito guardam horas ou dias).
-- **Aceite registrado** de quem é convidado (versão, data, hora): só o comprador tem a versão no Stripe.
+- ~~Registros de acesso por 6 meses~~ e ~~aceite registrado~~: construídos em 07/10/2026
+  (migration `acessos_e_aceites`, `scripts/prova-acessos-e-aceites.sh`). O `proxy` grava uma linha por
+  pessoa, por hora e por IP; a rotina diária apaga o que passa de 6 meses; o aceite é gravado na senha
+  da compra (versão do Stripe) e no primeiro acesso de quem é convidado.
 - **Endereço físico** no rodapé e nos textos (colchetes até o André decidir).
 
 **Antes do primeiro cancelamento completar 12 meses:** exclusão com aviso e exportação.
