@@ -31,12 +31,15 @@ test("a privacidade não promete o que o produto não faz", () => {
   assert.doesNotMatch(texto, /cookies? de publicidade(?! nem)/);
 });
 
-test("os textos públicos identificam a empresa pelo CNPJ, sem CPF nem endereço residencial", () => {
+test("os textos públicos identificam a empresa pelo CNPJ e pelo endereço do CNPJ, sem CPF", () => {
   const texto = [TERMOS_DE_USO, POLITICA_DE_PRIVACIDADE].flatMap((d) => d.secoes.flatMap((s) => s.paragrafos)).join(" ");
   assert.match(texto, /CNPJ 47\.924\.458\/0001-09/);
   // O nome empresarial do MEI traz o CPF do titular no fim; ele não vai a página pública.
   assert.doesNotMatch(texto, /\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)(?<!0001-\d{2})/);
-  assert.doesNotMatch(texto, /Vicente da Fontoura|90\.?460/i);
+  // O endereço é o do CNPJ, publicado por decisão do André (07/10/2026) —
+  // exigência do Decreto 7.962/2013. O CPF continua fora.
+  assert.match(texto, /Rua Vicente da Fontoura, 2547, apto\. 406, Petrópolis, Porto Alegre\/RS, CEP 90460-019/);
+  assert.doesNotMatch(texto, /\[rua|CEP \[/);
 });
 
 test("reembolso: 7 dias de arrependimento e cobrança indevida devolvidos por inteiro", () => {
