@@ -44,3 +44,9 @@ test("reembolso: 7 dias de arrependimento e cobrança indevida devolvidos por in
   assert.match(texto, /em até 7 dias depois da primeira contratação recebe de volta o valor pago, por inteiro/);
   assert.match(texto, /Cobrança indevida, em duplicidade ou causada por falha nossa também é devolvida por inteiro/);
 });
+
+test("os textos dão um canal de contato de verdade, sem colchete de e-mail", () => {
+  const texto = [TERMOS_DE_USO, POLITICA_DE_PRIVACIDADE].flatMap((d) => d.secoes.flatMap((s) => s.paragrafos)).join(" ");
+  assert.doesNotMatch(texto, /\[e-mail/);
+  assert.match(texto, /contato@brennimark\.com/);
+});
