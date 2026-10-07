@@ -346,3 +346,14 @@ test("o capítulo Num só lugar: a aba escolhe a palavra e a foto, e Pausar alte
   await pausar.click();
   await expect(painel.getByRole("button", { name: "Retomar troca de imagens" })).toHaveAttribute("aria-pressed", "true");
 });
+
+test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé, link entre os documentos", async ({ page }) => {
+  await page.goto("/dev/assinar");
+  await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Assinatura mensal com renovação automática");
+  await page.goto("/privacidade");
+  await expect(page.locator("[data-empresa]")).toContainText("CNPJ 47.924.458/0001-09");
+  const link = page.locator("[data-documento-legal] a", { hasText: "Dados tratados em nome do assinante" });
+  await expect(link).toHaveAttribute("href", "/termos#dados-tratados-em-nome-do-assinante");
+  await link.click();
+  await expect(page.locator("#dados-tratados-em-nome-do-assinante li")).toHaveCount(5);
+});

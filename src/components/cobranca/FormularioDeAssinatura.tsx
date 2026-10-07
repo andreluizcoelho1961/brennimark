@@ -99,6 +99,10 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
         </div>
       </div>
 
+      <p className="border-l-2 border-platform-signal pl-3 text-sm leading-relaxed text-platform-text" data-aviso-de-renovacao>
+        Assinatura mensal com renovação automática. Cancele quando quiser em Configurações → Plano. Se cancelar em até 7 dias, devolvemos o valor pago.
+      </p>
+
       <p className="text-xs leading-relaxed text-platform-text-muted" data-aceite-dos-termos>
         Ao ir para o pagamento, você aceita os <a href="/termos" target="_blank" rel="noopener" className="underline">Termos de uso</a> e
         a <a href="/privacidade" target="_blank" rel="noopener" className="underline">Política de privacidade</a>.

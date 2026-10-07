@@ -12,7 +12,7 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 | Pagamento | **só cartão** (decisão de 02/10/2026; rever mais adiante) | agências assinam com cartão, e o Pix serve mais à compra à vista. E o Stripe não faz Pix em assinatura para conta brasileira: "O Pix Automático não está disponível no Brasil", e o checkout descarta o Pix sem erro. Caminhos guardados: Pix pela fatura do mês, plano anual por Pix (teto de R$ 3.000 por Pix) ou um segundo provedor |
 | Empresa | o MEI do André no piloto; ME no Simples depois | o sistema não depende do tipo de empresa: a chave do Stripe fica na Vercel |
 | Atraso | **7 dias** com tudo funcionando e aviso ao dono; depois **só leitura** (consulta e download sim; Vini, edição e marca nova não); **nada é apagado** | |
-| Cancelado de vez | **os dados ficam guardados** (decisão de 03/10/2026): a conta cancelada continua no banco como cadastro, só para leitura, com tudo dentro. Nada é apagado por prazo | quem volta reencontra o que tinha; o custo de armazenamento dos manuais de quem não volta fica para rever quando pesar |
+| Cancelado de vez | **12 meses só para leitura, depois exclusão** (decisão de 07/10/2026, substitui a de 03/10): aviso 30 dias antes; o assinante pode exportar ou pedir a exclusão antes; dados fiscais e registros de acesso ficam pelo prazo legal | guardar sem prazo não se justifica (LGPD: necessidade) e custa armazenamento. **Falta construir:** data de exclusão na assinatura cancelada, rotina diária que avisa aos 11 meses e exclui aos 12, e a exportação (arquivos originais + índice) |
 | Limites dos planos | **provisórios**, ajustáveis no Console | os valores do site ainda estão "a definir" |
 
 ## Desenho
@@ -107,6 +107,24 @@ Pronto no código, desligado até o André escolher o serviço. A porta única �
 O que passa a acontecer: a compra manda "sua assinatura está ativa" ao e-mail do comprador, e quem
 não criou a senha na volta do pagamento usa "Esqueci a senha". O clique no e-mail prova que o e-mail
 é da pessoa. Regras em `src/lib/acesso/recuperacao.ts`.
+
+## O que os Termos revisados (versão 2026-10-08) prometem e o produto ainda não faz
+
+A revisão de conformidade dos Termos e da Privacidade (CDC, LGPD, Marco Civil, Decreto 7.962) entrou
+com compromissos que precisam virar produto. **Antes do primeiro cliente real:**
+
+- **IA paga:** as rotas usam Gemini e Groq em chave gratuita; o Gemini gratuito treina com os dados. A
+  Política diz que só usamos planos que não treinam. Ligar a cobrança no Google AI Studio (e conferir o
+  Groq) antes do primeiro piloto real. Demonstração (Brennimark, ACME) pode seguir gratuita.
+- **Registros de acesso por 6 meses** (Marco Civil, art. 15): IP, data e hora de acesso à aplicação.
+  Hoje nada guarda por 6 meses (Vercel e Supabase no plano gratuito guardam horas ou dias).
+- **Aceite registrado** de quem é convidado (versão, data, hora): só o comprador tem a versão no Stripe.
+- **Endereço físico** no rodapé e nos textos (colchetes até o André decidir).
+
+**Antes do primeiro cancelamento completar 12 meses:** exclusão com aviso e exportação.
+
+**Operação (manual, por enquanto):** confirmação de cancelamento por e-mail, reembolso dos 7 dias pelo
+"Refund" do Stripe, `privacidade@brennimark.com`, cláusulas-padrão da ANPD nos contratos dos fornecedores.
 
 ## Pontas conhecidas (revisão de 01/10/2026)
 
