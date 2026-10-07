@@ -3,8 +3,8 @@
  * privacidade e o rodapé do site (ajuste da revisão de conformidade, 07/10/2026).
  *
  * O nome empresarial do MEI traz o CPF do titular no fim: ele NÃO entra aqui.
- * O endereço físico fica entre colchetes até o André preencher — exigência do
- * Decreto 7.962/2013, art. 2º; a decisão de qual endereço publicar é dele.
+ * O endereço físico é exigência do Decreto 7.962/2013, art. 2º. Decisão do
+ * André (07/10/2026): publicar o endereço do CNPJ, onde fica o escritório dele.
  *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
@@ -12,9 +12,9 @@ export const EMPRESA = {
   nome: "André Luiz Ferreira Coelho",
   natureza: "microempreendedor individual",
   cnpj: "47.924.458/0001-09",
-  endereco: "[rua, número, bairro]",
+  endereco: "Rua Vicente da Fontoura, 2547, apto. 406, Petrópolis",
   cidade: "Porto Alegre/RS",
-  cep: "[—]",
+  cep: "90460-019",
   email: "contato@brennimark.com",
   emailDePrivacidade: "privacidade@brennimark.com",
 } as const;
