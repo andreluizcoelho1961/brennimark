@@ -6,7 +6,7 @@ import {
 } from "./senha-na-volta";
 
 const AGORA = Date.UTC(2026, 9, 2, 18, 0, 0);
-const SESSAO: SessaoDaCompra = { paga: true, criadaEm: AGORA - 60_000, email: "fulana@agencia.com", idAssinatura: "sub_1", resumoDaProva: "r", comprador: "Fulana", empresa: "Agência" };
+const SESSAO: SessaoDaCompra = { paga: true, criadaEm: AGORA - 60_000, email: "fulana@agencia.com", idAssinatura: "sub_1", resumoDaProva: "r", comprador: "Fulana", empresa: "Agência", termosVersao: "2026-10-08", privacidadeVersao: "2026-10-08" };
 const LOGIN_NOVO: LoginDaCompra = { criadoPelaCobranca: true, assinaturaDeOrigem: "sub_1", jaEntrou: false, senhaJaCriada: false };
 const BASE = { provaConfere: true, sessao: SESSAO, contaExiste: true, login: LOGIN_NOVO, agora: AGORA };
 

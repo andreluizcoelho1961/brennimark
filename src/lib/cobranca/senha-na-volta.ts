@@ -83,6 +83,9 @@ export type SessaoDaCompra = {
   comprador: string | null;
   /** O nome da empresa digitado no `/assinar`. */
   empresa: string | null;
+  /** As versões dos Termos e da Política aceitas no `/assinar`. */
+  termosVersao: string | null;
+  privacidadeVersao: string | null;
 };
 
 export type LoginDaCompra = {

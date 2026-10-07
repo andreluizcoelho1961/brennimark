@@ -3,6 +3,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { buscarSessaoNoStripe, chavesDoStripe } from "@/lib/cobranca/stripe";
 import { conferirSenhaNova } from "@/lib/acesso/senha-provisoria";
 import { DESTINO_PADRAO } from "@/platform/destino-de-retorno";
+import { gravarAceites } from "@/lib/conformidade/aceites";
+import { ipDoPedido } from "@/lib/conformidade/registro-de-acesso";
 import {
   CAMINHO_DO_COOKIE, COOKIE_DA_PROVA, loginDaCompra, mesmoTexto, momentoDaVolta, resumoDaProva, sessaoValida,
   type LoginDaCompra, type Momento, type SessaoDaCompra,
@@ -31,6 +33,7 @@ import {
 type Contexto = {
   momento: Momento; email: string | null; userId: string | null; conta: string | null; metadados: Record<string, unknown>;
   comprador: string | null; empresa: string | null;
+  termosVersao: string | null; privacidadeVersao: string | null;
 };
 
 const SEM_PROVA = (status = 200) => NextResponse.json({ momento: "sem-prova" }, { status, headers: { "Cache-Control": "no-store" } });
@@ -91,6 +94,7 @@ async function contexto(request: NextRequest, idDaSessao: string): Promise<Conte
   return {
     momento: momentoDaVolta({ provaConfere, sessao, contaExiste: conta !== null, login, agora }),
     email: sessao.email, userId, conta, metadados, comprador: sessao.comprador, empresa: sessao.empresa,
+    termosVersao: sessao.termosVersao, privacidadeVersao: sessao.privacidadeVersao,
   };
 }
 
@@ -145,6 +149,12 @@ export async function POST(request: NextRequest) {
   if (erroDaAtivacao) {
     console.error(JSON.stringify({ level: "error", msg: "senha_na_volta_ativacao_falhou", code: erroDaAtivacao.code ?? "unknown" }));
   }
+
+  // O aceite feito no `/assinar`, com a versão que foi ao Stripe.
+  await gravarAceites(servico, {
+    userId: c.userId, origem: "compra", ip: ipDoPedido(request.headers),
+    termos: c.termosVersao, privacidade: c.privacidadeVersao,
+  });
 
   // O nome e a empresa já foram digitados no `/assinar`. Sem eles no perfil,
   // a entrada mandaria a pessoa ao cadastro para digitá-los de novo (achado no

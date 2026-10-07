@@ -3,6 +3,8 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { conferirSenhaNova, senhaProvisoriaAte, senhaProvisoriaVencida } from "@/lib/acesso/senha-provisoria";
+import { gravarAceites } from "@/lib/conformidade/aceites";
+import { ipDoPedido } from "@/lib/conformidade/registro-de-acesso";
 
 /**
  * A troca da senha provisória — e só depois dela, o acesso.
@@ -69,6 +71,12 @@ export async function POST(request: Request) {
           : t("Não foi possível trocar a senha.", "Couldn't change the password."),
       }, { status: fraca ? 400 : 502 });
     }
+  }
+
+  // O primeiro acesso de quem foi convidado (ou do titular pelo link do
+  // Console): a tela diz que continuar aceita os Termos e a Política.
+  if (ate) {
+    await gravarAceites(createServiceClient(), { userId: user.id, origem: "primeiro-acesso", ip: ipDoPedido(request.headers) });
   }
 
   // Sem marca de provisória também se ativa: cobre quem trocou a senha e teve

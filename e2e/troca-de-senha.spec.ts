@@ -81,3 +81,11 @@ test("quem entrou pelo link de primeiro acesso não recebeu senha nenhuma, e a t
   await expect(page.getByRole("heading", { name: "O prazo para criar a senha venceu" })).toBeVisible();
   await expect(page.getByText("Peça um novo link de acesso à equipe da Brennimark")).toBeVisible();
 });
+
+test("o primeiro acesso diz que continuar aceita os Termos e a Política, com os dois links", async ({ page }) => {
+  await page.goto("/dev/trocar-senha");
+  const aceite = page.locator("[data-aceite-dos-termos]");
+  await expect(aceite).toContainText("Ao continuar, você aceita");
+  await expect(aceite.locator("a[href='/termos']")).toBeVisible();
+  await expect(aceite.locator("a[href='/privacidade']")).toBeVisible();
+});

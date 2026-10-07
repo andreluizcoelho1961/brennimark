@@ -135,6 +135,12 @@ export function TrocaDeSenha({
               onChange={(e) => setConfirmacao(e.target.value)} className={campo} />
           </label>
           <p className="text-[12px] text-platform-text-muted">{t("Ao menos 12 caracteres.", "At least 12 characters.")}</p>
+          <p className="text-[12px] leading-relaxed text-platform-text-muted" data-aceite-dos-termos>
+            {t("Ao continuar, você aceita os ", "By continuing, you accept the ")}
+            <a href="/termos" target="_blank" rel="noopener" className="underline">{t("Termos de uso", "Terms of use")}</a>
+            {t(" e a ", " and the ")}
+            <a href="/privacidade" target="_blank" rel="noopener" className="underline">{t("Política de privacidade", "Privacy policy")}</a>.
+          </p>
           <button type="submit" disabled={enviando}
             className="border border-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-text transition-colors duration-150 hover:bg-platform-text hover:text-platform-bg disabled:opacity-50">
             {enviando ? "…" : t("Salvar e entrar", "Save and continue")}
