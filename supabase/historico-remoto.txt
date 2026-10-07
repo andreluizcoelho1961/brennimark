@@ -90,3 +90,4 @@
 20261001204421 cobranca_compra
 20261001204510 cobranca_vida
 20261001204549 cobranca_primeiro_acesso
+20261007185911 acessos_e_aceites
