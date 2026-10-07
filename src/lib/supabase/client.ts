@@ -4,15 +4,10 @@ export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      // @supabase/ssr defaults to "pkce", which requires the browser
-      // that opened the magic link to have the code_verifier cookie
-      // set by the browser that requested it — breaks when the OS/mail
-      // client opens the link in a different browser (e.g. requested
-      // in Chrome, opened in Safari). "implicit" puts the session
-      // tokens directly in the redirect URL instead, so it works
-      // regardless of which browser opens the link.
-      auth: { flowType: "implicit" },
-    },
+    // Não adianta pedir `flowType: "implicit"` aqui: o `@supabase/ssr` força
+    // "pkce" por cima das opções (createBrowserClient, 0.12). Os links com a
+    // sessão no fragmento (`#access_token=…`) são tratados à mão em
+    // `/auth/callback` — ver `sessao-do-fragmento.ts`. Corrigido em 07/10/2026:
+    // o comentário anterior afirmava que a opção funcionava, e ela nunca valeu.
   );
 }
