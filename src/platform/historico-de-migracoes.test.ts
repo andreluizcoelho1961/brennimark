@@ -57,9 +57,10 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Aplicar ao banco hospedado ANTES do merge, com autorização nominal do
-  // André, e carimbar: as colunas do cancelamento e as 3 funções do webhook.
-  "cancelamento_e_arrependimento",
+  // `cancelamento_e_arrependimento` saiu daqui em 08/10/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20261008160312`;
+  // impressão digital igual à do local (14 itens: colunas, constraints,
+  // índices e as 3 funções — corpo, SECURITY DEFINER, search_path, grants).
   // `acessos_e_aceites` saiu daqui em 07/10/2026: aplicada ao banco hospedado
   // com autorização nominal do André, carimbada `20261007185911`; impressão
   // digital igual à do local (29 itens: colunas, constraints, índices, policy,
