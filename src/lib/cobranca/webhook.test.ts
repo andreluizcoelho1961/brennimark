@@ -3,7 +3,10 @@ import test from "node:test";
 import Stripe from "stripe";
 import { lerAvisoAssinado } from "./aviso-assinado";
 import { assinaturaDoStripe, traduzirSituacaoDoStripe, type AssinaturaDoStripe } from "./stripe-traducao";
-import { assinaturaDoAviso, processarAviso, type AssinaturaNoProvedor, type Aviso, type Portas, type Recebimento } from "./webhook";
+import {
+  assinaturaDoAviso, processarAviso, tipoDoCancelamento,
+  type AssinaturaNoProvedor, type AvisoDeCancelamento, type Aviso, type EstadoDoCancelamento, type Portas, type Recebimento,
+} from "./webhook";
 
 const SEGREDO = "whsec_prova_local_nao_e_chave_real";
 
@@ -21,9 +24,16 @@ const SUB: AssinaturaDoStripe = {
 const PAGA: AssinaturaNoProvedor = assinaturaDoStripe(SUB);
 
 /** Portas falsas que anotam cada chamada, na ordem. */
-function portasFalsas(opcoes: { recebimento?: Recebimento; assinatura?: AssinaturaNoProvedor; falharEm?: string } = {}) {
+function portasFalsas(opcoes: {
+  recebimento?: Recebimento; assinatura?: AssinaturaNoProvedor; falharEm?: string;
+  /** O que o banco devolve ao pedido de cancelamento (sem isto: o banco decide como o de verdade, sem arrependimento). */
+  estado?: Partial<EstadoDoCancelamento>;
+  /** Outro aviso já reservou o e-mail. */
+  reservaPerdida?: boolean;
+} = {}) {
   const chamadas: string[] = [];
   const logins: { nome: string | null; idAssinatura: string }[] = [];
+  const emails: AvisoDeCancelamento[] = [];
   const portas: Portas = {
     async receber(_p, id) { chamadas.push(`receber ${id}`); return opcoes.recebimento ?? "novo"; },
     async concluir(_p, id, resultado, detalhe) { chamadas.push(`concluir ${id} ${resultado}${detalhe ? ` (${detalhe})` : ""}`); },
@@ -36,10 +46,34 @@ function portasFalsas(opcoes: { recebimento?: Recebimento; assinatura?: Assinatu
     async sincronizar(a) {
       chamadas.push(`sincronizar ${a.idAssinatura} ${a.situacao}`);
       if (opcoes.falharEm === "sincronizar") throw new Error("sincronizar: 22023 cobranca_preco_desconhecido");
-      return a.situacao === "ativa" ? "conta-1" : null;
+      return a.situacao === "ativa" || a.situacao === "cancelada" ? "conta-1" : null;
+    },
+    async pedidoDeCancelamento(p) {
+      chamadas.push(`pedido ${p.idAssinatura} ${p.pedido ? "sim" : "não"}${p.porFaltaDePagamento ? " (falta de pagamento)" : ""}`);
+      if (!p.pedido) return null;
+      return {
+        nomeDaConta: "Agência Exemplo", titularEmail: "dona@agencia.com", situacao: "ativa",
+        periodoPagoAte: "2026-11-08T13:37:12.000Z", arrependimento: false, estornada: false, avisado: false,
+        ...opcoes.estado,
+      };
+    },
+    async estornar(id) {
+      chamadas.push(`estornar ${id}`);
+      if (opcoes.falharEm === "estornar") throw new Error("Stripe recusou o estorno");
+      return "re_1";
+    },
+    async registrarEstorno(id, idEstorno) { chamadas.push(`registrar estorno ${id} ${idEstorno}`); },
+    async reservarAviso(id, reservar) {
+      chamadas.push(`${reservar ? "reservar" : "devolver"} aviso ${id}`);
+      return reservar ? !opcoes.reservaPerdida : true;
+    },
+    async avisarCancelamento(a) {
+      chamadas.push(`e-mail ${a.tipo}`);
+      if (opcoes.falharEm === "e-mail") throw new Error("e-mail de cancelamento: recusado");
+      emails.push(a);
     },
   };
-  return { portas, chamadas, logins };
+  return { portas, chamadas, logins, emails };
 }
 
 const aviso = (type: string, object: unknown, id = "evt_1"): Aviso => ({ id, type, data: { object } });
@@ -71,7 +105,8 @@ test("o estado do Stripe em palavras do produto; o desconhecido não vira nada",
 test("a assinatura do Stripe vira a do produto: e-mail normalizado, nome do checkout, fim do período em data", () => {
   assert.deepEqual(PAGA, {
     idCliente: "cus_1", idAssinatura: "sub_1", idPreco: "price_basico_brl", situacao: "ativa",
-    periodoPagoAte: new Date(1_790_000_000 * 1000).toISOString(), cancelarNoFim: false, moeda: "BRL",
+    periodoPagoAte: new Date(1_790_000_000 * 1000).toISOString(), cancelarNoFim: false,
+    pedidoDeCancelamentoEm: null, porFaltaDePagamento: false, moeda: "BRL",
     emailDoTitular: "dona@agencia.com", nomeDaConta: "Agência Exemplo", nomeDoComprador: "Fulana de Tal",
   });
   assert.equal(assinaturaDoStripe({ ...SUB, metadata: {} }).nomeDoComprador, null);
@@ -94,7 +129,11 @@ test("pagamento confirmado: garante o login, sincroniza e conclui — nessa orde
   const { portas, chamadas, logins } = portasFalsas();
   const d = await processarAviso("stripe", aviso("invoice.paid", { parent: { subscription_details: { subscription: "sub_1" } } }), portas);
   assert.deepEqual(d, { resultado: "processado", detalhe: null, conta: "conta-1" });
-  assert.deepEqual(chamadas, ["receber evt_1", "buscar sub_1", "login dona@agencia.com", "sincronizar sub_1 ativa", "concluir evt_1 processado"]);
+  assert.deepEqual(chamadas, [
+    "receber evt_1", "buscar sub_1", "login dona@agencia.com", "sincronizar sub_1 ativa",
+    // Sem cancelamento: o banco é informado de que não há pedido, e nada mais.
+    "pedido sub_1 não", "concluir evt_1 processado",
+  ]);
   // O login leva o nome de QUEM COMPROU (não o da empresa) e a assinatura que o criou.
   assert.deepEqual(logins, [{ nome: "Fulana de Tal", idAssinatura: "sub_1" }]);
 });
@@ -141,4 +180,91 @@ test("falha no meio marca o aviso como falhou e SOBE — para o Stripe tentar de
   r = portasFalsas({ assinatura: { ...PAGA, emailDoTitular: null } });
   await assert.rejects(processarAviso("stripe", aviso("customer.subscription.updated", { id: "sub_1" }), r.portas), /sem e-mail/);
   assert.ok(!r.chamadas.some((c) => c.startsWith("login") || c.startsWith("sincronizar")));
+});
+
+const PEDIU = { ...PAGA, cancelarNoFim: true, pedidoDeCancelamentoEm: "2026-10-09T10:00:00.000Z" };
+const pediuCancelar = aviso("customer.subscription.updated", { id: "sub_1" });
+
+test("o pedido de cancelamento e o motivo vêm do Stripe", () => {
+  const pedido = assinaturaDoStripe({ ...SUB, cancel_at_period_end: true, canceled_at: 1_790_000_000 });
+  assert.equal(pedido.cancelarNoFim, true);
+  assert.equal(pedido.pedidoDeCancelamentoEm, new Date(1_790_000_000 * 1000).toISOString());
+  assert.equal(pedido.porFaltaDePagamento, false);
+  for (const motivo of ["payment_failed", "payment_disputed"]) {
+    const cortada = assinaturaDoStripe({ ...SUB, status: "canceled", cancellation_details: { reason: motivo } });
+    assert.equal(cortada.porFaltaDePagamento, true, motivo);
+  }
+  assert.equal(assinaturaDoStripe({ ...SUB, cancellation_details: { reason: "cancellation_requested" } }).porFaltaDePagamento, false);
+  // O Portal no modo flexível marca uma DATA em vez do "fim do período": também é pedido.
+  assert.equal(assinaturaDoStripe({ ...SUB, cancel_at: 1_790_000_000 }).cancelarNoFim, true);
+  assert.equal(assinaturaDoStripe({ ...SUB, cancel_at: null }).cancelarNoFim, false);
+});
+
+test("cancelou no Portal, depois dos 7 dias: um e-mail com a data do fim do acesso, sem estorno", async () => {
+  const { portas, chamadas, emails } = portasFalsas({ assinatura: PEDIU });
+  await processarAviso("stripe", pediuCancelar, portas);
+  assert.deepEqual(chamadas, [
+    "receber evt_1", "buscar sub_1", "login dona@agencia.com", "sincronizar sub_1 ativa",
+    "pedido sub_1 sim", "reservar aviso sub_1", "e-mail no-fim-do-periodo", "concluir evt_1 processado",
+  ]);
+  assert.deepEqual(emails, [{ email: "dona@agencia.com", conta: "Agência Exemplo", tipo: "no-fim-do-periodo", ate: "2026-11-08T13:37:12.000Z" }]);
+});
+
+test("arrependimento: estorna, registra o estorno e SÓ DEPOIS avisa", async () => {
+  const { portas, chamadas, emails } = portasFalsas({ assinatura: PEDIU, estado: { arrependimento: true } });
+  await processarAviso("stripe", pediuCancelar, portas);
+  assert.deepEqual(chamadas.slice(4), [
+    "pedido sub_1 sim", "estornar sub_1", "registrar estorno sub_1 re_1",
+    "reservar aviso sub_1", "e-mail arrependimento", "concluir evt_1 processado",
+  ]);
+  assert.equal(emails[0].ate, null);
+});
+
+test("aviso repetido depois de tudo feito: nem estorno, nem e-mail", async () => {
+  const { portas, chamadas } = portasFalsas({ assinatura: { ...PEDIU, situacao: "cancelada" }, estado: { arrependimento: true, estornada: true, avisado: true, situacao: "cancelada" } });
+  await processarAviso("stripe", aviso("customer.subscription.deleted", { id: "sub_1" }), portas);
+  assert.deepEqual(chamadas, ["receber evt_1", "buscar sub_1", "sincronizar sub_1 cancelada", "pedido sub_1 sim", "concluir evt_1 processado"]);
+});
+
+test("já estornado mas sem e-mail (falhou antes): só o e-mail sai", async () => {
+  const { portas, chamadas } = portasFalsas({ assinatura: { ...PEDIU, situacao: "cancelada" }, estado: { arrependimento: true, estornada: true, situacao: "cancelada" } });
+  await processarAviso("stripe", aviso("customer.subscription.deleted", { id: "sub_1" }), portas);
+  assert.ok(!chamadas.some((c) => c.startsWith("estornar")));
+  assert.ok(chamadas.includes("e-mail arrependimento"));
+});
+
+test("dois avisos ao mesmo tempo: quem perde a reserva não manda o e-mail", async () => {
+  const { portas, chamadas, emails } = portasFalsas({ assinatura: PEDIU, reservaPerdida: true });
+  await processarAviso("stripe", pediuCancelar, portas);
+  assert.ok(chamadas.includes("reservar aviso sub_1"));
+  assert.deepEqual(emails, []);
+});
+
+test("o e-mail falhou: a reserva volta e o aviso falha, para o Stripe repetir", async () => {
+  const { portas, chamadas } = portasFalsas({ assinatura: PEDIU, falharEm: "e-mail" });
+  await assert.rejects(processarAviso("stripe", pediuCancelar, portas), /recusado/);
+  assert.deepEqual(chamadas.slice(-3), ["e-mail no-fim-do-periodo", "devolver aviso sub_1", "concluir evt_1 falhou (e-mail de cancelamento: recusado)"]);
+});
+
+test("o estorno falhou: nada é registrado, nenhum e-mail, e o Stripe repete", async () => {
+  const { portas, chamadas } = portasFalsas({ assinatura: PEDIU, estado: { arrependimento: true }, falharEm: "estornar" });
+  await assert.rejects(processarAviso("stripe", pediuCancelar, portas), /recusou/);
+  assert.ok(!chamadas.some((c) => c.startsWith("registrar") || c.startsWith("reservar") || c.startsWith("e-mail")));
+});
+
+test("cortada por falta de pagamento: o banco sabe o motivo, e o e-mail diz outra coisa", async () => {
+  const cortada = { ...PAGA, situacao: "cancelada" as const, porFaltaDePagamento: true };
+  const { portas, chamadas, emails } = portasFalsas({ assinatura: cortada, estado: { situacao: "cancelada" } });
+  await processarAviso("stripe", aviso("customer.subscription.deleted", { id: "sub_1" }), portas);
+  assert.ok(chamadas.includes("pedido sub_1 sim (falta de pagamento)"));
+  assert.equal(emails[0].tipo, "falta-de-pagamento");
+});
+
+test("o tipo do e-mail", () => {
+  const base = { arrependimento: false, situacao: "ativa" as const, periodoPagoAte: "2026-11-08T00:00:00Z" };
+  assert.equal(tipoDoCancelamento({ ...base, arrependimento: true }, true), "arrependimento");
+  assert.equal(tipoDoCancelamento(base, true), "falta-de-pagamento");
+  assert.equal(tipoDoCancelamento(base, false), "no-fim-do-periodo");
+  assert.equal(tipoDoCancelamento({ ...base, situacao: "cancelada" }, false), "imediato");
+  assert.equal(tipoDoCancelamento({ ...base, periodoPagoAte: null }, false), "imediato");
 });

@@ -56,3 +56,53 @@ export function mensagemDeBoasVindas(p: { conta: string | null; linkDeEntrar: st
     html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
   };
 }
+
+/** A data como o assinante lê, no horário de Brasília: "8 de novembro de 2026". */
+export function dataPorExtenso(iso: string): string {
+  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" })
+    .format(new Date(iso));
+}
+
+/**
+ * A confirmação do cancelamento — a promessa dos Termos (seção 13): "Confirmamos
+ * o cancelamento na hora, por e-mail". Um texto por tipo (ver
+ * `TipoDeCancelamento` em `cobranca/webhook.ts`); todos dizem o que acontece
+ * com a conta: só leitura, guardada 12 meses, exportação a pedido.
+ */
+export function mensagemDeCancelamento(p: {
+  conta: string | null;
+  tipo: "arrependimento" | "falta-de-pagamento" | "no-fim-do-periodo" | "imediato";
+  ate: string | null;
+  linkDeEntrar: string;
+}): Mensagem {
+  const daConta = p.conta ? `da conta ${p.conta}` : "do Brennimark";
+  const abertura: Record<typeof p.tipo, string[]> = {
+    "arrependimento": [
+      `A assinatura ${daConta} foi cancelada.`,
+      "Como o cancelamento foi feito em até 7 dias da contratação, devolvemos o valor pago, por inteiro, no mesmo cartão da compra. O estorno já foi pedido ao Stripe e aparece na fatura conforme o prazo da operadora do cartão.",
+      "O acesso completo terminou agora.",
+    ],
+    "falta-de-pagamento": [
+      `A assinatura ${daConta} foi cancelada porque o pagamento não foi concluído depois das tentativas de cobrança.`,
+    ],
+    "no-fim-do-periodo": [
+      `Confirmamos o cancelamento da assinatura ${daConta}.`,
+      p.ate
+        ? `O acesso completo continua até ${dataPorExtenso(p.ate)}, o fim do período já pago, e não haverá nova cobrança.`
+        : "O acesso completo continua até o fim do período já pago, e não haverá nova cobrança.",
+    ],
+    "imediato": [
+      `A assinatura ${daConta} foi cancelada, e não haverá nova cobrança.`,
+    ],
+  };
+  const depois = [
+    `${p.tipo === "no-fim-do-periodo" ? "Depois disso, a" : "A"} conta fica guardada só para leitura por 12 meses: dá para consultar, baixar e pedir a exportação do que é seu. Avisamos 30 dias antes do fim desse prazo.`,
+    "Se mudar de ideia, é só assinar de novo.",
+  ];
+  const paragrafos = [...abertura[p.tipo], ...depois];
+  return {
+    assunto: p.tipo === "arrependimento" ? "Assinatura cancelada e valor devolvido" : "Sua assinatura do Brennimark foi cancelada",
+    texto: [...paragrafos, "", `Entrar: ${p.linkDeEntrar}`].join("\n"),
+    html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
+  };
+}

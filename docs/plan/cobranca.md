@@ -13,6 +13,7 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
 | Empresa | o MEI do André no piloto; ME no Simples depois | o sistema não depende do tipo de empresa: a chave do Stripe fica na Vercel |
 | Atraso | **7 dias** com tudo funcionando e aviso ao dono; depois **só leitura** (consulta e download sim; Vini, edição e marca nova não); **nada é apagado** | |
 | Cancelado de vez | **12 meses só para leitura, depois exclusão** (decisão de 07/10/2026, substitui a de 03/10): aviso 30 dias antes; o assinante pode exportar ou pedir a exclusão antes; dados fiscais e registros de acesso ficam pelo prazo legal | guardar sem prazo não se justifica (LGPD: necessidade) e custa armazenamento. **Falta construir:** data de exclusão na assinatura cancelada, rotina diária que avisa aos 11 meses e exclui aos 12, e a exportação (arquivos originais + índice) |
+| Cancelamento e arrependimento | **e-mail na hora; estorno automático em até 7 dias** (decisões de 08/10/2026): o arrependimento devolve o valor pago por inteiro e **encerra o acesso na hora** (a conta fica só para leitura, guardada como qualquer cancelada); vale só na **primeira assinatura de um e-mail**; cancelamento por falta de pagamento não é arrependimento | a promessa dos Termos (seção 13) era feita à mão. O prazo de 7 dias conta do pedido (`canceled_at` do Stripe), não da chegada do aviso. Quem já assinou e volta não estorna sozinho: caso especial, o André estorna no Stripe |
 | Limites dos planos | **provisórios**, ajustáveis no Console | os valores do site ainda estão "a definir" |
 
 ## Desenho
@@ -124,8 +125,13 @@ com compromissos que precisam virar produto. **Antes do primeiro cliente real:**
 
 **Antes do primeiro cancelamento completar 12 meses:** exclusão com aviso e exportação.
 
-**Operação (manual, por enquanto):** confirmação de cancelamento por e-mail, reembolso dos 7 dias pelo
-"Refund" do Stripe, `privacidade@brennimark.com`, cláusulas-padrão da ANPD nos contratos dos fornecedores.
+~~Confirmação de cancelamento por e-mail~~ e ~~reembolso dos 7 dias~~: construídos em 08/10/2026
+(migration `cancelamento_e_arrependimento`, `scripts/prova-cancelamento.sh`). O webhook registra o
+pedido uma vez, estorna o arrependimento (sem estornar de novo o que o André já estornou à mão) e manda
+um e-mail só, com o texto do caso: no fim do período, arrependimento, falta de pagamento ou imediato.
+
+**Operação (manual, por enquanto):** cláusulas-padrão da ANPD nos contratos dos fornecedores. A
+`privacidade@brennimark.com` existe desde 07/10.
 
 ## Pontas conhecidas (revisão de 01/10/2026)
 

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { buscarAssinaturaNoStripe, chavesDoStripe, lerAvisoAssinado } from "@/lib/cobranca/stripe";
-import { processarAviso, type Recebimento } from "@/lib/cobranca/webhook";
+import { buscarAssinaturaNoStripe, chavesDoStripe, estornarArrependimento, lerAvisoAssinado } from "@/lib/cobranca/stripe";
+import { processarAviso, type EstadoDoCancelamento, type Recebimento, type Situacao } from "@/lib/cobranca/webhook";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
-import { mensagemDeBoasVindas } from "@/lib/email/mensagens";
+import { mensagemDeBoasVindas, mensagemDeCancelamento } from "@/lib/email/mensagens";
 
 /**
  * O webhook do Stripe — por onde a conta paga NASCE (fatia 1 da cobrança,
@@ -105,6 +105,51 @@ export async function POST(request: Request) {
         // O PostgREST não devolve o nome da constraint; a função põe o motivo no `hint`.
         if (error) throw new Error(`sincronizar: ${error.code} ${error.hint ?? ""}`.trim());
         return (data as string | null) ?? null;
+      },
+      async pedidoDeCancelamento(p) {
+        const { data, error } = await servico.rpc("cobranca_pedido_de_cancelamento", {
+          p_provedor: "stripe", p_id_externo_assinatura: p.idAssinatura, p_pedido: p.pedido,
+          p_por_falta_de_pagamento: p.porFaltaDePagamento, p_pedido_em: p.pedidoEm,
+        });
+        if (error) throw new Error(`pedido de cancelamento: ${error.code} ${error.hint ?? ""}`.trim());
+        if (!data) return null;
+        const e = data as Record<string, unknown>;
+        const estado: EstadoDoCancelamento = {
+          nomeDaConta: (e.nome_da_conta as string | null) ?? null,
+          titularEmail: e.titular_email as string,
+          situacao: e.situacao as Situacao,
+          periodoPagoAte: (e.periodo_pago_ate as string | null) ?? null,
+          arrependimento: e.arrependimento === true,
+          estornada: e.estornada === true,
+          avisado: e.avisado === true,
+        };
+        return estado;
+      },
+      estornar: (idAssinatura) => estornarArrependimento(chaves.chave, idAssinatura),
+      async registrarEstorno(idAssinatura, idEstorno) {
+        const { error } = await servico.rpc("cobranca_registrar_estorno", {
+          p_provedor: "stripe", p_id_externo_assinatura: idAssinatura, p_id_externo_estorno: idEstorno,
+        });
+        if (error) throw new Error(`registrar estorno: ${error.code} ${error.hint ?? ""}`.trim());
+        console.info(JSON.stringify({ level: "info", msg: "cobranca_arrependimento_estornado", assinatura: idAssinatura }));
+      },
+      async reservarAviso(idAssinatura, reservar) {
+        const { data, error } = await servico.rpc("cobranca_aviso_de_cancelamento", {
+          p_provedor: "stripe", p_id_externo_assinatura: idAssinatura, p_reservar: reservar,
+        });
+        if (error) throw new Error(`aviso de cancelamento: ${error.code}`);
+        return data === true;
+      },
+      async avisarCancelamento(a) {
+        // Sem serviço de e-mail configurado, não há como avisar; o pedido e o
+        // estorno seguem. Com serviço, a falha SOBE: a reserva volta e o
+        // Stripe repete o aviso.
+        if (!emailConfigurado()) return;
+        const origem = new URL(request.url).origin;
+        const envio = await enviarEmail(a.email, mensagemDeCancelamento({
+          conta: a.conta, tipo: a.tipo, ate: a.ate, linkDeEntrar: `${origem}/login`,
+        }));
+        if (!envio.ok) throw new Error(`e-mail de cancelamento: ${envio.motivo}`);
       },
     });
     console.info(JSON.stringify({ level: "info", msg: "cobranca_aviso", aviso: aviso.id, tipo: aviso.type, resultado: desfecho.resultado }));

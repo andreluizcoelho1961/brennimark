@@ -68,3 +68,53 @@ export async function abrirPortalNoStripe(chave: string, idDoCliente: string, vo
   const sessao = await new Stripe(chave).billingPortal.sessions.create({ customer: idDoCliente, return_url: volta });
   return sessao.url;
 }
+
+/**
+ * O arrependimento (Termos, seção 13): devolve o valor pago por inteiro e
+ * encerra a assinatura na hora. Devolve o identificador do estorno.
+ *
+ * Seguro de repetir, porque o aviso pode ser processado de novo:
+ *   - pagamento já estornado por inteiro (pelo André, à mão, ou numa tentativa
+ *     anterior) não é estornado de novo: devolvemos o estorno que existe;
+ *   - cada estorno sai com chave de repetição — o Stripe devolve o MESMO
+ *     estorno a um segundo pedido igual, em vez de criar outro;
+ *   - assinatura já cancelada não é cancelada de novo.
+ *
+ * Só as faturas PAGAS DESTA assinatura entram: o valor nunca passa do que
+ * esta compra cobrou.
+ */
+export async function estornarArrependimento(chave: string, idAssinatura: string): Promise<string> {
+  const stripe = new Stripe(chave);
+  const estornos: string[] = [];
+
+  const faturas = await stripe.invoices.list({ subscription: idAssinatura, status: "paid", limit: 10 });
+  for (const fatura of faturas.data) {
+    if (!fatura.id) continue;
+    const pagamentos = await stripe.invoicePayments.list({ invoice: fatura.id, status: "paid", limit: 10 });
+    for (const pagamento of pagamentos.data) {
+      const pi = pagamento.payment.payment_intent;
+      const idDoPagamento = typeof pi === "string" ? pi : pi?.id;
+      if (!idDoPagamento) continue;
+
+      const intencao = await stripe.paymentIntents.retrieve(idDoPagamento, { expand: ["latest_charge"] });
+      const cobranca = intencao.latest_charge as Stripe.Charge | null;
+      if (cobranca && cobranca.amount_refunded >= cobranca.amount) {
+        const existente = await stripe.refunds.list({ payment_intent: idDoPagamento, limit: 1 });
+        if (existente.data[0]) estornos.push(existente.data[0].id);
+        continue;
+      }
+      const estorno = await stripe.refunds.create(
+        { payment_intent: idDoPagamento, reason: "requested_by_customer", metadata: { motivo: "arrependimento", assinatura: idAssinatura } },
+        { idempotencyKey: `arrependimento:${idAssinatura}:${idDoPagamento}` },
+      );
+      estornos.push(estorno.id);
+    }
+  }
+  if (estornos.length === 0) throw new Error("arrependimento sem pagamento a estornar");
+
+  const assinatura = await stripe.subscriptions.retrieve(idAssinatura);
+  if (assinatura.status !== "canceled") {
+    await stripe.subscriptions.cancel(idAssinatura, {}, { idempotencyKey: `arrependimento-cancelar:${idAssinatura}` });
+  }
+  return estornos[0];
+}
