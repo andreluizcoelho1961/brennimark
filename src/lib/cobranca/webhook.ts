@@ -13,7 +13,9 @@
  *      chegam em ordem (a fatura paga pode chegar antes do checkout concluído);
  *   4. pagamento confirmado → garantir o login do titular;
  *   5. sincronizar no banco, que abre a conta no primeiro pagamento;
- *   6. concluir o aviso.
+ *   6. se a assinatura tem conta, tratar o cancelamento (`tratarCancelamento`):
+ *      registrar o pedido, estornar o arrependimento, mandar UM e-mail;
+ *   7. concluir o aviso.
  *
  * Qualquer erro marca o aviso como "falhou" e sobe: a rota responde 500, e o
  * provedor tenta de novo mais tarde. Um aviso perdido seria um cliente que
@@ -70,6 +72,10 @@ export type AssinaturaNoProvedor = {
   situacao: Situacao | null;
   periodoPagoAte: string | null;
   cancelarNoFim: boolean;
+  /** Quando o cancelamento foi pedido, segundo o provedor. */
+  pedidoDeCancelamentoEm: string | null;
+  /** O provedor cancelou porque o pagamento falhou ou foi contestado. */
+  porFaltaDePagamento: boolean;
   moeda: string;
   emailDoTitular: string | null;
   nomeDaConta: string | null;
@@ -92,7 +98,89 @@ export type Portas = {
    */
   garantirLogin(email: string, nome: string | null, idAssinatura: string): Promise<void>;
   sincronizar(assinatura: AssinaturaNoProvedor & { situacao: Situacao; emailDoTitular: string }): Promise<string | null>;
+  /**
+   * Registra (ou esquece) o pedido de cancelamento — `cobranca_pedido_de_cancelamento`.
+   * Devolve o estado quando há pedido; null quando não há.
+   */
+  pedidoDeCancelamento(p: {
+    idAssinatura: string; pedido: boolean; porFaltaDePagamento: boolean; pedidoEm: string | null;
+  }): Promise<EstadoDoCancelamento | null>;
+  /**
+   * Devolve o valor pago por inteiro e encerra a assinatura na hora. Não
+   * estorna o que já foi estornado (à mão, pelo André). Devolve o estorno.
+   */
+  estornar(idAssinatura: string): Promise<string>;
+  registrarEstorno(idAssinatura: string, idEstorno: string): Promise<void>;
+  /** true reserva o e-mail (só o primeiro ganha); false devolve a reserva. */
+  reservarAviso(idAssinatura: string, reservar: boolean): Promise<boolean>;
+  avisarCancelamento(aviso: AvisoDeCancelamento): Promise<void>;
 };
+
+export type EstadoDoCancelamento = {
+  nomeDaConta: string | null;
+  titularEmail: string;
+  situacao: Situacao;
+  periodoPagoAte: string | null;
+  arrependimento: boolean;
+  estornada: boolean;
+  avisado: boolean;
+};
+
+/**
+ * Qual e-mail sai. Um só por pedido:
+ *   arrependimento      cancelou em até 7 dias da 1ª assinatura: estornado, acesso encerrado
+ *   falta-de-pagamento  o provedor cancelou depois das tentativas de cobrança
+ *   no-fim-do-periodo   cancelou no Portal: acesso completo até `ate`
+ *   imediato            cancelada na hora (pelo André, por exemplo), sem estorno automático
+ */
+export type TipoDeCancelamento = "arrependimento" | "falta-de-pagamento" | "no-fim-do-periodo" | "imediato";
+export type AvisoDeCancelamento = { email: string; conta: string | null; tipo: TipoDeCancelamento; ate: string | null };
+
+export function tipoDoCancelamento(
+  estado: Pick<EstadoDoCancelamento, "arrependimento" | "situacao" | "periodoPagoAte">,
+  porFaltaDePagamento: boolean,
+): TipoDeCancelamento {
+  if (estado.arrependimento) return "arrependimento";
+  if (porFaltaDePagamento) return "falta-de-pagamento";
+  if (estado.situacao !== "cancelada" && estado.periodoPagoAte) return "no-fim-do-periodo";
+  return "imediato";
+}
+
+/**
+ * O cancelamento, decidido. Cada passo é seguro de repetir — o Stripe repete
+ * avisos, e uma falha no meio faz ele mandar o aviso de novo:
+ *   1. o pedido: o banco registra uma vez e decide o arrependimento uma vez;
+ *   2. o estorno: só no arrependimento e só se ainda não houve; o provedor
+ *      recusa um segundo estorno igual (chave de repetição em `stripe.ts`);
+ *   3. o e-mail: reservado antes de enviar; se o envio falha, a reserva volta
+ *      e o erro sobe — o próximo aviso tenta de novo.
+ */
+export async function tratarCancelamento(assinatura: AssinaturaNoProvedor & { situacao: Situacao }, portas: Portas): Promise<void> {
+  const pedido = assinatura.situacao === "cancelada" || assinatura.cancelarNoFim;
+  const estado = await portas.pedidoDeCancelamento({
+    idAssinatura: assinatura.idAssinatura, pedido,
+    porFaltaDePagamento: assinatura.porFaltaDePagamento, pedidoEm: assinatura.pedidoDeCancelamentoEm,
+  });
+  if (!estado) return;
+
+  if (estado.arrependimento && !estado.estornada) {
+    const idEstorno = await portas.estornar(assinatura.idAssinatura);
+    await portas.registrarEstorno(assinatura.idAssinatura, idEstorno);
+  }
+
+  if (estado.avisado) return;
+  if (!(await portas.reservarAviso(assinatura.idAssinatura, true))) return;
+  try {
+    const tipo = tipoDoCancelamento(estado, assinatura.porFaltaDePagamento);
+    await portas.avisarCancelamento({
+      email: estado.titularEmail, conta: estado.nomeDaConta, tipo,
+      ate: tipo === "no-fim-do-periodo" ? estado.periodoPagoAte : null,
+    });
+  } catch (erro) {
+    await portas.reservarAviso(assinatura.idAssinatura, false);
+    throw erro;
+  }
+}
 
 export type Desfecho = { resultado: Resultado | "repetido"; detalhe: string | null; conta: string | null };
 
@@ -121,6 +209,8 @@ export async function processarAviso(provedor: string, aviso: Aviso, portas: Por
     const conta = await portas.sincronizar({
       ...assinatura, situacao: assinatura.situacao, emailDoTitular: assinatura.emailDoTitular,
     });
+    // Sem conta, não houve pagamento: não há o que cancelar nem estornar.
+    if (conta) await tratarCancelamento({ ...assinatura, situacao: assinatura.situacao }, portas);
     return await concluir("processado", conta ? null : "nada a fazer: assinatura sem pagamento", idAssinatura, conta);
   } catch (erro) {
     const detalhe = erro instanceof Error ? erro.message : "erro desconhecido";

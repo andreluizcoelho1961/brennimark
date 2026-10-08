@@ -42,6 +42,11 @@ export type AssinaturaDoStripe = {
   status: string;
   currency: string;
   cancel_at_period_end: boolean;
+  /** Cancelamento marcado para uma data (o Portal das APIs novas usa esta forma). */
+  cancel_at?: number | null;
+  /** Quando o cancelamento foi pedido (no fim do período, é a hora do pedido). */
+  canceled_at?: number | null;
+  cancellation_details?: { reason?: string | null } | null;
   metadata?: Record<string, string> | null;
   customer: string | { id: string; email?: string | null; name?: string | null; deleted?: boolean };
   items: { data: Array<{ price: { id: string }; current_period_end?: number | null }> };
@@ -70,7 +75,14 @@ export function assinaturaDoStripe(sub: AssinaturaDoStripe): AssinaturaNoProvedo
     idPreco: item.price.id,
     situacao: traduzirSituacaoDoStripe(sub.status),
     periodoPagoAte: typeof fim === "number" ? new Date(fim * 1000).toISOString() : null,
-    cancelarNoFim: sub.cancel_at_period_end,
+    // Duas formas do mesmo pedido: "no fim do período" (a antiga) e uma data
+    // marcada (`cancel_at`, que o Portal usa no modo de cobrança flexível).
+    // Olhar só a primeira deixaria o cancelamento passar sem e-mail nem estorno.
+    cancelarNoFim: sub.cancel_at_period_end || typeof sub.cancel_at === "number",
+    pedidoDeCancelamentoEm: typeof sub.canceled_at === "number" ? new Date(sub.canceled_at * 1000).toISOString() : null,
+    // O Stripe cancela sozinho quem não paga (ou contesta o pagamento). Isso
+    // não é arrependimento, e o e-mail diz outra coisa.
+    porFaltaDePagamento: ["payment_failed", "payment_disputed"].includes(sub.cancellation_details?.reason ?? ""),
     moeda: sub.currency.toUpperCase(),
     emailDoTitular: cliente?.email?.trim().toLowerCase() || null,
     nomeDaConta: sub.metadata?.nome_da_conta?.trim() || cliente?.name?.trim() || null,
