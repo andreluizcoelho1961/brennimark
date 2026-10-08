@@ -17,6 +17,8 @@ export const EMPRESA = {
   cep: "90460-019",
   email: "contato@brennimark.com",
   emailDePrivacidade: "privacidade@brennimark.com",
+  /** O endereço dos links em e-mails que não nascem de um pedido (a rotina diária). */
+  site: "https://www.brennimark.com",
 } as const;
 
 export const ENDERECO_COMPLETO = `${EMPRESA.endereco}, ${EMPRESA.cidade}, CEP ${EMPRESA.cep}`;

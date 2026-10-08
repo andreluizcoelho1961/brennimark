@@ -106,3 +106,23 @@ export function mensagemDeCancelamento(p: {
     html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
   };
 }
+
+/**
+ * O aviso de 30 dias antes da exclusão — Termos, seção 13: "Avisamos 30 dias
+ * antes do fim desse prazo". Diz a data, o que sai, o que fica e o que fazer
+ * para guardar o conteúdo.
+ */
+export function mensagemDeAvisoDeExclusao(p: { conta: string | null; excluirEm: string; linkDeEntrar: string; contato: string }): Mensagem {
+  const daConta = p.conta ? `A conta ${p.conta}` : "A sua conta do Brennimark";
+  const paragrafos = [
+    `${daConta} foi cancelada há quase 12 meses e está guardada só para leitura.`,
+    `Em ${dataPorExtenso(p.excluirEm)}, como dizem os Termos, o conteúdo dela será excluído definitivamente: marcas, manuais, arquivos e os acessos das pessoas convidadas.`,
+    `Para guardar uma cópia, peça a exportação até lá: entre na conta, ou escreva para ${p.contato}. Entregamos os arquivos originais e um índice do conteúdo em até 15 dias.`,
+    "Dados que a lei manda guardar, como os de cobrança, ficam pelo prazo legal. Se quiser voltar a usar o Brennimark, é só assinar de novo.",
+  ];
+  return {
+    assunto: "Sua conta do Brennimark será excluída em 30 dias",
+    texto: [...paragrafos, "", `Entrar: ${p.linkDeEntrar}`].join("\n"),
+    html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
+  };
+}
