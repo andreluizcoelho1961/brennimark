@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDeRecuperacao } from "./mensagens";
+import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDePedidoDeExportacao, mensagemDeRecuperacao } from "./mensagens";
 
 test("a recuperação leva o link, o prazo e o que fazer se não foi você", () => {
   const m = mensagemDeRecuperacao({ link: "https://x.test/l?a=1&b=2", validoPorMinutos: 60 });
@@ -53,4 +53,12 @@ test("o aviso de exclusão: a data, o que sai, o que fica e como guardar", () =>
   assert.match(m.texto, /contato@brennimark\.com/);
   assert.match(m.texto, /Dados que a lei manda guardar/);
   assert.match(m.texto, /Entrar: https:\/\/www\.brennimark\.com\/login/);
+});
+
+test("o aviso de exportação à equipe: a conta, quem, quando e o prazo", () => {
+  const m = mensagemDePedidoDeExportacao({ conta: "Agência <X>", pedidoPor: "dona@agencia.com", pedidoEm: "2026-10-08T15:00:00Z", prazo: "2026-10-23T15:00:00Z", linkDoConsole: "https://www.brennimark.com/console/cobranca" });
+  assert.equal(m.assunto, "Pedido de exportação: Agência <X>");
+  assert.match(m.texto, /pediu a exportação do conteúdo em 8 de outubro de 2026, por dona@agencia\.com/);
+  assert.match(m.texto, /Prazo prometido nos Termos: 23 de outubro de 2026/);
+  assert.ok(m.html.includes("Agência &lt;X&gt;"));
 });

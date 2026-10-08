@@ -126,3 +126,19 @@ export function mensagemDeAvisoDeExclusao(p: { conta: string | null; excluirEm: 
     html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
   };
 }
+
+/**
+ * O aviso à EQUIPE de que uma conta pediu a exportação: quem, quando e o
+ * prazo de 15 dias. A entrega é marcada no Console.
+ */
+export function mensagemDePedidoDeExportacao(p: { conta: string; pedidoPor: string | null; pedidoEm: string; prazo: string; linkDoConsole: string }): Mensagem {
+  const paragrafos = [
+    `A conta ${p.conta} pediu a exportação do conteúdo em ${dataPorExtenso(p.pedidoEm)}${p.pedidoPor ? `, por ${p.pedidoPor}` : ""}.`,
+    `Prazo prometido nos Termos: ${dataPorExtenso(p.prazo)} (15 dias). Entregue os arquivos originais e um índice do conteúdo, e marque como entregue no Console.`,
+  ];
+  return {
+    assunto: `Pedido de exportação: ${p.conta}`,
+    texto: [...paragrafos, "", `Console: ${p.linkDoConsole}`].join("\n"),
+    html: html(paragrafos, { rotulo: "Abrir o Console", link: p.linkDoConsole }),
+  };
+}

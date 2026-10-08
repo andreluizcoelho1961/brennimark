@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { PedidosDeExportacao } from "./PedidosDeExportacao";
 
 type Plano = {
   codigo: string; nome: string; maximo_de_marcas: number | null; teto_mensal_do_vini_micros: number;
@@ -253,6 +254,8 @@ export function PainelDeCobranca() {
           </div>
         )}
       </section>
+
+      <PedidosDeExportacao />
 
       <section aria-label="Planos" data-planos>
         <h2 className={TITULO}>Planos</h2>
