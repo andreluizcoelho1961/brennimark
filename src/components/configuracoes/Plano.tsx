@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import type { PlanoDaConta } from "@/lib/cobranca/plano-da-conta";
+import { Exportacao } from "./Exportacao";
 
 const TITULO = "font-display text-sm font-black uppercase tracking-wider text-platform-text";
 const DT = "text-[11px] uppercase tracking-wide text-platform-text-muted";
@@ -53,10 +54,13 @@ export function Plano() {
 
   if (!dados.assinada) {
     return (
+      <div className="space-y-8">
       <p data-sem-assinatura className="text-sm text-platform-text-muted">
         {t("This account was set up by the Brennimark team and has no online subscription. For plan questions, contact Brennimark.",
            "Esta conta foi aberta pela equipe da Brennimark e não tem assinatura online. Para assuntos de plano, fale com a Brennimark.")}
       </p>
+      <Exportacao />
+      </div>
     );
   }
 
@@ -117,6 +121,8 @@ export function Plano() {
         </button>
         {erro && <p role="alert" className="mt-3 text-sm text-platform-text">{erro}</p>}
       </section>
+
+      <Exportacao />
     </div>
   );
 }
