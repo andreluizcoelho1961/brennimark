@@ -10,6 +10,10 @@
  * 07/10/2026: o e-mail de contato e de privacidade passou a contato@brennimark.com
  * (domínio próprio, recebido pelo iCloud+); a versão subiu.
  *
+ * 08/10/2026: o §13 passou a dizer que o arrependimento encerra o acesso completo
+ * na hora. A versão ficou a mesma porque ninguém tinha aceitado o texto anterior
+ * dela (zero aceites em produção, conferido) e a versão é uma data.
+ *
  * Revisão de conformidade (CDC, LGPD, Marco Civil, Decreto 7.962/2013,
  * Resolução CD/ANPD 19/2024), feita pelo André com ajuda de IA e aplicada
  * literalmente a partir de `brennimark-termos-ajustes.md`. Ainda passa por
@@ -87,8 +91,8 @@ export const TERMOS_DE_USO: DocumentoLegal = {
       `Depois disso, a conta passa a ficar só para leitura: consultar o manual e baixar os materiais continuam possíveis; usar o Vini, editar conteúdo e criar marcas ficam suspensos até a regularização. Nada é apagado por causa do atraso. Paga a pendência, tudo volta a funcionar.`,
     ] },
     { titulo: "13. Cancelamento e reembolso", paragrafos: [
-      `O assinante pode cancelar a qualquer momento, em Configurações → Plano, ou pelo e-mail ${E.email}. Confirmamos o cancelamento na hora, por e-mail. O acesso completo continua até o fim do período já pago, e não há nova cobrança.`,
-      `**Arrependimento:** quem cancelar em até 7 dias da primeira contratação recebe de volta o valor pago, por inteiro, pelo mesmo canal usado na compra. Pedimos o estorno ao Stripe imediatamente, e ele aparece na fatura do cartão conforme o prazo da operadora.`,
+      `O assinante pode cancelar a qualquer momento, em Configurações → Plano, ou pelo e-mail ${E.email}. Confirmamos o cancelamento na hora, por e-mail. O acesso completo continua até o fim do período já pago (salvo no arrependimento, abaixo), e não há nova cobrança.`,
+      `**Arrependimento:** quem cancelar em até 7 dias da primeira contratação recebe de volta o valor pago, por inteiro, pelo mesmo canal usado na compra. Pedimos o estorno ao Stripe imediatamente, e ele aparece na fatura do cartão conforme o prazo da operadora. Como o valor volta por inteiro, o acesso completo termina no momento do cancelamento, e a conta passa a ficar só para leitura, guardada como qualquer conta cancelada.`,
       `**Cobrança indevida:** cobrança em duplicidade, após o cancelamento ou causada por falha nossa é devolvida por inteiro.`,
       `**Demais casos:** fora dessas situações, não há reembolso proporcional do mês em curso; o cancelamento interrompe as próximas cobranças.`,
       `Depois do cancelamento, a conta fica guardada, só para leitura, por 12 meses, para que o assinante possa voltar ou exportar o que é dele. Avisamos 30 dias antes do fim desse prazo. Depois disso, o conteúdo é excluído definitivamente. O assinante pode pedir a exclusão antes. Dados que a lei manda guardar (como os fiscais e os registros de acesso) ficam pelo prazo legal.`,
