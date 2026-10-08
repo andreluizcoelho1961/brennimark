@@ -92,3 +92,4 @@
 20261001204549 cobranca_primeiro_acesso
 20261007185911 acessos_e_aceites
 20261008160312 cancelamento_e_arrependimento
+20261008183320 exclusao_aos_12_meses

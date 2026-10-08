@@ -8,6 +8,10 @@
     {
       "path": "/api/manutencao/registros-de-acesso",
       "schedule": "41 6 * * *"
+    },
+    {
+      "path": "/api/manutencao/contas-canceladas",
+      "schedule": "53 6 * * *"
     }
   ]
 }

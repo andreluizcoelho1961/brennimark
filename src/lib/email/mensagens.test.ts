@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escaparHtml, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDeRecuperacao } from "./mensagens";
+import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDeRecuperacao } from "./mensagens";
 
 test("a recuperação leva o link, o prazo e o que fazer se não foi você", () => {
   const m = mensagemDeRecuperacao({ link: "https://x.test/l?a=1&b=2", validoPorMinutos: 60 });
@@ -42,4 +42,15 @@ test("o cancelamento: cada tipo diz o que acontece com o dinheiro e com a conta"
   assert.doesNotMatch(cortada.texto, /devolvemos/);
 
   for (const m of [fim, arrependeu, cortada]) assert.match(m.texto, /Entrar: https:\/\/www\.brennimark\.com\/login/);
+});
+
+test("o aviso de exclusão: a data, o que sai, o que fica e como guardar", () => {
+  const m = mensagemDeAvisoDeExclusao({ conta: "Agência X", excluirEm: "2027-10-08T15:00:00Z", linkDeEntrar: "https://www.brennimark.com/login", contato: "contato@brennimark.com" });
+  assert.equal(m.assunto, "Sua conta do Brennimark será excluída em 30 dias");
+  assert.match(m.texto, /A conta Agência X foi cancelada há quase 12 meses/);
+  assert.match(m.texto, /Em 8 de outubro de 2027/);
+  assert.match(m.texto, /peça a exportação até lá/);
+  assert.match(m.texto, /contato@brennimark\.com/);
+  assert.match(m.texto, /Dados que a lei manda guardar/);
+  assert.match(m.texto, /Entrar: https:\/\/www\.brennimark\.com\/login/);
 });

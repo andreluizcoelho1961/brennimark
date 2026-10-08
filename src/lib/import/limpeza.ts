@@ -15,7 +15,16 @@ export type ContextoDaDrenagem = Pick<BrennimarkAuthContext, "supabase" | "works
  * Obrigatório quando o cliente é a chave de serviço: sem a sessão, as
  * policies do Storage não seguram nada, e o escopo passa a ser a trava.
  */
-export type EscopoDaDrenagem = { bucket: "brand-assets" };
+export type EscopoDaDrenagem =
+  | { bucket: "brand-assets" }
+  /**
+   * A conta inteira está sendo excluída (12 meses depois do cancelamento, ver
+   * a migration `exclusao_aos_12_meses`): os três buckets, mas só DENTRO da
+   * pasta da conta. Sem a conferência de variante — tudo da conta sai. Só a
+   * rotina das contas canceladas usa, e só depois que o banco iniciou a
+   * exclusão com as três travas.
+   */
+  | { exclusaoDaConta: true };
 
 /**
  * Remove os arquivos pendentes e fecha os registros que de fato saíram.
@@ -50,7 +59,8 @@ export async function drenarFilaDeExclusao(auth: ContextoDaDrenagem, escopo?: Es
     // dona da linha. A policy de inserção da fila deixa quem administra a
     // conta enfileirar qualquer texto — um caminho de outra conta, enfileirado
     // na sua, seria apagado pela chave que tudo pode.
-    consulta = consulta.eq("bucket_id", escopo.bucket).like("storage_path", `${auth.workspaceId}/%`);
+    consulta = consulta.like("storage_path", `${auth.workspaceId}/%`);
+    if ("bucket" in escopo) consulta = consulta.eq("bucket_id", escopo.bucket);
   }
   const { data: todas, error } = await consulta.order("requested_at", { ascending: true }).limit(LOTE);
 
@@ -66,7 +76,9 @@ export async function drenarFilaDeExclusao(auth: ContextoDaDrenagem, escopo?: Es
   // Última conferência antes da chave de serviço apagar: a pendência cujo
   // caminho ainda é o original ou a miniatura de uma variante NÃO sai. Não
   // fecha nem apaga — fica na fila com o motivo, visível, para alguém olhar.
-  const vivos = escopo?.bucket === "brand-assets" ? await caminhosDeVariante(auth, aptas) : new Set<string>();
+  const vivos = escopo && "bucket" in escopo && escopo.bucket === "brand-assets"
+    ? await caminhosDeVariante(auth, aptas)
+    : new Set<string>();
   if (vivos === null) return { removidos: 0, pendentes: await contar(auth), adiados };
   const prontas = aptas.filter((linha) => !vivos.has(linha.storage_path));
   const recusadas = aptas
