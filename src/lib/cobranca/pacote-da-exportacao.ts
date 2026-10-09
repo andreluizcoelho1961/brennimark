@@ -94,9 +94,15 @@ function pastaDo(arquivo: ArquivoDoManifesto): string {
   return d.descontinuado_em ? `materiais/descontinuados/${item}` : `materiais/${item}`;
 }
 
+/**
+ * O manual vem do banco como "<título> (v<n>)", e o título muitas vezes é o
+ * nome do arquivo enviado, com ".pdf" — o que dava "Manual.pdf (v1).pdf". O
+ * ".pdf" do meio sai, e o do fim fica uma vez só.
+ */
 function nomeDoArquivo(arquivo: ArquivoDoManifesto): string {
-  const nome = nomeSeguro(arquivo.nome);
-  return arquivo.tipo === "manual" && !/\.pdf$/i.test(nome) ? `${nome}.pdf` : nome;
+  if (arquivo.tipo !== "manual") return nomeSeguro(arquivo.nome);
+  const nome = nomeSeguro(arquivo.nome.replace(/\.pdf(?=\s*\(v\d+\)\s*$)/i, "").replace(/\.pdf\s*$/i, ""));
+  return `${nome}.pdf`;
 }
 
 /**
