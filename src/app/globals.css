@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* O acabamento da moldura (09/10/2026): elevação, materiais, movimento. Os
+   tokens de geometria, sombra e movimento declarados abaixo são sobrescritos
+   lá — `acabamento.css` é a fonte dos valores em uso. */
+@import "./acabamento.css";
 
 /*
  * Tokens-base da interface. A instância ativa sobrescreve os valores

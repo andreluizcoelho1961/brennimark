@@ -108,7 +108,7 @@ export function CommandPalette({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-scrim pt-[12vh]">
+    <div data-busca-veu className="fixed inset-0 z-50 flex items-start justify-center bg-scrim pt-[12vh]">
       <button
         type="button"
         aria-label={t("Fechar busca", "Close search")}
@@ -118,6 +118,7 @@ export function CommandPalette({
       />
       <div
         role="dialog"
+        data-busca
         aria-modal="true"
         aria-label={t("Buscar no manual", "Search the guide")}
         onKeyDown={onKeyDown}
