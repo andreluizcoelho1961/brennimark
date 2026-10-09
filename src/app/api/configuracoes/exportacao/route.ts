@@ -9,6 +9,9 @@ import { EMPRESA } from "@/lib/site/empresa";
 /**
  * Configurações › Plano › Exportação (08/10/2026).
  *
+ * GET devolve o último pedido (a via de reserva, entregue à mão) e a última
+ * exportação feita pelo navegador (`iniciar`, `enderecos`, `concluir`).
+ *
  * Só o DONO da conta, com a sessão dele: a leitura passa pela RLS de
  * `pedidos_de_exportacao` e o pedido pela função `pedir_exportacao`, que
  * confere o papel de novo. Funciona também na conta só para leitura — é
@@ -22,11 +25,19 @@ export async function GET(request: Request) {
   if (r.papel !== "owner") return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("pedidos_de_exportacao")
-    .select("pedido_em, entregue_em").eq("workspace_id", r.workspaceId)
-    .order("pedido_em", { ascending: false }).limit(1).maybeSingle<{ pedido_em: string; entregue_em: string | null }>();
-  if (error) return NextResponse.json({ message: "Não foi possível ler a exportação." }, { status: 500 });
-  return NextResponse.json({ pedido: pedidoParaTela(data ?? null) }, SEM_CACHE);
+  const [pedido, ultima] = await Promise.all([
+    supabase.from("pedidos_de_exportacao")
+      .select("pedido_em, entregue_em").eq("workspace_id", r.workspaceId)
+      .order("pedido_em", { ascending: false }).limit(1).maybeSingle<{ pedido_em: string; entregue_em: string | null }>(),
+    supabase.from("exportacoes_da_conta")
+      .select("iniciada_em, concluida_em").eq("workspace_id", r.workspaceId)
+      .order("iniciada_em", { ascending: false }).limit(1).maybeSingle<{ iniciada_em: string; concluida_em: string | null }>(),
+  ]);
+  if (pedido.error || ultima.error) return NextResponse.json({ message: "Não foi possível ler a exportação." }, { status: 500 });
+  return NextResponse.json({
+    pedido: pedidoParaTela(pedido.data ?? null),
+    ultimaExportacao: ultima.data ? { iniciadaEm: ultima.data.iniciada_em, concluidaEm: ultima.data.concluida_em } : null,
+  }, SEM_CACHE);
 }
 
 export async function POST(request: Request) {
