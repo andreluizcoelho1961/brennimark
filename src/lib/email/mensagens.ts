@@ -67,7 +67,7 @@ export function dataPorExtenso(iso: string): string {
  * A confirmação do cancelamento — a promessa dos Termos (seção 13): "Confirmamos
  * o cancelamento na hora, por e-mail". Um texto por tipo (ver
  * `TipoDeCancelamento` em `cobranca/webhook.ts`); todos dizem o que acontece
- * com a conta: só leitura, guardada 12 meses, exportação a pedido.
+ * com a conta: só leitura, guardada 12 meses, exportação pela própria conta.
  */
 export function mensagemDeCancelamento(p: {
   conta: string | null;
@@ -96,7 +96,7 @@ export function mensagemDeCancelamento(p: {
     ],
   };
   const depois = [
-    `${p.tipo === "no-fim-do-periodo" ? "Depois disso, a" : "A"} conta fica guardada só para leitura por 12 meses: dá para consultar, baixar e pedir a exportação do que é seu. Avisamos 30 dias antes do fim desse prazo.`,
+    `${p.tipo === "no-fim-do-periodo" ? "Depois disso, a" : "A"} conta fica guardada só para leitura por 12 meses: dá para consultar, baixar e exportar o que é seu (Configurações › Plano › Exportar tudo). Avisamos 30 dias antes do fim desse prazo.`,
     "Se mudar de ideia, é só assinar de novo.",
   ];
   const paragrafos = [...abertura[p.tipo], ...depois];
@@ -117,7 +117,7 @@ export function mensagemDeAvisoDeExclusao(p: { conta: string | null; excluirEm: 
   const paragrafos = [
     `${daConta} foi cancelada há quase 12 meses e está guardada só para leitura.`,
     `Em ${dataPorExtenso(p.excluirEm)}, como dizem os Termos, o conteúdo dela será excluído definitivamente: marcas, manuais, arquivos e os acessos das pessoas convidadas.`,
-    `Para guardar uma cópia, peça a exportação até lá: entre na conta, ou escreva para ${p.contato}. Entregamos os arquivos originais e um índice do conteúdo em até 15 dias.`,
+    `Para guardar uma cópia, exporte até lá: entre na conta e, em Configurações › Plano, clique em Exportar tudo. Se não conseguir, escreva para ${p.contato}, e entregamos os arquivos originais e um índice do conteúdo em até 15 dias.`,
     "Dados que a lei manda guardar, como os de cobrança, ficam pelo prazo legal. Se quiser voltar a usar o Brennimark, é só assinar de novo.",
   ];
   return {

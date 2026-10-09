@@ -49,7 +49,7 @@ test("o aviso de exclusão: a data, o que sai, o que fica e como guardar", () =>
   assert.equal(m.assunto, "Sua conta do Brennimark será excluída em 30 dias");
   assert.match(m.texto, /A conta Agência X foi cancelada há quase 12 meses/);
   assert.match(m.texto, /Em 8 de outubro de 2027/);
-  assert.match(m.texto, /peça a exportação até lá/);
+  assert.match(m.texto, /exporte até lá: entre na conta e, em Configurações › Plano, clique em Exportar tudo/);
   assert.match(m.texto, /contato@brennimark\.com/);
   assert.match(m.texto, /Dados que a lei manda guardar/);
   assert.match(m.texto, /Entrar: https:\/\/www\.brennimark\.com\/login/);
