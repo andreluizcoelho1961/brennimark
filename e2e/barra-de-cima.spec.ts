@@ -28,7 +28,8 @@ test("a zona do Brennimark é separada da marca aberta", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(LAB);
   const header = page.locator("header");
-  const zona = header.getByText("Brennimark", { exact: true }).locator("xpath=..");
+  // Desde 09/10/2026 a zona traz o logo oficial; o nome vive no rótulo acessível dele.
+  const zona = header.getByRole("img", { name: "Brennimark" }).locator("xpath=..");
   const borda = await zona.evaluate((el) => getComputedStyle(el).borderRightWidth);
   expect(borda).toBe("1px");
   expect((await zona.boundingBox())!.width).toBeGreaterThanOrEqual(176);

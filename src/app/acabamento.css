@@ -22,12 +22,18 @@
  */
 
 /* ─── 1. Tokens ──────────────────────────────────────────────────────────── */
+/*
+ * Intensidade "marcada" (escolha do André em 09/10/2026, comparando com uma
+ * versão mais sutil que ele achou difícil de notar): sombras longas e
+ * visíveis, palco bem destacado do fundo, cantos generosos, vidro
+ * transparente, cartões que sobem ao ponteiro.
+ */
 
 :root {
-  /* Geometria: cantos mais generosos e consistentes (eram 3, 4 e 6 px). */
-  --radius-control: 8px;
-  --radius-panel: 12px;
-  --radius-entry: 16px;
+  /* Geometria: cantos generosos e consistentes (eram 3, 4 e 6 px). */
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --radius-entry: 22px;
 
   /* Movimento com mola: desacelera como objeto físico. */
   --ease-shell: cubic-bezier(0.32, 0.72, 0, 1);
@@ -35,66 +41,67 @@
   --motion-control: 180ms;
   --motion-menu: 240ms;
   --motion-panel: 320ms;
+  --subida-no-hover: -4px;
 
   /* Sombra: várias camadas finas em vez de uma dura — é o que faz a sombra
-     parecer luz. A cor é o texto da moldura, nunca preto puro: sobre o fundo
-     quente, preto vira mancha suja. */
-  --tinta-da-sombra: 28 26 22;
+     parecer luz. A cor é o Noite Polar da moldura (09/10/2026), nunca preto
+     puro: sobre o fundo azul-acinzentado, preto vira mancha suja. */
+  --tinta-da-sombra: 0 22 33;
   --sombra-1:
-    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.07),
-    0 1px 1px rgb(var(--tinta-da-sombra) / 0.04),
-    0 2px 4px -1px rgb(var(--tinta-da-sombra) / 0.05),
-    0 6px 12px -4px rgb(var(--tinta-da-sombra) / 0.06);
+    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.10),
+    0 1px 2px rgb(var(--tinta-da-sombra) / 0.08),
+    0 4px 8px -2px rgb(var(--tinta-da-sombra) / 0.10),
+    0 14px 28px -10px rgb(var(--tinta-da-sombra) / 0.18);
   --sombra-2:
-    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.06),
-    0 2px 2px rgb(var(--tinta-da-sombra) / 0.03),
-    0 6px 12px -4px rgb(var(--tinta-da-sombra) / 0.06),
-    0 18px 36px -12px rgb(var(--tinta-da-sombra) / 0.12);
-  --sombra-3:
     0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.08),
-    0 4px 8px -2px rgb(var(--tinta-da-sombra) / 0.06),
-    0 16px 32px -8px rgb(var(--tinta-da-sombra) / 0.14),
-    0 40px 80px -24px rgb(var(--tinta-da-sombra) / 0.22);
+    0 4px 8px rgb(var(--tinta-da-sombra) / 0.06),
+    0 18px 36px -10px rgb(var(--tinta-da-sombra) / 0.20),
+    0 48px 90px -28px rgb(var(--tinta-da-sombra) / 0.30);
+  --sombra-3:
+    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.10),
+    0 8px 16px -4px rgb(var(--tinta-da-sombra) / 0.10),
+    0 28px 56px -12px rgb(var(--tinta-da-sombra) / 0.24),
+    0 64px 120px -32px rgb(var(--tinta-da-sombra) / 0.34);
   /* Menus, busca e janelas leem este. */
   --shadow-panel: var(--sombra-3);
 
   /* O fio de luz: 1px claro na borda de cima, como se a luz viesse do alto. */
-  --luz-de-borda: inset 0 1px 0 rgb(255 255 255 / 0.75);
-  --luz-funda: inset 0 1px 2px rgb(var(--tinta-da-sombra) / 0.08);
+  --luz-de-borda: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 0.5px rgb(255 255 255 / 0.5);
+  --luz-funda: inset 0 1px 3px rgb(var(--tinta-da-sombra) / 0.14);
   --filete: rgb(var(--tinta-da-sombra) / 0.12);
 
   /* Material: vidro fosco, derivado do fundo da moldura. */
-  --material: color-mix(in oklab, var(--color-platform-bg) 72%, transparent);
-  --material-filtro: saturate(1.6) blur(24px);
+  --material: color-mix(in oklab, var(--color-platform-bg) 55%, transparent);
+  --material-filtro: saturate(1.8) blur(30px);
 
-  /* O palco: o fundo um passo mais fundo que as superfícies. */
-  --fundo-do-palco: color-mix(in oklab, var(--color-platform-bg) 88%, var(--color-platform-text) 3%);
+  /* O palco: o fundo bem mais fundo que as superfícies. */
+  --fundo-do-palco: color-mix(in oklab, var(--color-platform-bg) 84%, var(--color-platform-text) 9%);
   /* Superfície elevada no escuro (no claro, é o próprio painel). */
   --superficie-elevada: var(--color-platform-panel);
 }
 
-/* No escuro a sombra quase não aparece: a elevação se mostra pela SUPERFÍCIE
-   mais clara e pelo fio de luz, mais discreto. */
+/* No escuro a sombra aparece menos: a elevação se mostra pela SUPERFÍCIE mais
+   clara e pelo fio de luz, mais discreto. */
 :root[data-tema="escuro"] {
   --tinta-da-sombra: 0 0 0;
   --sombra-1:
-    0 0 0 0.5px rgb(255 255 255 / 0.06),
-    0 1px 2px rgb(0 0 0 / 0.4),
-    0 6px 12px -4px rgb(0 0 0 / 0.35);
+    0 0 0 0.5px rgb(255 255 255 / 0.09),
+    0 2px 4px rgb(0 0 0 / 0.5),
+    0 14px 28px -10px rgb(0 0 0 / 0.6);
   --sombra-2:
-    0 0 0 0.5px rgb(255 255 255 / 0.07),
-    0 2px 4px rgb(0 0 0 / 0.35),
-    0 18px 36px -12px rgb(0 0 0 / 0.55);
+    0 0 0 0.5px rgb(255 255 255 / 0.10),
+    0 4px 8px rgb(0 0 0 / 0.45),
+    0 28px 56px -16px rgb(0 0 0 / 0.75);
   --sombra-3:
-    0 0 0 0.5px rgb(255 255 255 / 0.08),
-    0 8px 16px -4px rgb(0 0 0 / 0.45),
-    0 40px 80px -24px rgb(0 0 0 / 0.7);
-  --luz-de-borda: inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --luz-funda: inset 0 1px 2px rgb(0 0 0 / 0.35);
+    0 0 0 0.5px rgb(255 255 255 / 0.12),
+    0 12px 24px -6px rgb(0 0 0 / 0.6),
+    0 64px 120px -32px rgb(0 0 0 / 0.85);
+  --luz-de-borda: inset 0 1px 0 rgb(255 255 255 / 0.10);
+  --luz-funda: inset 0 1px 3px rgb(0 0 0 / 0.5);
   --filete: rgb(255 255 255 / 0.1);
-  --material: color-mix(in oklab, var(--color-platform-bg) 70%, transparent);
-  --fundo-do-palco: color-mix(in oklab, var(--color-platform-bg) 92%, black 8%);
-  --superficie-elevada: color-mix(in oklab, var(--color-platform-panel) 92%, white 8%);
+  --material: color-mix(in oklab, var(--color-platform-bg) 55%, transparent);
+  --fundo-do-palco: color-mix(in oklab, var(--color-platform-bg) 80%, black 20%);
+  --superficie-elevada: color-mix(in oklab, var(--color-platform-panel) 86%, white 14%);
 }
 
 /* Quem pede menos transparência no sistema recebe material opaco. */
@@ -350,7 +357,7 @@ a[class~="border"][class~="bg-platform-panel"]:not(.bm-site *, [data-brand-canva
   transition: transform var(--motion-menu) var(--ease-mola), box-shadow var(--motion-menu) var(--ease-shell);
 }
 [data-card-de-marca]:hover {
-  transform: translateY(-2px);
+  transform: translateY(var(--subida-no-hover));
   box-shadow: var(--luz-de-borda), var(--sombra-2);
 }
 [data-card-de-marca]:active {
@@ -364,4 +371,9 @@ a[class~="border"][class~="bg-platform-panel"]:not(.bm-site *, [data-brand-canva
 }
 :root[data-tema="escuro"] [data-card-nova-marca] {
   border-color: rgb(255 255 255 / 0.12);
+}
+
+/* O palco no escuro: um passo mais claro que as superfícies em volta. */
+:root[data-tema="escuro"] [data-palco] {
+  background: color-mix(in oklab, var(--color-platform-panel) 94%, white 6%);
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { LogoDaPlataforma } from "./LogoDaPlataforma";
 import { SeletorDeContexto, type OpcaoDeContexto } from "./SeletorDeContexto";
 import { platformIdentity } from "@/platform/identity";
 import { useIsEnglish } from "@/platform/locale-client";
@@ -74,9 +75,8 @@ export function PlatformTopBar({
         muda; a marca, o segmentado e as ações começam depois dela.
       */}
       <span className="flex h-full flex-none items-center border-r border-platform-border pr-[var(--space-shell-3)] lg:min-w-[11rem] lg:pr-[var(--space-shell-5)]">
-        <span className="truncate text-[13px] font-semibold tracking-tight text-platform-text">
-          {platformIdentity.displayName}
-        </span>
+        <LogoDaPlataforma className="hidden h-[26px] w-auto text-platform-text sm:block" />
+        <LogoDaPlataforma soSimbolo className="h-[24px] w-auto sm:hidden" />
       </span>
 
       <span className="flex min-w-0 items-center gap-[var(--space-shell-3)]">
