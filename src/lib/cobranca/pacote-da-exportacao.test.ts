@@ -37,6 +37,16 @@ test("cada original vai para a sua pasta; o substituído e o descontinuado ficam
   ]);
 });
 
+test("o manual leva .pdf uma vez só, mesmo quando o título já é o nome do arquivo", () => {
+  const manual = (nome: string) => ({ chave: "documento:x", tipo: "manual" as const, nome, bytes: 1, detalhes: { situacao: "ativa" } });
+  const nomes = ["Sony_Vaio.pdf (v1)", "Guia.PDF (v12)", "Manual (v2)", "importacao 2026-10-08 1500", "relatorio.pdf"]
+    .map((nome) => caminhos({ ...MARCA, arquivos: [manual(nome)], complementos: [], links: [] })[0]);
+  assert.deepEqual(nomes, [
+    "manuais/Sony_Vaio (v1).pdf", "manuais/Guia (v12).pdf", "manuais/Manual (v2).pdf",
+    "manuais/importacao 2026-10-08 1500.pdf", "manuais/relatorio.pdf",
+  ]);
+});
+
 test("os arquivos levam a chave do manifesto, nunca um caminho do Storage", () => {
   const arquivos = pacoteDaMarca(MARCA, "Conta", "2026-10-08T12:00:00Z").filter((e) => e.tipo === "arquivo");
   assert.deepEqual(arquivos.map((e) => e.tipo === "arquivo" && e.chave), MARCA.arquivos.map((a) => a.chave));
