@@ -57,8 +57,11 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Aguarda autorização nominal do André para o banco hospedado (08/10/2026).
-  "exportacao_no_navegador",
+  // `exportacao_no_navegador` saiu daqui em 09/10/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20261009125159`;
+  // impressão digital igual à do local (24 itens: colunas, constraints,
+  // índices, policy, grants, RLS e as 4 funções), fora o que o hospedado dá à
+  // `service_role` por padrão.
   // `pedidos_de_exportacao` saiu daqui em 08/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261008212730`;
   // impressão digital igual à do local (23 itens: colunas, constraints,
