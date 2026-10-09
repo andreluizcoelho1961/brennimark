@@ -33,6 +33,15 @@ export const platformIdentity = {
  * e não por uma cor. Contraste de todo texto ≥ 4,5 : 1 nos dois temas
  * (conferido na folha de tokens).
  *
+ * 09/10/2026 — MUDOU, decisão do André: a moldura deixa o bege acromático e
+ * veste a família azul-acinzentada da marca Brennimark (Gelo, Névoa, Aço,
+ * Profundo, Noite Polar), a mesma que o site já usa para mostrar a plataforma
+ * (`--app-*` em `site.css`). Continua neutra o bastante para não brigar com a
+ * marca do cliente — saturação baixa, nenhum destaque de cor —, e a BRASA
+ * (#FF4103) fica SÓ no símbolo do logo, nunca em botão, estado ou foco. A
+ * regra de não ter cor de destaque na moldura (ADR-0004) segue de pé; o que
+ * mudou foi a temperatura dos neutros, de papel quente para azul-noite.
+ *
  * Os valores trocam aqui e em mais nenhum lugar.
  */
 /** Os papéis de cor da moldura — os mesmos nos dois temas. */
@@ -46,22 +55,23 @@ export const platformTheme: PaletaDaMoldura & { uiFontNote: string } = {
    *  Tight, grotesca neutra da linhagem Helvetica (escolha do André, 24/09). */
   uiFontNote: "Inter Tight — ver --font-ui em globals.css",
 
-  bg: "#f3efe7",
-  panel: "#fbf8f2",
-  panelMuted: "#ece6da",
-  text: "#1c1a16",
-  textMuted: "#6c655b",
-  border: "#ddd5c6",
+  bg: "#eef2f4",
+  panel: "#fafcfd",
+  panelMuted: "#e3ebee",
+  text: "#001621",
+  textMuted: "#465e68",
+  border: "#d2dde2",
 
   /**
-   * Sinal de localização e ação. ACROMÁTICO, por decisão: consolidar uma cor
-   * proprietária criaria relação com todas as marcas que a moldura emoldura.
+   * Sinal de localização e ação. SEM cor de destaque, por decisão: consolidar
+   * uma cor proprietária criaria relação com todas as marcas que a moldura
+   * emoldura. É o Noite Polar da marca, o mesmo do texto.
    */
-  signal: "#1c1a16",
-  signalSoft: "#e5ded0",
+  signal: "#001621",
+  signalSoft: "#dbe5e9",
 
   /** Alta visibilidade por acessibilidade. Não é cor de marca do produto. */
-  focus: "#1c1a16",
+  focus: "#001621",
 
   /** Semânticos. Sempre acompanhados de texto ou ícone, nunca só cor. */
   success: "#39714c",
@@ -69,17 +79,18 @@ export const platformTheme: PaletaDaMoldura & { uiFontNote: string } = {
   danger: "#a8453a",
 };
 
-/** O tema escuro ("estúdio") — os mesmos papéis, a mesma temperatura. */
+/** O tema escuro ("estúdio") — os mesmos papéis: fundo Noite Polar, painel
+ *  Profundo, superfície Aço, texto Gelo, texto secundário Névoa. */
 export const platformThemeEscuro: PaletaDaMoldura = {
-  bg: "#161513",
-  panel: "#1e1c19",
-  panelMuted: "#282520",
-  text: "#ede8df",
-  textMuted: "#a39c90",
-  border: "#34302a",
-  signal: "#ede8df",
-  signalSoft: "#2e2a24",
-  focus: "#f5efe3",
+  bg: "#001621",
+  panel: "#072631",
+  panelMuted: "#0b303c",
+  text: "#f2f5f6",
+  textMuted: "#b0c3ca",
+  border: "#16404d",
+  signal: "#f2f5f6",
+  signalSoft: "#0e3644",
+  focus: "#f2f5f6",
   success: "#7fb88f",
   warning: "#e3b35a",
   danger: "#e08a7a",

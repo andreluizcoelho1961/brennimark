@@ -293,7 +293,7 @@ export function AppShellV2({
              * `<main>` ao redor, que já tinha `overflow-y-auto`.
              */}
             <AvisoDaCobranca />
-            <div className="mx-auto min-h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
+            <div data-palco className="mx-auto min-h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
               {children}
             </div>
           </main>

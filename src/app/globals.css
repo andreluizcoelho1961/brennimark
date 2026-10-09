@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* O acabamento da moldura (09/10/2026): elevação, materiais, movimento. Os
+   tokens de geometria, sombra e movimento declarados abaixo são sobrescritos
+   lá — `acabamento.css` é a fonte dos valores em uso. */
+@import "./acabamento.css";
 
 /*
  * Tokens-base da interface. A instância ativa sobrescreve os valores
@@ -29,15 +33,15 @@
    * O fallback existe para o caso de um token ser lido antes de a camada
    * correspondente o definir — nunca deve acontecer em uso normal.
    */
-  --color-platform-bg: #f3efe7;
-  --color-platform-panel: #fbf8f2;
-  --color-platform-panel-muted: #ece6da;
-  --color-platform-text: #1c1a16;
-  --color-platform-text-muted: #6c655b;
-  --color-platform-border: #ddd5c6;
-  --color-platform-signal: #1c1a16;
-  --color-platform-signal-soft: #e5ded0;
-  --color-platform-focus: #1c1a16;
+  --color-platform-bg: #eef2f4;
+  --color-platform-panel: #fafcfd;
+  --color-platform-panel-muted: #e3ebee;
+  --color-platform-text: #001621;
+  --color-platform-text-muted: #465e68;
+  --color-platform-border: #d2dde2;
+  --color-platform-signal: #001621;
+  --color-platform-signal-soft: #dbe5e9;
+  --color-platform-focus: #001621;
   --color-platform-success: #39714c;
   --color-platform-warning: #8c5c0b;
   --color-platform-danger: #a8453a;

@@ -1,0 +1,379 @@
+/*
+ * O ACABAMENTO DA MOLDURA — 09/10/2026, direção do André.
+ *
+ * A moldura continua de museu (neutra, acromática, a marca do cliente é a
+ * protagonista), mas deixa de ser "plana e mortinha" e passa a ter acabamento
+ * de lugar caro: planos, volume, luz, material, movimento. Provado lado a lado
+ * na bancada `/dev/moldura` e aprovado ("gostei, pode levar para as outras
+ * telas"). Ver a memória `interface-premium`.
+ *
+ * Como se espalha: além das peças marcadas (`data-palco`, `data-moldura-topo`…),
+ * os PADRÕES que o produto já repete são reconhecidos pelas classes que usam —
+ * superfície (`border` + `bg-platform-panel`), campo, botão de ação
+ * (`border-platform-signal`), véu (`bg-platform-scrim`). Componente novo que
+ * segue o padrão herda o acabamento sem fazer nada.
+ *
+ * CSS fora de camada vence as utilidades do Tailwind (que vivem em @layer).
+ * Por isso estas regras NÃO definem `background` em botão: venceriam o hover
+ * invertido da utilidade.
+ *
+ * Fronteiras: nada aqui entra no site (`.bm-site`) nem no conteúdo da marca
+ * (`[data-brand-canvas]`). Volume é da moldura. Tudo acromático.
+ */
+
+/* ─── 1. Tokens ──────────────────────────────────────────────────────────── */
+/*
+ * Intensidade "marcada" (escolha do André em 09/10/2026, comparando com uma
+ * versão mais sutil que ele achou difícil de notar): sombras longas e
+ * visíveis, palco bem destacado do fundo, cantos generosos, vidro
+ * transparente, cartões que sobem ao ponteiro.
+ */
+
+:root {
+  /* Geometria: cantos generosos e consistentes (eram 3, 4 e 6 px). */
+  --radius-control: 10px;
+  --radius-panel: 16px;
+  --radius-entry: 22px;
+
+  /* Movimento com mola: desacelera como objeto físico. */
+  --ease-shell: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-mola: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --motion-control: 180ms;
+  --motion-menu: 240ms;
+  --motion-panel: 320ms;
+  --subida-no-hover: -4px;
+
+  /* Sombra: várias camadas finas em vez de uma dura — é o que faz a sombra
+     parecer luz. A cor é o Noite Polar da moldura (09/10/2026), nunca preto
+     puro: sobre o fundo azul-acinzentado, preto vira mancha suja. */
+  --tinta-da-sombra: 0 22 33;
+  --sombra-1:
+    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.10),
+    0 1px 2px rgb(var(--tinta-da-sombra) / 0.08),
+    0 4px 8px -2px rgb(var(--tinta-da-sombra) / 0.10),
+    0 14px 28px -10px rgb(var(--tinta-da-sombra) / 0.18);
+  --sombra-2:
+    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.08),
+    0 4px 8px rgb(var(--tinta-da-sombra) / 0.06),
+    0 18px 36px -10px rgb(var(--tinta-da-sombra) / 0.20),
+    0 48px 90px -28px rgb(var(--tinta-da-sombra) / 0.30);
+  --sombra-3:
+    0 0 0 0.5px rgb(var(--tinta-da-sombra) / 0.10),
+    0 8px 16px -4px rgb(var(--tinta-da-sombra) / 0.10),
+    0 28px 56px -12px rgb(var(--tinta-da-sombra) / 0.24),
+    0 64px 120px -32px rgb(var(--tinta-da-sombra) / 0.34);
+  /* Menus, busca e janelas leem este. */
+  --shadow-panel: var(--sombra-3);
+
+  /* O fio de luz: 1px claro na borda de cima, como se a luz viesse do alto. */
+  --luz-de-borda: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 0 0 0.5px rgb(255 255 255 / 0.5);
+  --luz-funda: inset 0 1px 3px rgb(var(--tinta-da-sombra) / 0.14);
+  --filete: rgb(var(--tinta-da-sombra) / 0.12);
+
+  /* Material: vidro fosco, derivado do fundo da moldura. */
+  --material: color-mix(in oklab, var(--color-platform-bg) 55%, transparent);
+  --material-filtro: saturate(1.8) blur(30px);
+
+  /* O palco: o fundo bem mais fundo que as superfícies. */
+  --fundo-do-palco: color-mix(in oklab, var(--color-platform-bg) 84%, var(--color-platform-text) 9%);
+  /* Superfície elevada no escuro (no claro, é o próprio painel). */
+  --superficie-elevada: var(--color-platform-panel);
+}
+
+/* No escuro a sombra aparece menos: a elevação se mostra pela SUPERFÍCIE mais
+   clara e pelo fio de luz, mais discreto. */
+:root[data-tema="escuro"] {
+  --tinta-da-sombra: 0 0 0;
+  --sombra-1:
+    0 0 0 0.5px rgb(255 255 255 / 0.09),
+    0 2px 4px rgb(0 0 0 / 0.5),
+    0 14px 28px -10px rgb(0 0 0 / 0.6);
+  --sombra-2:
+    0 0 0 0.5px rgb(255 255 255 / 0.10),
+    0 4px 8px rgb(0 0 0 / 0.45),
+    0 28px 56px -16px rgb(0 0 0 / 0.75);
+  --sombra-3:
+    0 0 0 0.5px rgb(255 255 255 / 0.12),
+    0 12px 24px -6px rgb(0 0 0 / 0.6),
+    0 64px 120px -32px rgb(0 0 0 / 0.85);
+  --luz-de-borda: inset 0 1px 0 rgb(255 255 255 / 0.10);
+  --luz-funda: inset 0 1px 3px rgb(0 0 0 / 0.5);
+  --filete: rgb(255 255 255 / 0.1);
+  --material: color-mix(in oklab, var(--color-platform-bg) 55%, transparent);
+  --fundo-do-palco: color-mix(in oklab, var(--color-platform-bg) 80%, black 20%);
+  --superficie-elevada: color-mix(in oklab, var(--color-platform-panel) 86%, white 14%);
+}
+
+/* Quem pede menos transparência no sistema recebe material opaco. */
+@media (prefers-reduced-transparency: reduce) {
+  :root { --material: var(--color-platform-bg); --material-filtro: none; }
+}
+
+/* ─── 2. O palco ─────────────────────────────────────────────────────────── */
+
+/* O fundo ganha profundidade: um degradê quase imperceptível de cima para baixo. */
+[data-shell-main] {
+  background:
+    radial-gradient(120% 60% at 50% 0%, color-mix(in oklab, var(--color-platform-panel) 60%, transparent), transparent 70%),
+    var(--fundo-do-palco);
+}
+
+/* O conteúdo flutua: sem a borda dura, com sombra em camadas e fio de luz. */
+[data-palco] {
+  border-color: transparent;
+  background: var(--color-platform-panel);
+  box-shadow: var(--luz-de-borda), var(--sombra-2);
+  animation: palco-entra var(--motion-panel) var(--ease-shell) both;
+}
+/* No celular o palco encosta na tela: sem sombra. */
+@media (max-width: 1023px) {
+  [data-palco] { box-shadow: none; animation: none; }
+}
+
+@keyframes palco-entra {
+  from { opacity: 0; transform: translateY(6px) scale(0.995); }
+  to { opacity: 1; transform: none; }
+}
+
+/* A página do manual: papel sobre a mesa. A página não muda; muda a sombra
+   em volta, que era uma só, dura e preta. */
+[data-pagina] {
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.08),
+    0 2px 4px rgb(0 0 0 / 0.06),
+    0 12px 28px -8px rgb(0 0 0 / 0.22),
+    0 32px 64px -24px rgb(0 0 0 / 0.28);
+}
+
+/* ─── 3. A moldura ───────────────────────────────────────────────────────── */
+
+/* Barra do topo: o filete vira meio pixel com luz por baixo. Fica OPACA, no
+   fundo da plataforma: nada rola por baixo dela (o conteúdo rola no <main>),
+   então vidro ali não mostraria nada — e `moldura-universal.spec.ts` prova que
+   a barra tem exatamente o fundo da plataforma, seja qual for a marca. */
+[data-moldura-topo] {
+  position: relative;
+  z-index: 20;
+  border-bottom-color: transparent;
+  box-shadow: 0 0.5px 0 var(--filete), 0 1px 0 rgb(255 255 255 / 0.35);
+}
+:root[data-tema="escuro"] [data-moldura-topo] {
+  box-shadow: 0 0.5px 0 var(--filete), 0 1px 0 rgb(0 0 0 / 0.4);
+}
+
+/* A coluna: recolhida, quase invisível; aberta por cima do conteúdo, vira
+   vidro fosco — é o único lugar onde algo passa POR BAIXO dela. */
+[data-coluna-da-plataforma] {
+  border-right-color: transparent;
+  box-shadow: 0.5px 0 0 var(--filete);
+  transition: width var(--motion-panel) var(--ease-shell), box-shadow var(--motion-panel) var(--ease-shell), background var(--motion-panel) var(--ease-shell);
+}
+[data-coluna-da-plataforma][data-expandida="sim"] {
+  background: var(--material);
+  -webkit-backdrop-filter: var(--material-filtro);
+  backdrop-filter: var(--material-filtro);
+  box-shadow: var(--sombra-3);
+}
+
+/* Item ativo da coluna: deixa de ser filete e vira peça elevada. */
+[data-coluna-da-plataforma] [data-nav-active] {
+  background: var(--superficie-elevada);
+  box-shadow: var(--luz-de-borda), var(--sombra-1);
+}
+[data-coluna-da-plataforma] [data-nav-active] > span[aria-hidden]:first-child {
+  display: none;
+}
+[data-coluna-da-plataforma] a,
+[data-coluna-da-plataforma] [data-item-em-breve] {
+  transition: background var(--motion-control) var(--ease-shell), color var(--motion-control) var(--ease-shell), box-shadow var(--motion-control) var(--ease-shell);
+}
+
+/* A gaveta do celular: o mesmo vidro da coluna aberta. */
+[data-drawer] {
+  background: var(--material);
+  -webkit-backdrop-filter: var(--material-filtro);
+  backdrop-filter: var(--material-filtro);
+  border-right-color: transparent;
+  box-shadow: var(--sombra-3);
+}
+
+/* Controle segmentado: trilho rebaixado, parte ativa em relevo — o clássico. */
+[data-segmentado-da-marca] {
+  border-color: transparent;
+  background: color-mix(in oklab, var(--color-platform-text) 5%, transparent);
+  box-shadow: var(--luz-funda);
+  padding: 2px;
+}
+[data-segmentado-da-marca] > * {
+  border-left-color: transparent;
+}
+[data-segmentado-da-marca] [aria-current="page"] {
+  background: var(--superficie-elevada);
+  box-shadow: var(--luz-de-borda), var(--sombra-1);
+}
+
+/* A busca: campo rebaixado. */
+[data-abrir-busca] {
+  border-color: transparent;
+  background: color-mix(in oklab, var(--color-platform-text) 4%, transparent);
+  box-shadow: var(--luz-funda);
+}
+
+/* A janela da busca: o que está atrás desfoca, e ela surge de leve. Quase
+   opaca — desfoque dentro de desfoque não funciona no navegador, e texto
+   atravessando a janela atrapalha a leitura. */
+[data-busca-veu] {
+  background: color-mix(in oklab, var(--color-platform-bg) 35%, transparent);
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  backdrop-filter: blur(6px) saturate(1.2);
+  animation: veu-entra var(--motion-menu) var(--ease-shell) both;
+}
+[data-busca] {
+  border-color: transparent;
+  background: color-mix(in oklab, var(--color-platform-panel) 97%, transparent);
+  box-shadow: var(--luz-de-borda), var(--sombra-3);
+  animation: janela-entra var(--motion-menu) var(--ease-mola) both;
+}
+
+/* A janela do Vini: a peça mais alta da tela. */
+[data-vini-janela] {
+  box-shadow: var(--luz-de-borda), var(--sombra-3);
+  animation: janela-entra var(--motion-menu) var(--ease-mola) both;
+}
+
+@keyframes veu-entra { from { opacity: 0; } to { opacity: 1; } }
+@keyframes janela-entra {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ─── 4. Padrões do produto ──────────────────────────────────────────────── */
+
+/* Superfície: painel com borda vira objeto apoiado — sem a borda dura, com
+   fio de luz e sombra curta. Em link, a sombra cresce ao passar o ponteiro. */
+[class~="border"][class~="bg-platform-panel"]:not(input, textarea, select, .bm-site *, [data-brand-canvas] *) {
+  border-color: transparent;
+  background: var(--superficie-elevada);
+  box-shadow: var(--luz-de-borda), var(--sombra-1);
+  transition: box-shadow var(--motion-menu) var(--ease-shell), transform var(--motion-menu) var(--ease-mola);
+}
+a[class~="border"][class~="bg-platform-panel"]:not(.bm-site *, [data-brand-canvas] *):hover {
+  box-shadow: var(--luz-de-borda), var(--sombra-2);
+}
+
+/* Menus soltos (sombra genérica): a mesma elevação das janelas. */
+:is([class~="shadow-lg"], [class~="shadow-xl"]):not(.bm-site *, [data-brand-canvas] *) {
+  box-shadow: var(--luz-de-borda), var(--sombra-3);
+}
+
+/* Campo: levemente rebaixado; no foco, o fundo clareia e um anel macio
+   aparece. A borda fica — fina e suave — porque campo sem contorno some. */
+:is(
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"], [type="submit"], [type="button"]),
+  textarea,
+  select
+)[class~="border"]:not(.bm-site *, [data-brand-canvas] *) {
+  border-color: var(--filete);
+  background-color: color-mix(in oklab, var(--color-platform-panel) 55%, var(--color-platform-bg));
+  box-shadow: var(--luz-funda);
+  transition: box-shadow var(--motion-control) var(--ease-shell), border-color var(--motion-control) var(--ease-shell), background-color var(--motion-control) var(--ease-shell);
+}
+:is(
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"], [type="submit"], [type="button"]),
+  textarea,
+  select
+)[class~="border"]:not(.bm-site *, [data-brand-canvas] *):focus {
+  border-color: color-mix(in oklab, var(--color-platform-focus) 55%, transparent);
+  background-color: var(--color-platform-panel);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-platform-focus) 16%, transparent);
+  outline: none;
+}
+
+/* Botão de ação (o contornado de sempre): cantos, relevo curto e um "afundar"
+   ao clicar. Sem `background`: venceria o hover invertido da utilidade. */
+:is(button, a)[class~="border-platform-signal"]:not(.bm-site *, [data-brand-canvas] *) {
+  box-shadow: var(--luz-de-borda), var(--sombra-1);
+  transition: background-color var(--motion-control) var(--ease-shell), color var(--motion-control) var(--ease-shell), box-shadow var(--motion-control) var(--ease-shell), transform var(--motion-control) var(--ease-mola);
+}
+:is(button, a)[class~="border-platform-signal"]:not([class*="rounded"], .bm-site *, [data-brand-canvas] *) {
+  border-radius: var(--radius-control);
+}
+:is(button, a)[class~="border-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):active {
+  transform: scale(0.98);
+  transition-duration: 80ms;
+}
+
+/* Botão preenchido (a ação principal): cantos, um brilho sutil de cima para
+   baixo — por `background-image`, que não briga com a cor da utilidade — e o
+   mesmo "afundar" ao clicar. */
+:is(button, a)[class~="bg-platform-signal"]:not(.bm-site *, [data-brand-canvas] *) {
+  background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0) 60%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), var(--sombra-1);
+  transition: filter var(--motion-control) var(--ease-shell), box-shadow var(--motion-control) var(--ease-shell), transform var(--motion-control) var(--ease-mola);
+}
+:is(button, a)[class~="bg-platform-signal"]:not([class*="rounded"], .bm-site *, [data-brand-canvas] *) {
+  border-radius: var(--radius-control);
+}
+:is(button, a)[class~="bg-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):hover {
+  filter: brightness(1.12);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), var(--sombra-2);
+}
+:is(button, a)[class~="bg-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):active {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+  transition-duration: 80ms;
+}
+:root[data-tema="escuro"] :is(button, a)[class~="bg-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):hover {
+  filter: brightness(1.04);
+}
+
+/* Cantos: campo e painel que não declaram arredondamento ganham o da escala
+   (antes eram quadrados por omissão, não por decisão). */
+:is(input, textarea, select)[class~="border"]:not([class*="rounded"], [type="checkbox"], [type="radio"], .bm-site *, [data-brand-canvas] *) {
+  border-radius: var(--radius-control);
+}
+[class~="border"][class~="bg-platform-panel"]:not([class*="rounded"], input, textarea, select, button, .bm-site *, [data-brand-canvas] *) {
+  border-radius: var(--radius-panel);
+}
+
+/* Véus: o que fica atrás de uma gaveta ou janela desfoca. */
+:is([class~="bg-platform-scrim"], [class~="bg-scrim"]):not(.bm-site *, [data-brand-canvas] *) {
+  -webkit-backdrop-filter: blur(6px) saturate(1.2);
+  backdrop-filter: blur(6px) saturate(1.2);
+}
+
+/* ─── 5. Objetos da tela inicial ─────────────────────────────────────────── */
+
+/* Cartões de marca: repousam um pouco acima do papel e sobem ao encontro do
+   ponteiro. */
+[data-card-de-marca],
+[data-card-nova-marca] {
+  border-radius: var(--radius-panel);
+}
+[data-card-de-marca] {
+  border-color: transparent;
+  background: var(--superficie-elevada);
+  box-shadow: var(--luz-de-borda), var(--sombra-1);
+  transition: transform var(--motion-menu) var(--ease-mola), box-shadow var(--motion-menu) var(--ease-shell);
+}
+[data-card-de-marca]:hover {
+  transform: translateY(var(--subida-no-hover));
+  box-shadow: var(--luz-de-borda), var(--sombra-2);
+}
+[data-card-de-marca]:active {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 80ms;
+}
+[data-card-nova-marca] {
+  border-color: rgb(var(--tinta-da-sombra) / 0.14);
+  background: color-mix(in oklab, var(--color-platform-text) 2%, transparent);
+  transition: background var(--motion-menu) var(--ease-shell), border-color var(--motion-menu) var(--ease-shell);
+}
+:root[data-tema="escuro"] [data-card-nova-marca] {
+  border-color: rgb(255 255 255 / 0.12);
+}
+
+/* O palco no escuro: um passo mais claro que as superfícies em volta. */
+:root[data-tema="escuro"] [data-palco] {
+  background: color-mix(in oklab, var(--color-platform-panel) 94%, white 6%);
+}
