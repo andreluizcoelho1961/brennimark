@@ -55,6 +55,9 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
   const [imagem, setImagem] = useState<HTMLImageElement | null>(null);
   const [temContaGotas, setTemContaGotas] = useState(false);
   const [noMac, setNoMac] = useState(false);
+  // A dica some no clique (o quadro de cores do Safari abre embaixo) e volta
+  // quando o mouse sai do botão.
+  const [dicaFechada, setDicaFechada] = useState(false);
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -188,12 +191,25 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
                 Conta-gotas na tela
               </button>
             ) : (
-              <label className="relative cursor-pointer rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-platform-signal">
+              <label onMouseLeave={() => setDicaFechada(false)} className="group relative cursor-pointer rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-platform-signal">
                 {noMac ? "Conta-gotas do Mac" : "Seletor de cores"}
                 {/* Transparente por cima do botão: o clique é da pessoa, e é o que o navegador exige para abrir o seletor. */}
                 <input data-cores-seletor-do-sistema type="color" value={cor.toLowerCase()} onChange={(e) => doSeletor(e.target.value)}
+                  onPointerDown={() => setDicaFechada(true)} onBlur={() => setDicaFechada(false)}
+                  aria-describedby={noMac ? "dica-do-conta-gotas" : undefined}
                   aria-label={noMac ? "Conta-gotas do Mac: abre o painel de cores do sistema" : "Seletor de cores do sistema"}
                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                {noMac && (
+                  // A dica (tooltip), acima do botão: aparece ao passar o mouse
+                  // ou ao chegar pelo teclado (Tab).
+                  <span id="dica-do-conta-gotas" role="tooltip" data-cores-dica
+                    className={`pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[300px] flex-col gap-1.5 rounded-[var(--radius-control)] bg-platform-text p-3 text-left text-[12.5px] font-normal leading-snug text-platform-bg shadow-lg ${dicaFechada ? "hidden" : "hidden group-hover:flex group-focus-within:flex"}`}>
+                    <span className="font-semibold">Como usar</span>
+                    <span>1&nbsp; Clique aqui.</span>
+                    <span>2&nbsp; No quadro de cores, clique em <strong>Mostrar cores…</strong> (ou <strong>Show Colors…</strong>), no rodapé.</span>
+                    <span>3&nbsp; No painel do Mac, clique na <strong>lupa</strong> e depois na cor, em qualquer lugar da tela.</span>
+                  </span>
+                )}
               </label>
             )}
             <label className="cursor-pointer rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
@@ -201,13 +217,23 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
               <input data-cores-print type="file" accept="image/*" className="sr-only" onChange={(e) => abrirImagem(e.target.files?.[0])} />
             </label>
           </div>
-          <p className="text-[12.5px] leading-snug text-platform-text-muted">
-            {temContaGotas
-              ? "O conta-gotas pega a cor de qualquer lugar da tela, inclusive de outros programas. Ou cole um print aqui (⌘V)."
-              : noMac
-                ? "Clique em “Mostrar cores…” e use a lupa. Ou cole um print aqui (⌘V)."
+          {!temContaGotas && noMac ? (
+            // O caminho até a lupa do macOS tem três cliques, e o segundo botão
+            // muda de nome com o idioma do Mac — o André levou um tempo para
+            // achar (10/10/2026). Os passos ficam escritos, um por linha.
+            <ol data-cores-passos-do-mac className="flex list-none flex-col gap-1 text-[12.5px] leading-snug text-platform-text-muted">
+              <li><span className="font-mono text-platform-text">1</span>&nbsp; Clique em <strong className="font-medium text-platform-text">Conta-gotas do Mac</strong>.</li>
+              <li><span className="font-mono text-platform-text">2</span>&nbsp; No quadro de cores que abre, clique em <strong className="font-medium text-platform-text">Mostrar cores…</strong> (ou <strong className="font-medium text-platform-text">Show Colors…</strong>), no rodapé.</li>
+              <li><span className="font-mono text-platform-text">3</span>&nbsp; No painel do Mac, clique na <strong className="font-medium text-platform-text">lupa</strong> e depois na cor que quiser, em qualquer lugar da tela.</li>
+              <li className="pt-1">Ou cole um print aqui (⌘V) e clique na cor.</li>
+            </ol>
+          ) : (
+            <p className="text-[12.5px] leading-snug text-platform-text-muted">
+              {temContaGotas
+                ? "O conta-gotas pega a cor de qualquer lugar da tela, inclusive de outros programas. Ou cole um print aqui (⌘V)."
                 : "O seletor de cores do sistema abre. Para pegar uma cor da tela, tire um print, cole aqui (Ctrl+V ou ⌘V) e clique na cor."}
-          </p>
+            </p>
+          )}
           {imagem && (
             <div className="overflow-auto rounded-[var(--radius-control)] border border-platform-border">
               <canvas ref={canvas} data-cores-imagem onClick={pegarDoPrint} className="block max-w-full cursor-crosshair" aria-label="Clique na cor que quer medir" />
