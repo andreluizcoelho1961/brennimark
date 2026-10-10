@@ -136,6 +136,8 @@ export function shellSections({
         // O Kit do assinante (10/10/2026): todos os tamanhos do logo, com as
         // regras do manual. Fica no acervo porque sai dos Materiais.
         { href: "/docs/kit", label: t("Kit da marca", "Brand kit") },
+        // O Cores do assinante (10/10/2026): "é a cor da marca?", com a paleta.
+        { href: "/docs/cores", label: t("Cores da marca", "Brand colors") },
         ...porChave("history"),
       ],
     },
