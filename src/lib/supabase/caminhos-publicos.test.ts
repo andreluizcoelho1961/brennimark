@@ -89,3 +89,10 @@ test("o Esqueci a senha passa sem sessão; a troca, não", () => {
   assert.equal(caminhoPublico("/api/conta/nova-senha"), false);
   assert.equal(caminhoPublico("/esqueci-senhax"), false);
 });
+
+test("o Kit gratuito é público pelo caminho exato, e só ele", () => {
+  assert.equal(caminhoPublico("/ferramentas/kit"), true);
+  assert.equal(caminhoPublico("/ferramentas"), false);
+  assert.equal(caminhoPublico("/ferramentas/kitx"), false);
+  assert.equal(caminhoPublico("/ferramentas/kit/qualquer"), false);
+});
