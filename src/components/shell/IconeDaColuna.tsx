@@ -29,6 +29,8 @@ const DESENHOS: Record<IconeDaColuna, React.ReactNode> = {
   historico: (<><circle cx="12" cy="12" r="8" /><path d="M12 7.5V12l3 2" /></>),
   importar: (<><path d="M12 15V4" /><path d="M7.5 8.5L12 4l4.5 4.5" /><path d="M4 15v5h16v-5" /></>),
   administracao: (<><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z" /><path d="M14 7l3 3" /></>),
+  // O Cores: um conta-gotas.
+  cores: (<><path d="M14.5 4.5l5 5" /><path d="M16 8l-9 9-3 1 1-3 9-9" /><path d="M13 5l6 6" /></>),
   ia: (<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path d="M12 8l1.2 2.8L16 12l-2.8 1.2L12 16l-1.2-2.8L8 12l2.8-1.2L12 8z" /></>),
 };
 

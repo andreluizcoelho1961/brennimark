@@ -133,6 +133,8 @@ export function shellSections({
         // agência, gráfica e produtora já usam. "Biblioteca de assets" continua
         // só na linguagem interna — ADR-0007, tabelas, rotas.
         { href: "/docs/biblioteca", label: t("Materiais da marca", "Brand materials"), mobile: true },
+        // O Cores do assinante (10/10/2026): "é a cor da marca?", com a paleta.
+        { href: "/docs/cores", label: t("Cores da marca", "Brand colors") },
         ...porChave("history"),
       ],
     },
