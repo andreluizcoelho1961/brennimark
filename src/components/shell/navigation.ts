@@ -133,6 +133,9 @@ export function shellSections({
         // agência, gráfica e produtora já usam. "Biblioteca de assets" continua
         // só na linguagem interna — ADR-0007, tabelas, rotas.
         { href: "/docs/biblioteca", label: t("Materiais da marca", "Brand materials"), mobile: true },
+        // O Kit do assinante (10/10/2026): todos os tamanhos do logo, com as
+        // regras do manual. Fica no acervo porque sai dos Materiais.
+        { href: "/docs/kit", label: t("Kit da marca", "Brand kit") },
         ...porChave("history"),
       ],
     },

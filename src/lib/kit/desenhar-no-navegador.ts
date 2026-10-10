@@ -3,7 +3,7 @@
 import { zip, type Zippable } from "fflate";
 import { pastaDoGrupo, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "./tamanhos";
 import {
-  abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, favicoIco, leiaMe, manifestDoSite, trechoDoHead, type DadosDaAssinatura, type ReducaoMinima,
+  abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, favicoIco, leiaMe, manifestDoSite, trechoDoHead, type DadosDaAssinatura, type ReducaoMinima, type RegrasInformadas,
 } from "./pacote";
 
 /**
@@ -40,6 +40,8 @@ export type Escolhas = {
   protecao: number;
   /** Redução mínima informada pela pessoa, largura em px. */
   reducao: ReducaoMinima;
+  /** No Kit do assinante: de onde veio cada regra ("do manual, p. 12, aprovada"). */
+  fontesDasRegras?: RegrasInformadas["fontes"];
 };
 
 const LADO_MAXIMO = 3000;
@@ -316,7 +318,7 @@ export async function montarPacote(
     if (e.simbolo?.svg) conteudo["apresentacao/simbolo.svg"] = [texto(e.simbolo.svg), { level: 6 }];
   }
   const abaixo = itens.map((i) => ({ i, m: medirItem(i, e) })).filter((x) => x.m.abaixoDe).map((x) => `${pastaDoGrupo(x.i.grupo)}/${x.i.arquivo} (${Math.round(x.m.largura)} px; mínimo ${x.m.abaixoDe} px)`);
-  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo })), { level: 6 }];
+  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo, fontes: e.fontesDasRegras })), { level: 6 }];
 
   const bytes = await new Promise<Uint8Array>((resolver, rejeitar) => zip(conteudo, (erro, dados) => (erro ? rejeitar(erro) : resolver(dados))));
   return new Blob([bytes as BlobPart], { type: "application/zip" });
