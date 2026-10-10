@@ -43,13 +43,17 @@
  * responde o mesmo exista o login ou não, e o que ela faz é mandar um e-mail
  * ao dono do endereço; a troca em si (`/nova-senha`) exige sessão.
  *
+ * O BRENNIMARK KIT gratuito entrou em 09/10/2026: `/ferramentas/kit`, pelo
+ * caminho EXATO. A página é estática e roda inteira no navegador de quem usa —
+ * não lê dado nenhum e não chama API; o logo nem sai do computador.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
