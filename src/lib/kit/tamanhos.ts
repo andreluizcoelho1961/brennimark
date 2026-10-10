@@ -37,8 +37,12 @@ export type ItemDoKit = {
   seguro?: { largura: number; altura: number };
   /** Ícone adaptável do Android: o desenho dentro do círculo de 80%. */
   circuloSeguro?: number;
-  /** Qual desenho: o símbolo (se houver) nos tamanhos pequenos, ou sempre o logo. */
-  desenho?: "pequeno" | "logo" | "simbolo";
+  /**
+   * Qual desenho (10/10/2026): `pequeno` (quadrados e círculos) usa o símbolo,
+   * senão o logotipo vertical, senão o horizontal; `logo` (faixas) usa o
+   * horizontal; `simbolo` e `vertical` só entram se a marca os tiver.
+   */
+  desenho?: "pequeno" | "logo" | "simbolo" | "vertical";
   tom?: "original" | "negativo" | "uma-cor";
   /** Entra no favicon.ico. */
   ico?: true;
@@ -103,6 +107,7 @@ export const ITENS_DO_KIT: readonly ItemDoKit[] = [
   { grupo: "apresentacao", arquivo: "logotipo-2000.png", nome: "Logotipo", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "original", fonte: ESPEC },
   { grupo: "apresentacao", arquivo: "logotipo-negativo-2000.png", nome: "Logotipo · fundo escuro", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "negativo", fonte: ESPEC },
   { grupo: "apresentacao", arquivo: "logotipo-uma-cor-2000.png", nome: "Logotipo · uma cor", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "uma-cor", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "logotipo-vertical-2000.png", nome: "Logotipo vertical", largura: 2000, altura: 0, formato: "transparente", desenho: "vertical", tom: "original", fonte: ESPEC },
   { grupo: "apresentacao", arquivo: "simbolo-2000.png", nome: "Símbolo", largura: 2000, altura: 0, formato: "transparente", desenho: "simbolo", tom: "original", fonte: ESPEC },
   { grupo: "apresentacao", arquivo: "avatar-512.png", nome: "Avatar (Slack, Teams, Google)", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
 ];

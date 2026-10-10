@@ -24,6 +24,7 @@ import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
 
 export type KitFixo = {
   logo: Desenho;
+  vertical: Desenho | null;
   simbolo: Desenho | null;
   negativo: Desenho | null;
   nome: string;
@@ -33,6 +34,8 @@ export type KitFixo = {
   /** As cores aprovadas da paleta, para o fundo "cor da marca". */
   coresDaMarca: string[];
   painelDeRegras: ReactNode;
+  /** A escolha das versões nos Materiais, com as miniaturas (10/10/2026). */
+  seletorDeVersoes: ReactNode;
 };
 
 const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
@@ -40,7 +43,7 @@ const PASSO = "font-display text-[17px] font-semibold tracking-tight text-platfo
 const CAMPO = "w-full rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-3 py-2 text-sm text-platform-text";
 const PILULA = "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] transition-colors";
 
-type Arquivo = "logo" | "simbolo" | "negativo";
+type Arquivo = "logo" | "vertical" | "simbolo" | "negativo";
 
 /** Só dígitos e uma vírgula/ponto: o campo aceita "25" ou "12,5". */
 function soNumero(v: string): string {
@@ -53,9 +56,11 @@ function numero(v: string): number {
 
 export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
   const [logoEnviado, setLogo] = useState<Desenho | null>(null);
+  const [verticalEnviado, setVertical] = useState<Desenho | null>(null);
   const [simboloEnviado, setSimbolo] = useState<Desenho | null>(null);
   const [negativoEnviado, setNegativo] = useState<Desenho | null>(null);
   const logo = fixo ? fixo.logo : logoEnviado;
+  const vertical = fixo ? fixo.vertical : verticalEnviado;
   const simbolo = fixo ? fixo.simbolo : simboloEnviado;
   const negativo = fixo ? fixo.negativo : negativoEnviado;
   const [erro, setErro] = useState("");
@@ -74,12 +79,12 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
 
   const escolhas: Escolhas | null = useMemo(
     () => (logo ? {
-      logo, simbolo, negativo, fundo, margem: margem / 100, usarSimboloNosPequenos: usarSimbolo,
+      logo, vertical, simbolo, negativo, fundo, margem: margem / 100, usarSimboloNosPequenos: usarSimbolo,
       protecao: fixo ? fixo.protecao : numero(protecao) / 100,
       reducao: fixo ? fixo.reducao : { logo: numero(reducaoLogo) || null, simbolo: numero(reducaoSimbolo) || null },
       fontesDasRegras: fixo?.fontes,
     } : null),
-    [logo, simbolo, negativo, fundo, margem, usarSimbolo, protecao, reducaoLogo, reducaoSimbolo, fixo],
+    [logo, vertical, simbolo, negativo, fundo, margem, usarSimbolo, protecao, reducaoLogo, reducaoSimbolo, fixo],
   );
 
   async function receber(tipo: Arquivo, arquivo: File | undefined) {
@@ -91,6 +96,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
         setLogo(d);
         if (!nome) setNome(arquivo.name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").replace(/\b(logo|logotipo|marca)\b/gi, "").trim());
       }
+      if (tipo === "vertical") setVertical(d);
       if (tipo === "simbolo") setSimbolo(d);
       if (tipo === "negativo") setNegativo(d);
     } catch (e) {
@@ -127,19 +133,13 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
           <p className={ROTULO}>Passo 1</p>
           <h2 className={PASSO}>O logo</h2>
           {fixo ? (
-            <div data-kit-dos-materiais className="flex flex-col gap-2">
-              <Previa rotulo="Logotipo" desenho={fixo.logo} grande />
-              <div className="grid grid-cols-2 gap-2">
-                <Previa rotulo={fixo.simbolo ? "Símbolo" : "Sem símbolo nos Materiais"} desenho={fixo.simbolo} />
-                <Previa rotulo={fixo.negativo ? "Negativo" : "Sem negativo nos Materiais"} desenho={fixo.negativo} escuro />
-              </div>
-              <p className="text-[12.5px] leading-snug text-platform-text-muted">Vêm dos Materiais da marca. Para trocar, atualize lá.</p>
-            </div>
+            <div data-kit-dos-materiais className="flex flex-col gap-2">{fixo.seletorDeVersoes}</div>
           ) : (<>
           <Envio rotulo="Logotipo" dica="SVG, PDF ou AI é o ideal · PNG a partir de 1024 px" atributo="logo" desenho={logo} aoEscolher={(f) => receber("logo", f)} grande />
           <details className="text-sm text-platform-text-muted">
-            <summary className="cursor-pointer">Tem símbolo separado ou versão negativa?</summary>
+            <summary className="cursor-pointer">Tem versão vertical, símbolo ou versão negativa?</summary>
             <div className="mt-3 flex flex-col gap-3">
+              <Envio rotulo="Logotipo vertical (opcional)" dica="usado nos quadrados quando não há símbolo" atributo="vertical" desenho={vertical} aoEscolher={(f) => receber("vertical", f)} aoTirar={() => setVertical(null)} />
               <Envio rotulo="Símbolo (opcional)" dica="usado nos ícones e perfis" atributo="simbolo" desenho={simbolo} aoEscolher={(f) => receber("simbolo", f)} aoTirar={() => setSimbolo(null)} />
               <Envio rotulo="Versão para fundo escuro (opcional)" dica="senão, o Kit faz o logo em branco" atributo="negativo" desenho={negativo} aoEscolher={(f) => receber("negativo", f)} aoTirar={() => setNegativo(null)} escuro />
             </div>
@@ -316,29 +316,6 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
 }
 
 /** A prévia de um desenho que veio pronto (dos Materiais), sem envio. */
-function Previa({ rotulo, desenho, grande, escuro }: { rotulo: string; desenho: Desenho | null; grande?: boolean; escuro?: boolean }) {
-  const alvo = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const no = alvo.current;
-    if (!no) return;
-    no.replaceChildren();
-    if (!desenho) return;
-    const img = document.createElement("img");
-    img.src = desenho.fonte.toDataURL("image/png");
-    img.alt = "";
-    img.style.maxHeight = grande ? "88px" : "44px";
-    img.style.maxWidth = "100%";
-    img.style.objectFit = "contain";
-    no.appendChild(img);
-  }, [desenho, grande]);
-  return (
-    <figure className="flex flex-col items-center gap-1.5 rounded-[var(--radius-panel)] border border-platform-border p-3 text-center">
-      <div ref={alvo} className={`grid w-full place-items-center rounded-[var(--radius-control)] ${grande ? "h-24" : "h-12"} ${escuro ? "bg-[#111418]" : ""}`} />
-      <figcaption className="text-[12px] text-platform-text-muted">{rotulo}</figcaption>
-    </figure>
-  );
-}
-
 /** Um canvas desenhado num contêiner — prévia de um item, numa escala. */
 function Tela({ item, escolhas, escala, className, estilo }: { item: ItemDoKit; escolhas: Escolhas; escala: number; className?: string; estilo?: React.CSSProperties }) {
   const alvo = useRef<HTMLSpanElement>(null);
