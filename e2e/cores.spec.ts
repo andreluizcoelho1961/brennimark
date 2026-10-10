@@ -97,3 +97,27 @@ test("no assinante: é a cor da marca, com a página e o CMYK do manual; rascunh
   expect(css).toContain("--brasa: #FF4103;");
   expect(css).not.toContain("#0B4F9E");
 });
+
+test("sem conta-gotas de tela (Safari): o botão abre o seletor de cores do sistema, e a cor escolhida é medida", async ({ page }) => {
+  // Como o Safari no Mac: sem EyeDropper.
+  await page.addInitScript(() => {
+    delete (window as unknown as { EyeDropper?: unknown }).EyeDropper;
+    Object.defineProperty(navigator, "userAgent", { get: () => "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15" });
+  });
+  await page.goto("/ferramentas/cores");
+  await expect(page.locator("[data-cores-conta-gotas]")).toHaveCount(0);
+  await expect(page.getByText("Conta-gotas do Mac")).toBeVisible();
+  await expect(page.getByText("Clique em “Mostrar cores…” e use a lupa.")).toBeVisible();
+  await page.locator("[data-cores-seletor-do-sistema]").fill("#0b4f9e");
+  await expect(page.locator("[data-cores-hex]")).toHaveText("#0B4F9E");
+});
+
+test("com conta-gotas de tela (Chrome): o botão é o conta-gotas, não o seletor do sistema", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { EyeDropper: unknown }).EyeDropper = class { open() { return Promise.resolve({ sRGBHex: "#ff4103" }); } };
+  });
+  await page.goto("/ferramentas/cores");
+  await expect(page.locator("[data-cores-seletor-do-sistema]")).toHaveCount(0);
+  await page.locator("[data-cores-conta-gotas]").click();
+  await expect(page.locator("[data-cores-hex]")).toHaveText("#FF4103");
+});

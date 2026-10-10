@@ -11,7 +11,9 @@ import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
  * O Brennimark Cores (10/10/2026) — especificação v2.2.
  *
  * Duas camadas, um componente (decisão do André):
- *   - MEDIR, para todo mundo: conta-gotas (Chrome e Edge no computador),
+ *   - MEDIR, para todo mundo: conta-gotas (Chrome e Edge no computador; no
+ *     Safari e no Firefox, o seletor de cores do SISTEMA — no Mac, o painel
+ *     de cores tem a lupa que pega a cor de qualquer lugar da tela),
  *     colar um print ou subir imagem, digitar um código; nome em português,
  *     códigos, contraste, daltonismo, histórico e exportação;
  *   - "É A COR DA MARCA?", para o assinante (`marca`): compara com a paleta do
@@ -52,6 +54,8 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
   const [textoSobre, setTextoSobre] = useState<string>("#FFFFFF");
   const [imagem, setImagem] = useState<HTMLImageElement | null>(null);
   const [temContaGotas, setTemContaGotas] = useState(false);
+  const [noMac, setNoMac] = useState(false);
+  const espera = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
   // O que só existe no navegador: o histórico guardado e o conta-gotas.
@@ -61,6 +65,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
     setHistorico(h);
     if (h[0]) setCor(h[0]);
     setTemContaGotas(typeof window !== "undefined" && "EyeDropper" in window);
+    setNoMac(/Mac/i.test(navigator.userAgent) && !/iPhone|iPad/i.test(navigator.userAgent) && navigator.maxTouchPoints < 2);
   }, []);
 
   const usar = useCallback((hex: string) => {
@@ -81,6 +86,20 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
       const hex = lerCodigo(sRGBHex);
       if (hex) usar(hex);
     } catch { /* a pessoa apertou Esc */ }
+  }
+
+  /**
+   * O seletor de cores do sistema (10/10/2026). O Safari não dá o conta-gotas
+   * de tela aos sites, mas abre o painel de cores do macOS, que tem a lupa. A
+   * cor muda a cada movimento no painel: a amostra acompanha na hora, e o
+   * histórico só guarda depois que a pessoa para de mexer.
+   */
+  function doSeletor(valor: string) {
+    const hex = lerCodigo(valor);
+    if (!hex) return;
+    setCor(hex.toUpperCase());
+    if (espera.current) clearTimeout(espera.current);
+    espera.current = setTimeout(() => usar(hex), 700);
   }
 
   function abrirImagem(arquivo: File | Blob | null | undefined) {
@@ -163,10 +182,20 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" data-cores-conta-gotas onClick={contaGotas} disabled={!temContaGotas}
-              className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg disabled:opacity-40">
-              Conta-gotas na tela
-            </button>
+            {temContaGotas ? (
+              <button type="button" data-cores-conta-gotas onClick={contaGotas}
+                className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg">
+                Conta-gotas na tela
+              </button>
+            ) : (
+              <label className="relative cursor-pointer rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-platform-signal">
+                {noMac ? "Conta-gotas do Mac" : "Seletor de cores"}
+                {/* Transparente por cima do botão: o clique é da pessoa, e é o que o navegador exige para abrir o seletor. */}
+                <input data-cores-seletor-do-sistema type="color" value={cor.toLowerCase()} onChange={(e) => doSeletor(e.target.value)}
+                  aria-label={noMac ? "Conta-gotas do Mac: abre o painel de cores do sistema" : "Seletor de cores do sistema"}
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+              </label>
+            )}
             <label className="cursor-pointer rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
               Subir imagem
               <input data-cores-print type="file" accept="image/*" className="sr-only" onChange={(e) => abrirImagem(e.target.files?.[0])} />
@@ -175,7 +204,9 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
           <p className="text-[12.5px] leading-snug text-platform-text-muted">
             {temContaGotas
               ? "O conta-gotas pega a cor de qualquer lugar da tela, inclusive de outros programas. Ou cole um print aqui (⌘V)."
-              : "Este navegador não tem conta-gotas de tela (só Chrome e Edge, no computador). Tire um print, cole aqui (⌘V) e clique na cor."}
+              : noMac
+                ? "Clique em “Mostrar cores…” e use a lupa. Ou cole um print aqui (⌘V)."
+                : "O seletor de cores do sistema abre. Para pegar uma cor da tela, tire um print, cole aqui (Ctrl+V ou ⌘V) e clique na cor."}
           </p>
           {imagem && (
             <div className="overflow-auto rounded-[var(--radius-control)] border border-platform-border">

@@ -234,7 +234,11 @@ export function compararComAMarca(hex: string, paleta: readonly CorDaMarca[]): C
 export function fraseDaComparacao(c: Comparacao): string {
   if (c.tipo === "sem-paleta") return "A paleta desta marca ainda não tem cores com código HEX no Brennimark.";
   const pagina = c.cor.pagina ? ` — manual, p. ${c.cor.pagina}` : "";
-  const nome = `${c.cor.nome} (${c.cor.hex.toUpperCase()})`;
+  // Cor sem nome no manual chega com o próprio código como nome: não repetir
+  // ("#E00B39 (#E00B39)", visto no Bradesco em 10/10/2026).
+  const hex = c.cor.hex.toUpperCase();
+  const semNome = c.cor.nome.trim().replace(/^#/, "").toUpperCase() === hex.replace(/^#/, "");
+  const nome = semNome ? hex : `${c.cor.nome} (${hex})`;
   if (!c.aprovada) {
     return c.tipo === "diferente"
       ? `Não é uma cor da marca. A mais próxima é ${nome}, que ainda está em rascunho no manual.`

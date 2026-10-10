@@ -98,3 +98,11 @@ test("as exportações: CSS sem nomes repetidos, JSON com CMYK aproximado, texto
   assert.equal(v.getUint32(14), 32);
   assert.equal(ase.byteLength, 12 + 2 * (6 + 32));
 });
+
+test("a frase não repete o código quando a cor do manual não tem nome", () => {
+  const paleta = [{ nome: "#E00B39", hex: "#e00b39", status: "ready" as const, pagina: 22, cmyk: null, pms: null, rgb: null }];
+  const longe = compararComAMarca("#FF4103", paleta);
+  assert.equal(fraseDaComparacao(longe), "Não é uma cor da marca. A mais próxima é #E00B39, e a diferença é visível.");
+  const igual = compararComAMarca("#E00B39", [{ ...paleta[0], nome: "e00b39" }]);
+  assert.equal(fraseDaComparacao(igual), "É #E00B39, aprovada — manual, p. 22.");
+});
