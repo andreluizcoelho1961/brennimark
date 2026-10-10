@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA, ENDERECO_COMPLETO } from "@/lib/site/empresa";
 import { paginaDoSite } from "@/lib/site/paginas";
 import { metadadosDoSite } from "./metadados";
@@ -50,6 +51,7 @@ function RodapeDaPagina() {
           </Link>
         ))}
       </nav>
+      <LinksDasFerramentas />
       <span className="foot-empresa" data-empresa>
         © Brennimark · {EMPRESA.nome}, {EMPRESA.natureza} · CNPJ {EMPRESA.cnpj} · {ENDERECO_COMPLETO} · {EMPRESA.email}
       </span>

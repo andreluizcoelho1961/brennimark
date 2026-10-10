@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA, ENDERECO_COMPLETO } from "@/lib/site/empresa";
 import equipeNaMesa from "./imagens/equipe-na-mesa.jpg";
 import maosComPranchas from "./imagens/maos-com-pranchas.webp";
@@ -403,6 +404,7 @@ export function CapitulosDaHome() {
             <footer className="site-foot">
               <Link className="lockup" href="/" data-go="inicio" aria-label="Brennimark, voltar ao início"><svg viewBox="0 0 750 170" role="img" aria-label="Brennimark"><use href="#bm-logo" /></svg></Link>
               <nav className="foot-links" aria-label="Institucional"><Link href="/manifesto">Manifesto</Link><Link href="/suporte">Suporte</Link><Link href="/termos">Termos</Link><Link href="/privacidade">Privacidade</Link><Link href="/licenca-de-fontes">Licença de fontes</Link></nav>
+              <LinksDasFerramentas />
               <span className="foot-empresa" data-empresa>{EMPRESA.nome}, {EMPRESA.natureza} · CNPJ {EMPRESA.cnpj} · {ENDERECO_COMPLETO} · {EMPRESA.email}</span>
             </footer>
           </div>
