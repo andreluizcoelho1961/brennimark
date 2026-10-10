@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { GRUPOS_DO_KIT, ITENS_DO_KIT } from "./tamanhos";
 import {
-  alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, enderecoDoSite, escaparHtml, favicoIco, leiaMe, manifestDoSite, trechoDoHead,
+  abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, enderecoDoSite, escaparHtml, favicoIco, leiaMe, manifestDoSite, trechoDoHead,
 } from "./pacote";
 
 // ─── A tabela ──────────────────────────────────────────────────────────────
@@ -147,4 +147,39 @@ test("avisos do arquivo: JPG sem transparência e imagem pequena", () => {
   assert.equal(avisosDoArquivo({ tipo: "image/png", largura: 2000, altura: 500 }).length, 0);
   assert.match(avisosDoArquivo({ tipo: "image/png", largura: 600, altura: 150 })[0], /600 × 150/);
   assert.equal(avisosDoArquivo({ tipo: "image/jpeg", largura: 600, altura: 150 }).length, 2);
+});
+
+// ─── As regras da marca (área de proteção e redução mínima) ────────────────
+
+test("com área de proteção, sobra no mínimo essa área entre o desenho e a borda", () => {
+  const p = 0.25;
+  const r = encaixe({ largura: 400, altura: 400, formato: "quadrado" }, LOGO, 0, p);
+  assert.ok(r.x >= p * r.altura - 1e-6, "área de proteção à esquerda");
+  assert.ok(r.y >= p * r.altura - 1e-6, "área de proteção em cima");
+  const sem = encaixe({ largura: 400, altura: 400, formato: "quadrado" }, LOGO, 0, 0);
+  assert.ok(r.largura < sem.largura, "a proteção encolhe o desenho");
+});
+
+test("no círculo, a caixa com a área de proteção também cabe inteira", () => {
+  const p = 0.3;
+  const r = encaixe({ largura: 1080, altura: 1080, formato: "circulo" }, SIMBOLO, 0, p);
+  const folga = p * r.altura;
+  const centro = 540;
+  for (const [x, y] of [[r.x - folga, r.y - folga], [r.x + r.largura + folga, r.y + r.altura + folga]]) {
+    assert.ok(Math.hypot(x - centro, y - centro) <= 540 + 1e-6);
+  }
+});
+
+test("na videochamada, a área de proteção afasta a marca das bordas", () => {
+  const r = encaixe({ largura: 1920, altura: 1080, formato: "videochamada" }, SIMBOLO, 0, 1);
+  assert.ok(1920 - (r.x + r.largura) >= r.altura - 1e-6 && r.y >= r.altura - 1e-6);
+});
+
+test("redução mínima: avisa o arquivo em que o desenho ficou menor que o mínimo, e só ele", () => {
+  const reducao = { logo: 120, simbolo: 24 };
+  assert.equal(abaixoDaReducao({ formato: "quadrado" }, 14, "simbolo", reducao), 24);
+  assert.equal(abaixoDaReducao({ formato: "quadrado" }, 30, "simbolo", reducao), null);
+  assert.equal(abaixoDaReducao({ formato: "faixa" }, 100, "logo", reducao), 120);
+  assert.equal(abaixoDaReducao({ formato: "transparente" }, 10, "logo", reducao), null);
+  assert.equal(abaixoDaReducao({ formato: "quadrado" }, 10, "logo", { logo: null, simbolo: null }), null);
 });

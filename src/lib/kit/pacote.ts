@@ -18,50 +18,79 @@ export function alturaDoItem(item: Pick<ItemDoKit, "largura" | "altura">, desenh
 
 /**
  * Onde o desenho entra na imagem. `margem` é a fração de respiro em cada lado
- * (0,16 = 16%), aplicada dentro da área segura quando houver.
+ * (0,16 = 16%), aplicada dentro da área segura quando houver. `protecao` é a
+ * ÁREA DE PROTEÇÃO da marca, em fração da altura do desenho (0,25 = um quarto
+ * da altura livre em volta): o que se encaixa é o desenho MAIS essa área, de
+ * modo que nada da imagem encoste nela.
  *
- * - círculo: o retângulo do desenho cabe INTEIRO no círculo inscrito — a
- *   diagonal dele não passa do diâmetro útil. Assim nenhuma ponta é cortada
- *   pelo recorte da rede;
- * - faixa: no máximo metade da altura, para a capa não virar um logo gigante;
- * - videochamada: no canto de cima à direita, 16% da largura; o centro fica
- *   livre para o rosto;
- * - transparente: o desenho ocupa a imagem inteira (ela já tem a proporção dele).
+ * - círculo: a caixa (desenho + proteção) cabe INTEIRA no círculo inscrito — a
+ *   diagonal dela não passa do diâmetro útil. Nenhuma ponta é cortada;
+ * - faixa: o desenho fica no máximo com metade da altura, para a capa não
+ *   virar um logo gigante;
+ * - videochamada: no canto de cima à direita, 16% da largura, afastado das
+ *   bordas pelo maior entre o respiro padrão e a área de proteção;
+ * - transparente: o desenho ocupa a imagem inteira (é o arquivo do logo).
  */
 export function encaixe(
   item: Pick<ItemDoKit, "largura" | "altura" | "formato" | "seguro" | "circuloSeguro">,
   desenho: { largura: number; altura: number },
   margem: number,
+  protecao = 0,
 ): Retangulo {
   const L = item.largura;
   const A = alturaDoItem(item, desenho);
   const proporcao = desenho.largura / desenho.altura;
+  // A caixa que se encaixa: o desenho com a área de proteção, em unidades do desenho.
+  const caixaL = desenho.largura + 2 * protecao * desenho.altura;
+  const caixaA = desenho.altura * (1 + 2 * protecao);
+  const proporcaoDaCaixa = caixaL / caixaA;
   const centrado = (w: number) => {
     const h = w / proporcao;
     return { x: (L - w) / 2, y: (A - h) / 2, largura: w, altura: h };
   };
+  /** Largura do desenho quando a caixa tem esta largura. */
+  const desenhoNaCaixa = (larguraDaCaixa: number) => larguraDaCaixa * (desenho.largura / caixaL);
 
   if (item.formato === "transparente") return { x: 0, y: 0, largura: L, altura: A };
 
   if (item.formato === "videochamada") {
     const w = L * 0.16;
     const h = w / proporcao;
-    return { x: L - w - L * 0.04, y: L * 0.035, largura: w, altura: h };
+    const afastamento = protecao * h;
+    return { x: L - w - Math.max(L * 0.04, afastamento), y: Math.max(L * 0.035, afastamento), largura: w, altura: h };
   }
 
   const circulo = item.formato === "circulo" ? 1 : item.circuloSeguro;
   if (circulo) {
-    // diâmetro útil; a diagonal do desenho (w·√(1 + 1/p²)) cabe nele
+    // diâmetro útil; a diagonal da caixa (c·√(1 + 1/p²)) cabe nele
     const diametro = Math.min(L, A) * circulo * (1 - 2 * margem);
-    const w = diametro / Math.sqrt(1 + 1 / (proporcao * proporcao));
-    return centrado(w);
+    const larguraDaCaixa = diametro / Math.sqrt(1 + 1 / (proporcaoDaCaixa * proporcaoDaCaixa));
+    return centrado(desenhoNaCaixa(larguraDaCaixa));
   }
 
   const areaL = L * (item.seguro?.largura ?? 1) * (1 - 2 * margem);
   const areaA = A * (item.seguro?.altura ?? 1) * (1 - 2 * margem);
-  let w = Math.min(areaL, areaA * proporcao);
+  let w = desenhoNaCaixa(Math.min(areaL, areaA * proporcaoDaCaixa));
   if (item.formato === "faixa") w = Math.min(w, A * 0.5 * proporcao);
   return centrado(w);
+}
+
+export type ReducaoMinima = { logo: number | null; simbolo: number | null };
+
+/**
+ * A REDUÇÃO MÍNIMA da marca: o desenho foi parar abaixo da largura mínima?
+ * Devolve a largura mínima que foi violada, ou null. Só vale para arquivos de
+ * uso (ícone, perfil, capa): o arquivo transparente é o próprio logo, grande.
+ */
+export function abaixoDaReducao(
+  item: Pick<ItemDoKit, "formato">,
+  larguraDoDesenho: number,
+  qual: "logo" | "simbolo",
+  reducao: ReducaoMinima,
+): number | null {
+  if (item.formato === "transparente") return null;
+  const minimo = reducao[qual];
+  return minimo && larguraDoDesenho < minimo - 0.5 ? minimo : null;
 }
 
 /** Um .ico com PNGs dentro (o formato que todo navegador aceita desde o Vista). */
@@ -150,7 +179,15 @@ export function assinaturaHtml(d: DadosDaAssinatura, enderecoDoLogo: string, lar
     + `</td></tr></table>`;
 }
 
-export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean): string {
+export type RegrasInformadas = { protecao: number; reducao: ReducaoMinima; abaixo: string[] };
+
+export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean, regras?: RegrasInformadas): string {
+  const linhasDasRegras = !regras ? [] : [
+    regras.protecao > 0 ? `Área de proteção aplicada: ${Math.round(regras.protecao * 100)}% da altura do logo, informada por você.` : "",
+    regras.reducao.logo ? `Redução mínima do logotipo: ${regras.reducao.logo} px de largura, informada por você.` : "",
+    regras.reducao.simbolo ? `Redução mínima do símbolo: ${regras.reducao.simbolo} px de largura, informada por você.` : "",
+    ...(regras.abaixo.length ? ["", "ATENÇÃO — nestes arquivos o desenho ficou abaixo da redução mínima:", ...regras.abaixo.map((a) => `  ${a}`)] : []),
+  ];
   return [
     `Kit da marca ${nome || "(sem nome)"} — gerado pelo Brennimark Kit.`,
     "Tudo foi feito no seu computador; nenhum arquivo saiu dele.",
@@ -166,7 +203,9 @@ export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean
       : "Sem símbolo separado, o logotipo inteiro entrou também nos tamanhos pequenos — confira se fica legível.",
     comAssinatura ? "A assinatura usa o endereço da imagem: hospede assinatura-logo-600.png no site e troque o endereço." : "",
     "",
-    "Margens padrão. No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.",
+    ...linhasDasRegras,
+    "",
+    "No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.",
     "",
   ].filter((l, i, todas) => l !== "" || todas[i - 1] !== "").join("\n");
 }
