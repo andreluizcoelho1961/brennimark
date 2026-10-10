@@ -136,7 +136,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
               <p className="text-[12.5px] leading-snug text-platform-text-muted">Vêm dos Materiais da marca. Para trocar, atualize lá.</p>
             </div>
           ) : (<>
-          <Envio rotulo="Logotipo" dica="SVG é o ideal · PNG a partir de 1024 px" atributo="logo" desenho={logo} aoEscolher={(f) => receber("logo", f)} grande />
+          <Envio rotulo="Logotipo" dica="SVG, PDF ou AI é o ideal · PNG a partir de 1024 px" atributo="logo" desenho={logo} aoEscolher={(f) => receber("logo", f)} grande />
           <details className="text-sm text-platform-text-muted">
             <summary className="cursor-pointer">Tem símbolo separado ou versão negativa?</summary>
             <div className="mt-3 flex flex-col gap-3">
@@ -306,7 +306,7 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
       onDrop={(e) => { e.preventDefault(); setArrastando(false); aoEscolher(e.dataTransfer.files[0]); }}
       className={`flex cursor-pointer flex-col items-center gap-2 rounded-[var(--radius-panel)] border border-dashed p-4 text-center ${arrastando ? "border-platform-text" : "border-platform-border"}`}
     >
-      <input data-kit-arquivo={atributo} type="file" accept=".svg,image/svg+xml,image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => aoEscolher(e.target.files?.[0])} />
+      <input data-kit-arquivo={atributo} type="file" accept=".svg,.pdf,.ai,image/svg+xml,application/pdf,image/png,image/jpeg,image/webp,image/gif,image/avif" className="sr-only" onChange={(e) => aoEscolher(e.target.files?.[0])} />
       <div ref={previa} className={`grid w-full place-items-center rounded-[var(--radius-control)] ${grande ? "h-24" : "h-14"} ${escuro ? "bg-[#111418]" : ""}`} />
       <span className="text-sm font-medium text-platform-text">{desenho ? `${rotulo} ✓` : rotulo}</span>
       <span className="text-[12px] text-platform-text-muted">{desenho ? "clique para trocar" : `arraste aqui ou clique · ${dica}`}</span>

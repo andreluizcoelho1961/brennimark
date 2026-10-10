@@ -34,7 +34,7 @@ const PORTA = 3210;
  * defeito produzia resultados diferentes em máquinas diferentes.
  */
 const NOS_TRES_MOTORES =
-  /(^|\/)(importador|visualizador|navegacao-do-manual|limites-de-erro|utilidades-contratadas)[^/]*\.spec\.ts$/;
+  /(^|\/)(importador|visualizador|navegacao-do-manual|limites-de-erro|utilidades-contratadas|kit-formatos)[^/]*\.spec\.ts$/;
 
 
 export default defineConfig({
