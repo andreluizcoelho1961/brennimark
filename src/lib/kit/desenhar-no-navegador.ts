@@ -3,7 +3,7 @@
 import { zip, type Zippable } from "fflate";
 import { pastaDoGrupo, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "./tamanhos";
 import {
-  alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, favicoIco, leiaMe, manifestDoSite, trechoDoHead, type DadosDaAssinatura,
+  abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, favicoIco, leiaMe, manifestDoSite, trechoDoHead, type DadosDaAssinatura, type ReducaoMinima,
 } from "./pacote";
 
 /**
@@ -36,6 +36,10 @@ export type Escolhas = {
   fundo: Fundo;
   margem: number;
   usarSimboloNosPequenos: boolean;
+  /** Área de proteção informada pela pessoa, em fração da altura do desenho. */
+  protecao: number;
+  /** Redução mínima informada pela pessoa, largura em px. */
+  reducao: ReducaoMinima;
 };
 
 const LADO_MAXIMO = 3000;
@@ -208,6 +212,17 @@ function desenhoDoItem(item: ItemDoKit, e: Escolhas): Desenho {
   return e.logo;
 }
 
+/**
+ * Onde o desenho cai neste item, e se ficou abaixo da redução mínima — a
+ * mesma conta do desenho, para o aviso da tela dizer a verdade sobre o arquivo.
+ */
+export function medirItem(item: ItemDoKit, e: Escolhas): { largura: number; abaixoDe: number | null } {
+  const d = desenhoDoItem(item, e);
+  const r = encaixe(item, d, e.margem, e.protecao);
+  const qual = d === e.simbolo ? "simbolo" : "logo";
+  return { largura: r.largura, abaixoDe: abaixoDaReducao(item, r.largura, qual, e.reducao) };
+}
+
 /** Desenha um item. `escala` < 1 serve à prévia; o pacote usa 1. */
 export function desenharItem(item: ItemDoKit, e: Escolhas, escala = 1): HTMLCanvasElement {
   const d = desenhoDoItem(item, e);
@@ -233,7 +248,7 @@ export function desenharItem(item: ItemDoKit, e: Escolhas, escala = 1): HTMLCanv
   if (tom === "negativo") fonte = e.negativo && d === e.logo ? e.negativo.fonte : umaCor(d, "#ffffff");
   if (tom === "uma-cor") fonte = umaCor(d, UMA_COR);
 
-  const r = encaixe(item, d, e.margem);
+  const r = encaixe(item, d, e.margem, e.protecao);
   x.drawImage(fonte, r.x, r.y, r.largura, r.altura);
   return c;
 }
@@ -300,7 +315,8 @@ export async function montarPacote(
     if (e.logo.svg) conteudo["apresentacao/logotipo.svg"] = [texto(e.logo.svg), { level: 6 }];
     if (e.simbolo?.svg) conteudo["apresentacao/simbolo.svg"] = [texto(e.simbolo.svg), { level: 6 }];
   }
-  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"))), { level: 6 }];
+  const abaixo = itens.map((i) => ({ i, m: medirItem(i, e) })).filter((x) => x.m.abaixoDe).map((x) => `${pastaDoGrupo(x.i.grupo)}/${x.i.arquivo} (${Math.round(x.m.largura)} px; mínimo ${x.m.abaixoDe} px)`);
+  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo })), { level: 6 }];
 
   const bytes = await new Promise<Uint8Array>((resolver, rejeitar) => zip(conteudo, (erro, dados) => (erro ? rejeitar(erro) : resolver(dados))));
   return new Blob([bytes as BlobPart], { type: "application/zip" });

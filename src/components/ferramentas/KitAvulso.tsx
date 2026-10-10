@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GRUPOS_DO_KIT, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "@/lib/kit/tamanhos";
 import { assinaturaHtml, type DadosDaAssinatura } from "@/lib/kit/pacote";
 import {
-  carregarDesenho, contarArquivos, desenharItem, fundoEscuro, itensDoPacote, montarPacote, type Desenho, type Escolhas, type Fundo,
+  carregarDesenho, contarArquivos, desenharItem, medirItem, fundoEscuro, itensDoPacote, montarPacote, type Desenho, type Escolhas, type Fundo,
 } from "@/lib/kit/desenhar-no-navegador";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
 
@@ -27,6 +27,15 @@ const PILULA = "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13
 
 type Arquivo = "logo" | "simbolo" | "negativo";
 
+/** Só dígitos e uma vírgula/ponto: o campo aceita "25" ou "12,5". */
+function soNumero(v: string): string {
+  return v.replace(/[^\d.,]/g, "").replace(/([.,].*)[.,]/g, "$1").slice(0, 6);
+}
+function numero(v: string): number {
+  const n = parseFloat(v.replace(",", "."));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 export function KitAvulso() {
   const [logo, setLogo] = useState<Desenho | null>(null);
   const [simbolo, setSimbolo] = useState<Desenho | null>(null);
@@ -35,6 +44,9 @@ export function KitAvulso() {
   const [fundo, setFundo] = useState<Fundo>({ tipo: "branco", cor: "#0b4f9e" });
   const [margem, setMargem] = useState(14);
   const [usarSimbolo, setUsarSimbolo] = useState(true);
+  const [protecao, setProtecao] = useState("");
+  const [reducaoLogo, setReducaoLogo] = useState("");
+  const [reducaoSimbolo, setReducaoSimbolo] = useState("");
   const [aba, setAba] = useState<Grupo>("site");
   const [nome, setNome] = useState("");
   const [dados, setDados] = useState<DadosDaAssinatura & { enderecoDoLogo: string }>({
@@ -43,8 +55,12 @@ export function KitAvulso() {
   const [gerando, setGerando] = useState<{ prontos: number; total: number } | null>(null);
 
   const escolhas: Escolhas | null = useMemo(
-    () => (logo ? { logo, simbolo, negativo, fundo, margem: margem / 100, usarSimboloNosPequenos: usarSimbolo } : null),
-    [logo, simbolo, negativo, fundo, margem, usarSimbolo],
+    () => (logo ? {
+      logo, simbolo, negativo, fundo, margem: margem / 100, usarSimboloNosPequenos: usarSimbolo,
+      protecao: numero(protecao) / 100,
+      reducao: { logo: numero(reducaoLogo) || null, simbolo: numero(reducaoSimbolo) || null },
+    } : null),
+    [logo, simbolo, negativo, fundo, margem, usarSimbolo, protecao, reducaoLogo, reducaoSimbolo],
   );
 
   async function receber(tipo: Arquivo, arquivo: File | undefined) {
@@ -81,6 +97,7 @@ export function KitAvulso() {
     ? ["Sobre fundo escuro, o Kit faz o logo em branco: as partes escuras viram branco e as claras deixam o fundo aparecer. Se a marca tem versão negativa própria, envie-a no passo 1."]
     : [];
   const avisosDoLogo = [...(logo?.avisos ?? []), ...(simbolo?.avisos ?? [])];
+  const abaixoDaReducao = escolhas ? itensDoPacote(GRUPOS_DO_KIT.map((g) => g.id), escolhas).filter((i) => medirItem(i, escolhas).abaixoDe).length : 0;
   const totalDeArquivos = escolhas ? contarArquivos(GRUPOS_DO_KIT.map((g) => g.id), escolhas) : null;
 
   return (
@@ -138,6 +155,29 @@ export function KitAvulso() {
               <input type="checkbox" checked={usarSimbolo} onChange={(e) => setUsarSimbolo(e.target.checked)} />
               Usar o símbolo nos ícones e perfis
             </label>
+          )}
+          <div data-kit-regras className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-platform-border p-3">
+            <div>
+              <span className={ROTULO}>Regras da marca</span>
+              <p className="mt-1 text-[12.5px] leading-snug text-platform-text-muted">Estão no manual da marca, nas páginas de área de proteção e redução mínima. Deixe em branco o que o manual não define.</p>
+            </div>
+            <label className="flex flex-col gap-1">
+              <span className="text-[13px] text-platform-text">Área de proteção · % da altura do logo</span>
+              <input data-kit-protecao inputMode="decimal" className={CAMPO} value={protecao} onChange={(e) => setProtecao(soNumero(e.target.value))} placeholder="Ex.: 25 (um quarto da altura livre em volta)" />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[13px] text-platform-text">Redução mínima do logotipo · largura em px</span>
+              <input data-kit-reducao-logo inputMode="numeric" className={CAMPO} value={reducaoLogo} onChange={(e) => setReducaoLogo(soNumero(e.target.value))} placeholder="Ex.: 120" />
+            </label>
+            {simbolo && (
+              <label className="flex flex-col gap-1">
+                <span className="text-[13px] text-platform-text">Redução mínima do símbolo · largura em px</span>
+                <input data-kit-reducao-simbolo inputMode="numeric" className={CAMPO} value={reducaoSimbolo} onChange={(e) => setReducaoSimbolo(soNumero(e.target.value))} placeholder="Ex.: 24" />
+              </label>
+            )}
+          </div>
+          {abaixoDaReducao > 0 && (
+            <Aviso texto={`${abaixoDaReducao} arquivo(s) ficam abaixo da redução mínima que você informou — marcados na lista. Nos ícones pequenos, um símbolo separado costuma resolver.`} />
           )}
         </section>
 
@@ -248,6 +288,7 @@ function Tela({ item, escolhas, escala, className, estilo }: { item: ItemDoKit; 
 function Miniatura({ item, escolhas }: { item: ItemDoKit; escolhas: Escolhas }) {
   const escala = Math.min(1, 200 / Math.max(item.largura, item.altura || item.largura));
   const xadrez = item.formato === "transparente" || escolhas.fundo.tipo === "transparente";
+  const abaixoDe = medirItem(item, escolhas).abaixoDe;
   return (
     <figure data-kit-miniatura={item.arquivo} className="flex flex-col gap-2 rounded-[var(--radius-panel)] border border-platform-border bg-platform-panel p-2.5">
       <div className="grid h-28 place-items-center overflow-hidden rounded-[var(--radius-control)]"
@@ -258,6 +299,7 @@ function Miniatura({ item, escolhas }: { item: ItemDoKit; escolhas: Escolhas }) 
         <b className="text-[12.5px] font-medium text-platform-text">{item.nome}</b>
         <span className="font-mono text-[11px] text-platform-text-muted">{item.largura} × {item.altura || "auto"}</span>
         {item.obs && <span className="text-[11px] leading-snug text-platform-text-muted">{item.obs}</span>}
+        {abaixoDe && <span data-kit-abaixo className="text-[11px] font-medium leading-snug text-platform-warning">abaixo da redução mínima ({abaixoDe} px)</span>}
         {item.fonte.tipo === "conferido" && (
           <a href={item.fonte.url} target="_blank" rel="noreferrer" className="text-[11px] text-platform-text-muted underline">medida conferida na documentação</a>
         )}

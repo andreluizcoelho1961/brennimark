@@ -93,3 +93,27 @@ test("a assinatura mostra o que a pessoa digita, sem executar marcação", async
   await expect(previa).toContainText("Ana <img src=x onerror=alert(1)>");
   await expect(previa.locator("img")).toHaveCount(1); // só o logo
 });
+
+test("as regras informadas pela pessoa: área de proteção aplicada e redução mínima avisada no arquivo e no LEIA-ME", async ({ page }) => {
+  await page.goto("/ferramentas/kit");
+  await page.locator("[data-kit-arquivo=logo]").setInputFiles({ name: "acme.svg", mimeType: "image/svg+xml", buffer: LOGO });
+  await page.locator("summary").click();
+  await page.locator("[data-kit-arquivo=simbolo]").setInputFiles({ name: "acme-simbolo.svg", mimeType: "image/svg+xml", buffer: SIMBOLO });
+  await expect(page.locator("[data-kit-abaixo]")).toHaveCount(0);
+
+  await page.locator("[data-kit-protecao]").fill("25");
+  await page.locator("[data-kit-reducao-simbolo]").fill("24");
+  // O símbolo no favicon de 16 px fica abaixo dos 24 px; no ícone do iPhone (180), não.
+  await expect(page.locator("[data-kit-miniatura='favicon-16.png'] [data-kit-abaixo]")).toHaveText("abaixo da redução mínima (24 px)");
+  await expect(page.locator("[data-kit-miniatura='apple-touch-icon.png'] [data-kit-abaixo]")).toHaveCount(0);
+  await expect(page.locator("[data-kit-aviso]").filter({ hasText: "abaixo da redução mínima" })).toBeVisible();
+
+  const baixando = page.waitForEvent("download");
+  await page.locator("[data-kit-baixar-tudo]").click();
+  const zip = unzipSync(new Uint8Array(await readFile((await (await baixando).path())!)));
+  const leia = strFromU8(zip["LEIA-ME.txt"]);
+  expect(leia).toContain("Área de proteção aplicada: 25% da altura do logo");
+  expect(leia).toContain("Redução mínima do símbolo: 24 px");
+  expect(leia).toContain("site/favicon-16.png");
+  expect(leia).not.toContain("site/apple-touch-icon.png (");
+});
