@@ -95,3 +95,4 @@
 20261008183320 exclusao_aos_12_meses
 20261008212730 pedidos_de_exportacao
 20261009125159 exportacao_no_navegador
+20261010135920 regras_do_logo
