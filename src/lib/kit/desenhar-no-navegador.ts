@@ -32,7 +32,10 @@ export type Desenho = {
 export type Fundo = { tipo: "branco" | "escuro" | "cor" | "transparente"; cor: string };
 
 export type Escolhas = {
+  /** O logotipo das faixas largas — o horizontal, quando a marca tem os dois. */
   logo: Desenho;
+  /** O logotipo vertical, para quadrados e círculos quando não há símbolo. */
+  vertical: Desenho | null;
   simbolo: Desenho | null;
   negativo: Desenho | null;
   fundo: Fundo;
@@ -279,9 +282,16 @@ function calcularUmaCor(d: Desenho, cor: string): HTMLCanvasElement {
   return c;
 }
 
+/** O desenho dos quadrados e círculos: o símbolo, senão o vertical, senão o logotipo. */
+function desenhoPequeno(e: Escolhas): Desenho {
+  if (e.usarSimboloNosPequenos && e.simbolo) return e.simbolo;
+  return e.vertical ?? e.logo;
+}
+
 function desenhoDoItem(item: ItemDoKit, e: Escolhas): Desenho {
   if (item.desenho === "simbolo") return e.simbolo ?? e.logo;
-  if (item.desenho === "pequeno" && e.usarSimboloNosPequenos && e.simbolo) return e.simbolo;
+  if (item.desenho === "vertical") return e.vertical ?? e.logo;
+  if (item.desenho === "pequeno") return desenhoPequeno(e);
   return e.logo;
 }
 
@@ -335,17 +345,17 @@ function pngDe(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 const texto = (s: string) => new TextEncoder().encode(s);
 
 /** Os itens que entram, conforme o que foi enviado (sem símbolo, sem arquivo de símbolo). */
-export function itensDoPacote(grupos: readonly Grupo[], e: Pick<Escolhas, "simbolo">): ItemDoKit[] {
-  return ITENS_DO_KIT.filter((i) => grupos.includes(i.grupo) && !(i.desenho === "simbolo" && !e.simbolo));
+export function itensDoPacote(grupos: readonly Grupo[], e: Pick<Escolhas, "simbolo" | "vertical">): ItemDoKit[] {
+  return ITENS_DO_KIT.filter((i) => grupos.includes(i.grupo) && !(i.desenho === "simbolo" && !e.simbolo) && !(i.desenho === "vertical" && !e.vertical));
 }
 
 /** Quantos arquivos o pacote terá — o mesmo critério de `montarPacote`. */
 export function contarArquivos(grupos: readonly Grupo[], e: Escolhas): number {
-  const svgPequeno = (e.usarSimboloNosPequenos && e.simbolo ? e.simbolo : e.logo).svg;
+  const svgPequeno = desenhoPequeno(e).svg;
   let extras = 1; // LEIA-ME
   if (grupos.includes("site")) extras += 3 + (svgPequeno ? 1 : 0); // .ico, manifest, trecho, svg
   if (grupos.includes("email")) extras += 1;
-  if (grupos.includes("apresentacao")) extras += (e.logo.svg ? 1 : 0) + (e.simbolo?.svg ? 1 : 0);
+  if (grupos.includes("apresentacao")) extras += (e.logo.svg ? 1 : 0) + (e.vertical?.svg ? 1 : 0) + (e.simbolo?.svg ? 1 : 0);
   return itensDoPacote(grupos, e).length + extras;
 }
 
@@ -371,7 +381,7 @@ export async function montarPacote(
 
   if (grupos.includes("site")) {
     conteudo["site/favicon.ico"] = [favicoIco(icos), { level: 0 }];
-    const svgPequeno = (e.usarSimboloNosPequenos && e.simbolo ? e.simbolo : e.logo).svg;
+    const svgPequeno = desenhoPequeno(e).svg;
     if (svgPequeno) conteudo["site/favicon.svg"] = [texto(svgPequeno), { level: 6 }];
     conteudo["site/site.webmanifest"] = [texto(manifestDoSite(nome || "Site", corDoFundo(e.fundo) ?? "#ffffff")), { level: 6 }];
     conteudo["site/COLE-NO-SITE.html"] = [texto(trechoDoHead(Boolean(svgPequeno))), { level: 6 }];
@@ -386,6 +396,7 @@ export async function montarPacote(
   }
   if (grupos.includes("apresentacao")) {
     if (e.logo.svg) conteudo["apresentacao/logotipo.svg"] = [texto(e.logo.svg), { level: 6 }];
+    if (e.vertical?.svg) conteudo["apresentacao/logotipo-vertical.svg"] = [texto(e.vertical.svg), { level: 6 }];
     if (e.simbolo?.svg) conteudo["apresentacao/simbolo.svg"] = [texto(e.simbolo.svg), { level: 6 }];
   }
   const abaixo = itens.map((i) => ({ i, m: medirItem(i, e) })).filter((x) => x.m.abaixoDe).map((x) => `${pastaDoGrupo(x.i.grupo)}/${x.i.arquivo} (${Math.round(x.m.largura)} px; mínimo ${x.m.abaixoDe} px)`);

@@ -2,17 +2,21 @@ import { NextResponse } from "next/server";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { COLUNAS_DAS_REGRAS, CHAVES_DAS_REGRAS, deLinhaDaRegra, type ChaveDaRegra, type RegraDoLogo } from "@/lib/kit/regras";
 import { escolherDesenhos, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
+import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 
 /**
  * O Kit do assinante (10/10/2026): as regras do logo da marca e os desenhos
  * dos Materiais.
  *
  * GET   regras (pela sessão: a RLS só devolve a quem consulta esta marca),
- *       os desenhos escolhidos nos Materiais e o que a pessoa pode fazer;
+ *       os desenhos escolhidos nos Materiais, TODAS as versões de logo e
+ *       símbolo com a miniatura (para a pessoa trocar) e o que ela pode fazer;
  * PATCH quem edita corrige o valor de uma regra (o banco devolve a rascunho e
  *       anota `origem = 'pessoa'`).
  */
 const SEM_CACHE = { "Cache-Control": "private, no-store" };
+/** Como nos Materiais: a miniatura se vê por 10 minutos e não é o arquivo. */
+const VALIDADE_DA_MINIATURA_S = 600;
 
 export async function GET(request: Request) {
   const r = await conteudoDaRota(request);
@@ -24,14 +28,25 @@ export async function GET(request: Request) {
   const [regras, variantes, paleta] = await Promise.all([
     auth.supabase.from("regras_do_logo").select(COLUNAS_DAS_REGRAS).eq("brand_id", brandId),
     auth.supabase.from("brand_assets")
-      .select("id, item_id, file_name, mime_type, hierarquia, lockup, cor, polaridade, espaco_de_cor, brand_asset_items!inner(tipo)")
-      .eq("brand_id", brandId).is("descontinuado_em", null)
+      .select("id, item_id, label, file_name, mime_type, hierarquia, lockup, cor, polaridade, espaco_de_cor, miniatura_path, brand_asset_items!inner(tipo)")
+      .eq("workspace_id", auth.workspaceId).eq("brand_id", brandId).is("descontinuado_em", null)
       .in("brand_asset_items.tipo", ["logo", "icone"]),
     // Só cor APROVADA vira opção de fundo em silêncio (ADR-0004 §3.2).
     auth.supabase.from("paleta_da_marca").select("hex").eq("brand_id", brandId).eq("status", "ready").not("hex", "is", null).order("ordem"),
   ]);
   if (regras.error || variantes.error) {
     return NextResponse.json({ message: "Não foi possível ler os Materiais da marca." }, { status: 503, headers: SEM_CACHE });
+  }
+
+  // As miniaturas, assinadas com a SESSÃO numa ida só, e só as da pasta desta
+  // marca (a constraint do banco garante; a rota não confia sozinha nisso).
+  const caminhos = (variantes.data ?? [])
+    .map((l: Record<string, unknown>) => l.miniatura_path as string | null)
+    .filter((c): c is string => Boolean(c) && pertenceAMarca(c!, auth.workspaceId, brandId));
+  const miniaturas = new Map<string, string>();
+  if (caminhos.length > 0) {
+    const { data: assinadas } = await auth.supabase.storage.from(BUCKETS.assets).createSignedUrls(caminhos, VALIDADE_DA_MINIATURA_S);
+    for (const a of assinadas ?? []) if (a.path && a.signedUrl) miniaturas.set(a.path, a.signedUrl);
   }
 
   const lista: VarianteDoKit[] = (variantes.data ?? []).map((l: Record<string, unknown>) => {
@@ -41,6 +56,8 @@ export async function GET(request: Request) {
       id: String(l.id), itemId: String(l.item_id), tipo, arquivo: String(l.file_name ?? ""), mime: String(l.mime_type ?? ""),
       hierarquia: (l.hierarquia as string | null) ?? null, lockup: (l.lockup as string | null) ?? null, cor: (l.cor as string | null) ?? null,
       polaridade: (l.polaridade as string | null) ?? null, espacoDeCor: (l.espaco_de_cor as string | null) ?? null,
+      rotulo: (l.label as string | null) ?? null,
+      miniatura: l.miniatura_path ? (miniaturas.get(String(l.miniatura_path)) ?? null) : null,
     };
   });
 
@@ -48,6 +65,7 @@ export async function GET(request: Request) {
     marca: contexto.brand.brand.name,
     regras: (regras.data ?? []).map((l) => deLinhaDaRegra(l as Record<string, unknown>)).filter((x): x is RegraDoLogo => x !== null),
     desenhos: escolherDesenhos(lista),
+    versoes: lista,
     coresDaMarca: [...new Set((paleta.data ?? []).map((c) => String((c as { hex: string }).hex)))].slice(0, 12),
     podeEditar: contexto.capabilities.includes("editar"),
     podeAprovar: contexto.capabilities.includes("aprovar"),

@@ -88,3 +88,71 @@ test("marca sem logotipo nos Materiais: o Kit explica o que falta", async ({ pag
   await page.goto("/dev/kit-assinante");
   await expect(page.locator("[data-kit-sem-logo]")).toContainText("ainda não tem o logotipo nos Materiais");
 });
+
+test("as versões (10/10/2026): o Kit marca a melhor de cada papel, a pessoa troca, e só a escolhida é baixada", async ({ page }) => {
+  const HORIZONTAL = LOGO;
+  const VERTICAL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260"><circle cx="100" cy="80" r="70" fill="#0b4f9e"/><rect x="20" y="180" width="160" height="60" fill="#0b4f9e"/></svg>`;
+  const SIMBOLO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="50" fill="#0b4f9e"/></svg>`;
+  const base = { itemId: "i1", tipo: "logo", hierarquia: "principal", cor: "colorido", polaridade: "positivo", espacoDeCor: "rgb", miniatura: null };
+  const h = { ...base, id: "h", arquivo: "acme-h.svg", mime: "image/svg+xml", lockup: "horizontal" };
+  const h2 = { ...base, id: "h2", arquivo: "acme-h-mono.svg", mime: "image/svg+xml", lockup: "horizontal", cor: "monocromatico" };
+  const vert = { ...base, id: "vert", arquivo: "acme-v.svg", mime: "image/svg+xml", lockup: "vertical" };
+  const eps = { ...base, id: "eps", arquivo: "acme.eps", mime: "application/postscript", lockup: "horizontal", hierarquia: "secundario" };
+  const ico = { ...base, id: "ico", itemId: "i2", tipo: "icone", arquivo: "acme-s.svg", mime: "image/svg+xml", hierarquia: null, lockup: null };
+  const baixados: string[] = [];
+  await page.route("**/api/kit/regras", (r) => r.fulfill({ json: {
+    marca: "Acme", regras: [AREA, LOGO_MIN, SIMB_MIN], coresDaMarca: [], podeEditar: false, podeAprovar: false,
+    desenhos: { logo: h, vertical: vert, simbolo: ico, negativo: null, semLogoPorque: null },
+    versoes: [h, h2, vert, eps, ico],
+  } }));
+  await page.route("**/api/assets/kit", (r) => {
+    const id = (r.request().postDataJSON() as { ids: string[] }).ids[0];
+    baixados.push(id);
+    return r.fulfill({ json: { nome: "kit.zip", arquivos: [{ url: `https://storage.prova.test/${id}.svg`, caminho: `${id}.svg` }] } });
+  });
+  await page.route("https://storage.prova.test/**", (r) => {
+    const id = r.request().url().split("/").pop()!.replace(".svg", "");
+    const corpo = id === "vert" ? VERTICAL : id === "ico" ? SIMBOLO : HORIZONTAL;
+    return r.fulfill({ headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "image/svg+xml" }, body: corpo });
+  });
+  await page.goto("/dev/kit-assinante");
+
+  // A escolha do Kit já vem marcada; só as escolhidas foram baixadas.
+  const papel = (p: string) => page.locator(`[data-kit-papel=${p}]`);
+  await expect(papel("logo").locator("[data-kit-opcao=h]")).toHaveAttribute("aria-pressed", "true");
+  await expect(papel("vertical").locator("[data-kit-opcao=vert]")).toHaveAttribute("aria-pressed", "true");
+  await expect(papel("simbolo").locator("[data-kit-opcao=ico]")).toHaveAttribute("aria-pressed", "true");
+  await expect(papel("negativo")).toHaveCount(0);
+  await expect.poll(() => [...baixados].sort()).toEqual(["h", "ico", "vert"]);
+
+  // O EPS aparece, apagado, com o motivo.
+  await expect(papel("logo").locator("[data-kit-opcao=eps]")).toBeDisabled();
+  await expect(papel("logo")).toContainText("acme.eps");
+
+  // Trocar baixa só a nova; voltar não baixa de novo.
+  await papel("logo").locator("[data-kit-opcao=h2]").click();
+  await expect(papel("logo").locator("[data-kit-opcao=h2]")).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => baixados.filter((x) => x === "h2").length).toBe(1);
+  await papel("logo").locator("[data-kit-opcao=h]").click();
+  await expect(papel("logo").locator("[data-kit-opcao=h]")).toHaveAttribute("aria-pressed", "true");
+  await page.waitForTimeout(300);
+  expect(baixados.filter((x) => x === "h").length).toBe(1);
+
+  // O pacote traz o vertical na apresentação, em pé.
+  const baixando = page.waitForEvent("download");
+  await page.locator("[data-kit-baixar-tudo]").click();
+  const zip = unzipSync(new Uint8Array(await readFile((await (await baixando).path())!)));
+  const png = zip["apresentacao/logotipo-vertical-2000.png"];
+  expect(png, "o vertical entra na apresentação").toBeTruthy();
+  const dv = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  expect(dv.getUint32(20), "em pé: mais alto que largo").toBeGreaterThan(dv.getUint32(16));
+  expect(Object.keys(zip)).toContain("apresentacao/logotipo-vertical.svg");
+
+  // "Não usar" o símbolo: o pacote não leva o símbolo.
+  await papel("simbolo").locator("[data-kit-opcao=nenhuma]").click();
+  await expect(papel("simbolo").locator("[data-kit-opcao=nenhuma]")).toHaveAttribute("aria-pressed", "true");
+  const baixando2 = page.waitForEvent("download");
+  await page.locator("[data-kit-baixar-tudo]").click();
+  const zip2 = unzipSync(new Uint8Array(await readFile((await (await baixando2).path())!)));
+  expect(Object.keys(zip2)).not.toContain("apresentacao/simbolo-2000.png");
+});

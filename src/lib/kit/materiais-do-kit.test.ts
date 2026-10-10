@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escolherDesenhos, type VarianteDoKit } from "./materiais-do-kit";
+import { escolherDesenhos, nomeDaVariante, opcoesDoPapel, type VarianteDoKit } from "./materiais-do-kit";
 
 const v = (id: string, extra: Partial<VarianteDoKit>): VarianteDoKit => ({
   id, itemId: "i", tipo: "logo", arquivo: `${id}.png`, mime: "image/png",
@@ -58,4 +58,38 @@ test("só há logotipo em EPS: a tela diz o arquivo e o motivo, não 'não tem l
   assert.match(d.semLogoPorque ?? "", /logo\.eps/);
   assert.match(d.semLogoPorque ?? "", /EPS/);
   assert.equal(escolherDesenhos([]).semLogoPorque, null, "sem logo nenhum, a mensagem de sempre");
+});
+
+test("o vertical (10/10/2026): o melhor logotipo vertical vira papel próprio; sem horizontal, o logotipo cuida dos dois", () => {
+  const d = escolherDesenhos([v("h", {}), v("vert", { lockup: "vertical" }), v("vert-mono", { lockup: "vertical", cor: "monocromatico" })]);
+  assert.equal(d.logo?.id, "h");
+  assert.equal(d.vertical?.id, "vert");
+  assert.equal(escolherDesenhos([v("h", {})]).vertical, null, "sem vertical, nada");
+  const so = escolherDesenhos([v("vert", { lockup: "vertical" })]);
+  assert.equal(so.logo?.id, "vert");
+  assert.equal(so.vertical, null);
+});
+
+test("as opções de cada papel: da melhor para a pior; a que não abre vem por último, com o motivo", () => {
+  const todas = [
+    v("eps", { arquivo: "l.eps", mime: "application/postscript" }),
+    v("vert", { lockup: "vertical" }),
+    v("h", {}),
+    v("neg", { polaridade: "negativo" }),
+    v("ico", { tipo: "icone", hierarquia: null, lockup: null }),
+  ];
+  assert.deepEqual(opcoesDoPapel(todas, "logo").map((o) => o.variante.id), ["h", "vert", "eps"]);
+  assert.deepEqual(opcoesDoPapel(todas, "vertical").map((o) => o.variante.id), ["vert"], "no papel vertical, só o vertical");
+  assert.deepEqual(opcoesDoPapel(todas, "negativo").map((o) => o.variante.id), ["neg"]);
+  assert.deepEqual(opcoesDoPapel(todas, "simbolo").map((o) => o.variante.id), ["ico"]);
+  const eps = opcoesDoPapel(todas, "logo").at(-1)!;
+  assert.equal(eps.abre, false);
+  assert.match(eps.motivo ?? "", /EPS/);
+});
+
+test("o nome da versão: o rótulo dos Materiais, ou os atributos e o formato", () => {
+  assert.equal(nomeDaVariante(v("a", { arquivo: "a.svg" })), "Horizontal · colorido · SVG");
+  assert.equal(nomeDaVariante(v("a", { lockup: "vertical", cor: "monocromatico", polaridade: "negativo", arquivo: "a.ai" })), "Vertical · monocromático · negativo · AI");
+  assert.equal(nomeDaVariante(v("a", { rotulo: "Versão preferencial", arquivo: "a.pdf" })), "Versão preferencial · PDF");
+  assert.equal(nomeDaVariante(v("a", { tipo: "icone", hierarquia: null, lockup: null, cor: null, polaridade: null, arquivo: "a.png" })), "Símbolo · PNG");
 });
