@@ -303,28 +303,35 @@ a[class~="border"][class~="bg-platform-panel"]:not(.bm-site *, [data-brand-canva
   transition-duration: 80ms;
 }
 
-/* Botão preenchido (a ação principal): cantos, um brilho sutil de cima para
+/* Botão preenchido (a ação principal) — `bg-platform-signal` ou
+   `bg-platform-text`, os dois jeitos que o produto escreve o mesmo botão: cantos, um brilho sutil de cima para
    baixo — por `background-image`, que não briga com a cor da utilidade — e o
    mesmo "afundar" ao clicar. */
-:is(button, a)[class~="bg-platform-signal"]:not(.bm-site *, [data-brand-canvas] *) {
+:is(button, a):is([class~="bg-platform-signal"], [class~="bg-platform-text"]):not(.bm-site *, [data-brand-canvas] *) {
   background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.1), rgb(255 255 255 / 0) 60%);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), var(--sombra-1);
   transition: filter var(--motion-control) var(--ease-shell), box-shadow var(--motion-control) var(--ease-shell), transform var(--motion-control) var(--ease-mola);
 }
-:is(button, a)[class~="bg-platform-signal"]:not([class*="rounded"], .bm-site *, [data-brand-canvas] *) {
+:is(button, a):is([class~="bg-platform-signal"], [class~="bg-platform-text"]):not([class*="rounded"], .bm-site *, [data-brand-canvas] *) {
   border-radius: var(--radius-control);
 }
-:is(button, a)[class~="bg-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):hover {
+:is(button, a):is([class~="bg-platform-signal"], [class~="bg-platform-text"]):not(:disabled, .bm-site *, [data-brand-canvas] *):hover {
   filter: brightness(1.12);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.16), var(--sombra-2);
 }
-:is(button, a)[class~="bg-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):active {
+:is(button, a):is([class~="bg-platform-signal"], [class~="bg-platform-text"]):not(:disabled, .bm-site *, [data-brand-canvas] *):active {
   transform: scale(0.98);
   filter: brightness(0.96);
   transition-duration: 80ms;
 }
-:root[data-tema="escuro"] :is(button, a)[class~="bg-platform-signal"]:not(:disabled, .bm-site *, [data-brand-canvas] *):hover {
+:root[data-tema="escuro"] :is(button, a):is([class~="bg-platform-signal"], [class~="bg-platform-text"]):not(:disabled, .bm-site *, [data-brand-canvas] *):hover {
   filter: brightness(1.04);
+}
+
+/* Botão leve (contorno fino, `border-platform-border`): só os cantos — o
+   hover dele muda a borda, e isso fica com a utilidade. */
+:is(button, a)[class~="border"][class~="border-platform-border"]:not([class*="rounded"], .bm-site *, [data-brand-canvas] *) {
+  border-radius: var(--radius-control);
 }
 
 /* Cantos: campo e painel que não declaram arredondamento ganham o da escala
