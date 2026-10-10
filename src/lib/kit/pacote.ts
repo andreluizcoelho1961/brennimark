@@ -179,13 +179,21 @@ export function assinaturaHtml(d: DadosDaAssinatura, enderecoDoLogo: string, lar
     + `</td></tr></table>`;
 }
 
-export type RegrasInformadas = { protecao: number; reducao: ReducaoMinima; abaixo: string[] };
+/**
+ * As regras aplicadas e de onde vieram. Sem `fontes`, foram informadas pela
+ * pessoa (Kit gratuito); com `fontes`, vieram do manual (Kit do assinante),
+ * e cada uma diz a página e se está aprovada.
+ */
+export type RegrasInformadas = {
+  protecao: number; reducao: ReducaoMinima; abaixo: string[];
+  fontes?: Partial<Record<"protecao" | "logo" | "simbolo", string>>;
+};
 
 export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean, regras?: RegrasInformadas): string {
   const linhasDasRegras = !regras ? [] : [
-    regras.protecao > 0 ? `Área de proteção aplicada: ${Math.round(regras.protecao * 100)}% da altura do logo, informada por você.` : "",
-    regras.reducao.logo ? `Redução mínima do logotipo: ${regras.reducao.logo} px de largura, informada por você.` : "",
-    regras.reducao.simbolo ? `Redução mínima do símbolo: ${regras.reducao.simbolo} px de largura, informada por você.` : "",
+    regras.protecao > 0 ? `Área de proteção aplicada: ${Math.round(regras.protecao * 100)}% da altura do logo, ${regras.fontes?.protecao ?? "informada por você"}.` : "",
+    regras.reducao.logo ? `Redução mínima do logotipo: ${regras.reducao.logo} px de largura, ${regras.fontes?.logo ?? "informada por você"}.` : "",
+    regras.reducao.simbolo ? `Redução mínima do símbolo: ${regras.reducao.simbolo} px de largura, ${regras.fontes?.simbolo ?? "informada por você"}.` : "",
     ...(regras.abaixo.length ? ["", "ATENÇÃO — nestes arquivos o desenho ficou abaixo da redução mínima:", ...regras.abaixo.map((a) => `  ${a}`)] : []),
   ];
   return [
@@ -205,7 +213,7 @@ export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean
     "",
     ...linhasDasRegras,
     "",
-    "No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.",
+    regras?.fontes ? "" : "No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.",
     "",
   ].filter((l, i, todas) => l !== "" || todas[i - 1] !== "").join("\n");
 }

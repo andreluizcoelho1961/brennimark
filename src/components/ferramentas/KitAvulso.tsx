@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { GRUPOS_DO_KIT, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "@/lib/kit/tamanhos";
-import { assinaturaHtml, type DadosDaAssinatura } from "@/lib/kit/pacote";
+import { assinaturaHtml, type DadosDaAssinatura, type ReducaoMinima, type RegrasInformadas } from "@/lib/kit/pacote";
 import {
   carregarDesenho, contarArquivos, desenharItem, medirItem, fundoEscuro, itensDoPacote, montarPacote, type Desenho, type Escolhas, type Fundo,
 } from "@/lib/kit/desenhar-no-navegador";
@@ -15,10 +15,25 @@ import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
  * (especificação v2). Três passos numa tela só: logo, ajustes, baixar; à
  * direita, a prévia de cada grupo em contexto e a lista de arquivos.
  *
- * Esta versão não lê manual nenhum: margens padrão, ajustáveis. A versão do
- * assinante, dentro da plataforma, lê os Materiais e aplica as regras do
- * manual com citação — fatia seguinte.
+ * Duas versões, um componente (decisão do André, 10/10/2026):
+ *   - gratuita: a pessoa sobe o logo e INFORMA as regras da marca;
+ *   - assinante (`fixo`): os desenhos vêm dos Materiais e as regras do manual
+ *     (`KitDoAssinante` lê e passa prontos); o painel de regras mostra o que
+ *     foi lido, de onde e se está aprovado.
  */
+
+export type KitFixo = {
+  logo: Desenho;
+  simbolo: Desenho | null;
+  negativo: Desenho | null;
+  nome: string;
+  protecao: number;
+  reducao: ReducaoMinima;
+  fontes: RegrasInformadas["fontes"];
+  /** As cores aprovadas da paleta, para o fundo "cor da marca". */
+  coresDaMarca: string[];
+  painelDeRegras: ReactNode;
+};
 
 const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
 const PASSO = "font-display text-[17px] font-semibold tracking-tight text-platform-text";
@@ -36,19 +51,22 @@ function numero(v: string): number {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
-export function KitAvulso() {
-  const [logo, setLogo] = useState<Desenho | null>(null);
-  const [simbolo, setSimbolo] = useState<Desenho | null>(null);
-  const [negativo, setNegativo] = useState<Desenho | null>(null);
+export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
+  const [logoEnviado, setLogo] = useState<Desenho | null>(null);
+  const [simboloEnviado, setSimbolo] = useState<Desenho | null>(null);
+  const [negativoEnviado, setNegativo] = useState<Desenho | null>(null);
+  const logo = fixo ? fixo.logo : logoEnviado;
+  const simbolo = fixo ? fixo.simbolo : simboloEnviado;
+  const negativo = fixo ? fixo.negativo : negativoEnviado;
   const [erro, setErro] = useState("");
-  const [fundo, setFundo] = useState<Fundo>({ tipo: "branco", cor: "#0b4f9e" });
+  const [fundo, setFundo] = useState<Fundo>({ tipo: "branco", cor: fixo?.coresDaMarca[0] ?? "#0b4f9e" });
   const [margem, setMargem] = useState(14);
   const [usarSimbolo, setUsarSimbolo] = useState(true);
   const [protecao, setProtecao] = useState("");
   const [reducaoLogo, setReducaoLogo] = useState("");
   const [reducaoSimbolo, setReducaoSimbolo] = useState("");
   const [aba, setAba] = useState<Grupo>("site");
-  const [nome, setNome] = useState("");
+  const [nome, setNome] = useState(fixo?.nome ?? "");
   const [dados, setDados] = useState<DadosDaAssinatura & { enderecoDoLogo: string }>({
     nome: "Seu nome", cargo: "Cargo", telefone: "(51) 0000-0000", site: "suaempresa.com.br", empresa: "", enderecoDoLogo: "",
   });
@@ -57,10 +75,11 @@ export function KitAvulso() {
   const escolhas: Escolhas | null = useMemo(
     () => (logo ? {
       logo, simbolo, negativo, fundo, margem: margem / 100, usarSimboloNosPequenos: usarSimbolo,
-      protecao: numero(protecao) / 100,
-      reducao: { logo: numero(reducaoLogo) || null, simbolo: numero(reducaoSimbolo) || null },
+      protecao: fixo ? fixo.protecao : numero(protecao) / 100,
+      reducao: fixo ? fixo.reducao : { logo: numero(reducaoLogo) || null, simbolo: numero(reducaoSimbolo) || null },
+      fontesDasRegras: fixo?.fontes,
     } : null),
-    [logo, simbolo, negativo, fundo, margem, usarSimbolo, protecao, reducaoLogo, reducaoSimbolo],
+    [logo, simbolo, negativo, fundo, margem, usarSimbolo, protecao, reducaoLogo, reducaoSimbolo, fixo],
   );
 
   async function receber(tipo: Arquivo, arquivo: File | undefined) {
@@ -94,7 +113,7 @@ export function KitAvulso() {
   }
 
   const avisosDoFundo = escolhas && fundoEscuro(fundo) && !negativo
-    ? ["Sobre fundo escuro, o Kit faz o logo em branco: as partes escuras viram branco e as claras deixam o fundo aparecer. Se a marca tem versão negativa própria, envie-a no passo 1."]
+    ? [`Sobre fundo escuro, o Kit faz o logo em branco: as partes escuras viram branco e as claras deixam o fundo aparecer. ${fixo ? "Se a marca tem versão negativa, cadastre-a nos Materiais (polaridade negativa)." : "Se a marca tem versão negativa própria, envie-a no passo 1."}`]
     : [];
   const avisosDoLogo = [...(logo?.avisos ?? []), ...(simbolo?.avisos ?? [])];
   const abaixoDaReducao = escolhas ? itensDoPacote(GRUPOS_DO_KIT.map((g) => g.id), escolhas).filter((i) => medirItem(i, escolhas).abaixoDe).length : 0;
@@ -107,6 +126,16 @@ export function KitAvulso() {
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo 1</p>
           <h2 className={PASSO}>O logo</h2>
+          {fixo ? (
+            <div data-kit-dos-materiais className="flex flex-col gap-2">
+              <Previa rotulo="Logotipo" desenho={fixo.logo} grande />
+              <div className="grid grid-cols-2 gap-2">
+                <Previa rotulo={fixo.simbolo ? "Símbolo" : "Sem símbolo nos Materiais"} desenho={fixo.simbolo} />
+                <Previa rotulo={fixo.negativo ? "Negativo" : "Sem negativo nos Materiais"} desenho={fixo.negativo} escuro />
+              </div>
+              <p className="text-[12.5px] leading-snug text-platform-text-muted">Vêm dos Materiais da marca. Para trocar, atualize lá.</p>
+            </div>
+          ) : (<>
           <Envio rotulo="Logotipo" dica="SVG é o ideal · PNG a partir de 1024 px" atributo="logo" desenho={logo} aoEscolher={(f) => receber("logo", f)} grande />
           <details className="text-sm text-platform-text-muted">
             <summary className="cursor-pointer">Tem símbolo separado ou versão negativa?</summary>
@@ -119,6 +148,7 @@ export function KitAvulso() {
             <span className={ROTULO}>Nome da marca</span>
             <input data-kit-nome className={CAMPO} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Acme" />
           </label>
+          </>)}
           {erro && <p role="alert" className="text-sm text-platform-danger">{erro}</p>}
           {avisosDoLogo.map((a) => <Aviso key={a} texto={a} />)}
         </section>
@@ -137,6 +167,14 @@ export function KitAvulso() {
                 </button>
               ))}
             </div>
+            {fundo.tipo === "cor" && fixo && fixo.coresDaMarca.length > 0 && (
+              <div data-kit-cores-da-marca className="flex flex-wrap gap-1.5">
+                {fixo.coresDaMarca.map((c) => (
+                  <button key={c} type="button" aria-label={`Fundo ${c}`} aria-pressed={fundo.cor.toLowerCase() === c.toLowerCase()} onClick={() => setFundo({ tipo: "cor", cor: c })}
+                    className={`h-7 w-7 rounded-full border ${fundo.cor.toLowerCase() === c.toLowerCase() ? "border-platform-text ring-2 ring-platform-text/20" : "border-platform-border"}`} style={{ background: c }} />
+                ))}
+              </div>
+            )}
             {fundo.tipo === "cor" && (
               <label className="flex items-center gap-2 text-sm text-platform-text-muted">
                 <input type="color" value={fundo.cor} onChange={(e) => setFundo({ ...fundo, cor: e.target.value })} aria-label="Cor do fundo" />
@@ -156,6 +194,7 @@ export function KitAvulso() {
               Usar o símbolo nos ícones e perfis
             </label>
           )}
+          {fixo ? fixo.painelDeRegras : (
           <div data-kit-regras className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-platform-border p-3">
             <div>
               <span className={ROTULO}>Regras da marca</span>
@@ -176,8 +215,9 @@ export function KitAvulso() {
               </label>
             )}
           </div>
+          )}
           {abaixoDaReducao > 0 && (
-            <Aviso texto={`${abaixoDaReducao} arquivo(s) ficam abaixo da redução mínima que você informou — marcados na lista. Nos ícones pequenos, um símbolo separado costuma resolver.`} />
+            <Aviso texto={`${abaixoDaReducao} arquivo(s) ficam abaixo da redução mínima ${fixo ? "do manual" : "que você informou"} — marcados na lista. Nos ícones pequenos, um símbolo separado costuma resolver.`} />
           )}
         </section>
 
@@ -194,7 +234,9 @@ export function KitAvulso() {
             Só {GRUPOS_DO_KIT.find((g) => g.id === aba)!.nome.toLowerCase()}
           </button>
           <p className="rounded-[var(--radius-control)] border border-platform-border p-3 text-[13px] leading-relaxed text-platform-text-muted">
-            Tudo é feito no seu computador: o logo não sai dele. No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.
+            {fixo
+              ? "Os arquivos são montados no seu computador, a partir dos originais dos Materiais. O LEIA-ME do pacote diz de que página do manual veio cada regra."
+              : "Tudo é feito no seu computador: o logo não sai dele. No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho."}
           </p>
         </section>
       </aside>
@@ -270,6 +312,30 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
       <span className="text-[12px] text-platform-text-muted">{desenho ? "clique para trocar" : `arraste aqui ou clique · ${dica}`}</span>
       {desenho && aoTirar && <button type="button" onClick={(e) => { e.preventDefault(); aoTirar(); }} className="text-[12px] text-platform-text-muted underline">tirar</button>}
     </label>
+  );
+}
+
+/** A prévia de um desenho que veio pronto (dos Materiais), sem envio. */
+function Previa({ rotulo, desenho, grande, escuro }: { rotulo: string; desenho: Desenho | null; grande?: boolean; escuro?: boolean }) {
+  const alvo = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const no = alvo.current;
+    if (!no) return;
+    no.replaceChildren();
+    if (!desenho) return;
+    const img = document.createElement("img");
+    img.src = desenho.fonte.toDataURL("image/png");
+    img.alt = "";
+    img.style.maxHeight = grande ? "88px" : "44px";
+    img.style.maxWidth = "100%";
+    img.style.objectFit = "contain";
+    no.appendChild(img);
+  }, [desenho, grande]);
+  return (
+    <figure className="flex flex-col items-center gap-1.5 rounded-[var(--radius-panel)] border border-platform-border p-3 text-center">
+      <div ref={alvo} className={`grid w-full place-items-center rounded-[var(--radius-control)] ${grande ? "h-24" : "h-12"} ${escuro ? "bg-[#111418]" : ""}`} />
+      <figcaption className="text-[12px] text-platform-text-muted">{rotulo}</figcaption>
+    </figure>
   );
 }
 
