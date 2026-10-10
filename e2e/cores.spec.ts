@@ -106,8 +106,21 @@ test("sem conta-gotas de tela (Safari): o botão abre o seletor de cores do sist
   });
   await page.goto("/ferramentas/cores");
   await expect(page.locator("[data-cores-conta-gotas]")).toHaveCount(0);
-  await expect(page.getByText("Conta-gotas do Mac")).toBeVisible();
-  await expect(page.getByText("Clique em “Mostrar cores…” e use a lupa.")).toBeVisible();
+  await expect(page.getByText("Conta-gotas do Mac", { exact: true })).toBeVisible();
+  const passos = page.locator("[data-cores-passos-do-mac] li");
+  await expect(passos).toHaveCount(4);
+  await expect(passos.nth(1)).toContainText("Mostrar cores…");
+  await expect(passos.nth(1)).toContainText("Show Colors…");
+  await expect(passos.nth(2)).toContainText("lupa");
+
+  // A dica (tooltip): aparece ao passar o mouse, some no clique.
+  const dica = page.locator("[data-cores-dica]");
+  await expect(dica).toBeHidden();
+  await page.locator("[data-cores-seletor-do-sistema]").hover();
+  await expect(dica).toBeVisible();
+  await expect(dica).toContainText("Show Colors…");
+  await page.mouse.move(0, 0);
+  await expect(dica).toBeHidden();
   await page.locator("[data-cores-seletor-do-sistema]").fill("#0b4f9e");
   await expect(page.locator("[data-cores-hex]")).toHaveText("#0B4F9E");
 });
