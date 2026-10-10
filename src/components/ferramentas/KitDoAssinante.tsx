@@ -82,8 +82,10 @@ export function KitDoAssinante() {
     }
     (async () => {
       try {
+        // O logotipo é obrigatório: se ele não abre, a tela diz por quê. Símbolo
+        // e negativo são extras: se não abrem, o Kit segue sem eles.
         const [logo, simbolo, negativo] = await Promise.all([
-          original(versoes.logo), original(versoes.simbolo), original(versoes.negativo),
+          original(versoes.logo), original(versoes.simbolo).catch(() => null), original(versoes.negativo).catch(() => null),
         ]);
         if (!cancelado) setDesenhos({ logo, simbolo, negativo });
       } catch (e) {
@@ -134,7 +136,8 @@ export function KitDoAssinante() {
   if (!desenhos.logo) {
     return (
       <div data-kit-sem-logo className="m-6 max-w-[40rem] rounded-[var(--radius-panel)] border border-dashed border-platform-border p-6 text-[15px] leading-relaxed text-platform-text-muted">
-        Esta marca ainda não tem o logotipo nos Materiais (um item do tipo Logo, versão positiva, em SVG ou PNG). Assim que alguém cadastrar, o Kit monta todos os tamanhos a partir dele.
+        {versoes?.semLogoPorque
+          ?? "Esta marca ainda não tem o logotipo nos Materiais (um item do tipo Logo, versão positiva, em SVG, PDF, AI ou PNG). Assim que alguém cadastrar, o Kit monta todos os tamanhos a partir dele."}
       </div>
     );
   }

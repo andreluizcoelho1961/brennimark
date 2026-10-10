@@ -25,12 +25,37 @@ test("o negativo é a melhor variante negativa; sem nenhuma, não há negativo",
   assert.equal(escolherDesenhos([v("neg", { polaridade: "negativo" })]).logo, null, "negativo não vira logotipo positivo");
 });
 
-test("o símbolo vem do ícone; arquivo que não é imagem não entra", () => {
+test("o símbolo vem do ícone; formato que o Kit não abre não entra", () => {
   const d = escolherDesenhos([
     v("logo", {}),
-    v("icone-pdf", { tipo: "icone", hierarquia: null, lockup: null, mime: "application/pdf", arquivo: "icone.pdf" }),
+    v("icone-eps", { tipo: "icone", hierarquia: null, lockup: null, mime: "application/postscript", arquivo: "icone.eps" }),
     v("icone", { tipo: "icone", hierarquia: null, lockup: null }),
   ]);
   assert.equal(d.simbolo?.id, "icone");
   assert.equal(escolherDesenhos([v("logo", {})]).simbolo, null);
+});
+
+test("o .ai entra (10/10/2026): sozinho é o logotipo; entre iguais, SVG > PDF/AI > PNG", () => {
+  const ai = v("ai", { arquivo: "Logo horizontal versão preferencial.ai", mime: "application/pdf" });
+  const so = escolherDesenhos([ai]);
+  assert.equal(so.logo?.id, "ai");
+  assert.equal(so.semLogoPorque, null);
+  assert.equal(escolherDesenhos([v("png", {}), ai]).logo?.id, "ai");
+  assert.equal(escolherDesenhos([v("png", {}), ai, v("svg", { arquivo: "l.svg", mime: "image/svg+xml" })]).logo?.id, "svg");
+});
+
+test("o formato desempata, não manda: a principal em PNG vence a secundária em SVG", () => {
+  const d = escolherDesenhos([
+    v("svg-secundario", { hierarquia: "secundario", arquivo: "l.svg", mime: "image/svg+xml" }),
+    v("png-principal", {}),
+  ]);
+  assert.equal(d.logo?.id, "png-principal");
+});
+
+test("só há logotipo em EPS: a tela diz o arquivo e o motivo, não 'não tem logotipo'", () => {
+  const d = escolherDesenhos([v("eps", { arquivo: "logo.eps", mime: "application/postscript" })]);
+  assert.equal(d.logo, null);
+  assert.match(d.semLogoPorque ?? "", /logo\.eps/);
+  assert.match(d.semLogoPorque ?? "", /EPS/);
+  assert.equal(escolherDesenhos([]).semLogoPorque, null, "sem logo nenhum, a mensagem de sempre");
 });

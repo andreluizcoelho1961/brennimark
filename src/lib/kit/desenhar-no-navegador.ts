@@ -5,6 +5,7 @@ import { pastaDoGrupo, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "./tamanh
 import {
   abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, favicoIco, leiaMe, manifestDoSite, trechoDoHead, type DadosDaAssinatura, type ReducaoMinima, type RegrasInformadas,
 } from "./pacote";
+import { formatoDoArquivo, motivoDoCabecalho } from "./formatos";
 
 /**
  * O Brennimark Kit no NAVEGADOR (09/10/2026): carrega o logo de quem usa,
@@ -13,7 +14,8 @@ import {
  * (especificação v2, §5).
  *
  * O arquivo enviado é aberto como <img> (SVG em <img> não executa script) e
- * nunca entra no DOM como marcação.
+ * nunca entra no DOM como marcação. PDF e AI (10/10/2026) são desenhados pelo
+ * PDF.js, com fundo transparente, a partir da primeira página.
  */
 
 /** O desenho pronto para usar: já sem a sobra transparente em volta. */
@@ -134,10 +136,14 @@ function semSobra(origem: CanvasImageSource, largura: number, altura: number): H
 }
 
 export async function carregarDesenho(arquivo: File): Promise<Desenho> {
-  const tipo = arquivo.type || (arquivo.name.toLowerCase().endsWith(".svg") ? "image/svg+xml" : "");
-  if (!["image/svg+xml", "image/png", "image/jpeg", "image/webp"].includes(tipo)) {
-    throw new Error("Use um arquivo SVG, PNG ou JPG.");
+  const formato = formatoDoArquivo(arquivo.name, arquivo.type);
+  if (formato.tipo === "fora") throw new Error(formato.motivo);
+  if (formato.tipo === "pdf") {
+    const pagina = await desenharPdf(arquivo);
+    const fonte = semSobra(pagina, pagina.width, pagina.height);
+    return { fonte, largura: fonte.width, altura: fonte.height, tipo: "application/pdf", svg: null, avisos: [] };
   }
+  const tipo = formato.mime;
   let svg: string | null = null;
   let url: string;
   if (tipo === "image/svg+xml") {
@@ -155,6 +161,71 @@ export async function carregarDesenho(arquivo: File): Promise<Desenho> {
     };
   } finally {
     URL.revokeObjectURL(url);
+  }
+}
+
+/** O Safari recusa canvas acima de ~16,7 milhões de pixels. */
+const AREA_MAXIMA = 16_000_000;
+const SEM_FUNDO = "rgba(0,0,0,0)";
+
+/**
+ * A primeira página de um PDF (ou .ai com compatibilidade PDF), em DUAS
+ * passadas: uma pequena acha onde está o desenho na prancheta; a segunda
+ * desenha só esse trecho em alta resolução. Um logo pequeno numa prancheta
+ * A4 sairia borrado se a página inteira fosse desenhada e depois recortada.
+ */
+async function desenharPdf(arquivo: File): Promise<HTMLCanvasElement> {
+  const bytes = new Uint8Array(await arquivo.arrayBuffer());
+  const motivo = motivoDoCabecalho(String.fromCharCode(...bytes.subarray(0, 1024)), arquivo.name);
+  if (motivo) throw new Error(motivo);
+  const { prepararAmbienteDePdf } = await import("../import/stream-iteravel");
+  prepararAmbienteDePdf();
+  const pdfjs = await import("pdfjs-dist");
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+  const tarefa = pdfjs.getDocument({ data: bytes });
+  try {
+    const documento = await tarefa.promise.catch(() => {
+      throw new Error(`Não foi possível abrir ${arquivo.name}. Quem edita a marca pode exportar em SVG ou PDF e enviar nos Materiais.`);
+    });
+    const pagina = await documento.getPage(1);
+    const base = pagina.getViewport({ scale: 1 });
+
+    // 1. Onde está o desenho.
+    const k1 = 800 / Math.max(base.width, base.height);
+    const v1 = pagina.getViewport({ scale: k1 });
+    const c1 = document.createElement("canvas");
+    c1.width = Math.max(1, Math.ceil(v1.width));
+    c1.height = Math.max(1, Math.ceil(v1.height));
+    await pagina.render({ canvas: c1, canvasContext: c1.getContext("2d")!, viewport: v1, background: SEM_FUNDO }).promise;
+    const { data } = c1.getContext("2d")!.getImageData(0, 0, c1.width, c1.height);
+    let minX = c1.width, minY = c1.height, maxX = -1, maxY = -1;
+    for (let y = 0; y < c1.height; y++) {
+      for (let x = 0; x < c1.width; x++) {
+        if (data[(y * c1.width + x) * 4 + 3] > 8) {
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (maxX < 0) throw new Error(`A primeira página de ${arquivo.name} está vazia.`);
+    // Um pixel de folga de cada lado: a passada pequena arredonda.
+    const x0 = Math.max(0, minX - 1) / k1;
+    const y0 = Math.max(0, minY - 1) / k1;
+    const larg = (Math.min(c1.width, maxX + 2) / k1) - x0;
+    const alt = (Math.min(c1.height, maxY + 2) / k1) - y0;
+
+    // 2. Só o desenho, grande.
+    const k2 = Math.min(LADO_MAXIMO / Math.max(larg, alt), Math.sqrt(AREA_MAXIMA / (larg * alt)));
+    const v2 = pagina.getViewport({ scale: k2, offsetX: -x0 * k2, offsetY: -y0 * k2 });
+    const c2 = document.createElement("canvas");
+    c2.width = Math.max(1, Math.ceil(larg * k2));
+    c2.height = Math.max(1, Math.ceil(alt * k2));
+    await pagina.render({ canvas: c2, canvasContext: c2.getContext("2d")!, viewport: v2, background: SEM_FUNDO }).promise;
+    return c2;
+  } finally {
+    void tarefa.destroy();
   }
 }
 
