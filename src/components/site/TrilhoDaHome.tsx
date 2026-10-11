@@ -39,6 +39,15 @@ export function TrilhoDaHome({ children }: { children: ReactNode }) {
     let cur = 0;
     let trava = false;
     let assentar = 0;
+    /**
+     * Para onde o PRÓPRIO site mandou o trilho deslizar (10/10/2026). Enquanto
+     * ele não chega, o encaixe da rolagem à mão não decide nada: um aviso de
+     * rolagem que ficou pendente do movimento anterior lia a tela velha antes
+     * de o deslize começar e desfazia o clique — e o "Anterior" seguinte
+     * voltava dois capítulos. Num aparelho lento o deslize demora a começar.
+     */
+    let destino: number | null = null;
+    let soltarDestino = 0;
 
     /** O que o capítulo muda fora da barra: o painel ativo e o selo. */
     const aplicar = (i: number) => {
@@ -63,6 +72,14 @@ export function TrilhoDaHome({ children }: { children: ReactNode }) {
     const ir = (i: number, empilhar = true) => {
       const alvo = Math.max(0, Math.min(paineis.length - 1, i));
       const comportamento: ScrollBehavior = reduzido.matches ? "auto" : "smooth";
+      if (!celular.matches) {
+        window.clearTimeout(assentar);
+        destino = alvo;
+        // Se a pessoa interromper o deslize (rolando à mão), o encaixe volta a
+        // valer — não fica preso esperando um destino que não vem.
+        window.clearTimeout(soltarDestino);
+        soltarDestino = window.setTimeout(() => (destino = null), 1500);
+      }
       if (celular.matches) paineis[alvo].scrollIntoView({ behavior: comportamento, block: "start" });
       else track.scrollTo({ left: alvo * track.clientWidth, behavior: comportamento });
       marcar(alvo);
@@ -85,6 +102,11 @@ export function TrilhoDaHome({ children }: { children: ReactNode }) {
         if (celular.matches) return;
         window.clearTimeout(assentar);
         assentar = window.setTimeout(() => {
+          if (destino !== null) {
+            // Deslize do site em curso: só libera quando ele chega.
+            if (Math.abs(track.scrollLeft - destino * track.clientWidth) < 2) destino = null;
+            return;
+          }
           const i = Math.round(track.scrollLeft / track.clientWidth);
           if (i !== cur) {
             marcar(i);
@@ -189,6 +211,7 @@ export function TrilhoDaHome({ children }: { children: ReactNode }) {
       fim.abort();
       observador.disconnect();
       window.clearTimeout(assentar);
+      window.clearTimeout(soltarDestino);
       irPara.current = () => {};
     };
   }, []);

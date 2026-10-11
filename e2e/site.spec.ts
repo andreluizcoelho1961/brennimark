@@ -17,18 +17,34 @@ import { CAPITULOS_DA_HOME, PAGINAS_DO_SITE } from "../src/lib/site/paginas";
 /**
  * Abre uma página do site e espera o JavaScript DELE estar ligado.
  *
- * Não espera o evento `load`: ele aguarda cada imagem e cada pedaço de script
- * de desenvolvimento, e com a suíte inteira em paralelo o servidor de
- * desenvolvimento chegou a levar 33 s para entregar tudo (29/09/2026) — com as
- * asserções todas verdes, o teste estourava o tempo só no `goto`. O que estes
- * testes precisam é o comportamento ligado, e `data-site-vivo` diz exatamente
- * isso.
+ * Não espera `load` nem `domcontentloaded` — só a resposta começar a chegar
+ * (`commit`). Medido em 10/10/2026, no rastro de uma falha: com a suíte inteira
+ * em paralelo, o documento da home respondeu em 0,4 s, mas o corpo continuou
+ * chegando por mais de 30 s (o servidor de desenvolvimento entregava scripts
+ * em 9–14 s e imagens em até 8 s), e `domcontentloaded` só dispara quando o
+ * corpo termina. O teste estourava o tempo no `goto`, e as asserções, rodando
+ * depois, passavam todas. `load` (29/09/2026) era o mesmo defeito, maior.
+ *
+ * O que estes testes precisam é o comportamento ligado, e `data-site-vivo`
+ * diz exatamente isso.
  */
 async function abrir(page: Page, url: string) {
-  const resposta = await page.goto(url, { waitUntil: "domcontentloaded" });
+  const resposta = await page.goto(url, { waitUntil: "commit" });
   await expect(page.locator("html")).toHaveAttribute("data-site-vivo", "", { timeout: 25_000 });
   return resposta;
 }
+
+/**
+ * Um teste do site de cada vez (10/10/2026), medido: quatro navegadores
+ * abrindo a home ao mesmo tempo no servidor de desenvolvimento fazem o
+ * documento levar 30 s para terminar de chegar, e os scripts, 17 s — um
+ * pedido sozinho termina em 0,4 s. Em produção a home é estática e nada disso
+ * existe; aqui, a disputa era entre os próprios testes deste arquivo (rodando
+ * só "as setas andam" 40 vezes em quatro processos, 11 falharam). Os outros
+ * arquivos seguem em paralelo.
+ */
+// `default`, e não `serial`: um de cada vez, mas uma falha não pula os seguintes.
+test.describe.configure({ mode: "default" });
 
 /**
  * Aquece a home e uma página interna ANTES dos testes, com folga.
@@ -77,6 +93,34 @@ test("as setas andam pelos capítulos e o endereço acompanha", async ({ page })
 
   await page.getByRole("button", { name: "Próximo capítulo" }).click();
   await expect(page.locator("#chap-t")).toHaveText("O problema");
+  await page.getByRole("button", { name: "Capítulo anterior" }).click();
+  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
+});
+
+test("um clique logo depois de outro movimento não é desfeito pelo encaixe atrasado", async ({ page }) => {
+  // Defeito achado em 10/10/2026: o encaixe da rolagem à mão decide o capítulo
+  // 120 ms depois do último aviso de rolagem. Se um aviso ainda pendente cai
+  // depois de um clique em "Próximo" e ANTES de o deslize começar, ele lê a
+  // tela velha e desfaz o clique — e o "Anterior" seguinte volta dois. Num
+  // aparelho lento o deslize demora a começar; aqui, o atraso é fabricado.
+  await abrir(page, "/");
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
+  const largura = await page.locator("#track").evaluate((t) => t.clientWidth);
+  await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(largura - 4);
+  await page.locator("#track").evaluate((t) => {
+    const original = t.scrollTo.bind(t) as (o: ScrollToOptions) => void;
+    t.scrollTo = ((o: ScrollToOptions) => { window.setTimeout(() => original(o), 500); }) as typeof t.scrollTo;
+  });
+  await page.getByRole("button", { name: "Próximo capítulo" }).click();
+  // Um aviso de rolagem atrasado, como o do fim do movimento anterior.
+  await page.locator("#track").evaluate((t) => t.dispatchEvent(new Event("scroll")));
+  await page.waitForTimeout(300);
+  // Lido no instante, sem esperar: depois que o deslize atrasado acontece, o
+  // encaixe volta ao capítulo certo e o defeito some da tela — mas o clique já
+  // tinha sido desfeito, e o "Anterior" daquele momento voltaria dois.
+  expect(await page.evaluate(() => [document.querySelector("#chap-t")?.textContent, location.hash])).toEqual(["O problema", "#problema"]);
+  await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(2 * largura - 4);
   await page.getByRole("button", { name: "Capítulo anterior" }).click();
   await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
 });
@@ -312,7 +356,7 @@ test.describe("celular", () => {
 });
 
 test("os planos levam à assinatura com o plano escolhido; o Corporativo e a nota levam à conversa", async ({ page }) => {
-  await page.goto("/");
+  await abrir(page, "/");
   for (const plano of ["basico", "medio", "premium"]) {
     await expect(page.locator(`[data-assinar="${plano}"]`)).toHaveAttribute("href", `/assinar?plano=${plano}`);
     await expect(page.locator(`[data-assinar="${plano}"]`)).toHaveText("Assinar");
@@ -323,18 +367,19 @@ test("os planos levam à assinatura com o plano escolhido; o Corporativo e a not
 
 test("Termos e Privacidade mostram o texto com a versão, e o /assinar aponta para os dois", async ({ page }) => {
   for (const caminho of ["/termos", "/privacidade"]) {
-    await page.goto(caminho);
+    // `commit`: as asserções abaixo esperam o que precisam (ver `abrir`).
+    await page.goto(caminho, { waitUntil: "commit" });
     const doc = page.locator("[data-documento-legal]");
     await expect(doc).toHaveAttribute("data-versao", /^\d{4}-\d{2}-\d{2}$/);
     await expect(doc.locator("h2").first()).toHaveText(/^1\. /);
   }
-  await page.goto("/dev/assinar");
+  await page.goto("/dev/assinar", { waitUntil: "commit" });
   await expect(page.locator("[data-aceite-dos-termos] a[href='/termos']")).toBeVisible();
   await expect(page.locator("[data-aceite-dos-termos] a[href='/privacidade']")).toBeVisible();
 });
 
 test("o capítulo Num só lugar: a aba escolhe a palavra e a foto, e Pausar alterna", async ({ page }) => {
-  await page.goto("/#num-so-lugar");
+  await abrir(page, "/#num-so-lugar");
   const painel = page.locator("#num-so-lugar");
   await expect(painel.locator("[data-palavra]")).toHaveText("MANUAL");
   await painel.locator("[data-palavra-aba='2']").click();
@@ -348,9 +393,9 @@ test("o capítulo Num só lugar: a aba escolhe a palavra e a foto, e Pausar alte
 });
 
 test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé, link entre os documentos", async ({ page }) => {
-  await page.goto("/dev/assinar");
+  await page.goto("/dev/assinar", { waitUntil: "commit" });
   await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Assinatura mensal com renovação automática");
-  await page.goto("/privacidade");
+  await page.goto("/privacidade", { waitUntil: "commit" });
   await expect(page.locator("[data-empresa]")).toContainText("CNPJ 47.924.458/0001-09");
   const link = page.locator("[data-documento-legal] a", { hasText: "Dados tratados em nome do assinante" });
   await expect(link).toHaveAttribute("href", "/termos#dados-tratados-em-nome-do-assinante");
