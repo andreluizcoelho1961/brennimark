@@ -100,4 +100,8 @@ test("o Kit gratuito é público pelo caminho exato, e só ele", () => {
 test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/ferramentas/cores"), true);
   assert.equal(caminhoPublico("/ferramentas/coresx"), false);
+  // O Grids gratuito (13/10/2026): o mesmo caminho exato.
+  assert.equal(caminhoPublico("/ferramentas/grids"), true);
+  assert.equal(caminhoPublico("/ferramentas/gridsx"), false);
+  assert.equal(caminhoPublico("/ferramentas/grids/qualquer"), false);
 });
