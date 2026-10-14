@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Nome editável e apagar marca, na administração (ensaio de 25/09/2026).
@@ -8,6 +8,18 @@ import { expect, test } from "@playwright/test";
  * `administrar` na marca). O que se prova aqui é o caminho pela interface —
  * em especial, que apagar NÃO acontece sem digitar o nome.
  */
+
+/**
+ * A tela PEDIU para ir à página inicial — o pedido de navegação do Next (com
+ * o cabeçalho `RSC`) para `/`. Medido em 14/10/2026 no rastro de uma falha: o
+ * envio levava 0,3 s e o pedido saía na hora; o que passava dos 5 s era o
+ * servidor de DESENVOLVIMENTO montar a home a frio (3,1 s só para responder,
+ * ~5,5 s com scripts, estilo e o `router.refresh()`). Em produção a home é
+ * estática. Esperar a URL mudar media o servidor de teste, não a tela.
+ */
+function pedidoParaAInicial(page: Page) {
+  return page.waitForRequest((r) => new URL(r.url()).pathname === "/" && r.headers()["rsc"] === "1", { timeout: 10_000 });
+}
 
 test("o nome da marca é editável e vai ao servidor já normalizado", async ({ page }) => {
   let corpo: unknown = null;
@@ -69,12 +81,13 @@ test("apagar a marca exige digitar o nome, e só então chama o servidor", async
   await secao.getByRole("button", { name: "Apagar esta marca…" }).click();
   await secao.getByRole("textbox").fill("marca de bancada");
   await expect(confirmar).toBeEnabled();
+  const indoParaAEntrada = pedidoParaAInicial(page);
   await confirmar.click();
 
   await expect.poll(() => pedidos).toBe(1);
   expect(corpo).toEqual({ brandId: "00000000-0000-4000-8000-000000000001" });
   // Sem conta no endereço (bancada), o destino é a entrada do produto.
-  await expect(page).not.toHaveURL(/\/dev\/admin-panel/);
+  await indoParaAEntrada;
 });
 
 test("a recusa do servidor aparece e a marca continua", async ({ page }) => {
