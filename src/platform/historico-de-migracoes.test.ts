@@ -257,6 +257,11 @@ const PENDENTES_ESPERADAS: string[] = [
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
   // em `6ca600e`; RLS, grants e SECURITY DEFINER conferidos depois.
+  // As regras de grid do Brennimark Grids do assinante (14/10/2026): escrita e
+  // provada no local (`scripts/prova-regras-de-grid.sh`, 50 verificações);
+  // aplicar ao hospedado SÓ com autorização nominal do André, carimbar e tirar
+  // daqui.
+  "regras_de_grid",
 ];
 
 /**
