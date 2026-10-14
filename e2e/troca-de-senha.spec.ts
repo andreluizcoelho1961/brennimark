@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
  * A troca da senha provisória — o que a TELA faz.
@@ -8,6 +8,18 @@ import { expect, test } from "@playwright/test";
  * desvio da moldura está nos testes de unidade de `senha-provisoria.ts`. Aqui
  * se prova o gesto, na bancada `/dev/trocar-senha`, com a rota fingida.
  */
+
+/**
+ * A tela PEDIU para ir à página inicial — o pedido de navegação do Next (com
+ * o cabeçalho `RSC`) para `/`. Medido em 14/10/2026 no rastro de uma falha: o
+ * envio levava 0,3 s e o pedido saía na hora; o que passava dos 5 s era o
+ * servidor de DESENVOLVIMENTO montar a home a frio (3,1 s só para responder,
+ * ~5,5 s com scripts, estilo e o `router.refresh()`). Em produção a home é
+ * estática. Esperar a URL mudar media o servidor de teste, não a tela.
+ */
+function pedidoParaAInicial(page: Page) {
+  return page.waitForRequest((r) => new URL(r.url()).pathname === "/" && r.headers()["rsc"] === "1", { timeout: 10_000 });
+}
 
 test("a senha nova é conferida antes de sair da tela", async ({ page }) => {
   const enviados: unknown[] = [];
@@ -43,11 +55,12 @@ test("com a senha certa, envia as duas e segue para dentro", async ({ page }) =>
 
   await page.getByLabel("Nova senha", { exact: true }).fill("uma-senha-bem-longa");
   await page.getByLabel("Repita a nova senha").fill("uma-senha-bem-longa");
+  const indoParaDentro = pedidoParaAInicial(page);
   await page.getByRole("button", { name: "Salvar e entrar" }).click();
 
   await expect.poll(() => enviados.length).toBe(1);
   expect(enviados[0]).toEqual({ senha: "uma-senha-bem-longa", confirmacao: "uma-senha-bem-longa" });
-  await expect(page).not.toHaveURL(/trocar-senha/);
+  await indoParaDentro;
 });
 
 test("a recusa do servidor aparece como ele a escreveu", async ({ page }) => {
