@@ -138,6 +138,9 @@ export function shellSections({
         { href: "/docs/kit", label: t("Kit da marca", "Brand kit") },
         // O Cores do assinante (10/10/2026): "é a cor da marca?", com a paleta.
         { href: "/docs/cores", label: t("Cores da marca", "Brand colors") },
+        // O Grids do assinante (14/10/2026): o documento do InDesign com o grid
+        // do manual, o logo, as cores aprovadas e os estilos.
+        { href: "/docs/grids", label: t("Grids da marca", "Brand grids") },
         ...porChave("history"),
       ],
     },
