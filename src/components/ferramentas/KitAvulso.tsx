@@ -414,9 +414,9 @@ function Cenas({ aba, escolhas, nome, dados, setDados }: {
           <div className="mt-3 grid grid-cols-3 gap-0.5">{Array.from({ length: 6 }, (_, i) => <i key={i} className="aspect-square bg-[#eee]" />)}</div>
         </div>
       </Cena>
-      <Cena titulo="Página no LinkedIn" legenda="capa 1128 × 191 + logo 400">
+      <Cena titulo="Página no LinkedIn" legenda="capa 1512 × 256 + logo 400">
         <div className="overflow-hidden rounded-[var(--radius-control)] border border-[#ddd] bg-white text-[#111]">
-          <Tela item={item("linkedin-capa-1128x191.png")} escolhas={escolhas} escala={0.5} estilo={{ width: "100%", display: "block" }} />
+          <Tela item={item("linkedin-capa-1512x256.png")} escolhas={escolhas} escala={0.5} estilo={{ width: "100%", display: "block" }} />
           <div className="px-3.5 pb-3.5">
             <Tela item={item("linkedin-logo-400.png")} escolhas={escolhas} escala={0.2} estilo={{ width: "72px", height: "72px", marginTop: "-30px", border: "3px solid #fff", borderRadius: "4px", display: "block" }} />
             <b className="mt-1.5 block text-[15px]">{marca}</b>

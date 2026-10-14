@@ -48,14 +48,15 @@ test("sobe o logo e o símbolo, vê as prévias e baixa o pacote completo, confe
   for (const esperado of [
     "site/favicon.ico", "site/favicon.svg", "site/apple-touch-icon.png", "site/site.webmanifest", "site/COLE-NO-SITE.html",
     "redes/instagram-perfil-1080.png", "redes/youtube-banner-2560x1440.png",
-    "endomarketing/glassdoor-capa-2880x550.png", "endomarketing/viva-engage-capa-1400x524.png",
+    "endomarketing/glassdoor-capa-2880x550.png", "endomarketing/viva-engage-capa-1400x524.png", "endomarketing/linkedin-vida-1128x376.png",
     "email/assinatura-logo-600.png", "email/assinatura.html",
     "apresentacao/logotipo-2000.png", "apresentacao/simbolo-2000.png", "apresentacao/logotipo.svg", "LEIA-ME.txt",
   ]) expect(nomes, esperado).toContain(esperado);
 
   // Cada PNG tem o tamanho que o nome promete.
   expect(medidas(zip["redes/instagram-perfil-1080.png"])).toEqual({ largura: 1080, altura: 1080 });
-  expect(medidas(zip["redes/linkedin-capa-1128x191.png"])).toEqual({ largura: 1128, altura: 191 });
+  expect(medidas(zip["redes/linkedin-capa-1512x256.png"])).toEqual({ largura: 1512, altura: 256 });
+  expect(medidas(zip["endomarketing/linkedin-vida-1128x376.png"])).toEqual({ largura: 1128, altura: 376 });
   expect(medidas(zip["apresentacao/logotipo-2000.png"]).largura).toBe(2000);
   // O favicon.ico leva três imagens; o favicon.svg é o SÍMBOLO enviado.
   expect(new DataView(zip["site/favicon.ico"].buffer, zip["site/favicon.ico"].byteOffset).getUint16(4, true)).toBe(3);

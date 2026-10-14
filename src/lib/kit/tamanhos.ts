@@ -54,6 +54,10 @@ const ESPEC: Fonte = { tipo: "especificacao" };
 const conferido = (url: string): Fonte => ({ tipo: "conferido", url, em: "2026-10-09" });
 
 const LINKEDIN = conferido("https://www.linkedin.com/help/linkedin/answer/14");
+// A página de especificações de imagem das Páginas do LinkedIn, conferida em
+// 13/10/2026: a capa MUDOU de 1128 × 191 para 1512 × 256 (achado ao conferir as
+// medidas do Brennimark Grids); logo 400 × 400 recomendado (268 mínimo).
+const LINKEDIN_PAGINAS: Fonte = { tipo: "conferido", url: "https://www.linkedin.com/help/linkedin/answer/a563309", em: "2026-10-13" };
 const GLASSDOOR_LOGO = conferido("https://help.glassdoor.com/s/article/Add-or-update-your-logo?language=en_US");
 const GLASSDOOR_CAPA = conferido("https://help.glassdoor.com/s/article/Upload-a-cover-photo-or-cover-video?language=en_US");
 const GUPY = conferido("https://suporte.gupy.io/s/suporte/article/Como-criar-e-configurar-sua-pagina-de-carreira-na-Gupy?language=pt_BR");
@@ -75,8 +79,8 @@ export const ITENS_DO_KIT: readonly ItemDoKit[] = [
   { grupo: "redes", arquivo: "instagram-perfil-1080.png", nome: "Instagram · perfil", largura: 1080, altura: 1080, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
   { grupo: "redes", arquivo: "facebook-perfil-720.png", nome: "Facebook · perfil", largura: 720, altura: 720, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
   { grupo: "redes", arquivo: "facebook-capa-1640x624.png", nome: "Facebook · capa", largura: 1640, altura: 624, formato: "faixa", desenho: "logo", fonte: ESPEC },
-  { grupo: "redes", arquivo: "linkedin-logo-400.png", nome: "LinkedIn · logo da página", largura: 400, altura: 400, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "linkedin-capa-1128x191.png", nome: "LinkedIn · capa da página", largura: 1128, altura: 191, formato: "faixa", desenho: "logo", fonte: ESPEC },
+  { grupo: "redes", arquivo: "linkedin-logo-400.png", nome: "LinkedIn · logo da página", largura: 400, altura: 400, formato: "quadrado", desenho: "pequeno", fonte: LINKEDIN_PAGINAS },
+  { grupo: "redes", arquivo: "linkedin-capa-1512x256.png", nome: "LinkedIn · capa da página", largura: 1512, altura: 256, formato: "faixa", desenho: "logo", obs: "o LinkedIn pede o importante no centro, longe do canto inferior direito", fonte: LINKEDIN_PAGINAS },
   { grupo: "redes", arquivo: "x-perfil-400.png", nome: "X · perfil", largura: 400, altura: 400, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
   { grupo: "redes", arquivo: "x-capa-1500x500.png", nome: "X · capa", largura: 1500, altura: 500, formato: "faixa", desenho: "logo", fonte: ESPEC },
   { grupo: "redes", arquivo: "youtube-perfil-800.png", nome: "YouTube · perfil", largura: 800, altura: 800, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
@@ -86,7 +90,8 @@ export const ITENS_DO_KIT: readonly ItemDoKit[] = [
   { grupo: "redes", arquivo: "pinterest-perfil-600.png", nome: "Pinterest · perfil", largura: 600, altura: 600, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
 
   // ─── Endomarketing e employer branding ───────────────────────────────────
-  { grupo: "endomarketing", arquivo: "linkedin-vitrine-capa-1128x191.png", nome: "LinkedIn · página vitrine", largura: 1128, altura: 191, formato: "faixa", desenho: "logo", fonte: ESPEC },
+  { grupo: "endomarketing", arquivo: "linkedin-vitrine-capa-1512x256.png", nome: "LinkedIn · página vitrine", largura: 1512, altura: 256, formato: "faixa", desenho: "logo", obs: "o LinkedIn pede o importante no centro, longe do canto inferior direito", fonte: LINKEDIN_PAGINAS },
+  { grupo: "endomarketing", arquivo: "linkedin-vida-1128x376.png", nome: "LinkedIn · aba Vida (Career Pages)", largura: 1128, altura: 376, formato: "faixa", desenho: "logo", obs: "imagem principal da aba Vida — só nas Career Pages", fonte: LINKEDIN_PAGINAS },
   { grupo: "endomarketing", arquivo: "linkedin-evento-capa-1776x444.png", nome: "LinkedIn · capa de evento", largura: 1776, altura: 444, formato: "faixa", desenho: "logo", fonte: LINKEDIN },
   { grupo: "endomarketing", arquivo: "gupy-carreiras-760x430.png", nome: "Gupy · imagem da página de carreiras", largura: 760, altura: 430, formato: "faixa", desenho: "logo", obs: "a Gupy recomenda foto do ambiente; esta é a versão com a marca", fonte: GUPY },
   { grupo: "endomarketing", arquivo: "gupy-vaga-topo-1980x600.png", nome: "Gupy · topo da página de vaga", largura: 1980, altura: 600, formato: "faixa", desenho: "logo", fonte: GUPY },
