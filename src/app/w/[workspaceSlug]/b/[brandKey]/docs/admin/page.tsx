@@ -6,6 +6,7 @@ import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { caminhoDaMarca } from "@/lib/brennimark/selecao";
 import { lerPaleta } from "@/lib/paleta/paleta";
 import { conferirPaleta } from "@/lib/paleta/conferencia";
+import { lerTipografia } from "@/lib/tipografia/tipografia";
 
 export default async function AdminPage({ params }: { params: Promise<{ workspaceSlug: string; brandKey: string }> }) {
   const alvo = await params;
@@ -33,6 +34,8 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
   // A ficha da paleta, pela sessão (a RLS decide). Falhar ao lê-la mostra a
   // ficha vazia, e não derruba a administração.
   const paleta = auth ? await lerPaleta(auth.supabase, brand.id) : { ok: false as const };
+  // A tipografia da marca (14/10/2026), do mesmo jeito: falhar mostra vazia.
+  const tipografia = auth ? await lerTipografia(auth.supabase, brand.id) : { ok: false as const };
 
   return (
     <AdminPanel
@@ -44,6 +47,11 @@ export default async function AdminPage({ params }: { params: Promise<{ workspac
       paleta={{
         // Cada cor conferida contra o texto do manual (27/09): selo na tela.
         cores: paleta.ok && auth ? await conferirPaleta(auth.supabase, brand.id, paleta.cores) : [],
+        podeEditar: capabilities.includes("editar"),
+        podeAprovar: capabilities.includes("aprovar"),
+      }}
+      tipografia={{
+        fontes: tipografia.ok ? tipografia.fontes : [],
         podeEditar: capabilities.includes("editar"),
         podeAprovar: capabilities.includes("aprovar"),
       }}

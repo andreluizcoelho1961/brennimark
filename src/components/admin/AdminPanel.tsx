@@ -9,6 +9,8 @@ import { VersionHistory } from "@/components/admin/VersionHistory";
 import { ThemeEditor } from "@/components/admin/ThemeEditor";
 import { ApagarMarca, NomeDaMarca } from "@/components/admin/ConfiguracoesDaMarca";
 import { PaletaDaMarca } from "@/components/admin/PaletaDaMarca";
+import { TipografiaDaMarca } from "@/components/admin/TipografiaDaMarca";
+import type { FonteDaMarca } from "@/lib/tipografia/tipografia";
 import type { CorDaPaleta } from "@/lib/paleta/paleta";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
@@ -28,6 +30,7 @@ export function AdminPanel({
   theme,
   marca,
   paleta,
+  tipografia,
 }: {
   initialDocs: DocPageEntry[];
   /** Páginas sem linha viva que ainda têm histórico. Elas continuam
@@ -39,6 +42,8 @@ export function AdminPanel({
   marca: { id: string; nome: string };
   /** A ficha da paleta (27/09/2026) e o que esta pessoa pode fazer nela. */
   paleta: { cores: CorDaPaleta[]; podeEditar: boolean; podeAprovar: boolean };
+  /** A tipografia da marca (14/10/2026), com a mesma governança da paleta. */
+  tipografia?: { fontes: FonteDaMarca[]; podeEditar: boolean; podeAprovar: boolean };
 }) {
   // A marca em que esta tela opera, vinda da URL. Sem ela o servidor não
   // saberia qual, e responderia 409 numa conta com mais de uma.
@@ -201,6 +206,7 @@ export function AdminPanel({
         <NomeDaMarca nome={marca.nome} />
         <ThemeEditor theme={theme} />
         <PaletaDaMarca coresIniciais={paleta.cores} podeEditar={paleta.podeEditar} podeAprovar={paleta.podeAprovar} />
+        {tipografia && <TipografiaDaMarca fontesIniciais={tipografia.fontes} podeEditar={tipografia.podeEditar} podeAprovar={tipografia.podeAprovar} />}
         <div className="mt-16 border-t border-platform-border pt-12">
           <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>
           <h2 className="mt-3 font-display text-3xl font-black uppercase text-platform-text">{isEnglish ? "Brand materials" : "Materiais da marca"}</h2>
@@ -264,6 +270,7 @@ export function AdminPanel({
 
       <ThemeEditor theme={theme} />
         <PaletaDaMarca coresIniciais={paleta.cores} podeEditar={paleta.podeEditar} podeAprovar={paleta.podeAprovar} />
+      {tipografia && <TipografiaDaMarca fontesIniciais={tipografia.fontes} podeEditar={tipografia.podeEditar} podeAprovar={tipografia.podeAprovar} />}
 
       <section className="mt-16 border-t border-platform-border pt-12">
         <p className="font-display text-xs font-black uppercase tracking-[0.24em] text-platform-text">{isEnglish ? "Materials" : "Materiais"}</p>
