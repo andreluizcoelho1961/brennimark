@@ -9,6 +9,7 @@ import Link from "next/link";
 export const FERRAMENTAS_GRATUITAS = [
   { href: "/ferramentas/kit", rotulo: "Kit: todos os tamanhos do logo" },
   { href: "/ferramentas/cores", rotulo: "Cores: que cor é essa?" },
+  { href: "/ferramentas/grids", rotulo: "Grids: o grid pronto para o InDesign" },
 ] as const;
 
 export function LinksDasFerramentas() {
