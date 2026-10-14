@@ -263,6 +263,10 @@ const PENDENTES_ESPERADAS: string[] = [
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
   // em `6ca600e`; RLS, grants e SECURITY DEFINER conferidos depois.
 
+  // A tipografia da marca (14/10/2026): escrita e provada no local
+  // (`scripts/prova-tipografia-da-marca.sh`, 49 verificações); aplicar ao
+  // hospedado SÓ com autorização nominal do André, carimbar e tirar daqui.
+  "tipografia_da_marca",
 ];
 
 /**
