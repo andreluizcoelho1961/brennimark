@@ -23,7 +23,7 @@
 export type IconeDaColuna =
   | "manual" | "materiais" | "complementos"
   | "marcas" | "pessoas" | "links" | "registros" | "configuracoes"
-  | "assistente" | "analise" | "historico" | "importar" | "administracao" | "ia" | "kit" | "cores";
+  | "assistente" | "analise" | "historico" | "importar" | "administracao" | "ia" | "kit" | "cores" | "grids";
 
 export interface ItemDaColuna {
   id: string;
@@ -74,6 +74,7 @@ const ICONE_POR_SEGMENTO: [string, IconeDaColuna][] = [
   ["configuracoes", "ia"],
   ["kit", "kit"],
   ["cores", "cores"],
+  ["grids", "grids"],
 ];
 
 function segmentos(href: string): string[] {

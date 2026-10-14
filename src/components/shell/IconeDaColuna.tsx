@@ -33,6 +33,8 @@ const DESENHOS: Record<IconeDaColuna, React.ReactNode> = {
   kit: (<><rect x="3.5" y="3.5" width="10" height="10" /><rect x="15.5" y="3.5" width="5" height="5" /><rect x="15.5" y="11" width="2.5" height="2.5" /><rect x="3.5" y="16" width="17" height="4.5" /></>),
   // O Cores: um conta-gotas.
   cores: (<><path d="M14.5 4.5l5 5" /><path d="M16 8l-9 9-3 1 1-3 9-9" /><path d="M13 5l6 6" /></>),
+  // O Grids: uma página com colunas e a margem.
+  grids: (<><rect x="4" y="3.5" width="16" height="17" /><path d="M9.5 3.5v17M14.5 3.5v17M4 8h16" /></>),
   ia: (<><path d="M12 3v4M12 17v4M3 12h4M17 12h4" /><path d="M12 8l1.2 2.8L16 12l-2.8 1.2L12 16l-1.2-2.8L8 12l2.8-1.2L12 8z" /></>),
 };
 

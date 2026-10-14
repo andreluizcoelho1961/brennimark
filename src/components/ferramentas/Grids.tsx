@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { FORMATOS, GRUPOS, formatoPorId, type TipoDeGrid } from "@/lib/grids/formatos";
-import { calcularGrid, escolhasPadrao, formatar, type Escolhas, type Proporcao } from "@/lib/grids/calcular";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { FORMATOS, GRUPOS, formatoPorId, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
+import { calcularGrid, escolhasPadrao, formatar, type Escolhas, type Grid, type Proporcao } from "@/lib/grids/calcular";
 import { montarIdml } from "@/lib/grids/idml";
 import { montarPdf } from "@/lib/grids/pdf";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
@@ -61,10 +61,26 @@ function numero(v: string, padrao: number) {
   return Number.isFinite(n) ? n : padrao;
 }
 
-export function Grids() {
+/**
+ * O modo do ASSINANTE (14/10/2026): o mesmo Grids, com o grid vindo das regras
+ * da marca, a origem dita na tela, a seção da marca (logo, cores, regras) e o
+ * pacote com logo, cores e estilos. Quem monta é `GridsDoAssinante`.
+ */
+export type ContextoDoGrid = { grid: Grid; formato: Formato; escolhas: Escolhas };
+export type ModoMarca = {
+  aplicar: (f: Formato) => Escolhas;
+  origem: (f: Formato, e: Escolhas) => string;
+  secao: (d: ContextoDoGrid & { mudar: (parte: Partial<Escolhas>) => void }) => ReactNode;
+  sobrePrevia?: (d: ContextoDoGrid) => ReactNode;
+  baixar: (d: ContextoDoGrid) => void;
+  baixando: boolean;
+};
+
+export function Grids({ marca }: { marca?: ModoMarca } = {}) {
   const [formatoId, setFormatoId] = useState("a4");
   const formato = formatoPorId(formatoId);
-  const [escolhas, setEscolhas] = useState<Escolhas>(() => escolhasPadrao(formatoPorId("a4")));
+  const inicial = (f: Formato) => (marca ? marca.aplicar(f) : escolhasPadrao(f));
+  const [escolhas, setEscolhas] = useState<Escolhas>(() => inicial(formatoPorId("a4")));
   const grid = useMemo(() => calcularGrid(formato, escolhas), [formato, escolhas]);
   const un = formato.unidade;
   const mudar = (parte: Partial<Escolhas>) => setEscolhas((e) => ({ ...e, ...parte }));
@@ -76,7 +92,7 @@ export function Grids() {
   function trocarFormato(id: string) {
     const f = formatoPorId(id);
     setFormatoId(id);
-    setEscolhas(escolhasPadrao(f));
+    setEscolhas(inicial(f));
   }
 
   const base = `grid-${formato.id}-${escolhas.tipo}`;
@@ -195,19 +211,26 @@ export function Grids() {
           </section>
         )}
 
+        {marca?.secao({ grid, formato, escolhas, mudar })}
+
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo {formato.livro ? 3 : 4}</p>
           <h2 className={PASSO}>Baixar</h2>
-          <button type="button" data-grids-baixar-idml onClick={() => baixar("idml")} disabled={grid.avisos.some((a) => a.startsWith("As margens somam"))}
+          <button type="button" data-grids-baixar-idml onClick={() => (marca ? marca.baixar({ grid, formato, escolhas }) : baixar("idml"))}
+            disabled={grid.avisos.some((a) => a.startsWith("As margens somam")) || Boolean(marca?.baixando)}
             className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
-            Baixar para o InDesign (.idml)
+            {marca ? (marca.baixando ? "Montando o pacote…" : "Baixar para o InDesign (.idml + Links)") : "Baixar para o InDesign (.idml)"}
           </button>
           <button type="button" data-grids-baixar-pdf onClick={() => baixar("pdf")} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
             PDF de referência (outros programas)
           </button>
-          <p className="text-[12px] leading-snug text-platform-text-muted">O .idml também abre no Affinity Publisher. Logo, cores e estilos de texto da marca já posicionados: no plano de assinatura.</p>
-          <button type="button" data-grids-restaurar onClick={() => setEscolhas(escolhasPadrao(formato))} className="self-start text-[12.5px] text-platform-text-muted underline">
-            Voltar à proposta do Brennimark
+          <p className="text-[12px] leading-snug text-platform-text-muted">
+            {marca
+              ? "Um .zip com o .idml, a pasta Links com o logo e o LEIA-ME. O .idml também abre no Affinity Publisher."
+              : "O .idml também abre no Affinity Publisher. Logo, cores e estilos de texto da marca já posicionados: no plano de assinatura."}
+          </p>
+          <button type="button" data-grids-restaurar onClick={() => setEscolhas(inicial(formato))} className="self-start text-[12.5px] text-platform-text-muted underline">
+            {marca ? "Voltar ao grid da marca" : "Voltar à proposta do Brennimark"}
           </button>
         </section>
       </aside>
@@ -219,9 +242,11 @@ export function Grids() {
             {" · "}{grid.colunas.n} {grid.colunas.n === 1 ? "coluna" : "colunas"}{grid.linhas.length ? ` × ${grid.linhas.length} linhas` : ""}
             {" · "}linha de base {un === "mm" ? `${escolhas.linhaDeBase} pt` : `${escolhas.linhaDeBase} px`}
           </p>
-          <p data-grids-proposta className="font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted">proposta do Brennimark</p>
+          {marca
+            ? <p data-grids-origem className="text-[12.5px] text-platform-text-muted">Grid: {marca.origem(formato, escolhas)}</p>
+            : <p data-grids-proposta className="font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted">proposta do Brennimark</p>}
         </div>
-        <Previa grid={grid} />
+        <Previa grid={grid} sobre={marca?.sobrePrevia?.({ grid, formato, escolhas })} />
         <Legenda grid={grid} />
         {formato.seguraNota && <p className="text-[12.5px] text-platform-text-muted">Área segura: {formato.seguraNota}.</p>}
         {grid.avisos.map((a) => <p key={a} data-grids-aviso className="rounded-[var(--radius-control)] border border-platform-border px-3 py-2 text-[12.5px] text-platform-text">{a}</p>)}
@@ -234,7 +259,7 @@ export function Grids() {
   );
 }
 
-function Previa({ grid: g }: { grid: ReturnType<typeof calcularGrid> }) {
+function Previa({ grid: g, sobre }: { grid: ReturnType<typeof calcularGrid>; sobre?: ReactNode }) {
   const s = g.sangria;
   const fino = Math.max(g.largura, g.altura) / 900;
   const interior = { x: g.margens.esq, y: g.margens.sup, w: g.largura - g.margens.esq - g.margens.dir, h: g.altura - g.margens.sup - g.margens.inf };
@@ -266,6 +291,7 @@ function Previa({ grid: g }: { grid: ReturnType<typeof calcularGrid> }) {
           </g>
         ))}
         {g.rotacionado?.segmentos.map(([x1, y1, x2, y2], i) => <line key={`r${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={COR.rotacionado} strokeWidth={fino * 0.8} />)}
+        {sobre}
       </svg>
     </div>
   );
