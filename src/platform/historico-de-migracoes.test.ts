@@ -57,6 +57,11 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `regras_de_grid` saiu daqui em 14/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261014114055`; impressão digital
+  // igual à do local (76 itens: as duas tabelas, constraints, índices, policies,
+  // grants, RLS, gatilho e as 4 funções), fora os privilégios padrão da
+  // `service_role` no hospedado.
   // `regras_do_logo` saiu daqui em 10/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261010135920`; impressão digital
   // igual à do local (58 itens: as duas tabelas, constraints, índices, policies,
@@ -257,11 +262,7 @@ const PENDENTES_ESPERADAS: string[] = [
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
   // em `6ca600e`; RLS, grants e SECURITY DEFINER conferidos depois.
-  // As regras de grid do Brennimark Grids do assinante (14/10/2026): escrita e
-  // provada no local (`scripts/prova-regras-de-grid.sh`, 50 verificações);
-  // aplicar ao hospedado SÓ com autorização nominal do André, carimbar e tirar
-  // daqui.
-  "regras_de_grid",
+
 ];
 
 /**

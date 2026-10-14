@@ -96,3 +96,4 @@
 20261008212730 pedidos_de_exportacao
 20261009125159 exportacao_no_navegador
 20261010135920 regras_do_logo
+20261014114055 regras_de_grid
