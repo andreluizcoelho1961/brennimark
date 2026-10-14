@@ -5,6 +5,7 @@ import { PRODUCT_LOCALE } from "@/platform/locale";
 import type { DocPageEntry } from "@/content/docs";
 import type { BrennimarkTheme } from "@/brennimark/types";
 import type { CorConferida } from "@/lib/paleta/conferencia";
+import type { FonteDaMarca } from "@/lib/tipografia/tipografia";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -53,6 +54,13 @@ const PALETA_FIXA: CorConferida[] = [
   { id: "c0000000-0000-4000-8000-000000000004", nome: "Só Pantone", papel: "apoio", segmento: "", hex: null, rgb: null, cmyk: null, pms: "7545 C", pagina: 13, ordem: 3, status: "draft", aprovadoEm: null, origem: "pessoa", conferencia: { estado: "conferir", faltam: ["PMS"], achadaNaPagina: 14 } },
 ];
 
+// A tipografia de bancada (14/10/2026): fontes livres, nenhuma de cliente.
+const TIPOGRAFIA_FIXA: FonteDaMarca[] = [
+  { id: "f0000000-0000-4000-8000-000000000001", uso: "titulo", segmento: "", familia: "Inter", estilo: "Bold", postscript: "Inter-Bold", substituta: "Arial", corpo: 32, entrelinha: 36, espacejamento: -10, caixaAlta: null, descricao: "Títulos e chamadas.", pagina: 30, ordem: 0, origem: "pessoa", status: "ready", aprovadoEm: "2026-10-14T12:00:00.000Z" },
+  { id: "f0000000-0000-4000-8000-000000000002", uso: "texto", segmento: "", familia: "Inter", estilo: "Regular", postscript: null, substituta: "Arial", corpo: 9.5, entrelinha: 12, espacejamento: null, caixaAlta: null, descricao: "", pagina: 30, ordem: 1, origem: "ia", status: "draft", aprovadoEm: null },
+  { id: "f0000000-0000-4000-8000-000000000003", uso: "legenda", segmento: "digital", familia: "IBM Plex Mono", estilo: "", postscript: null, substituta: null, corpo: null, entrelinha: null, espacejamento: 50, caixaAlta: true, descricao: "", pagina: 31, ordem: 2, origem: "ia", status: "draft", aprovadoEm: null },
+];
+
 export default async function AdminPanelLab({
   searchParams,
 }: {
@@ -69,6 +77,8 @@ export default async function AdminPanelLab({
     podeAprovar: papel !== "editora",
   };
 
+  const tipografia = { fontes: TIPOGRAFIA_FIXA, podeEditar: paleta.podeEditar, podeAprovar: paleta.podeAprovar };
+
   // `?estado=com-excluida` é o servidor devolvendo o que devolveria depois de
   // um recarregamento: uma página viva e outra já excluída.
   const comExcluida = estado === "com-excluida";
@@ -79,7 +89,7 @@ export default async function AdminPanelLab({
 
   return (
     <LocaleProvider locale={PRODUCT_LOCALE}>
-      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} marca={MARCA_FIXA} paleta={paleta} />
+      <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} marca={MARCA_FIXA} paleta={paleta} tipografia={tipografia} />
     </LocaleProvider>
   );
 }
