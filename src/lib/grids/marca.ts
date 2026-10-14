@@ -16,7 +16,7 @@
 
 import type { Formato } from "./formatos";
 import { PT_POR_MM, formatar, type Escolhas, type Grid } from "./calcular";
-import type { CorNoDocumento, EstiloNoDocumento } from "./idml";
+import type { CorNoDocumento, EstiloNoDocumento, FonteDoEstilo } from "./idml";
 
 export type Canto = "sup-esq" | "sup-dir" | "inf-esq" | "inf-dir";
 export const CANTOS: { id: Canto; nome: string }[] = [
@@ -115,14 +115,47 @@ export function coresParaODocumento(paleta: readonly CorDaPaleta[], impresso: bo
   return { cores, notas };
 }
 
+/** Uma fonte APROVADA da tipografia da marca, como o Grids a usa. */
+export type FonteParaOGrid = {
+  uso: string; segmento: string; familia: string; estilo: string;
+  espacejamento: number | null; caixaAlta: boolean | null; pagina: number | null;
+};
+
+const SEGMENTO_IMPRESSO = /impress|print|offset|gr[áa]fic|papel/i;
+const SEGMENTO_DIGITAL = /digital|tela|web|online|screen|redes|social/i;
+
 /**
- * Os estilos de texto no corpo e na entrelinha do grid (a fonte vem com a
- * tipografia da marca). Corpo de título e de texto da tabela aprovada quando
- * ela define ("título 96/108 · texto 32/36", "9,5 / 12 pt"); a ENTRELINHA é
- * sempre o múltiplo da linha de base que comporta o corpo — achado no
- * InDesign em 14/10: o texto de 32 px saía com entrelinha de 12.
+ * A fonte de um uso para este meio: a do segmento do meio ("impresso",
+ * "digital") quando o manual separa; senão a sem segmento; senão a primeira
+ * daquele uso. Só recebe fonte APROVADA — quem chama filtra.
  */
-export function estilosDoFormato(f: Formato, e: Escolhas): EstiloNoDocumento[] {
+export function fonteDoUso(fontes: readonly FonteParaOGrid[], uso: string, impresso: boolean): FonteParaOGrid | null {
+  const doUso = fontes.filter((f) => f.uso === uso);
+  const doMeio = doUso.find((f) => f.segmento && (impresso ? SEGMENTO_IMPRESSO : SEGMENTO_DIGITAL).test(f.segmento));
+  return doMeio ?? doUso.find((f) => !f.segmento) ?? doUso[0] ?? null;
+}
+
+function paraOEstilo(f: FonteParaOGrid, herdadaDe?: string): FonteDoEstilo {
+  const onde = f.pagina ? `manual, p. ${f.pagina}` : "tipografia da marca";
+  return {
+    familia: f.familia, estilo: f.estilo, espacejamento: f.espacejamento, caixaAlta: f.caixaAlta,
+    origem: herdadaDe ? `o manual não define; usa a do ${herdadaDe} (proposta do Brennimark)` : `${onde} — aprovada`,
+  };
+}
+
+/**
+ * Os estilos de texto no corpo e na entrelinha do grid, com a fonte da marca.
+ * Corpo de título e de texto da tabela aprovada quando ela define ("título
+ * 96/108 · texto 32/36", "9,5 / 12 pt"); a ENTRELINHA é sempre o múltiplo da
+ * linha de base que comporta o corpo — achado no InDesign em 14/10: o texto
+ * de 32 px saía com entrelinha de 12.
+ *
+ * A fonte (14/10/2026) vem da tipografia APROVADA: família, estilo,
+ * espacejamento e caixa alta. O tamanho continua o do grid, porque depende da
+ * peça. Subtítulo sem fonte herda a do Título, e Legenda, a do Texto — dito
+ * como proposta. Destaque e Apoio só existem quando a marca os define.
+ */
+export function estilosDoFormato(f: Formato, e: Escolhas, fontes: readonly FonteParaOGrid[] = []): EstiloNoDocumento[] {
   const u = e.linhaDeBase;
   const num = (v: string) => Number(v.replace(",", "."));
   const par = (rotulo: string) => {
@@ -139,12 +172,38 @@ export function estilosDoFormato(f: Formato, e: Escolhas): EstiloNoDocumento[] {
   const titulo = par("título") ?? { corpo: r1(u * 3 * 0.86), entrelinha: u * 3 };
   const sub = r1((titulo.corpo + texto.corpo) / 2);
   const legenda = r1(texto.corpo * 0.8);
-  return [
-    { nome: "Título", corpo: titulo.corpo, entrelinha: naBase(titulo.corpo, titulo.entrelinha) },
-    { nome: "Subtítulo", corpo: sub, entrelinha: naBase(sub) },
-    { nome: "Texto", corpo: texto.corpo, entrelinha: naBase(texto.corpo, texto.entrelinha) },
-    { nome: "Legenda", corpo: legenda, entrelinha: naBase(legenda) },
+
+  const impresso = f.unidade === "mm";
+  const de = (uso: string) => fonteDoUso(fontes, uso, impresso);
+  const fTitulo = de("titulo"), fTexto = de("texto"), fSub = de("subtitulo"), fLegenda = de("legenda");
+  const fDestaque = de("destaque"), fApoio = de("apoio");
+  const estilos: EstiloNoDocumento[] = [
+    { nome: "Título", corpo: titulo.corpo, entrelinha: naBase(titulo.corpo, titulo.entrelinha), fonte: fTitulo ? paraOEstilo(fTitulo) : null },
+    { nome: "Subtítulo", corpo: sub, entrelinha: naBase(sub), fonte: fSub ? paraOEstilo(fSub) : fTitulo ? paraOEstilo(fTitulo, "Título") : null },
+    { nome: "Texto", corpo: texto.corpo, entrelinha: naBase(texto.corpo, texto.entrelinha), fonte: fTexto ? paraOEstilo(fTexto) : null },
+    { nome: "Legenda", corpo: legenda, entrelinha: naBase(legenda), fonte: fLegenda ? paraOEstilo(fLegenda) : fTexto ? paraOEstilo(fTexto, "Texto") : null },
   ];
+  if (fDestaque) estilos.push({ nome: "Destaque", corpo: sub, entrelinha: naBase(sub), fonte: paraOEstilo(fDestaque) });
+  if (fApoio) estilos.push({ nome: "Apoio", corpo: texto.corpo, entrelinha: naBase(texto.corpo, texto.entrelinha), fonte: paraOEstilo(fApoio) });
+  return estilos;
+}
+
+/** "Inter Bold" — como a pessoa procura no menu de fontes. */
+export function nomeDaFonteNoEstilo(f: Pick<FonteDoEstilo, "familia" | "estilo">): string {
+  return f.estilo ? `${f.familia} ${f.estilo}` : f.familia;
+}
+
+/** As linhas dos estilos para o LEIA-ME e para a tela. */
+export function linhasDosEstilos(estilos: readonly EstiloNoDocumento[]): string[] {
+  return estilos.map((e) => {
+    const medida = `${String(e.corpo).replace(".", ",")}/${String(e.entrelinha).replace(".", ",")}`;
+    if (!e.fonte) return `${e.nome} (${medida}): sem fonte da marca aprovada — fica a fonte padrão do InDesign.`;
+    const extras = [
+      e.fonte.espacejamento !== null ? `espacejamento ${e.fonte.espacejamento}` : "",
+      e.fonte.caixaAlta ? "caixa alta" : "",
+    ].filter(Boolean).join(", ");
+    return `${e.nome} (${medida}): ${nomeDaFonteNoEstilo(e.fonte)}${extras ? `, ${extras}` : ""} — ${e.fonte.origem}.`;
+  });
 }
 
 /** O LEIA-ME do pacote: de onde veio cada coisa, e o que falta. */
@@ -152,7 +211,12 @@ export function leiaMeDoGrid(d: {
   marca: string; formato: Formato; origemDoGrid: string; tipo: string;
   logo: { arquivo: string; versao: string; protecao: string | null } | null;
   cores: CorNoDocumento[]; notasDasCores: string[]; avisos: string[];
+  estilos?: readonly EstiloNoDocumento[]; fontesEmRascunho?: number;
 }): string {
+  const estilos = d.estilos ?? [];
+  const comFonte = estilos.filter((e) => e.fonte);
+  const familias = [...new Set(comFonte.map((e) => nomeDaFonteNoEstilo(e.fonte!)))];
+  const rascunhos = d.fontesEmRascunho ?? 0;
   const linhas = [
     `Grid de ${d.marca} — ${d.formato.nome}`,
     "Feito no Brennimark Grids. Abra o .idml no InDesign (ou no Affinity Publisher).",
@@ -168,8 +232,12 @@ export function leiaMeDoGrid(d: {
     d.cores.length ? `CORES (amostras): só as aprovadas — ${d.cores.map((c) => c.nome).join("; ")}.` : "CORES: a paleta desta marca ainda não tem cores aprovadas no Brennimark.",
     ...d.notasDasCores.map((n) => `  · ${n}`),
     "",
-    "ESTILOS DE TEXTO: Título, Subtítulo, Texto e Legenda, no corpo e na entrelinha do grid, alinhados à linha de base.",
-    "A fonte da marca ainda não está nos estilos: ela entra quando a tipografia da marca for registrada no Brennimark.",
+    `ESTILOS DE TEXTO: ${estilos.length ? estilos.map((e) => e.nome).join(", ") : "Título, Subtítulo, Texto e Legenda"}, no corpo e na entrelinha do grid, alinhados à linha de base.`,
+    ...linhasDosEstilos(estilos).map((l) => `  · ${l}`),
+    familias.length
+      ? `INSTALE AS FONTES antes de abrir: ${familias.join("; ")}. O Brennimark não distribui o arquivo da fonte; sem ela instalada, o InDesign avisa que a fonte falta.`
+      : "A tipografia da marca ainda não tem fonte aprovada no Brennimark: os estilos ficam com a fonte padrão do InDesign.",
+    ...(rascunhos > 0 ? [`  · ${rascunhos === 1 ? "1 fonte em rascunho não entrou" : `${rascunhos} fontes em rascunho não entraram`}: elas entram quando forem aprovadas.`] : []),
   ];
   if (d.avisos.length) linhas.push("", "AVISOS:", ...d.avisos.map((a) => `  · ${a}`));
   return linhas.join("\n") + "\n";

@@ -42,9 +42,9 @@ export const CAMADAS: Record<Camada | "rotacionado" | "conteudo" | "logo", DefCa
 
 /**
  * A MARCA no documento (Grids do assinante, 14/10/2026): o logo dos Materiais,
- * as cores aprovadas e os estilos de texto no corpo e na entrelinha do grid.
- * A fonte da marca entra quando existir a tipografia da marca (decisão do
- * André, 14/10): até lá, os estilos ficam sem `AppliedFont`.
+ * as cores aprovadas e os estilos de texto no corpo e na entrelinha do grid,
+ * com a fonte da tipografia APROVADA da marca (`AppliedFont`, `FontStyle`,
+ * `Tracking`, `Capitalization`) quando ela existe.
  *
  * A colocação do logo segue o que o PRÓPRIO InDesign escreve (exportado em
  * 14/10 com um PNG, um SVG e um .ai de prancheta grande colocados por script):
@@ -64,7 +64,14 @@ export type LogoNoDocumento = {
   protecao: { x: number; y: number; w: number; h: number } | null;
 };
 export type CorNoDocumento = { nome: string; cmyk: [number, number, number, number] | null; rgb: [number, number, number] };
-export type EstiloNoDocumento = { nome: string; corpo: number; entrelinha: number };
+/**
+ * Um estilo de parágrafo. A `fonte` vem da tipografia APROVADA da marca
+ * (14/10/2026): família e estilo pelo NOME — o InDesign acha a fonte instalada
+ * e, se não houver, avisa que ela falta, que é o aviso honesto. O corpo e a
+ * entrelinha continuam os do grid (o tamanho depende da peça).
+ */
+export type FonteDoEstilo = { familia: string; estilo: string; espacejamento: number | null; caixaAlta: boolean | null; origem: string };
+export type EstiloNoDocumento = { nome: string; corpo: number; entrelinha: number; fonte?: FonteDoEstilo | null };
 export type MarcaNoDocumento = {
   /** Como a camada do grid se chama: de onde ele veio ("do manual, p. 31 — aprovada"). */
   origemDoGrid: string;
@@ -167,7 +174,16 @@ export function arquivosDoIdml(g: Grid, marca?: MarcaNoDocumento): Record<string
     + '<RootCharacterStyleGroup Self="u79"><CharacterStyle Self="CharacterStyle/$ID/[No character style]" Imported="false" Name="$ID/[No character style]"/></RootCharacterStyleGroup>'
     + '<RootParagraphStyleGroup Self="u78"><ParagraphStyle Self="ParagraphStyle/$ID/[No paragraph style]" Name="$ID/[No paragraph style]" Imported="false"/>'
     + '<ParagraphStyle Self="ParagraphStyle/$ID/NormalParagraphStyle" Name="$ID/NormalParagraphStyle" Imported="false"><Properties><BasedOn type="string">$ID/[No paragraph style]</BasedOn></Properties></ParagraphStyle>'
-    + (marca?.estilos ?? []).map((e, i) => `<ParagraphStyle Self="ParagraphStyle/Marca${i + 1}" Name="${esc(e.nome)}" Imported="false" PointSize="${n(e.corpo)}" AlignToBaseline="true"><Properties><BasedOn type="string">$ID/NormalParagraphStyle</BasedOn><Leading type="unit">${n(e.entrelinha)}</Leading></Properties></ParagraphStyle>`).join("")
+    + (marca?.estilos ?? []).map((e, i) => {
+      const f = e.fonte;
+      const atributos = f
+        ? (f.estilo ? ` FontStyle="${esc(f.estilo)}"` : "")
+          + (f.espacejamento !== null ? ` Tracking="${n(f.espacejamento)}"` : "")
+          + (f.caixaAlta === true ? ' Capitalization="AllCaps"' : "")
+        : "";
+      const familia = f ? `<AppliedFont type="string">${esc(f.familia)}</AppliedFont>` : "";
+      return `<ParagraphStyle Self="ParagraphStyle/Marca${i + 1}" Name="${esc(e.nome)}" Imported="false" PointSize="${n(e.corpo)}"${atributos} AlignToBaseline="true"><Properties><BasedOn type="string">$ID/NormalParagraphStyle</BasedOn>${familia}<Leading type="unit">${n(e.entrelinha)}</Leading></Properties></ParagraphStyle>`;
+    }).join("")
     + '</RootParagraphStyleGroup>'
     + '<RootCellStyleGroup Self="u8f"><CellStyle Self="CellStyle/$ID/[None]" Name="$ID/[None]"/></RootCellStyleGroup>'
     + '<RootTableStyleGroup Self="u90"><TableStyle Self="TableStyle/$ID/[No table style]" Name="$ID/[No table style]"/><TableStyle Self="TableStyle/$ID/[Basic Table]" Name="$ID/[Basic Table]"/></RootTableStyleGroup>'

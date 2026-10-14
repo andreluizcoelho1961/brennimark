@@ -13,7 +13,7 @@ const REGRA_A4 = { id: "ra4", formato: "a4", tipo: "colunas", unidade: "mm", col
 const REGRA_GERAL = { id: "rtodos", formato: "todos", tipo: "modular", unidade: "proporcao", colunas: 4, linhas: 5, medianiz: 0.02, margemSup: 0.06, margemInf: 0.06, margemEsq: 0.06, margemDir: 0.06, linhaDeBase: 12, zonas: null, descricao: "sistema modular", pagina: 32, origem: "ia", status: "draft" };
 const VERSAO = { id: "v1", itemId: "i1", tipo: "logo", arquivo: "Acme Logo horizontal.svg", mime: "image/svg+xml", hierarquia: "principal", lockup: "horizontal", cor: "colorido", polaridade: "positivo", espacoDeCor: "rgb", rotulo: null, miniatura: null };
 
-async function fingir(page: Page, o: { regras?: unknown[]; versoes?: unknown[]; protecao?: number } = {}) {
+async function fingir(page: Page, o: { regras?: unknown[]; versoes?: unknown[]; protecao?: number; tipografia?: unknown[]; fontesEmRascunho?: number } = {}) {
   const chamadas = { ler: 0, aprovar: [] as string[][], guardar: [] as Record<string, unknown>[], baixados: 0 };
   let regras = o.regras ?? [REGRA_A4, REGRA_GERAL];
   await page.route("**/api/grids/regras/ler", (r) => {
@@ -35,6 +35,7 @@ async function fingir(page: Page, o: { regras?: unknown[]; versoes?: unknown[]; 
       marca: "Acme", regras, versoesDoLogo: o.versoes ?? [VERSAO], foraDoInDesign: [],
       paleta: [{ nome: "Brasa", hex: "#FF4103", cmyk: "C0 M80 Y100 K0", pagina: 12 }, { nome: "Noite", hex: "#001621", cmyk: null, pagina: 12 }],
       coresEmRascunho: 1,
+      tipografia: o.tipografia ?? [], fontesEmRascunho: o.fontesEmRascunho ?? 0,
       regrasDoLogo: { protecao: o.protecao ?? 0.25, reducao: { logo: 120, simbolo: null }, regras: [] },
       podeEditar: true, podeAprovar: true,
     } });
@@ -123,4 +124,33 @@ test("sem regra de grid: lê o manual uma vez e diz o que achou; sem logo: expli
   expect(chamadas.ler).toBe(1);
   await expect(page.locator("[data-grids-origem]")).toContainText("proposta do Brennimark");
   await expect(page.locator("[data-grids-sem-logo]")).toContainText("não tem logotipo nos Materiais");
+});
+
+test("a tipografia aprovada entra nos estilos do InDesign, e o LEIA-ME diz o que instalar", async ({ page }) => {
+  const fonte = (uso: string, familia: string, estilo: string, extra: object = {}) => ({
+    id: uso, uso, segmento: "", familia, estilo, postscript: null, substituta: null, corpo: null, entrelinha: null,
+    espacejamento: null, caixaAlta: null, descricao: "", pagina: 30, ordem: 0, origem: "ia", status: "ready", aprovadoEm: "2026-10-14", ...extra,
+  });
+  await fingir(page, { tipografia: [fonte("titulo", "Inter", "Bold", { espacejamento: -10 }), fonte("texto", "Inter", "Regular")], fontesEmRascunho: 1 });
+  await abrir(page);
+  const fontes = page.locator("[data-grids-fontes]");
+  await expect(fontes.locator("[data-grids-estilo]").first()).toHaveText("Título (31/36): Inter Bold, espacejamento -10 — manual, p. 30 — aprovada.");
+  await expect(fontes).toContainText("Subtítulo (20,3/24): Inter Bold, espacejamento -10 — o manual não define; usa a do Título (proposta do Brennimark).");
+  await expect(fontes).toContainText("1 fonte em rascunho não entra até ser aprovada.");
+
+  const baixando = page.waitForEvent("download");
+  await page.locator("[data-grids-baixar-idml]").click();
+  const zip = unzipSync(new Uint8Array(await readFile((await (await baixando).path())!)));
+  const estilos = strFromU8(unzipSync(zip["grid-acme-a4-colunas.idml"])["Resources/Styles.xml"]);
+  expect(estilos).toContain('Name="Título" Imported="false" PointSize="31" FontStyle="Bold" Tracking="-10" AlignToBaseline="true"');
+  expect(estilos).toContain('<AppliedFont type="string">Inter</AppliedFont>');
+  const leiaMe = strFromU8(zip["LEIA-ME.txt"]);
+  expect(leiaMe).toContain("INSTALE AS FONTES antes de abrir: Inter Bold; Inter Regular.");
+  expect(leiaMe).toContain("1 fonte em rascunho não entrou");
+});
+
+test("sem tipografia aprovada, os estilos saem sem fonte e a tela diz", async ({ page }) => {
+  await fingir(page);
+  await abrir(page);
+  await expect(page.locator("[data-grids-fontes]")).toContainText("A tipografia da marca ainda não tem fonte aprovada");
 });

@@ -34,6 +34,8 @@ type Estado = {
   desenhos: DesenhosDaMarca;
   versoes: VarianteDoKit[];
   coresDaMarca: string[];
+  /** A substituta aprovada do uso "texto" (14/10/2026): a fonte da assinatura. */
+  fonteDaAssinatura?: { nome: string; origem: string } | null;
   podeEditar: boolean;
   podeAprovar: boolean;
 };
@@ -193,6 +195,7 @@ export function KitDoAssinante() {
         protecao: aplicadas.protecao, reducao: aplicadas.reducao,
         fontes: { protecao: fonte(regra("area_de_protecao")), logo: fonte(regra("reducao_minima_logo")), simbolo: fonte(regra("reducao_minima_simbolo")) },
         coresDaMarca: estado.coresDaMarca,
+        fonteDaAssinatura: estado.fonteDaAssinatura ?? null,
         seletorDeVersoes: versoes && escolha && (
           <SeletorDeVersoes
             todas={versoes.todas} escolha={escolha} falhas={falhas} automatica={versoes.desenhos}

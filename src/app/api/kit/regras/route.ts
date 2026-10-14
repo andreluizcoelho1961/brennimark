@@ -3,6 +3,7 @@ import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { COLUNAS_DAS_REGRAS, CHAVES_DAS_REGRAS, deLinhaDaRegra, type ChaveDaRegra, type RegraDoLogo } from "@/lib/kit/regras";
 import { escolherDesenhos, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
+import { fonteDaAssinatura } from "@/lib/kit/fonte-da-assinatura";
 
 /**
  * O Kit do assinante (10/10/2026): as regras do logo da marca e os desenhos
@@ -10,7 +11,8 @@ import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
  *
  * GET   regras (pela sessão: a RLS só devolve a quem consulta esta marca),
  *       os desenhos escolhidos nos Materiais, TODAS as versões de logo e
- *       símbolo com a miniatura (para a pessoa trocar) e o que ela pode fazer;
+ *       símbolo com a miniatura (para a pessoa trocar), a fonte da assinatura
+ *       (a substituta APROVADA do uso "texto"; 14/10/2026) e o que ela pode fazer;
  * PATCH quem edita corrige o valor de uma regra (o banco devolve a rascunho e
  *       anota `origem = 'pessoa'`).
  */
@@ -25,7 +27,7 @@ export async function GET(request: Request) {
   if (!contexto.brand) return NextResponse.json({ error: "sem_marca" }, { status: 409 });
   const brandId = contexto.brand.id;
 
-  const [regras, variantes, paleta] = await Promise.all([
+  const [regras, variantes, paleta, texto] = await Promise.all([
     auth.supabase.from("regras_do_logo").select(COLUNAS_DAS_REGRAS).eq("brand_id", brandId),
     auth.supabase.from("brand_assets")
       .select("id, item_id, label, file_name, mime_type, hierarquia, lockup, cor, polaridade, espaco_de_cor, miniatura_path, brand_asset_items!inner(tipo)")
@@ -33,6 +35,8 @@ export async function GET(request: Request) {
       .in("brand_asset_items.tipo", ["logo", "icone"]),
     // Só cor APROVADA vira opção de fundo em silêncio (ADR-0004 §3.2).
     auth.supabase.from("paleta_da_marca").select("hex").eq("brand_id", brandId).eq("status", "ready").not("hex", "is", null).order("ordem"),
+    // Só fonte APROVADA entra em silêncio (ADR-0004 §3.2).
+    auth.supabase.from("tipografia_da_marca").select("segmento, substituta, pagina").eq("brand_id", brandId).eq("uso", "texto").eq("status", "ready"),
   ]);
   if (regras.error || variantes.error) {
     return NextResponse.json({ message: "Não foi possível ler os Materiais da marca." }, { status: 503, headers: SEM_CACHE });
@@ -67,6 +71,8 @@ export async function GET(request: Request) {
     desenhos: escolherDesenhos(lista),
     versoes: lista,
     coresDaMarca: [...new Set((paleta.data ?? []).map((c) => String((c as { hex: string }).hex)))].slice(0, 12),
+    // Falhar ao ler a tipografia não derruba o Kit: a assinatura fica em Arial.
+    fonteDaAssinatura: texto.error ? null : fonteDaAssinatura((texto.data ?? []) as { segmento: string; substituta: string | null; pagina: number | null }[]),
     podeEditar: contexto.capabilities.includes("editar"),
     podeAprovar: contexto.capabilities.includes("aprovar"),
   }, { headers: SEM_CACHE });

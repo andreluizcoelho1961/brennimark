@@ -6,13 +6,14 @@ import { Grids, type ContextoDoGrid, type ModoMarca } from "./Grids";
 import type { Formato } from "@/lib/grids/formatos";
 import { aplicarRegras, fraseDaOrigem, regraDasEscolhas, type RegraDeGrid } from "@/lib/grids/regras";
 import {
-  CANTOS, coresParaODocumento, estilosDoFormato, larguraPadraoDoLogo, leiaMeDoGrid, margensComProtecao, posicionarLogo,
+  CANTOS, coresParaODocumento, estilosDoFormato, larguraPadraoDoLogo, leiaMeDoGrid, linhasDosEstilos, margensComProtecao, posicionarLogo,
   type Canto, type CorDaPaleta,
 } from "@/lib/grids/marca";
 import { medirLogo, montarPacoteDoGrid, nomeNosLinks, type LogoMedido } from "@/lib/grids/logo-no-navegador";
 import { formatar, type Escolhas } from "@/lib/grids/calcular";
 import { nomeDaVariante, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import type { FonteDaMarca } from "@/lib/tipografia/tipografia";
 
 /**
  * O Grids do ASSINANTE (14/10/2026) — "o documento pronto para diagramar, com
@@ -26,8 +27,8 @@ import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
  *
  * De onde vem o grid de cada formato: regra do formato > regra geral >
  * proposta do Brennimark — e a tela diz qual, com página e situação. Só regra
- * aprovada vale em silêncio (ADR-0004 §3.2). A fonte da marca entra com a
- * tipografia da marca (decisão do André, 14/10).
+ * aprovada vale em silêncio (ADR-0004 §3.2). A fonte dos estilos vem da
+ * tipografia APROVADA da marca (14/10/2026); a tela diz qual entrou.
  */
 
 type Estado = {
@@ -37,6 +38,9 @@ type Estado = {
   foraDoInDesign: string[];
   paleta: CorDaPaleta[];
   coresEmRascunho: number;
+  /** A tipografia APROVADA da marca (14/10/2026): a fonte dos estilos. */
+  tipografia?: FonteDaMarca[];
+  fontesEmRascunho?: number;
   regrasDoLogo: { protecao: number; reducao: { logo: number | null } };
   podeEditar: boolean;
   podeAprovar: boolean;
@@ -273,9 +277,18 @@ export function GridsDoAssinante() {
               {estado.coresEmRascunho > 0 && <span className="text-[12px] text-platform-text-muted">{estado.coresEmRascunho === 1 ? "1 cor em rascunho não entra até ser aprovada." : `${estado.coresEmRascunho} cores em rascunho não entram até serem aprovadas.`}</span>}
             </div>
 
-            <p className="text-[12px] leading-snug text-platform-text-muted">
-              Estilos de texto (Título, Subtítulo, Texto, Legenda) no corpo e na entrelinha do grid. A fonte da marca entra quando a tipografia da marca for registrada.
-            </p>
+            <div data-grids-fontes className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-platform-text">Estilos de texto</span>
+              {(estado.tipografia ?? []).length === 0 && (
+                <span className="text-[12.5px] leading-snug text-platform-text-muted">A tipografia da marca ainda não tem fonte aprovada: os estilos saem no corpo e na entrelinha do grid, com a fonte padrão do InDesign.</span>
+              )}
+              {linhasDosEstilos(estilosDoFormato(c.formato, c.escolhas, estado.tipografia ?? [])).map((l) => (
+                <span key={l} data-grids-estilo className="text-[12px] leading-snug text-platform-text-muted">{l}</span>
+              ))}
+              {(estado.fontesEmRascunho ?? 0) > 0 && (
+                <span className="text-[12px] text-platform-text-muted">{estado.fontesEmRascunho === 1 ? "1 fonte em rascunho não entra até ser aprovada." : `${estado.fontesEmRascunho} fontes em rascunho não entram até serem aprovadas.`}</span>
+              )}
+            </div>
           </section>
         );
       },
@@ -290,7 +303,7 @@ export function GridsDoAssinante() {
             origemDoGrid,
             logo: logo && p ? { arquivo: logo.nome, formato: logo.medido.formato, limites: logo.medido.limites, quadro: p.quadro, protecao: p.protecao } : null,
             cores,
-            estilos: estilosDoFormato(c.formato, c.escolhas),
+            estilos: estilosDoFormato(c.formato, c.escolhas, estado.tipografia ?? []),
           };
           const slug = estado.marca.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "marca";
           const base = `grid-${slug}-${c.formato.id}-${c.escolhas.tipo}`;
@@ -298,6 +311,7 @@ export function GridsDoAssinante() {
             marca: estado.marca, formato: c.formato, origemDoGrid, tipo: c.escolhas.tipo,
             logo: logo ? { arquivo: logo.nome, versao: logo.versao, protecao: protecao > 0 ? `${Math.round(protecao * 100)}% da altura do logo` : null } : null,
             cores, notasDasCores: notas, avisos: [...c.grid.avisos, ...(p?.avisos ?? [])],
+            estilos: marca.estilos, fontesEmRascunho: estado.fontesEmRascunho ?? 0,
           });
           const zip = montarPacoteDoGrid({ base, grid: c.grid, marca, logo: logo ? { nome: logo.nome, bytes: logo.bytes } : null, leiaMe });
           salvarArquivo(new Blob([zip as BlobPart], { type: "application/zip" }), `${base}.zip`);

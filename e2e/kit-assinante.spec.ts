@@ -12,7 +12,7 @@ const AREA = { id: "r1", chave: "area_de_protecao", valor: 0.25, descricao: "x =
 const LOGO_MIN = { id: "r2", chave: "reducao_minima_logo", valor: 120, descricao: "120 px", pagina: 13, origem: "ia", status: "draft" };
 const SIMB_MIN = { id: "r3", chave: "reducao_minima_simbolo", valor: 24, descricao: "24 px", pagina: 13, origem: "ia", status: "draft" };
 
-async function fingir(page: Page, opcoes: { regras?: unknown[]; semLogo?: boolean } = {}) {
+async function fingir(page: Page, opcoes: { regras?: unknown[]; semLogo?: boolean; fonteDaAssinatura?: { nome: string; origem: string } } = {}) {
   const chamadas = { ler: 0, aprovar: [] as string[][], baixados: 0 };
   let regras = opcoes.regras ?? [AREA];
   await page.route("**/api/kit/regras/ler", (r) => {
@@ -28,6 +28,7 @@ async function fingir(page: Page, opcoes: { regras?: unknown[]; semLogo?: boolea
   });
   await page.route("**/api/kit/regras", (r) => r.fulfill({ json: {
     marca: "Acme", regras, coresDaMarca: ["#0B4F9E", "#FFC629"], podeEditar: true, podeAprovar: true,
+    fonteDaAssinatura: opcoes.fonteDaAssinatura ?? null,
     desenhos: {
       logo: opcoes.semLogo ? null : { id: "v1", itemId: "i1", tipo: "logo", arquivo: "acme.svg", mime: "image/svg+xml", hierarquia: "principal", lockup: "horizontal", cor: "colorido", polaridade: "positivo", espacoDeCor: "rgb" },
       simbolo: null, negativo: null,
@@ -155,4 +156,20 @@ test("as versões (10/10/2026): o Kit marca a melhor de cada papel, a pessoa tro
   await page.locator("[data-kit-baixar-tudo]").click();
   const zip2 = unzipSync(new Uint8Array(await readFile((await (await baixando2).path())!)));
   expect(Object.keys(zip2)).not.toContain("apresentacao/simbolo-2000.png");
+});
+
+test("a assinatura usa a fonte substituta aprovada da tipografia, e diz de onde veio", async ({ page }) => {
+  await fingir(page, { fonteDaAssinatura: { nome: "Verdana", origem: "a substituta que o manual indica (p. 30)" } });
+  await page.goto("/dev/kit-assinante");
+  await expect(page.locator("[data-kit-dos-materiais]")).toContainText("Vêm dos Materiais da marca");
+  await page.locator("[data-kit-aba=email]").click();
+  await expect(page.locator("[data-kit-fonte-da-assinatura]")).toHaveText("Fonte: Verdana, a substituta que o manual indica (p. 30).");
+  const tabela = page.locator("[data-kit-assinatura-previa] table");
+  await expect(tabela).toHaveAttribute("style", /font-family:\s*Verdana, Arial, Helvetica, sans-serif|font-family:'Verdana',Arial/);
+
+  const baixando = page.waitForEvent("download");
+  await page.locator("[data-kit-baixar-grupo]").click();
+  const zip = unzipSync(new Uint8Array(await readFile((await (await baixando).path())!)));
+  expect(strFromU8(zip["email/assinatura.html"])).toContain("font-family:'Verdana',Arial,Helvetica,sans-serif");
+  expect(strFromU8(zip["LEIA-ME.txt"])).toContain("A assinatura usa Verdana, a substituta que o manual indica (p. 30)");
 });

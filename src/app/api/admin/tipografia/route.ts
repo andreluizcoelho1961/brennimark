@@ -89,9 +89,12 @@ export async function PATCH(request: Request) {
 
   // Uso e segmento não mudam numa linha (o gatilho recusa): quem quer outro
   // uso remove e cria. Por isso só o resto vai no update.
-  const { uso: _uso, segmento: _segmento, ...resto } = lida.fonte;
+  const f = lida.fonte;
   const { data, error } = await auth.supabase.from("tipografia_da_marca")
-    .update(resto)
+    .update({
+      familia: f.familia, estilo: f.estilo, postscript: f.postscript, substituta: f.substituta, corpo: f.corpo, entrelinha: f.entrelinha,
+      espacejamento: f.espacejamento, caixa_alta: f.caixa_alta, descricao: f.descricao, pagina: f.pagina, ordem: f.ordem,
+    })
     .eq("id", id).eq("workspace_id", workspaceId).eq("brand_id", brandId)
     .select(COLUNAS_DA_TIPOGRAFIA);
   if (error) return FALHOU();

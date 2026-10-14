@@ -6,6 +6,7 @@ import { COLUNAS_DAS_REGRAS_DE_GRID, deLinhaDaRegraDeGrid, type RegraDeGrid } fr
 import { formatoParaOInDesign } from "@/lib/grids/marca";
 import { FORMATOS } from "@/lib/grids/formatos";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
+import { COLUNAS_DA_TIPOGRAFIA, deLinhaDaTipografia, ordenarTipografia, type FonteDaMarca } from "@/lib/tipografia/tipografia";
 
 /**
  * O Grids do assinante (14/10/2026): o que o documento leva da marca.
@@ -13,7 +14,8 @@ import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
  * GET   as regras de grid (`regras_de_grid`, pela sessão: a RLS só devolve a
  *       quem consulta esta marca), o logo dos Materiais que o InDesign coloca,
  *       as cores APROVADAS da paleta (com o CMYK declarado), as regras do logo
- *       (área de proteção e redução mínima, do Kit) e o que a pessoa pode fazer;
+ *       (área de proteção e redução mínima, do Kit), a tipografia APROVADA
+ *       (a fonte dos estilos; 14/10/2026) e o que a pessoa pode fazer;
  * PATCH quem edita guarda o grid de um formato como regra da marca (sempre
  *       rascunho: o gatilho do banco garante; alterar uma aprovada a devolve
  *       a rascunho).
@@ -28,7 +30,7 @@ export async function GET(request: Request) {
   if (!contexto.brand) return NextResponse.json({ error: "sem_marca" }, { status: 409 });
   const brandId = contexto.brand.id;
 
-  const [regras, regrasDoLogo, variantes, paleta, rascunhos] = await Promise.all([
+  const [regras, regrasDoLogo, variantes, paleta, rascunhos, tipografia, fontesEmRascunho] = await Promise.all([
     auth.supabase.from("regras_de_grid").select(COLUNAS_DAS_REGRAS_DE_GRID).eq("brand_id", brandId),
     auth.supabase.from("regras_do_logo").select(COLUNAS_DAS_REGRAS).eq("brand_id", brandId),
     auth.supabase.from("brand_assets")
@@ -38,6 +40,9 @@ export async function GET(request: Request) {
     // Só cor APROVADA entra no documento (ADR-0004 §3.2).
     auth.supabase.from("paleta_da_marca").select("nome, hex, cmyk, pagina").eq("brand_id", brandId).eq("status", "ready").order("ordem"),
     auth.supabase.from("paleta_da_marca").select("id", { count: "exact", head: true }).eq("brand_id", brandId).eq("status", "draft"),
+    // Só fonte APROVADA entra nos estilos (ADR-0004 §3.2).
+    auth.supabase.from("tipografia_da_marca").select(COLUNAS_DA_TIPOGRAFIA).eq("brand_id", brandId).eq("status", "ready"),
+    auth.supabase.from("tipografia_da_marca").select("id", { count: "exact", head: true }).eq("brand_id", brandId).eq("status", "draft"),
   ]);
   if (regras.error || regrasDoLogo.error || variantes.error || paleta.error) {
     return NextResponse.json({ message: "Não foi possível ler as regras da marca." }, { status: 503, headers: SEM_CACHE });
@@ -70,6 +75,9 @@ export async function GET(request: Request) {
     foraDoInDesign,
     paleta: paleta.data ?? [],
     coresEmRascunho: rascunhos.count ?? 0,
+    // Falhar ao ler a tipografia não derruba o Grids: os estilos saem sem fonte, e a tela diz.
+    tipografia: tipografia.error ? [] : ordenarTipografia((tipografia.data ?? []).map((l) => deLinhaDaTipografia(l as Record<string, unknown>)).filter((x): x is FonteDaMarca => x !== null)),
+    fontesEmRascunho: fontesEmRascunho.count ?? 0,
     regrasDoLogo: { ...regrasParaOKit(doLogo), regras: doLogo },
     podeEditar: contexto.capabilities.includes("editar"),
     podeAprovar: contexto.capabilities.includes("aprovar"),

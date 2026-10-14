@@ -400,7 +400,7 @@ export async function montarPacote(
     if (e.simbolo?.svg) conteudo["apresentacao/simbolo.svg"] = [texto(e.simbolo.svg), { level: 6 }];
   }
   const abaixo = itens.map((i) => ({ i, m: medirItem(i, e) })).filter((x) => x.m.abaixoDe).map((x) => `${pastaDoGrupo(x.i.grupo)}/${x.i.arquivo} (${Math.round(x.m.largura)} px; mínimo ${x.m.abaixoDe} px)`);
-  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo, fontes: e.fontesDasRegras })), { level: 6 }];
+  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo, fontes: e.fontesDasRegras, fonteDaAssinatura: assinatura.fonte ?? null })), { level: 6 }];
 
   const bytes = await new Promise<Uint8Array>((resolver, rejeitar) => zip(conteudo, (erro, dados) => (erro ? rejeitar(erro) : resolver(dados))));
   return new Blob([bytes as BlobPart], { type: "application/zip" });
