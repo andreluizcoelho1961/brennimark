@@ -143,7 +143,20 @@ export function trechoDoHead(temSvg: boolean): string {
   ].join("\n");
 }
 
-export type DadosDaAssinatura = { nome: string; cargo: string; telefone: string; site: string; empresa: string };
+export type DadosDaAssinatura = {
+  nome: string; cargo: string; telefone: string; site: string; empresa: string;
+  /**
+   * A fonte da assinatura (14/10/2026): a SUBSTITUTA aprovada do uso "texto"
+   * da tipografia da marca — o e-mail não carrega a fonte da marca, e a
+   * substituta é a que o manual permite onde ela não roda. Sem ela, Arial.
+   */
+  fonte?: { nome: string; origem: string } | null;
+};
+
+/** O nome de uma fonte dentro de `font-family`: só letras, números, espaço e hífen. */
+export function nomeSeguroDaFonte(nome: string): string {
+  return nome.normalize("NFC").replace(/[^\p{L}\p{N} -]/gu, "").replace(/\s+/g, " ").trim().slice(0, 60);
+}
 
 /** Texto que vai para dentro do HTML da assinatura: nada de marcação colada. */
 export function escaparHtml(valor: string): string {
@@ -168,7 +181,9 @@ export function assinaturaHtml(d: DadosDaAssinatura, enderecoDoLogo: string, lar
   const linhaDoSite = site
     ? `<br><a href="${escaparHtml(site)}" style="color:#222222;text-decoration:none">${escaparHtml(d.site.trim().replace(/^https?:\/\//i, ""))}</a>`
     : linha(d.site, "color:#555555");
-  return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.45;color:#222222">`
+  const fonte = d.fonte ? nomeSeguroDaFonte(d.fonte.nome) : "";
+  const familias = fonte && !/^arial$/i.test(fonte) ? `'${fonte}',Arial,Helvetica,sans-serif` : "Arial,Helvetica,sans-serif";
+  return `<table cellpadding="0" cellspacing="0" border="0" style="font-family:${familias};font-size:13px;line-height:1.45;color:#222222">`
     + `<tr><td style="padding-right:14px;border-right:1px solid #dddddd;vertical-align:middle">`
     + `<img src="${escaparHtml(enderecoDoLogo)}" width="${larguraDoLogo}" alt="${escaparHtml(d.empresa.trim() || "Logo")}" style="display:block;border:0">`
     + `</td><td style="padding-left:14px;vertical-align:middle">`
@@ -187,6 +202,8 @@ export function assinaturaHtml(d: DadosDaAssinatura, enderecoDoLogo: string, lar
 export type RegrasInformadas = {
   protecao: number; reducao: ReducaoMinima; abaixo: string[];
   fontes?: Partial<Record<"protecao" | "logo" | "simbolo", string>>;
+  /** A fonte da assinatura e de onde veio (Kit do assinante, 14/10/2026). */
+  fonteDaAssinatura?: { nome: string; origem: string } | null;
 };
 
 export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean, regras?: RegrasInformadas): string {
@@ -210,6 +227,9 @@ export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean
       ? "Nos tamanhos pequenos (ícones e perfis) entrou o símbolo; nos grandes, o logotipo inteiro."
       : "Sem símbolo separado, o logotipo inteiro entrou também nos tamanhos pequenos — confira se fica legível.",
     comAssinatura ? "A assinatura usa o endereço da imagem: hospede assinatura-logo-600.png no site e troque o endereço." : "",
+    comAssinatura && regras?.fonteDaAssinatura
+      ? `A assinatura usa ${regras.fonteDaAssinatura.nome}, ${regras.fonteDaAssinatura.origem}; onde ela não existir, o e-mail mostra Arial.`
+      : "",
     "",
     ...linhasDasRegras,
     "",

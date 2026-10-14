@@ -3,7 +3,7 @@ import test from "node:test";
 import { formatoPorId } from "./formatos";
 import { PT_POR_MM, calcularGrid, escolhasPadrao } from "./calcular";
 import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
-import { coresParaODocumento, estilosDoFormato, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, margensComProtecao, posicionarLogo } from "./marca";
+import { coresParaODocumento, estilosDoFormato, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, linhasDosEstilos, margensComProtecao, posicionarLogo, type FonteParaOGrid } from "./marca";
 import { arquivosDoIdml } from "./idml";
 
 const regra = (p: Partial<RegraDeGrid>): RegraDeGrid => ({
@@ -126,11 +126,11 @@ test("os estilos: entrelinha sempre múltiplo da linha de base e maior que o cor
   const a4 = formatoPorId("a4");
   const es = estilosDoFormato(a4, escolhasPadrao(a4));
   assert.deepEqual(es.map((e) => e.nome), ["Título", "Subtítulo", "Texto", "Legenda"]);
-  assert.deepEqual(es.find((e) => e.nome === "Texto"), { nome: "Texto", corpo: 9.5, entrelinha: 12 });
+  assert.deepEqual(es.find((e) => e.nome === "Texto"), { nome: "Texto", corpo: 9.5, entrelinha: 12, fonte: null });
   const post = formatoPorId("post-4x5");
   const ep = estilosDoFormato(post, escolhasPadrao(post));
-  assert.deepEqual(ep.find((e) => e.nome === "Título"), { nome: "Título", corpo: 96, entrelinha: 108 }, "da tabela aprovada");
-  assert.deepEqual(ep.find((e) => e.nome === "Texto"), { nome: "Texto", corpo: 32, entrelinha: 36 }, "achado no InDesign: era 32/12");
+  assert.deepEqual(ep.find((e) => e.nome === "Título"), { nome: "Título", corpo: 96, entrelinha: 108, fonte: null }, "da tabela aprovada");
+  assert.deepEqual(ep.find((e) => e.nome === "Texto"), { nome: "Texto", corpo: 32, entrelinha: 36, fonte: null }, "achado no InDesign: era 32/12");
   for (const f of [a4, post, formatoPorId("slide-16x9"), formatoPorId("cartaz-50x70"), formatoPorId("iab-728x90")]) {
     const e = escolhasPadrao(f);
     for (const s of estilosDoFormato(f, e)) {
@@ -169,4 +169,72 @@ test("o LEIA-ME diz de onde veio cada coisa e o que falta", () => {
   assert.match(t, /ainda não tem cores aprovadas/);
   assert.match(t, /tipografia da marca/);
   assert.match(t, /AVISOS:\n  · x/);
+});
+
+// ─── A tipografia da marca nos estilos (14/10/2026) ─────────────────────────
+
+const fonte = (p: Partial<FonteParaOGrid>): FonteParaOGrid => ({
+  uso: "texto", segmento: "", familia: "Inter", estilo: "", espacejamento: null, caixaAlta: null, pagina: 30, ...p,
+});
+
+test("a fonte de cada uso: a do meio quando o manual separa, senão a sem segmento", () => {
+  const fontes = [
+    fonte({ uso: "texto", familia: "Geral" }),
+    fonte({ uso: "texto", segmento: "Digital", familia: "Tela" }),
+    fonte({ uso: "texto", segmento: "Impresso", familia: "Papel" }),
+    fonte({ uso: "titulo", segmento: "digital", familia: "Só digital" }),
+  ];
+  assert.equal(fonteDoUso(fontes, "texto", true)?.familia, "Papel");
+  assert.equal(fonteDoUso(fontes, "texto", false)?.familia, "Tela");
+  assert.equal(fonteDoUso(fontes, "titulo", true)?.familia, "Só digital", "sem a do meio nem a geral, a que houver");
+  assert.equal(fonteDoUso(fontes, "legenda", true), null);
+});
+
+test("os estilos levam a fonte aprovada; o corpo continua o do grid; herança dita como proposta", () => {
+  const a4 = formatoPorId("a4");
+  const sem = estilosDoFormato(a4, escolhasPadrao(a4));
+  const fontes = [
+    fonte({ uso: "titulo", familia: "Inter", estilo: "Bold", espacejamento: -10 }),
+    fonte({ uso: "texto", familia: "Inter", estilo: "Regular" }),
+    fonte({ uso: "destaque", familia: "Inter", estilo: "Black", caixaAlta: true, pagina: 31 }),
+  ];
+  const es = estilosDoFormato(a4, escolhasPadrao(a4), fontes);
+  assert.deepEqual(es.map((e) => e.nome), ["Título", "Subtítulo", "Texto", "Legenda", "Destaque"], "Apoio só quando a marca define");
+  assert.deepEqual(es.slice(0, 4).map((e) => [e.corpo, e.entrelinha]), sem.map((e) => [e.corpo, e.entrelinha]), "o tamanho é do grid");
+  assert.equal(es[0].fonte?.familia, "Inter");
+  assert.equal(es[0].fonte?.estilo, "Bold");
+  assert.equal(es[0].fonte?.origem, "manual, p. 30 — aprovada");
+  assert.match(es[1].fonte!.origem, /usa a do Título \(proposta do Brennimark\)/);
+  assert.equal(es[1].fonte?.estilo, "Bold");
+  assert.match(es[3].fonte!.origem, /usa a do Texto/);
+  assert.equal(es[4].fonte?.caixaAlta, true);
+  const linhas = linhasDosEstilos(es);
+  assert.equal(linhas[0], "Título (31/36): Inter Bold, espacejamento -10 — manual, p. 30 — aprovada.");
+  assert.match(linhasDosEstilos(sem)[0], /sem fonte da marca aprovada/);
+});
+
+test("o IDML: a fonte entra no estilo de parágrafo como o InDesign escreve", () => {
+  const f = formatoPorId("a4");
+  const g = calcularGrid(f, escolhasPadrao(f));
+  const estilos = estilosDoFormato(f, escolhasPadrao(f), [
+    fonte({ uso: "titulo", familia: "Bradesco Sans & Co", estilo: "Bold", espacejamento: -10, caixaAlta: true }),
+  ]);
+  const x = arquivosDoIdml(g, { origemDoGrid: "proposta", logo: null, cores: [], estilos });
+  const st = x["Resources/Styles.xml"];
+  assert.match(st, /Name="Título" Imported="false" PointSize="31" FontStyle="Bold" Tracking="-10" Capitalization="AllCaps" AlignToBaseline="true"><Properties><BasedOn type="string">\$ID\/NormalParagraphStyle<\/BasedOn><AppliedFont type="string">Bradesco Sans &amp; Co<\/AppliedFont><Leading/);
+  // Texto sem fonte aprovada: nenhum AppliedFont, fica a padrão.
+  assert.match(st, /Name="Texto" Imported="false" PointSize="9.5" AlignToBaseline="true"><Properties><BasedOn type="string">\$ID\/NormalParagraphStyle<\/BasedOn><Leading/);
+});
+
+test("o LEIA-ME diz quais fontes instalar e quantas ficaram em rascunho", () => {
+  const f = formatoPorId("a4");
+  const estilos = estilosDoFormato(f, escolhasPadrao(f), [fonte({ uso: "titulo", familia: "Inter", estilo: "Bold" }), fonte({ uso: "texto", familia: "Inter", estilo: "Regular" })]);
+  const base = { marca: "Bancada", formato: f, origemDoGrid: "proposta", tipo: "colunas", logo: null, cores: [], notasDasCores: [], avisos: [] };
+  const com = leiaMeDoGrid({ ...base, estilos, fontesEmRascunho: 2 });
+  assert.match(com, /INSTALE AS FONTES antes de abrir: Inter Bold; Inter Regular\./);
+  assert.match(com, /2 fontes em rascunho não entraram/);
+  assert.match(com, /Subtítulo \(.*\): Inter Bold — o manual não define; usa a do Título/);
+  const sem = leiaMeDoGrid({ ...base, estilos: estilosDoFormato(f, escolhasPadrao(f)) });
+  assert.match(sem, /ainda não tem fonte aprovada/);
+  assert.doesNotMatch(sem, /INSTALE/);
 });

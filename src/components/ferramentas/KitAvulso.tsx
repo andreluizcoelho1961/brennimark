@@ -36,6 +36,8 @@ export type KitFixo = {
   painelDeRegras: ReactNode;
   /** A escolha das versões nos Materiais, com as miniaturas (10/10/2026). */
   seletorDeVersoes: ReactNode;
+  /** A fonte da assinatura: a substituta aprovada do uso "texto" (14/10/2026). */
+  fonteDaAssinatura?: { nome: string; origem: string } | null;
 };
 
 const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
@@ -108,7 +110,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
     if (!escolhas) return;
     setGerando({ prontos: 0, total: itensDoPacote(grupos, escolhas).length });
     try {
-      const blob = await montarPacote(grupos, escolhas, nome.trim(), { ...dados, empresa: dados.empresa || nome }, (prontos, total) => setGerando({ prontos, total }));
+      const blob = await montarPacote(grupos, escolhas, nome.trim(), { ...dados, empresa: dados.empresa || nome, fonte: fixo?.fonteDaAssinatura ?? null }, (prontos, total) => setGerando({ prontos, total }));
       const base = `kit-${(nome.trim() || "marca").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") || "marca"}`;
       salvarArquivo(blob, grupos.length === 1 ? `${base}-${grupos[0]}.zip` : `${base}.zip`);
     } catch (e) {
@@ -253,7 +255,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
         </nav>
         {escolhas ? (
           <>
-            <Cenas aba={aba} escolhas={escolhas} nome={nome} dados={dados} setDados={setDados} />
+            <Cenas aba={aba} escolhas={escolhas} nome={nome} dados={dados} setDados={setDados} fonteDaAssinatura={fixo?.fonteDaAssinatura ?? null} />
             <div>
               <p className={`${ROTULO} mb-3`}>Arquivos deste grupo</p>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
@@ -365,7 +367,8 @@ function Cena({ titulo, legenda, children }: { titulo: string; legenda: string; 
   );
 }
 
-function Cenas({ aba, escolhas, nome, dados, setDados }: {
+function Cenas({ aba, escolhas, nome, dados, setDados, fonteDaAssinatura }: {
+  fonteDaAssinatura: { nome: string; origem: string } | null;
   aba: Grupo; escolhas: Escolhas; nome: string;
   dados: DadosDaAssinatura & { enderecoDoLogo: string };
   setDados: (d: DadosDaAssinatura & { enderecoDoLogo: string }) => void;
@@ -445,7 +448,7 @@ function Cenas({ aba, escolhas, nome, dados, setDados }: {
     </div>
   );
 
-  if (aba === "email") return <CenaDoEmail escolhas={escolhas} dados={dados} setDados={setDados} marca={marca} />;
+  if (aba === "email") return <CenaDoEmail escolhas={escolhas} dados={dados} setDados={setDados} marca={marca} fonte={fonteDaAssinatura} />;
 
   return (
     <Cena titulo="Para apresentação" legenda="PNG transparente, 2000 px">
@@ -457,14 +460,15 @@ function Cenas({ aba, escolhas, nome, dados, setDados }: {
   );
 }
 
-function CenaDoEmail({ escolhas, dados, setDados, marca }: {
+function CenaDoEmail({ escolhas, dados, setDados, marca, fonte }: {
   escolhas: Escolhas; marca: string;
+  fonte: { nome: string; origem: string } | null;
   dados: DadosDaAssinatura & { enderecoDoLogo: string };
   setDados: (d: DadosDaAssinatura & { enderecoDoLogo: string }) => void;
 }) {
   const [copiada, setCopiada] = useState(false);
   const logoDaAssinatura = useMemo(() => desenharItem(item("assinatura-logo-600.png"), escolhas).toDataURL("image/png"), [escolhas]);
-  const html = assinaturaHtml({ ...dados, empresa: dados.empresa || marca }, dados.enderecoDoLogo.trim() || logoDaAssinatura);
+  const html = assinaturaHtml({ ...dados, empresa: dados.empresa || marca, fonte }, dados.enderecoDoLogo.trim() || logoDaAssinatura);
   const caixa = useRef<HTMLDivElement>(null);
 
   async function copiar() {
@@ -484,7 +488,7 @@ function CenaDoEmail({ escolhas, dados, setDados, marca }: {
     setTimeout(() => setCopiada(false), 1800);
   }
 
-  const campo = (chave: keyof typeof dados, rotulo: string) => (
+  const campo = (chave: "nome" | "cargo" | "telefone" | "site" | "enderecoDoLogo", rotulo: string) => (
     <label className="flex flex-col gap-1">
       <span className={ROTULO}>{rotulo}</span>
       <input data-kit-assinatura={chave} className={CAMPO} value={dados[chave]} onChange={(e) => setDados({ ...dados, [chave]: e.target.value })} />
@@ -513,6 +517,7 @@ function CenaDoEmail({ escolhas, dados, setDados, marca }: {
           {copiada ? "Copiada ✓" : "Copiar assinatura"}
         </button>
         <p className="text-[12px] leading-snug text-platform-text-muted">
+          {fonte && <span data-kit-fonte-da-assinatura className="mb-1 block">Fonte: {fonte.nome}, {fonte.origem}.</span>}
           Gmail: Configurações → Ver todas → Assinatura → colar. Outlook: Configurações → Contas → Assinaturas → colar. Apple Mail: Ajustes → Assinaturas → colar e desmarcar “fonte padrão”.
         </p>
       </Cena>

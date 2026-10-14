@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { GRUPOS_DO_KIT, ITENS_DO_KIT } from "./tamanhos";
+import { fonteDaAssinatura } from "./fonte-da-assinatura";
 import {
   abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, enderecoDoSite, escaparHtml, favicoIco, leiaMe, manifestDoSite, trechoDoHead,
 } from "./pacote";
@@ -182,4 +183,32 @@ test("redução mínima: avisa o arquivo em que o desenho ficou menor que o mín
   assert.equal(abaixoDaReducao({ formato: "faixa" }, 100, "logo", reducao), 120);
   assert.equal(abaixoDaReducao({ formato: "transparente" }, 10, "logo", reducao), null);
   assert.equal(abaixoDaReducao({ formato: "quadrado" }, 10, "logo", { logo: null, simbolo: null }), null);
+});
+
+// ─── A fonte da assinatura (14/10/2026) ─────────────────────────────────────
+
+test("a assinatura usa a substituta aprovada, com Arial atrás; nome sem marcação", () => {
+  const dados = { nome: "Ana", cargo: "", telefone: "", site: "", empresa: "Bancada" };
+  assert.match(assinaturaHtml(dados, "logo.png"), /font-family:Arial,Helvetica,sans-serif;/);
+  assert.match(assinaturaHtml({ ...dados, fonte: { nome: "Verdana", origem: "x" } }, "logo.png"), /font-family:'Verdana',Arial,Helvetica,sans-serif;/);
+  const sujo = assinaturaHtml({ ...dados, fonte: { nome: `Inter"><script>'x`, origem: "x" } }, "logo.png");
+  assert.match(sujo, /font-family:'Interscriptx',Arial/);
+  assert.doesNotMatch(sujo, /<script>/);
+  assert.match(assinaturaHtml({ ...dados, fonte: { nome: "arial", origem: "x" } }, "logo.png"), /font-family:Arial,Helvetica,sans-serif;/, "Arial não se repete");
+});
+
+test("a fonte da assinatura: a substituta do texto, a do digital antes", () => {
+  assert.equal(fonteDaAssinatura([]), null);
+  assert.equal(fonteDaAssinatura([{ segmento: "", substituta: null, pagina: 30 }]), null, "sem substituta, Arial");
+  assert.deepEqual(
+    fonteDaAssinatura([{ segmento: "Impresso", substituta: "Georgia", pagina: 30 }, { segmento: "", substituta: "Verdana", pagina: 30 }, { segmento: "Digital", substituta: "Tahoma", pagina: 31 }]),
+    { nome: "Tahoma", origem: "a substituta que o manual indica (p. 31)" },
+  );
+  assert.equal(fonteDaAssinatura([{ segmento: "Impresso", substituta: "Georgia", pagina: null }, { segmento: "", substituta: " Verdana ", pagina: null }])?.nome, "Verdana");
+});
+
+test("o LEIA-ME do Kit diz a fonte da assinatura só quando há assinatura", () => {
+  const regras = { protecao: 0, reducao: { logo: null, simbolo: null }, abaixo: [], fonteDaAssinatura: { nome: "Verdana", origem: "a substituta que o manual indica (p. 30)" } };
+  assert.match(leiaMe("Bancada", false, true, regras), /A assinatura usa Verdana, a substituta que o manual indica \(p\. 30\); onde ela não existir, o e-mail mostra Arial\./);
+  assert.doesNotMatch(leiaMe("Bancada", false, false, regras), /Verdana/);
 });
