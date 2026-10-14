@@ -97,3 +97,4 @@
 20261009125159 exportacao_no_navegador
 20261010135920 regras_do_logo
 20261014114055 regras_de_grid
+20261014170618 tipografia_da_marca
