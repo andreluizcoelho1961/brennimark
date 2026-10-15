@@ -207,19 +207,13 @@ export function TipografiaDaMarca({
         </p>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {podeEditar && !editando && (
+      {podeEditar && !editando && (
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <button type="button" data-adicionar-fonte disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, uso: usosVazios[0] ?? "titulo", ordem: String(fontes.length) }); }} className={BOTAO_FORTE}>
             {t("Add font", "Adicionar fonte")}
           </button>
-        )}
-        {podeAprovar && emRascunho.length > 1 && (
-          <button type="button" data-aprovar-todas-as-fontes disabled={ocupado} onClick={() => aprovar(emRascunho.map((f) => f.id))} className={BOTAO}>
-            {t(`Approve all drafts (${emRascunho.length})`, `Aprovar todos os rascunhos (${emRascunho.length})`)}
-          </button>
-        )}
-        {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
-      </div>
+        </div>
+      )}
 
       {podeEditar && !editando && (
         <div data-leitura-da-tipografia className="mt-6 border border-dashed border-platform-border p-4">
@@ -302,6 +296,19 @@ export function TipografiaDaMarca({
         </div>
       )}
 
+      {/* Aprovar todas e a mensagem ficam colados à lista (15/10/2026): no topo,
+          longe das fontes, o André não viu o botão e aprovou uma por uma. */}
+      {((podeAprovar && emRascunho.length > 1) || mensagem) && (
+      <div data-barra-da-lista className="mt-6 flex flex-wrap items-center gap-3">
+        {podeAprovar && emRascunho.length > 1 && (
+          <button type="button" data-aprovar-todas-as-fontes disabled={ocupado} onClick={() => aprovar(emRascunho.map((f) => f.id))} className={BOTAO_FORTE}>
+            {t(`Approve all drafts (${emRascunho.length})`, `Aprovar todos os rascunhos (${emRascunho.length})`)}
+          </button>
+        )}
+        {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
+      </div>
+      )}
+
       {fontes.length === 0 && !editando && (
         <p className="mt-6 text-sm text-platform-text-muted">
           {t("No fonts in the sheet yet. Until there are, Grids makes the text styles without the brand font.", "Nenhuma fonte na ficha ainda. Enquanto não houver, o Grids faz os estilos de texto sem a fonte da marca.")}
@@ -309,7 +316,7 @@ export function TipografiaDaMarca({
       )}
 
       {fontes.length > 0 && (
-        <ul className="mt-6 divide-y divide-platform-border border border-platform-border">
+        <ul className="mt-3 divide-y divide-platform-border border border-platform-border">
           {fontes.map((f) => {
             const detalhes = [
               ...(f.postscript ? [`PostScript ${f.postscript}`] : []),
