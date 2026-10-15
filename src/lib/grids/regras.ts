@@ -128,7 +128,11 @@ export function regraDasEscolhas(f: Formato, e: Escolhas, extra: { descricao?: s
 
 // ─── A leitura do manual pela IA ───────────────────────────────────────────
 
-export const MAXIMO_DE_PAGINAS_DO_GRID = 4;
+/**
+ * Sete (15/10/2026; eram quatro): o manual da Bradesco tem sete páginas de
+ * grid, e as duas com números (Estrutura 3×3 e 5×5) ficavam de fora do corte.
+ */
+export const MAXIMO_DE_PAGINAS_DO_GRID = 7;
 
 const TERMOS_DO_GRID =
   /\b(grid|grade|grelha|malha|diagrama[çc][ãa]o|colunas|medianiz|calha|margens?|m[óo]dulos?|layout|baseline|linha\s+de\s+base|gutter|columns|margins)\b/i;
@@ -158,6 +162,8 @@ export function instrucoesDoGrid(paginas: readonly number[]): string {
     "- Só o que está nas páginas. Campo que o manual não dá, OMITA. Formato que o manual não cita, não escreva. Nunca invente nem complete com o usual.",
     "- Se o manual mede por um elemento (\"margem = 2x\", \"x = altura do símbolo\"), estime pela proporção do diagrama e diga a medida original em \"descricao\".",
     "- \"pagina\" é uma das enviadas.",
+    "- Manual que define o grid como ESTRUTURA \"N×N\" ou \"NxM\" (ex.: \"Estrutura 3X3\", \"5x5\", módulos em frações 1/5, 2/5…) está dando um grid MODULAR: N colunas × M linhas. Escreva \"tipo\": \"modular\", \"colunas\" e \"linhas\"; se ele vale para todas as peças, use \"formato\": \"todos\". Uma linha por estrutura, a mais citada primeiro.",
+    "- Diagrama de composição sem medida (onde vão a foto, o título, a assinatura) não é regra de grid: não escreva nada para ele.",
   ].join("\n");
 }
 

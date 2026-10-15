@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { formatoPorId } from "./formatos";
 import { PT_POR_MM, calcularGrid, escolhasPadrao } from "./calcular";
-import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
+import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, instrucoesDoGrid, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
 import { cantoPadrao, coresParaODocumento, estilosDoFormato, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, linhasDosEstilos, margensComProtecao, posicionarLogo, type FonteParaOGrid } from "./marca";
 import { arquivosDoIdml } from "./idml";
 import { montarPdf } from "./pdf";
@@ -274,4 +274,17 @@ test("o LEIA-ME de peça digital diz que as cores vão em RGB", () => {
   const cores = [{ nome: "Vermelho", cmyk: null, rgb: [200, 0, 30] as [number, number, number] }];
   assert.match(leiaMeDoGrid({ ...base, formato: formatoPorId("post-4x5"), cores }), /Peça digital: amostras em RGB/);
   assert.doesNotMatch(leiaMeDoGrid({ ...base, formato: formatoPorId("a4"), cores }), /Peça digital/);
+});
+
+test("o grid da Bradesco (15/10/2026): as sete páginas de grid vão à IA, e Estrutura 3×3 vira regra modular", () => {
+  const t = (pagina: number, content: string) => ({ documentSlug: "s", documentTitle: "t", groupName: "g", section: null, status: "ready", pageStart: pagina, pageEnd: pagina, content });
+  const menu = "Logos Cores Tipografia Grid Materializações";
+  const trechos = [
+    ...[1, 4, 5, 6, 10, 17, 21].map((p) => t(p, `Página ${p} ${menu}`)),
+    ...[28, 29, 30, 31, 32, 33, 34].map((p) => t(p, `Grid A Marca ${menu} ${p === 30 ? "Estrutura 3X3" : p === 31 ? "Estrutura 5X5 1/5 2/5" : "Grid horizontal"}`)),
+  ];
+  assert.deepEqual(paginasDoGrid(trechos), [28, 29, 30, 31, 32, 33, 34], "antes, o corte de quatro deixava a 30 e a 31 de fora");
+  assert.match(instrucoesDoGrid([30, 31]), /ESTRUTURA "N×N"/);
+  const [regra] = lerRegrasDeGridDaIA('{"formato": "todos", "tipo": "modular", "colunas": 3, "linhas": 3, "descricao": "Estrutura 3X3", "pagina": 30}', [30, 31]);
+  assert.deepEqual({ formato: regra.formato, tipo: regra.tipo, colunas: regra.colunas, linhas: regra.linhas, unidade: regra.unidade }, { formato: "todos", tipo: "modular", colunas: 3, linhas: 3, unidade: "proporcao" });
 });
