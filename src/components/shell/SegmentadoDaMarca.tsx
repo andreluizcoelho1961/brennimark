@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useIsEnglish } from "@/platform/locale-client";
+import { Dica } from "./Dica";
+import { textoDaDica } from "./dicas";
 
 /**
  * `Manual │ Materiais │ Complementos` — o segmentado da barra de cima.
@@ -55,7 +57,8 @@ export function SegmentadoDaMarca({ manual, materiais, complementos }: { manual?
             </span>
           );
         }
-        return (
+        const dica = textoDaDica(parte.id, isEnglish);
+        const link = (
           <Link
             key={parte.id}
             href={parte.href}
@@ -68,6 +71,7 @@ export function SegmentadoDaMarca({ manual, materiais, complementos }: { manual?
             {parte.rotulo}
           </Link>
         );
+        return dica ? <Dica key={parte.id} texto={dica} lado="baixo">{link}</Dica> : link;
       })}
     </nav>
   );

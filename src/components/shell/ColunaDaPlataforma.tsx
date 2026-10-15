@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { itemAtivo, type GrupoDaColuna } from "./coluna";
 import { IconeDaColunaSvg } from "./IconeDaColuna";
+import { Dica } from "./Dica";
+import { textoDaDica } from "./dicas";
 
 /**
  * A coluna da plataforma: faixa de ícones que se EXPANDE ao passar o mouse,
@@ -70,10 +72,15 @@ export function ColunaDaPlataforma({ grupos }: { grupos: GrupoDaColuna[] }) {
       >
         {grupos.map((grupo, indice) => (
           <div key={grupo.id} data-grupo-da-coluna={grupo.id} className="flex flex-col gap-[var(--space-shell-1)] px-[var(--space-shell-2)]">
-            {/* O nome do grupo só aparece expandido; recolhido, um fio separa. */}
-            {expandida
-              ? <p className="truncate px-[var(--space-shell-2)] pb-[var(--space-shell-1)] text-[11px] font-medium tracking-[0.06em] text-platform-text-muted">{grupo.rotulo}</p>
-              : indice > 0 && <span aria-hidden className="mx-[var(--space-shell-2)] mb-[var(--space-shell-1)] h-px bg-platform-border" />}
+            {/* O nome do grupo só aparece expandido; recolhido, um fio separa.
+                A altura é a MESMA nos dois (15/10/2026): antes, ao expandir, o
+                nome empurrava os itens ~20 px para baixo, e o item que a pessoa
+                apontava saía de baixo do cursor (a dica sumia junto). */}
+            <div className="flex h-[22px] flex-none items-end px-[var(--space-shell-2)] pb-[var(--space-shell-1)]">
+              {expandida
+                ? <p className="truncate text-[11px] font-medium leading-none tracking-[0.06em] text-platform-text-muted">{grupo.rotulo}</p>
+                : indice > 0 && <span aria-hidden className="mb-[3px] h-px w-full bg-platform-border" />}
+            </div>
             {grupo.itens.map((item) => {
               const ativo = itemAtivo(item, pathname);
               const miolo = (
@@ -92,16 +99,21 @@ export function ColunaDaPlataforma({ grupos }: { grupos: GrupoDaColuna[] }) {
 
               // Em breve: nem link nem botão que não faz nada. Um item
               // alcançável pelo teclado, que diz o que é e que ainda não abre.
+              // A dica do que a ferramenta faz (15/10/2026): no lugar do balão
+              // nativo, que só dizia o nome e demorava a aparecer.
+              const dica = textoDaDica(item.icone, isEnglish);
               if (item.emBreve || !item.href) {
+                const emBreve = isEnglish ? "Coming soon." : "Em breve.";
                 return (
-                  <span key={item.id} tabIndex={0} aria-disabled="true" data-item-em-breve={item.id}
-                    title={isEnglish ? `${item.rotulo} — coming soon` : `${item.rotulo} — em breve`}
-                    className={`${classe} cursor-default text-platform-text-muted opacity-50`}>
-                    {miolo}
-                  </span>
+                  <Dica key={item.id} titulo={item.rotulo} texto={dica ? `${dica} ${emBreve}` : emBreve}>
+                    <span tabIndex={0} aria-disabled="true" data-item-em-breve={item.id}
+                      className={`${classe} cursor-default text-platform-text-muted opacity-50`}>
+                      {miolo}
+                    </span>
+                  </Dica>
                 );
               }
-              return (
+              const link = (
                 <Link
                   key={item.id}
                   href={item.href}
@@ -109,7 +121,7 @@ export function ColunaDaPlataforma({ grupos }: { grupos: GrupoDaColuna[] }) {
                   data-nav-destination
                   data-item-da-coluna={item.id}
                   data-nav-active={ativo ? "true" : undefined}
-                  title={expandida ? undefined : item.rotulo}
+                  title={dica ? undefined : expandida ? undefined : item.rotulo}
                   onClick={aoSair}
                   className={`${classe} ${ativo
                     ? "bg-platform-signal-soft font-medium text-platform-text"
@@ -118,6 +130,7 @@ export function ColunaDaPlataforma({ grupos }: { grupos: GrupoDaColuna[] }) {
                   {miolo}
                 </Link>
               );
+              return dica ? <Dica key={item.id} titulo={item.rotulo} texto={dica}>{link}</Dica> : link;
             })}
           </div>
         ))}

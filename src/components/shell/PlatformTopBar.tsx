@@ -7,6 +7,8 @@ import { useIsEnglish } from "@/platform/locale-client";
 import { WorkspaceIdentity } from "./WorkspaceIdentity";
 import { SegmentadoDaMarca } from "./SegmentadoDaMarca";
 import { AlternarTema } from "./AlternarTema";
+import { Dica } from "./Dica";
+import { textoDaDica } from "./dicas";
 
 /**
  * Barra da plataforma: identidade provisória do produto, contexto da marca,
@@ -106,6 +108,7 @@ export function PlatformTopBar({
           no Mac e estourava 3 px no Linux do CI, onde o texto sai mais largo.
           Abaixo de `sm` os vãos encolhem de 12 para 8 px: 12 px a mais de folga. */}
       <div className="ml-auto flex items-center gap-[var(--space-shell-2)] sm:gap-[var(--space-shell-3)]">
+        <Dica texto={textoDaDica("busca", isEnglish)!} lado="baixo">
         <button
           type="button"
           onClick={onOpenSearch}
@@ -124,6 +127,7 @@ export function PlatformTopBar({
           <span className="hidden truncate sm:inline md:max-[1799px]:hidden">{searchLabel}</span>
           <kbd className="ml-auto hidden font-mono text-[10px] text-platform-text-muted sm:inline md:max-[1799px]:hidden">⌘K</kbd>
         </button>
+        </Dica>
         {userEmail && (
           <span className="hidden max-w-[14rem] truncate font-mono text-[11px] text-platform-text-muted min-[1800px]:inline">
             {userEmail}
