@@ -288,3 +288,55 @@ export function lerTipografiaDaIA(textoDaIA: string, paginasEnviadas: readonly n
   }
   return lidas;
 }
+
+// ─── Para o Vini (15/10/2026) ──────────────────────────────────────────────
+
+export const SLUG_DA_FICHA_DA_TIPOGRAFIA = "ficha-da-tipografia";
+export const SLUG_DA_FICHA_DA_TIPOGRAFIA_EM_RASCUNHO = "ficha-da-tipografia-rascunho";
+
+function linhaDaFonte(f: FonteDaMarca, ingles: boolean): string {
+  const uso = ingles ? NOMES_DOS_USOS[f.uso].en : NOMES_DOS_USOS[f.uso].pt;
+  const segmento = f.segmento ? ` · ${ingles ? "segment" : "segmento"}: ${f.segmento}` : "";
+  const detalhes = [
+    nomeDaFonte(f),
+    ...(f.postscript ? [`PostScript ${f.postscript}`] : []),
+    ...medidasDaFonte(f, ingles),
+    ...(f.substituta ? [ingles ? `substitute ${f.substituta}` : `substituta ${f.substituta}`] : []),
+    ...(f.pagina !== null ? [`p. ${f.pagina}`] : []),
+  ].join(" · ");
+  return `- ${uso}${segmento} — ${detalhes}${f.descricao ? ` — "${f.descricao}"` : ""}`;
+}
+
+/**
+ * A tipografia como fontes do Vini — uma para as APROVADAS e outra para as em
+ * RASCUNHO, como a ficha da paleta. "Só regra aprovada entra num prompt em
+ * silêncio" (ADR-0004 §3.2): o rascunho vai, com o rótulo de rascunho.
+ * A ficha guarda o NOME da fonte; o arquivo não é distribuído (ADR-0007).
+ */
+export function trechosDaTipografia(fontes: readonly FonteDaMarca[], ingles: boolean): Trecho[] {
+  const trechos: Trecho[] = [];
+  const grupos: ["ready" | "draft", string, string][] = [
+    ["ready", SLUG_DA_FICHA_DA_TIPOGRAFIA, ingles ? "Typography sheet (approved)" : "Ficha da tipografia (aprovada)"],
+    ["draft", SLUG_DA_FICHA_DA_TIPOGRAFIA_EM_RASCUNHO, ingles ? "Typography sheet (draft)" : "Ficha da tipografia (rascunho)"],
+  ];
+  for (const [status, slug, titulo] of grupos) {
+    const doGrupo = ordenarTipografia(fontes.filter((f) => f.status === status));
+    if (doGrupo.length === 0) continue;
+    const paginas = doGrupo.map((f) => f.pagina).filter((p): p is number => p !== null);
+    const familias = [...new Set(doGrupo.map((f) => f.familia))];
+    const resumo = ingles
+      ? `${doGrupo.length} use(s) defined; famil${familias.length === 1 ? "y" : "ies"}: ${familias.join(", ")}.`
+      : `${doGrupo.length} uso(s) definido(s); família(s): ${familias.join(", ")}.`;
+    trechos.push({
+      documentSlug: slug,
+      documentTitle: titulo,
+      groupName: ingles ? "Typography" : "Tipografia",
+      section: null,
+      status,
+      pageStart: paginas.length > 0 ? Math.min(...paginas) : null,
+      pageEnd: paginas.length > 0 ? Math.max(...paginas) : null,
+      content: [resumo, ...doGrupo.map((f) => linhaDaFonte(f, ingles))].join("\n"),
+    });
+  }
+  return trechos;
+}

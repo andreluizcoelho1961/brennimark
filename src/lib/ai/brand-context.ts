@@ -195,7 +195,8 @@ export function buildChatSystemPrompt(
   const { texto: textoDosComplementos } = montarContextoRecuperado(complementos, rotulos, pergunta, "trechos");
   const conhecimento = [textoDaFicha, texto, textoDosComplementos].filter(Boolean).join("\n\n") || semEvidencia(brand.language === "en");
   const raciocinio = regrasDeRaciocinio(brand.language, modo)
-    + (textoDaFicha ? regraDaFicha(brand.language) : "")
+    + (ficha.some((t) => t.documentSlug.startsWith("ficha-da-paleta")) ? regraDaFicha(brand.language) : "")
+    + (ficha.some((t) => t.documentSlug.startsWith("ficha-da-tipografia")) ? regraDaTipografia(brand.language) : "")
     + (textoDosComplementos ? regraDosComplementos(brand.language) : "");
 
   if (brand.language === "en") {
@@ -265,6 +266,23 @@ function regraDaFicha(language: string): string {
     : `
 - As fontes "Ficha da paleta" foram conferidas por uma pessoa contra o manual. Para cores — quantas, quais, seus códigos —, responda pela ficha, mesmo sobre o texto extraído das páginas do manual. Se divergirem, responda pela ficha e diga que o texto do manual traz outra coisa.
 - As cores da "Ficha da paleta (rascunho)" ainda não foram aprovadas: ao usá-las, diga que são rascunho.`;
+}
+
+/**
+ * A ficha da tipografia prevalece sobre o texto extraído — 15/10/2026, como a
+ * da paleta. Ela guarda o NOME da fonte: o Vini diz qual é, nunca oferece o
+ * arquivo (a plataforma não distribui fonte sem o termo — ADR-0007).
+ */
+function regraDaTipografia(language: string): string {
+  return language === "en"
+    ? `
+- The "Typography sheet" sources were checked by a person against the manual: which typeface goes in each use (heading, body, caption…), its style, PostScript name, sizes and the substitute font. For typefaces, answer from the sheet, even over the extracted text of the manual pages. If they disagree, answer from the sheet and say the manual text shows something else.
+- Typefaces in "Typography sheet (draft)" were not approved yet: when you use them, say they are a draft.
+- The sheet holds the typeface NAME, not the file: never offer the font file; the person installs it.`
+    : `
+- As fontes "Ficha da tipografia" foram conferidas por uma pessoa contra o manual: que fonte vai em cada uso (título, texto, legenda…), o estilo, o nome PostScript, as medidas e a fonte substituta. Para tipografia, responda pela ficha, mesmo sobre o texto extraído das páginas do manual. Se divergirem, responda pela ficha e diga que o texto do manual traz outra coisa.
+- As fontes da "Ficha da tipografia (rascunho)" ainda não foram aprovadas: ao usá-las, diga que são rascunho.
+- A ficha guarda o NOME da fonte, não o arquivo: nunca ofereça o arquivo da fonte; a pessoa a instala.`;
 }
 
 /**
