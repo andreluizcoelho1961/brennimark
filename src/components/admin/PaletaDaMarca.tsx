@@ -228,24 +228,13 @@ export function PaletaDaMarca({
         </p>
       )}
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {podeEditar && !editando && (
+      {podeEditar && !editando && (
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <button type="button" data-adicionar-cor disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, ordem: String(cores.length) }); }} className={BOTAO_FORTE}>
             {t("Add color", "Adicionar cor")}
           </button>
-        )}
-        {podeAprovar && conferidasEmRascunho.length > 0 && (
-          <button type="button" data-aprovar-conferidas disabled={ocupado} onClick={() => aprovar(conferidasEmRascunho.map((c) => c.id))} className={BOTAO_FORTE}>
-            {t(`Approve checked colors (${conferidasEmRascunho.length})`, `Aprovar as conferidas (${conferidasEmRascunho.length})`)}
-          </button>
-        )}
-        {podeAprovar && emRascunho.length > 1 && (
-          <button type="button" data-aprovar-todas disabled={ocupado} onClick={() => aprovar(emRascunho.map((c) => c.id))} className={BOTAO}>
-            {t(`Approve all drafts (${emRascunho.length})`, `Aprovar todos os rascunhos (${emRascunho.length})`)}
-          </button>
-        )}
-        {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
-      </div>
+        </div>
+      )}
 
       {podeEditar && !editando && (
         <div data-sugestao-da-paleta className="mt-6 border border-dashed border-platform-border p-4">
@@ -311,6 +300,24 @@ export function PaletaDaMarca({
         </div>
       )}
 
+      {/* Aprovar e a mensagem ficam colados à lista (15/10/2026), como na
+          tipografia: no topo, longe das cores, o botão passava despercebido. */}
+      {((podeAprovar && (emRascunho.length > 1 || conferidasEmRascunho.length > 0)) || mensagem) && (
+      <div data-barra-da-lista className="mt-6 flex flex-wrap items-center gap-3">
+        {podeAprovar && conferidasEmRascunho.length > 0 && (
+          <button type="button" data-aprovar-conferidas disabled={ocupado} onClick={() => aprovar(conferidasEmRascunho.map((c) => c.id))} className={BOTAO_FORTE}>
+            {t(`Approve checked colors (${conferidasEmRascunho.length})`, `Aprovar as conferidas (${conferidasEmRascunho.length})`)}
+          </button>
+        )}
+        {podeAprovar && emRascunho.length > 1 && (
+          <button type="button" data-aprovar-todas disabled={ocupado} onClick={() => aprovar(emRascunho.map((c) => c.id))} className={BOTAO}>
+            {t(`Approve all drafts (${emRascunho.length})`, `Aprovar todos os rascunhos (${emRascunho.length})`)}
+          </button>
+        )}
+        {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
+      </div>
+      )}
+
       {cores.length === 0 && !editando && (
         <p className="mt-6 text-sm text-platform-text-muted">
           {t("No colors in the sheet yet. Until there are, the assistant reads colors from the manual text.", "Nenhuma cor na ficha ainda. Enquanto não houver, o Vini lê as cores pelo texto do manual.")}
@@ -318,7 +325,7 @@ export function PaletaDaMarca({
       )}
 
       {cores.length > 0 && (
-        <ul className="mt-6 divide-y divide-platform-border border border-platform-border">
+        <ul className="mt-3 divide-y divide-platform-border border border-platform-border">
           {cores.map((cor) => (
             <li key={cor.id} data-cor-da-paleta={cor.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
               <span
