@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
@@ -212,6 +212,23 @@ export function BrandImporter({
       setLendo(false);
     }
   }, [nome, t, limites]);
+
+  /**
+   * O PDF escolhido ANTES de a página ligar (15/10/2026). Numa conexão lenta,
+   * a pessoa abre o seletor e escolhe o arquivo enquanto o JavaScript ainda
+   * carrega: o arquivo fica no campo, mas o aviso de "escolheu" acontece antes
+   * de o React ouvir, e nada aconteceria. Provado com o JS atrasado em 4 s —
+   * e era a causa das falhas do importador nos testes sob carga. Ao ligar, a
+   * página confere o campo e lê o que já estiver lá.
+   */
+  const campoDoArquivo = useRef<HTMLInputElement>(null);
+  const jaConferiu = useRef(false);
+  useEffect(() => {
+    if (jaConferiu.current) return;
+    jaConferiu.current = true;
+    const escolhidoAntes = campoDoArquivo.current?.files?.[0];
+    if (escolhidoAntes) void analisar(escolhidoAntes);
+  }, [analisar]);
 
   async function publicar() {
     if (!arquivo || !agrupamento) return;
@@ -597,6 +614,7 @@ export function BrandImporter({
 
         <label className="mt-[var(--space-shell-6)] flex min-h-11 w-full cursor-pointer items-center gap-[var(--space-shell-3)] rounded-[var(--radius-control)] border border-dashed border-platform-border px-[var(--space-shell-4)] py-[var(--space-shell-4)] text-[14px] text-platform-text-muted hover:border-platform-signal-soft hover:text-platform-text focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-platform-focus">
           <input
+            ref={campoDoArquivo}
             type="file"
             accept="application/pdf"
             className="sr-only"

@@ -18,6 +18,20 @@ async function escolher(page: Page, nome: string) {
   await page.setInputFiles('input[type="file"]', fixture(nome));
 }
 
+// ─── O PDF escolhido antes de a página ligar (15/10/2026) ──────────────────
+
+test("PDF escolhido enquanto o JavaScript ainda carrega é lido quando a página liga", async ({ page }) => {
+  // Numa conexão lenta (e nos testes sob carga) o arquivo chegava antes do
+  // React, e se perdia: a tela nunca reagia. Com o JS atrasado em 4 s, provado.
+  await page.route("**/_next/static/chunks/**", async (rota) => {
+    await new Promise((pronto) => setTimeout(pronto, 4000));
+    await rota.continue();
+  });
+  await page.goto("/dev/importar", { waitUntil: "commit" });
+  await page.setInputFiles('input[type="file"]', fixture("manual-de-teste.pdf"));
+  await expect(page.getByRole("heading", { name: /nada foi gravado ainda/i })).toBeVisible({ timeout: 30_000 });
+});
+
 // ─── Assinatura, e não MIME ─────────────────────────────────────────────────
 
 test("PDF válido com MIME vazio é aceito", async ({ page }) => {
