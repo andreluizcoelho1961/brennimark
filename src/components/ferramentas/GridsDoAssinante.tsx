@@ -6,10 +6,11 @@ import { Grids, type ContextoDoGrid, type ModoMarca } from "./Grids";
 import type { Formato } from "@/lib/grids/formatos";
 import { aplicarRegras, fraseDaOrigem, regraDasEscolhas, type RegraDeGrid } from "@/lib/grids/regras";
 import {
-  CANTOS, coresParaODocumento, estilosDoFormato, larguraPadraoDoLogo, leiaMeDoGrid, linhasDosEstilos, margensComProtecao, posicionarLogo,
+  CANTOS, cantoPadrao, coresParaODocumento, estilosDoFormato, larguraPadraoDoLogo, leiaMeDoGrid, linhasDosEstilos, margensComProtecao, posicionarLogo,
   type Canto, type CorDaPaleta,
 } from "@/lib/grids/marca";
-import { medirLogo, montarPacoteDoGrid, nomeNosLinks, type LogoMedido } from "@/lib/grids/logo-no-navegador";
+import { imagemDoLogo, medirLogo, montarPacoteDoGrid, nomeNosLinks, type LogoMedido } from "@/lib/grids/logo-no-navegador";
+import { montarPdf } from "@/lib/grids/pdf";
 import { formatar, type Escolhas } from "@/lib/grids/calcular";
 import { nomeDaVariante, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
@@ -62,7 +63,8 @@ export function GridsDoAssinante() {
   const [versaoId, setVersaoId] = useState<string | null>(null);
   const [logo, setLogo] = useState<LogoCarregado | null>(null);
   const [erroDoLogo, setErroDoLogo] = useState("");
-  const [canto, setCanto] = useState<Canto>("inf-esq");
+  // Nulo até a pessoa escolher: aí o canto segue o formato (`cantoPadrao`).
+  const [cantoEscolhido, setCanto] = useState<Canto | null>(null);
   const [baixando, setBaixando] = useState(false);
   const [lendo, setLendo] = useState<"nao" | "lendo" | "feito">("nao");
   const [avisoDaLeitura, setAvisoDaLeitura] = useState("");
@@ -169,8 +171,11 @@ export function GridsDoAssinante() {
     if (!estado) return null;
     const regras = estado.regras;
     const protecao = estado.regrasDoLogo.protecao;
-    const posicao = ({ grid }: ContextoDoGrid) => logo
-      ? posicionarLogo(grid, { largura: larguraPadraoDoLogo(grid), aspecto: logo.medido.aspecto, canto, protecao, reducaoMinimaPx: estado.regrasDoLogo.reducao.logo })
+    const cantoDe = (f: Formato) => cantoEscolhido ?? cantoPadrao(f);
+    const slug = estado.marca.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "marca";
+    const nomeDoArquivo = (c: ContextoDoGrid) => `grid-${slug}-${c.formato.id}-${c.escolhas.tipo}`;
+    const posicao = ({ grid, formato }: ContextoDoGrid) => logo
+      ? posicionarLogo(grid, { largura: larguraPadraoDoLogo(grid), aspecto: logo.medido.aspecto, canto: cantoDe(formato), protecao, reducaoMinimaPx: estado.regrasDoLogo.reducao.logo })
       : null;
     return {
       aplicar: (f) => aplicarRegras(f, regras).escolhas,
@@ -240,7 +245,7 @@ export function GridsDoAssinante() {
                       {estado.versoesDoLogo.map((v) => <option key={v.id} value={v.id}>{nomeDaVariante(v)}</option>)}
                     </select>
                   )}
-                  <select data-grids-canto className={CAMPO} value={canto} onChange={(e) => setCanto(e.target.value as Canto)} aria-label="Canto do logo">
+                  <select data-grids-canto className={CAMPO} value={cantoDe(c.formato)} onChange={(e) => setCanto(e.target.value as Canto)} aria-label="Canto do logo">
                     {CANTOS.map((k) => <option key={k.id} value={k.id}>Logo no canto {k.nome.toLowerCase()}</option>)}
                   </select>
                   {!logo && !erroDoLogo && <span className="text-[12px] text-platform-text-muted">Abrindo o logo dos Materiais…</span>}
@@ -253,7 +258,7 @@ export function GridsDoAssinante() {
                   {p?.avisos.map((a) => <span key={a} data-grids-aviso-logo className="text-[12.5px] leading-snug text-platform-text">{a}</span>)}
                   {p?.margemNecessaria && (
                     <button type="button" data-grids-ajustar-margens className={`self-start ${BOTAO_LINK}`}
-                      onClick={() => c.mudar({ margens: margensComProtecao(c.escolhas, c.formato, canto, p.margemNecessaria!) })}>
+                      onClick={() => c.mudar({ margens: margensComProtecao(c.escolhas, c.formato, cantoDe(c.formato), p.margemNecessaria!) })}>
                       Ajustar as margens à área de proteção ({formatar(p.margemNecessaria, c.grid.unidade)})
                     </button>
                   )}
@@ -305,8 +310,7 @@ export function GridsDoAssinante() {
             cores,
             estilos: estilosDoFormato(c.formato, c.escolhas, estado.tipografia ?? []),
           };
-          const slug = estado.marca.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "marca";
-          const base = `grid-${slug}-${c.formato.id}-${c.escolhas.tipo}`;
+          const base = nomeDoArquivo(c);
           const leiaMe = leiaMeDoGrid({
             marca: estado.marca, formato: c.formato, origemDoGrid, tipo: c.escolhas.tipo,
             logo: logo ? { arquivo: logo.nome, versao: logo.versao, protecao: protecao > 0 ? `${Math.round(protecao * 100)}% da altura do logo` : null } : null,
@@ -319,9 +323,22 @@ export function GridsDoAssinante() {
           setBaixando(false);
         }
       },
+      // O PDF igual ao InDesign (15/10/2026): o grid, o logo no canto e a área
+      // de proteção; o logo vai como imagem nítida (o vetor está no .idml).
+      baixarPdf: async (c) => {
+        setBaixando(true);
+        try {
+          const p = posicao(c);
+          const imagem = logo && p ? await imagemDoLogo(logo.medido.previa, p.quadro.w, p.quadro.h / p.quadro.w) : null;
+          const bytes = montarPdf(c.grid, { logo: imagem && p ? { quadro: p.quadro, protecao: p.protecao, imagem } : null });
+          salvarArquivo(new Blob([bytes as BlobPart], { type: "application/pdf" }), `${nomeDoArquivo(c)}.pdf`);
+        } finally {
+          setBaixando(false);
+        }
+      },
       baixando,
     };
-  }, [estado, logo, canto, lendo, avisoDaLeitura, recado, versaoId, erroDoLogo, baixando]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [estado, logo, cantoEscolhido, lendo, avisoDaLeitura, recado, versaoId, erroDoLogo, baixando]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (erro) return <p role="alert" className="m-6 text-sm text-platform-text">{erro}</p>;
   if (!estado || !modo) return <p data-grids-carregando className="m-6 text-sm text-platform-text-muted">Abrindo os Grids da marca…</p>;

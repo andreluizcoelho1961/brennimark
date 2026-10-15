@@ -19,12 +19,23 @@ import { PT_POR_MM, formatar, type Escolhas, type Grid } from "./calcular";
 import type { CorNoDocumento, EstiloNoDocumento, FonteDoEstilo } from "./idml";
 
 export type Canto = "sup-esq" | "sup-dir" | "inf-esq" | "inf-dir";
+/** Na ordem do costume: embaixo à direita; em cima, à esquerda (André, 15/10/2026). */
 export const CANTOS: { id: Canto; nome: string }[] = [
-  { id: "inf-esq", nome: "Inferior esquerdo" },
   { id: "inf-dir", nome: "Inferior direito" },
   { id: "sup-esq", nome: "Superior esquerdo" },
+  { id: "inf-esq", nome: "Inferior esquerdo" },
   { id: "sup-dir", nome: "Superior direito" },
 ];
+
+/**
+ * O canto em que o logo nasce. O costume é embaixo à direita (decisão do
+ * André, 15/10/2026 — antes nascia embaixo à esquerda, sem motivo de design).
+ * Onde a plataforma manda evitar o canto inferior direito (capa e vitrine do
+ * LinkedIn, pela central de ajuda), vai em cima, à esquerda.
+ */
+export function cantoPadrao(f: Pick<Formato, "seguraNota">): Canto {
+  return /canto inferior direito/i.test(f.seguraNota ?? "") ? "sup-esq" : "inf-dir";
+}
 
 type Ret = { x: number; y: number; w: number; h: number };
 
@@ -228,8 +239,10 @@ export function leiaMeDoGrid(d: {
       ? `LOGO: ${d.logo.arquivo} (${d.logo.versao}), na pasta Links. ${d.logo.protecao ? `Área de proteção: ${d.logo.protecao} — o retângulo vermelho em volta do logo não imprime.` : "O manual não tem área de proteção registrada no Brennimark."}`
       : "LOGO: a marca não tem logotipo nos Materiais em formato que o InDesign coloque (PDF, AI, SVG, PNG ou JPG).",
     "Se o InDesign disser que o vínculo está ausente, mantenha a pasta Links ao lado do .idml.",
+    "O PDF do grid é a referência para outros programas: lá o logo vai como imagem; o original vetorial está na pasta Links.",
     "",
     d.cores.length ? `CORES (amostras): só as aprovadas — ${d.cores.map((c) => c.nome).join("; ")}.` : "CORES: a paleta desta marca ainda não tem cores aprovadas no Brennimark.",
+    ...(d.cores.length && d.formato.unidade === "px" ? ["  · Peça digital: amostras em RGB, do HEX do manual (o CMYK fica para os impressos)."] : []),
     ...d.notasDasCores.map((n) => `  · ${n}`),
     "",
     `ESTILOS DE TEXTO: ${estilos.length ? estilos.map((e) => e.nome).join(", ") : "Título, Subtítulo, Texto e Legenda"}, no corpo e na entrelinha do grid, alinhados à linha de base.`,

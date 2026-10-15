@@ -73,6 +73,8 @@ export type ModoMarca = {
   secao: (d: ContextoDoGrid & { mudar: (parte: Partial<Escolhas>) => void }) => ReactNode;
   sobrePrevia?: (d: ContextoDoGrid) => ReactNode;
   baixar: (d: ContextoDoGrid) => void;
+  /** O PDF com a marca, igual ao que o InDesign abre (15/10/2026). */
+  baixarPdf?: (d: ContextoDoGrid) => void;
   baixando: boolean;
 };
 
@@ -221,7 +223,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
             className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
             {marca ? (marca.baixando ? "Montando o pacote…" : "Baixar para o InDesign (.idml + Links)") : "Baixar para o InDesign (.idml)"}
           </button>
-          <button type="button" data-grids-baixar-pdf onClick={() => baixar("pdf")} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
+          <button type="button" data-grids-baixar-pdf onClick={() => (marca?.baixarPdf ? marca.baixarPdf({ grid, formato, escolhas }) : baixar("pdf"))} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
             PDF de referência (outros programas)
           </button>
           <p className="text-[12px] leading-snug text-platform-text-muted">

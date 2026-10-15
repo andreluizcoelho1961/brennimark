@@ -60,6 +60,8 @@ test("o grid vem do manual, a tela diz de onde, e o pacote leva logo, cores e es
   await expect(page.locator("[data-grids-campo=colunas]")).toHaveValue("8");
   await expect(page.locator("[data-grids-logo]")).toContainText("Área de proteção: 25%");
   await expect(page.locator("[data-grids-logo-previa] image")).toHaveCount(1);
+  // O logo nasce embaixo à direita (André, 15/10/2026).
+  await expect(page.locator("[data-grids-canto]")).toHaveValue("inf-dir");
   expect(chamadas.baixados, "o original do logo pela rota que registra o download").toBe(1);
   expect(chamadas.ler, "com regras gravadas, a IA não é chamada").toBe(0);
   await expect(page.locator("[data-grids-cores]")).toContainText("1 cor em rascunho não entra");
@@ -153,4 +155,20 @@ test("sem tipografia aprovada, os estilos saem sem fonte e a tela diz", async ({
   await fingir(page);
   await abrir(page);
   await expect(page.locator("[data-grids-fontes]")).toContainText("A tipografia da marca ainda não tem fonte aprovada");
+});
+
+test("o PDF do assinante é igual ao InDesign: logo no canto, área de proteção, nome da marca", async ({ page }) => {
+  await fingir(page);
+  await abrir(page);
+  await expect(page.locator("[data-grids-logo-previa] image")).toHaveCount(1);
+  const baixando = page.waitForEvent("download");
+  await page.locator("[data-grids-baixar-pdf]").click();
+  const download = await baixando;
+  expect(download.suggestedFilename()).toBe("grid-acme-a4-colunas.pdf");
+  const bytes = await readFile((await download.path())!);
+  const latin = bytes.toString("latin1");
+  expect(latin).toContain("/Logo Do");
+  expect(latin).toContain("/SMask 6 0 R");
+  const caminho = process.env.SAIDA_DO_PDF;
+  if (caminho) await (await import("node:fs/promises")).writeFile(caminho, bytes);
 });
