@@ -1,4 +1,5 @@
 import type { Trecho } from "../ai/recuperacao";
+import { paginasDoAssunto } from "../ai/paginas-do-assunto";
 import { FORMATOS, type Formato, type TipoDeGrid } from "./formatos";
 import { escolhasPadrao, type Escolhas } from "./calcular";
 
@@ -134,14 +135,7 @@ const TERMOS_DO_GRID =
 
 /** As páginas onde o manual fala de grid e diagramação. */
 export function paginasDoGrid(trechos: readonly Trecho[], maximo = MAXIMO_DE_PAGINAS_DO_GRID): number[] {
-  const paginas: number[] = [];
-  for (const t of trechos) {
-    if (t.pageStart === null || t.origem === "complemento") continue;
-    if (!TERMOS_DO_GRID.test(`${t.section ?? ""} ${t.content}`)) continue;
-    if (!paginas.includes(t.pageStart)) paginas.push(t.pageStart);
-    if (paginas.length >= maximo) break;
-  }
-  return paginas.sort((a, b) => a - b);
+  return paginasDoAssunto(trechos, TERMOS_DO_GRID, maximo);
 }
 
 const IDS_DOS_FORMATOS = FORMATOS.map((f) => f.id);
