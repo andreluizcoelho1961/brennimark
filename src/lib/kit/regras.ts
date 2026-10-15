@@ -1,5 +1,6 @@
 import type { Trecho } from "../ai/recuperacao";
 import type { ReducaoMinima } from "./pacote";
+import { paginasDoAssunto } from "../ai/paginas-do-assunto";
 
 /**
  * As REGRAS DO LOGO que o Kit do assinante aplica (10/10/2026) — a área de
@@ -74,7 +75,8 @@ const TERMOS_DAS_REGRAS =
 /**
  * As páginas onde o manual fala das regras do logo. Primeiro as que quem edita
  * já ligou ao item Logotipo (`regra_paginas`) — escolha de uma pessoa, vale
- * mais que a busca. Sem elas, os trechos que citam os termos das regras.
+ * mais que a busca. Sem elas, as páginas que TRATAM das regras (título e
+ * número de menções; menu repetido não conta — `paginasDoAssunto`).
  */
 export function paginasDasRegras(
   trechos: readonly Trecho[],
@@ -82,14 +84,7 @@ export function paginasDasRegras(
   maximo = MAXIMO_DE_PAGINAS_DAS_REGRAS,
 ): number[] {
   if (regraPaginas.length > 0) return [...new Set(regraPaginas)].sort((a, b) => a - b).slice(0, maximo);
-  const paginas: number[] = [];
-  for (const t of trechos) {
-    if (t.pageStart === null || t.origem === "complemento") continue;
-    if (!TERMOS_DAS_REGRAS.test(`${t.section ?? ""} ${t.content}`)) continue;
-    if (!paginas.includes(t.pageStart)) paginas.push(t.pageStart);
-    if (paginas.length >= maximo) break;
-  }
-  return paginas.sort((a, b) => a - b);
+  return paginasDoAssunto(trechos, TERMOS_DAS_REGRAS, maximo);
 }
 
 /** O pedido à IA: uma linha por regra, com `|`. Sem JSON: custa menos token. */

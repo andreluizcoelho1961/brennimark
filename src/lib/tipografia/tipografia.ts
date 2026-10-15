@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Trecho } from "../ai/recuperacao";
+import { paginasDoAssunto } from "../ai/paginas-do-assunto";
 
 /**
  * A TIPOGRAFIA DA MARCA (14/10/2026) — a tabela `tipografia_da_marca` (#118),
@@ -198,16 +199,9 @@ export const MAXIMO_DE_PAGINAS_DA_TIPOGRAFIA = 4;
 const TERMOS_DA_TIPOGRAFIA =
   /\b(tipografia|tipogr[áa]fic[ao]s?|fontes?|fam[íi]lias?\s+tipogr|typeface|typography|fonts?|font\s+family)\b/i;
 
-/** As páginas onde o manual fala de tipografia (pelo texto já indexado). */
+/** As páginas onde o manual trata de tipografia (pelo texto já indexado; menu repetido não conta). */
 export function paginasDaTipografia(trechos: readonly Trecho[], maximo = MAXIMO_DE_PAGINAS_DA_TIPOGRAFIA): number[] {
-  const paginas: number[] = [];
-  for (const t of trechos) {
-    if (t.pageStart === null || t.origem === "complemento") continue;
-    if (!TERMOS_DA_TIPOGRAFIA.test(`${t.section ?? ""} ${t.content}`)) continue;
-    if (!paginas.includes(t.pageStart)) paginas.push(t.pageStart);
-    if (paginas.length >= maximo) break;
-  }
-  return paginas.sort((a, b) => a - b);
+  return paginasDoAssunto(trechos, TERMOS_DA_TIPOGRAFIA, maximo);
 }
 
 /** As páginas que quem edita digitou ("21, 22"), conferidas. */
