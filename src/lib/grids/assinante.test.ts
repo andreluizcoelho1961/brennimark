@@ -3,8 +3,10 @@ import test from "node:test";
 import { formatoPorId } from "./formatos";
 import { PT_POR_MM, calcularGrid, escolhasPadrao } from "./calcular";
 import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
-import { coresParaODocumento, estilosDoFormato, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, linhasDosEstilos, margensComProtecao, posicionarLogo, type FonteParaOGrid } from "./marca";
+import { cantoPadrao, coresParaODocumento, estilosDoFormato, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, linhasDosEstilos, margensComProtecao, posicionarLogo, type FonteParaOGrid } from "./marca";
 import { arquivosDoIdml } from "./idml";
+import { montarPdf } from "./pdf";
+import { unzlibSync } from "fflate";
 
 const regra = (p: Partial<RegraDeGrid>): RegraDeGrid => ({
   id: "r", formato: "a4", tipo: "colunas", unidade: "mm", colunas: null, linhas: null, medianiz: null,
@@ -237,4 +239,39 @@ test("o LEIA-ME diz quais fontes instalar e quantas ficaram em rascunho", () => 
   const sem = leiaMeDoGrid({ ...base, estilos: estilosDoFormato(f, escolhasPadrao(f)) });
   assert.match(sem, /ainda não tem fonte aprovada/);
   assert.doesNotMatch(sem, /INSTALE/);
+});
+
+test("o logo nasce embaixo à direita; onde o LinkedIn manda evitar esse canto, em cima à esquerda", () => {
+  assert.equal(cantoPadrao(formatoPorId("a4")), "inf-dir");
+  assert.equal(cantoPadrao(formatoPorId("post-4x5")), "inf-dir");
+  assert.equal(cantoPadrao(formatoPorId("linkedin-capa")), "sup-esq");
+  assert.equal(cantoPadrao(formatoPorId("linkedin-vitrine")), "sup-esq");
+});
+
+test("o PDF com a marca: logo como imagem com máscara, proteção, e o índice do PDF bate byte a byte", () => {
+  const f = formatoPorId("post-4x5");
+  const g = calcularGrid(f, escolhasPadrao(f));
+  const imagem = { largura: 2, altura: 1, rgb: new Uint8Array([200, 0, 30, 255, 255, 255]), alfa: new Uint8Array([255, 0]) };
+  const bytes = montarPdf(g, { logo: { quadro: { x: 800, y: 1200, w: 200, h: 100 }, protecao: { x: 765, y: 1165, w: 270, h: 170 }, imagem } });
+  const latin = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
+  assert.match(latin, /\/XObject << \/Logo 5 0 R >>/);
+  assert.match(latin, /200 0 0 100 800 50 cm \/Logo Do/, "o quadro na página, y contado de baixo (1350 − 1200 − 100)");
+  assert.match(latin, /\/SMask 6 0 R/);
+  // Cada posição do xref aponta para o começo de "N 0 obj".
+  const xref = Number(/startxref\n(\d+)/.exec(latin)![1]);
+  const linhas = latin.slice(xref).split("\n").slice(3, 9);
+  linhas.forEach((l, i) => assert.equal(latin.slice(Number(l.slice(0, 10)), Number(l.slice(0, 10)) + `${i + 1} 0 obj`.length), `${i + 1} 0 obj`));
+  // Os pixels voltam iguais.
+  const inicio = latin.indexOf("stream\n", latin.indexOf("5 0 obj")) + 7;
+  const tamanho = Number(/5 0 obj\n<<[^>]*\/Length (\d+)/.exec(latin)![1]);
+  assert.deepEqual(Array.from(unzlibSync(bytes.slice(inicio, inicio + tamanho))), [200, 0, 30, 255, 255, 255]);
+  // Sem marca, o PDF de sempre, sem imagem.
+  assert.doesNotMatch(Array.from(montarPdf(g), (b) => String.fromCharCode(b)).join(""), /XObject/);
+});
+
+test("o LEIA-ME de peça digital diz que as cores vão em RGB", () => {
+  const base = { marca: "Bancada", origemDoGrid: "proposta", tipo: "colunas", logo: null, notasDasCores: [], avisos: [] };
+  const cores = [{ nome: "Vermelho", cmyk: null, rgb: [200, 0, 30] as [number, number, number] }];
+  assert.match(leiaMeDoGrid({ ...base, formato: formatoPorId("post-4x5"), cores }), /Peça digital: amostras em RGB/);
+  assert.doesNotMatch(leiaMeDoGrid({ ...base, formato: formatoPorId("a4"), cores }), /Peça digital/);
 });

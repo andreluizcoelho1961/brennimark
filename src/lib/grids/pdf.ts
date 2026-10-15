@@ -9,7 +9,17 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+import { zlibSync } from "fflate";
 import type { Grid } from "./calcular";
+
+/**
+ * O logo no PDF do assinante (15/10/2026: "PDF igual ao InDesign", André):
+ * uma IMAGEM em alta resolução — o PDF é referência, e o vetor original vai
+ * no pacote do InDesign. `rgb` e `alfa` são os pixels já separados.
+ */
+export type ImagemDoLogo = { largura: number; altura: number; rgb: Uint8Array; alfa: Uint8Array };
+type Ret = { x: number; y: number; w: number; h: number };
+export type MarcaNoPdf = { logo: { quadro: Ret; protecao: Ret | null; imagem: ImagemDoLogo } | null };
 
 const n = (v: number) => (Math.round(v * 100) / 100).toString();
 
@@ -25,7 +35,7 @@ export const CORES = {
   rotacionado: [1.0, 0.55, 0.0],
 } as const;
 
-export function montarPdf(g: Grid): Uint8Array {
+export function montarPdf(g: Grid, marca?: MarcaNoPdf): Uint8Array {
   const H = g.altura;
   const y = (v: number) => H - v; // o PDF conta de baixo para cima
   const ops: string[] = [];
@@ -72,20 +82,37 @@ export function montarPdf(g: Grid): Uint8Array {
     ops.push("Q");
   }
 
+  // O logo e a área de proteção, como no InDesign: a proteção em vermelho
+  // tracejado (no InDesign ela não imprime; aqui é guia de referência).
+  const logo = marca?.logo ?? null;
+  if (logo?.protecao) tracejado(CORES.segura, () => ops.push(`${ret(logo.protecao!.x, logo.protecao!.y, logo.protecao!.w, logo.protecao!.h)} S`));
+  if (logo) ops.push(`q ${n(logo.quadro.w)} 0 0 ${n(logo.quadro.h)} ${n(logo.quadro.x)} ${n(y(logo.quadro.y + logo.quadro.h))} cm /Logo Do Q`);
+
   const conteudo = ops.join("\n");
-  const objetos = [
-    "<< /Type /Catalog /Pages 2 0 R >>",
-    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(g.largura)} ${n(g.altura)}] /Contents 4 0 R /Resources << >> >>`,
-    `<< /Length ${conteudo.length} >>\nstream\n${conteudo}\nendstream`,
+  const texto = (t: string) => new TextEncoder().encode(t);
+  const fluxo = (dicionario: string, bytes: Uint8Array) => [texto(`${dicionario.replace(/>>$/, ` /Length ${bytes.length} >>`)}\nstream\n`), bytes, texto("\nendstream")];
+  const objetos: Uint8Array[][] = [
+    [texto("<< /Type /Catalog /Pages 2 0 R >>")],
+    [texto("<< /Type /Pages /Kids [3 0 R] /Count 1 >>")],
+    [texto(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${n(g.largura)} ${n(g.altura)}] /Contents 4 0 R /Resources << ${logo ? "/XObject << /Logo 5 0 R >> " : ""}>> >>`)],
+    fluxo("<< >>", texto(conteudo)),
   ];
-  let corpo = "%PDF-1.4\n";
+  if (logo) {
+    const { largura, altura, rgb, alfa } = logo.imagem;
+    objetos.push(fluxo(`<< /Type /XObject /Subtype /Image /Width ${largura} /Height ${altura} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /SMask 6 0 R >>`, zlibSync(rgb)));
+    objetos.push(fluxo(`<< /Type /XObject /Subtype /Image /Width ${largura} /Height ${altura} /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode >>`, zlibSync(alfa)));
+  }
+  // Bytes, não caracteres: a imagem do logo é binária.
+  const partes: Uint8Array[] = [texto("%PDF-1.4\n")];
+  let tamanho = partes[0].length;
   const posicoes: number[] = [];
-  objetos.forEach((o, i) => { posicoes.push(corpo.length); corpo += `${i + 1} 0 obj\n${o}\nendobj\n`; });
-  const xref = corpo.length;
-  corpo += `xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n`;
-  for (const p of posicoes) corpo += `${String(p).padStart(10, "0")} 00000 n \n`;
-  corpo += `trailer\n<< /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  // Só ASCII no PDF: o comprimento em caracteres é o comprimento em bytes.
-  return new TextEncoder().encode(corpo);
+  const somar = (b: Uint8Array) => { partes.push(b); tamanho += b.length; };
+  objetos.forEach((o, i) => { posicoes.push(tamanho); somar(texto(`${i + 1} 0 obj\n`)); o.forEach(somar); somar(texto("\nendobj\n")); });
+  const xref = tamanho;
+  somar(texto(`xref\n0 ${objetos.length + 1}\n0000000000 65535 f \n${posicoes.map((p) => `${String(p).padStart(10, "0")} 00000 n \n`).join("")}`));
+  somar(texto(`trailer\n<< /Size ${objetos.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`));
+  const saida = new Uint8Array(tamanho);
+  let deslocamento = 0;
+  for (const b of partes) { saida.set(b, deslocamento); deslocamento += b.length; }
+  return saida;
 }

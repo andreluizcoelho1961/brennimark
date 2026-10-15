@@ -4,6 +4,7 @@ import { zipSync, strToU8 } from "fflate";
 import { motivoDoCabecalho } from "@/lib/kit/formatos";
 import type { Grid } from "./calcular";
 import { montarIdml, type LogoNoDocumento, type MarcaNoDocumento } from "./idml";
+import type { ImagemDoLogo } from "./pdf";
 import { formatoParaOInDesign } from "./marca";
 
 /**
@@ -146,4 +147,30 @@ export function nomeNosLinks(arquivo: string): string {
   const ext = /\.([a-z0-9]+)$/i.exec(arquivo)?.[1]?.toLowerCase() ?? "pdf";
   const base = arquivo.replace(/\.[a-z0-9]+$/i, "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
   return `logo-${base || "marca"}.${ext}`;
+}
+
+/**
+ * A prévia do logo em pixels para o PDF do assinante (15/10/2026): o desenho
+ * no tamanho do quadro, 4× para ficar nítido (até 2400 px de largura), com a
+ * transparência separada — o PDF a recebe como máscara.
+ */
+export async function imagemDoLogo(previa: string, larguraNoDocumento: number, aspecto: number): Promise<ImagemDoLogo> {
+  const img = new Image();
+  img.src = previa;
+  await img.decode();
+  const largura = Math.max(1, Math.min(2400, Math.round(larguraNoDocumento * 4)));
+  const altura = Math.max(1, Math.round(largura * aspecto));
+  const c = document.createElement("canvas");
+  c.width = largura;
+  c.height = altura;
+  const ctx = c.getContext("2d")!;
+  ctx.drawImage(img, 0, 0, largura, altura);
+  const { data } = ctx.getImageData(0, 0, largura, altura);
+  const rgb = new Uint8Array(largura * altura * 3);
+  const alfa = new Uint8Array(largura * altura);
+  for (let i = 0, j = 0, k = 0; i < data.length; i += 4) {
+    rgb[j++] = data[i]; rgb[j++] = data[i + 1]; rgb[j++] = data[i + 2];
+    alfa[k++] = data[i + 3];
+  }
+  return { largura, altura, rgb, alfa };
 }
