@@ -5,6 +5,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import type { DestinoDaMarca } from "@/components/shell/coluna";
 import { RespostaDoVini } from "./RespostaDoVini";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
 import { PainelDaAnalise } from "./PainelDaAnalise";
 import { PainelDoPrompt } from "./PainelDoPrompt";
 import { ListaDeConversas } from "./ListaDeConversas";
@@ -412,6 +414,8 @@ export function JanelaDoVini({
         </section>
       )}
 
+      {(() => {
+        const lancador = (
       <button
         ref={botao}
         type="button"
@@ -427,6 +431,10 @@ export function JanelaDoVini({
         </svg>
         {aberta ? t("Recolher", "Collapse") : t("Pergunte ao Vini", "Ask Vini")}
       </button>
+        );
+        // Fechada, a dica diz o que o Vini faz (15/10/2026); aberta, não atrapalha.
+        return <Dica texto={textoDaDica("vini", isEnglish)!} lado="cima" ativa={!aberta}>{lancador}</Dica>;
+      })()}
     </div>
   );
 }

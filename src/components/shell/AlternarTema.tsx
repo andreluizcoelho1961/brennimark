@@ -3,6 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { CHAVE_DO_TEMA } from "@/platform/tokens";
+import { Dica } from "./Dica";
+import { textoDaDica } from "./dicas";
 
 /**
  * Claro ou escuro — fatia 6, decisão do André (24/09/2026): o claro ("papel")
@@ -36,16 +38,17 @@ export function AlternarTema() {
 
   const rotulo = escuro ? (en ? "Switch to light theme" : "Usar o tema claro") : (en ? "Switch to dark theme" : "Usar o tema escuro");
   return (
+    <Dica texto={textoDaDica("tema", en)!} lado="baixo">
     <button
       type="button"
       onClick={alternar}
       aria-pressed={escuro}
       aria-label={rotulo}
-      title={rotulo}
       data-alternar-tema
       className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-control)] text-platform-text-muted hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
     >
       <span aria-hidden className="text-[15px] leading-none">◐</span>
     </button>
+    </Dica>
   );
 }
