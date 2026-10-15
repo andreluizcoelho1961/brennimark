@@ -17,6 +17,7 @@ import { capacidadesDe } from "@/lib/ai/catalogo";
 import { comPaginasVistas, lerPaginasVistas, modeloVePaginas, paginasParaVer, type PaginaVista } from "@/lib/ai/paginas-para-ver";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { lerPaleta, trechosDaFicha } from "@/lib/paleta/paleta";
+import { lerTipografia, trechosDaTipografia } from "@/lib/tipografia/tipografia";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
@@ -78,8 +79,8 @@ export async function POST(request: Request) {
   let trechos: Trecho[] = [];
   // O manual inteiro, quando lido (decisão de 26/09/2026). Vazio = só a busca.
   let manual: Trecho[] = [];
-  // A ficha da paleta (27/09/2026): vai com qualquer modo, e para cores vale
-  // sobre o texto do manual. Vazia quando a marca não tem ficha.
+  // As fichas da paleta (27/09/2026) e da tipografia (15/10/2026): vão com
+  // qualquer modo, e valem sobre o texto do manual. Vazias sem ficha.
   let ficha: Trecho[] = [];
   // Os complementos publicados da marca (01/10/2026): fonte própria, citada como complemento.
   let complementos: Trecho[] = [];
@@ -160,6 +161,9 @@ export async function POST(request: Request) {
      */
     const paleta = await lerPaleta(portao.auth.supabase, portao.brand.id);
     if (paleta.ok) ficha = trechosDaFicha(paleta.cores, brandPrompt.language === "en");
+    // A ficha da tipografia (15/10/2026), do mesmo jeito: falhar não derruba a conversa.
+    const tipografia = await lerTipografia(portao.auth.supabase, portao.brand.id);
+    if (tipografia.ok) ficha = [...ficha, ...trechosDaTipografia(tipografia.fontes, brandPrompt.language === "en")];
     // Os complementos publicados (01/10/2026). Falhar não derruba a conversa.
     complementos = await buscarComplementos(portao.auth.supabase, portao.brand.id, perguntaDasMensagens(messages ?? []), brandPrompt.language === "en");
     const tamanhoDoManual = caracteresDoManual(manual);

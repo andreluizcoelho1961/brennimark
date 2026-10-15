@@ -303,10 +303,17 @@ test("o boilerplate FIXO medido do prompt de sistema (sem o papel) cabe dentro d
   // A ficha da paleta (27/09/2026) no pior caso: as DUAS fontes, aprovada e
   // rascunho, e a regra dela. O conteúdo da ficha entra na reserva pelas
   // fontes; aqui fica só o que ela acrescenta ao redor — invólucro e regra.
-  const ficha: Trecho[] = ["ficha-da-paleta", "ficha-da-paleta-rascunho"].map((slug, i) => ({
-    documentSlug: slug, documentTitle: i === 0 ? "Ficha da paleta (aprovada)" : "Ficha da paleta (rascunho)",
-    groupName: "Cores", section: null, status: i === 0 ? "ready" : "draft", pageStart: 999, pageEnd: 999, content: "x",
-  }));
+  // E a ficha da tipografia (15/10/2026), também nas duas fontes e com a regra.
+  const ficha: Trecho[] = [
+    ...["ficha-da-paleta", "ficha-da-paleta-rascunho"].map((slug, i) => ({
+      documentSlug: slug, documentTitle: i === 0 ? "Ficha da paleta (aprovada)" : "Ficha da paleta (rascunho)",
+      groupName: "Cores", section: null, status: i === 0 ? "ready" : "draft", pageStart: 999, pageEnd: 999, content: "x",
+    })),
+    ...["ficha-da-tipografia", "ficha-da-tipografia-rascunho"].map((slug, i) => ({
+      documentSlug: slug, documentTitle: i === 0 ? "Ficha da tipografia (aprovada)" : "Ficha da tipografia (rascunho)",
+      groupName: "Tipografia", section: null, status: i === 0 ? "ready" : "draft", pageStart: 999, pageEnd: 999, content: "x",
+    })),
+  ];
   const conteudoDaFicha = ficha.reduce((soma, t) => soma + t.content.length, 0);
 
   for (const language of ["pt", "en"] as const) {

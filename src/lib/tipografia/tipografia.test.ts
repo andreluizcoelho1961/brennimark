@@ -3,8 +3,9 @@ import test from "node:test";
 import type { Trecho } from "../ai/recuperacao";
 import {
   deLinhaDaTipografia, instrucoesDaTipografia, lerFonteEscrita, lerPaginasPedidas, lerTipografiaDaIA,
-  medidasDaFonte, nomeDaFonte, ordenarTipografia, paginasDaTipografia, type FonteDaMarca,
+  medidasDaFonte, nomeDaFonte, ordenarTipografia, paginasDaTipografia, trechosDaTipografia, type FonteDaMarca,
 } from "./tipografia";
+import { buildChatSystemPrompt } from "../ai/brand-context";
 
 const fonte = (p: Partial<FonteDaMarca>): FonteDaMarca => ({
   id: "f", uso: "texto", segmento: "", familia: "Inter", estilo: "", postscript: null, substituta: null,
@@ -114,4 +115,37 @@ test("a resposta da IA é conferida linha a linha", () => {
   assert.equal(lidas[1].caixa_alta, undefined, "caixa alta só booleana");
   assert.equal(lidas[3].corpo, undefined, "corpo além do teto descartado");
   assert.deepEqual(lidas.map((l) => l.ordem), [0, 1, 2, 3]);
+});
+
+// ─── A ficha para o Vini (15/10/2026) ───────────────────────────────────────
+
+test("a ficha da tipografia: aprovadas e rascunho em fontes separadas, uma linha por uso", () => {
+  const fontes = [
+    fonte({ id: "1", uso: "texto", familia: "Sans de Bancada", estilo: "Regular", corpo: 9.5, entrelinha: 12, substituta: "Arial", pagina: 17, status: "ready" }),
+    fonte({ id: "2", uso: "titulo", familia: "Sans de Bancada", estilo: "Bold", postscript: "SansDeBancada-Bold", pagina: 17, status: "ready" }),
+    fonte({ id: "3", uso: "destaque", segmento: "Varejo", familia: "Sans de Bancada", descricao: "números grandes", pagina: 18, origem: "ia", status: "draft" }),
+  ];
+  const [aprovada, rascunho] = trechosDaTipografia(fontes, false);
+  assert.equal(aprovada.documentSlug, "ficha-da-tipografia");
+  assert.equal(aprovada.status, "ready");
+  assert.equal(aprovada.pageStart, 17);
+  assert.equal(aprovada.content, [
+    "2 uso(s) definido(s); família(s): Sans de Bancada.",
+    "- Título — Sans de Bancada Bold · PostScript SansDeBancada-Bold · p. 17",
+    "- Texto — Sans de Bancada Regular · 9,5/12 pt · substituta Arial · p. 17",
+  ].join("\n"), "título antes do texto");
+  assert.equal(rascunho.documentSlug, "ficha-da-tipografia-rascunho");
+  assert.equal(rascunho.status, "draft");
+  assert.equal(rascunho.content.split("\n")[1], '- Destaque · segmento: Varejo — Sans de Bancada · p. 18 — "números grandes"');
+  assert.deepEqual(trechosDaTipografia([], false), [], "sem fonte, nenhuma ficha");
+});
+
+test("a regra da tipografia só entra no prompt quando há ficha de tipografia", () => {
+  const brand = { language: "pt", chatRole: "", analysisRole: "", statusLabels: undefined } as Parameters<typeof buildChatSystemPrompt>[1];
+  const ficha = trechosDaTipografia([fonte({ uso: "titulo", status: "draft" })], false);
+  const com = buildChatSystemPrompt([], brand, "", "trechos", ficha);
+  assert.match(com, /As fontes "Ficha da tipografia" foram conferidas/);
+  assert.match(com, /nunca ofereça o arquivo da fonte/);
+  assert.doesNotMatch(com, /Ficha da paleta" foram conferidas/, "sem ficha da paleta, sem a regra dela");
+  assert.doesNotMatch(buildChatSystemPrompt([], brand, "", "trechos", []), /Ficha da tipografia/);
 });
