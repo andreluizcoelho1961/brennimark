@@ -5,6 +5,8 @@ import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { codigosDaCor, ordenarPaleta, type Papel } from "@/lib/paleta/paleta";
 import type { CorConferida as CorDaPaleta, Conferencia } from "@/lib/paleta/conferencia";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
 
 /**
  * A ficha da paleta da marca — 27/09/2026.
@@ -230,9 +232,9 @@ export function PaletaDaMarca({
 
       {podeEditar && !editando && (
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button type="button" data-adicionar-cor disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, ordem: String(cores.length) }); }} className={BOTAO_FORTE}>
+          <Dica texto={textoDaDica("admin-adicionar", isEnglish) ?? ""} lado="cima"><button type="button" data-adicionar-cor disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, ordem: String(cores.length) }); }} className={BOTAO_FORTE}>
             {t("Add color", "Adicionar cor")}
-          </button>
+          </button></Dica>
         </div>
       )}
 
@@ -259,9 +261,9 @@ export function PaletaDaMarca({
                 className={CAMPO}
               />
             </label>
-            <button type="button" data-sugerir-cores disabled={ocupado} onClick={sugerir} className={BOTAO}>
+            <Dica texto={textoDaDica("admin-ler-ia", isEnglish) ?? ""} lado="cima"><button type="button" data-sugerir-cores disabled={ocupado} onClick={sugerir} className={BOTAO}>
               {sugerindo ? t("Reading the pages…", "Lendo as páginas…") : t("Suggest with AI", "Sugerir pela IA")}
-            </button>
+            </button></Dica>
           </div>
         </div>
       )}
@@ -305,14 +307,14 @@ export function PaletaDaMarca({
       {((podeAprovar && (emRascunho.length > 1 || conferidasEmRascunho.length > 0)) || mensagem) && (
       <div data-barra-da-lista className="mt-6 flex flex-wrap items-center gap-3">
         {podeAprovar && conferidasEmRascunho.length > 0 && (
-          <button type="button" data-aprovar-conferidas disabled={ocupado} onClick={() => aprovar(conferidasEmRascunho.map((c) => c.id))} className={BOTAO_FORTE}>
+          <Dica texto={textoDaDica("admin-aprovar-conferidas", isEnglish) ?? ""} lado="cima"><button type="button" data-aprovar-conferidas disabled={ocupado} onClick={() => aprovar(conferidasEmRascunho.map((c) => c.id))} className={BOTAO_FORTE}>
             {t(`Approve checked colors (${conferidasEmRascunho.length})`, `Aprovar as conferidas (${conferidasEmRascunho.length})`)}
-          </button>
+          </button></Dica>
         )}
         {podeAprovar && emRascunho.length > 1 && (
-          <button type="button" data-aprovar-todas disabled={ocupado} onClick={() => aprovar(emRascunho.map((c) => c.id))} className={BOTAO}>
+          <Dica texto={textoDaDica("admin-aprovar-todos", isEnglish) ?? ""} lado="cima"><button type="button" data-aprovar-todas disabled={ocupado} onClick={() => aprovar(emRascunho.map((c) => c.id))} className={BOTAO}>
             {t(`Approve all drafts (${emRascunho.length})`, `Aprovar todos os rascunhos (${emRascunho.length})`)}
-          </button>
+          </button></Dica>
         )}
         {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
       </div>
@@ -368,8 +370,8 @@ export function PaletaDaMarca({
                 )}
                 {podeEditar && (
                   <>
-                    <button type="button" data-editar-cor disabled={ocupado} onClick={() => { setMensagem(""); setEditando(paraRascunho(cor)); }} className={BOTAO}>{t("Edit", "Editar")}</button>
-                    <button type="button" data-remover-cor disabled={ocupado} onClick={() => remover(cor)} className={BOTAO}>{t("Remove", "Remover")}</button>
+                    <Dica texto={textoDaDica("admin-editar", isEnglish) ?? ""} lado="cima"><button type="button" data-editar-cor disabled={ocupado} onClick={() => { setMensagem(""); setEditando(paraRascunho(cor)); }} className={BOTAO}>{t("Edit", "Editar")}</button></Dica>
+                    <Dica texto={textoDaDica("admin-remover", isEnglish) ?? ""} lado="cima"><button type="button" data-remover-cor disabled={ocupado} onClick={() => remover(cor)} className={BOTAO}>{t("Remove", "Remover")}</button></Dica>
                   </>
                 )}
               </div>

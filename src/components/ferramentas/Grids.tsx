@@ -6,6 +6,12 @@ import { calcularGrid, escolhasPadrao, formatar, type Escolhas, type Grid, type 
 import { montarIdml } from "@/lib/grids/idml";
 import { montarPdf } from "@/lib/grids/pdf";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
+
+/** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
+const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
+
 
 /**
  * O Brennimark Grids, versão GRATUITA (13/10/2026): escolhe o formato e o tipo
@@ -121,7 +127,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo 1</p>
           <h2 className={PASSO}>O formato</h2>
-          <select data-grids-formato className={CAMPO} value={formatoId} onChange={(e) => trocarFormato(e.target.value)}>
+          <Dica texto={dicaDe("grids-formato")} lado="baixo"><select data-grids-formato className={CAMPO} value={formatoId} onChange={(e) => trocarFormato(e.target.value)}>
             {GRUPOS.map((g) => (
               <optgroup key={g.id} label={g.nome}>
                 {FORMATOS.filter((f) => f.grupo === g.id).map((f) => (
@@ -129,7 +135,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
                 ))}
               </optgroup>
             ))}
-          </select>
+          </select></Dica>
           <p data-grids-fonte className="text-[12px] leading-snug text-platform-text-muted">
             Medida: {formato.fonte}.{formato.corpo ? ` Corpo de texto da proposta: ${formato.corpo}.` : ""}
           </p>
@@ -147,11 +153,11 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
           <h2 className={PASSO}>O tipo de grid</h2>
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="Tipo de grid">
             {TIPOS.map((t) => (
-              <button key={t.id} type="button" data-grids-tipo={t.id} aria-pressed={escolhas.tipo === t.id} onClick={() => mudar({ tipo: t.id })}
+              <Dica key={t.id} texto={dicaDe("grids-tipo")} lado="cima"><button type="button" data-grids-tipo={t.id} aria-pressed={escolhas.tipo === t.id} onClick={() => mudar({ tipo: t.id })}
                 className={`flex flex-col items-start rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors ${escolhas.tipo === t.id ? "border-platform-text" : "border-platform-border hover:border-platform-text"}`}>
                 <span className="text-sm font-medium text-platform-text">{t.nome}</span>
                 <span className="text-[12px] text-platform-text-muted">{t.dica}</span>
-              </button>
+              </button></Dica>
             ))}
           </div>
 
@@ -194,15 +200,15 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
           <section className="flex flex-col gap-3">
             <p className={ROTULO}>Passo 3 · opcional</p>
             <h2 className={PASSO}>Desconstrução</h2>
-            <label className="flex items-center gap-2 text-sm text-platform-text">
+            <Dica texto={dicaDe("grids-sobreposto")} lado="cima"><label className="flex items-center gap-2 text-sm text-platform-text">
               <input type="checkbox" data-grids-sobreposto checked={escolhas.sobreposto.ativo} onChange={(e) => mudar({ sobreposto: { ...escolhas.sobreposto, ativo: e.target.checked } })} />
               Grid sobreposto
-            </label>
+            </label></Dica>
             {escolhas.sobreposto.ativo && campoNumero("Colunas do grid sobreposto", escolhas.sobreposto.colunas, (v) => mudar({ sobreposto: { ...escolhas.sobreposto, colunas: Math.min(24, Math.max(1, Math.round(v))) } }), "", "sobreposto-colunas")}
-            <label className="flex items-center gap-2 text-sm text-platform-text">
+            <Dica texto={dicaDe("grids-rotacionado")} lado="cima"><label className="flex items-center gap-2 text-sm text-platform-text">
               <input type="checkbox" data-grids-rotacionado checked={escolhas.rotacionado.ativo} onChange={(e) => mudar({ rotacionado: { ...escolhas.rotacionado, ativo: e.target.checked } })} />
               Grid rotacionado
-            </label>
+            </label></Dica>
             {escolhas.rotacionado.ativo && (
               <label className="flex flex-col gap-1">
                 <span className="text-[12px] text-platform-text-muted">Ângulo · {escolhas.rotacionado.angulo}°</span>
@@ -218,14 +224,14 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo {formato.livro ? 3 : 4}</p>
           <h2 className={PASSO}>Baixar</h2>
-          <button type="button" data-grids-baixar-idml onClick={() => (marca ? marca.baixar({ grid, formato, escolhas }) : baixar("idml"))}
+          <Dica texto={dicaDe(marca ? "grids-baixar-idml" : "grids-baixar-idml-gratis")} lado="cima"><button type="button" data-grids-baixar-idml onClick={() => (marca ? marca.baixar({ grid, formato, escolhas }) : baixar("idml"))}
             disabled={grid.avisos.some((a) => a.startsWith("As margens somam")) || Boolean(marca?.baixando)}
             className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
             {marca ? (marca.baixando ? "Montando o pacote…" : "Baixar para o InDesign (.idml + Links)") : "Baixar para o InDesign (.idml)"}
-          </button>
-          <button type="button" data-grids-baixar-pdf onClick={() => (marca?.baixarPdf ? marca.baixarPdf({ grid, formato, escolhas }) : baixar("pdf"))} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
+          </button></Dica>
+          <Dica texto={dicaDe("grids-baixar-pdf")} lado="cima"><button type="button" data-grids-baixar-pdf onClick={() => (marca?.baixarPdf ? marca.baixarPdf({ grid, formato, escolhas }) : baixar("pdf"))} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
             PDF de referência (outros programas)
-          </button>
+          </button></Dica>
           <p className="text-[12px] leading-snug text-platform-text-muted">
             {marca
               ? "Um .zip com o .idml, a pasta Links com o logo e o LEIA-ME. O .idml também abre no Affinity Publisher."

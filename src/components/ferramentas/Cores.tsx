@@ -6,6 +6,12 @@ import {
   paletaEmTexto, rgbParaCmyk, rgbParaHex, rgbParaHsb, simularDaltonismo, veredito, type CorDaMarca, type CorNomeada, type Daltonismo, type Papel,
 } from "@/lib/cores/cores";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
+
+/** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
+const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
+
 
 /**
  * O Brennimark Cores (10/10/2026) — especificação v2.2.
@@ -186,10 +192,10 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
 
           <div className="flex flex-wrap gap-2">
             {temContaGotas ? (
-              <button type="button" data-cores-conta-gotas onClick={contaGotas}
+              <Dica texto={dicaDe("cores-conta-gotas")} lado="cima"><button type="button" data-cores-conta-gotas onClick={contaGotas}
                 className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg">
                 Conta-gotas na tela
-              </button>
+              </button></Dica>
             ) : (
               <label onMouseLeave={() => setDicaFechada(false)} className="group relative cursor-pointer rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-platform-signal">
                 {noMac ? "Conta-gotas do Mac" : "Seletor de cores"}
@@ -212,10 +218,10 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
                 )}
               </label>
             )}
-            <label className="cursor-pointer rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
+            <Dica texto={dicaDe("cores-imagem")} lado="cima"><label className="cursor-pointer rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
               Subir imagem
               <input data-cores-print type="file" accept="image/*" className="sr-only" onChange={(e) => abrirImagem(e.target.files?.[0])} />
-            </label>
+            </label></Dica>
           </div>
           {!temContaGotas && noMac ? (
             // O caminho até a lupa do macOS tem três cliques, e o segundo botão
@@ -284,14 +290,14 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             <Amostra fundo={cor} texto={textoSobre} />
             <Amostra fundo={textoSobre} texto={cor} />
           </div>
-          <p data-cores-contraste className="text-sm text-platform-text">Contraste <b className="font-mono">{razao.toFixed(2).replace(".", ",")} : 1</b></p>
+          <Dica texto={dicaDe("cores-contraste")} lado="cima"><p data-cores-contraste className="text-sm text-platform-text">Contraste <b className="font-mono">{razao.toFixed(2).replace(".", ",")} : 1</b></p></Dica>
           <ul data-cores-veredito className="grid grid-cols-3 gap-2 text-center text-[12px]">
             <Selo rotulo="Texto pequeno" valor={v.textoPequeno} />
             <Selo rotulo="Texto grande" valor={v.textoGrande} />
             <Selo rotulo="Ícones e botões" valor={v.iconesEBotoes} />
           </ul>
           <div>
-            <p className={`${ROTULO} mb-2`}>Para quem não enxerga certas cores</p>
+            <Dica texto={dicaDe("cores-daltonismo")} lado="cima"><p className={`${ROTULO} mb-2`}>Para quem não enxerga certas cores</p></Dica>
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(DALTONISMOS) as Daltonismo[]).map((t) => (
                 <figure key={t} data-cores-daltonismo={t} className="flex flex-col gap-1">
@@ -306,7 +312,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
 
       {/* ─── 3. A marca ─────────────────────────────────────────────────── */}
       <section data-cores-marca className={CAIXA} aria-labelledby="titulo-marca">
-        <h2 id="titulo-marca" className={TITULO}>É a cor da marca?</h2>
+        <Dica texto={dicaDe("cores-comparar")} lado="cima"><h2 id="titulo-marca" className={TITULO}>É a cor da marca?</h2></Dica>
         {marca && comparacao ? (
           <>
             <p data-cores-comparacao className="text-[15px] font-medium text-platform-text">{fraseDaComparacao(comparacao)}</p>
@@ -387,19 +393,19 @@ function Copiar({ rotulo, texto, pequeno, desligado }: { rotulo: string; texto: 
     setTimeout(() => setFeito(false), 1400);
   }
   return (
-    <button type="button" onClick={copiar} disabled={desligado}
+    <Dica texto={dicaDe("cores-copiar")} lado="cima"><button type="button" onClick={copiar} disabled={desligado}
       className={`rounded-[var(--radius-control)] border border-platform-border text-platform-text disabled:opacity-40 ${pequeno ? "px-2 py-0.5 text-[12px]" : "px-3 py-1.5 text-[13px]"}`}>
       {feito ? "Copiado ✓" : rotulo}
-    </button>
+    </button></Dica>
   );
 }
 
 function Exportar({ rotulo, dado, aoClicar, desligado }: { rotulo: string; dado: string; aoClicar: () => void; desligado?: boolean }) {
   return (
-    <button type="button" data-cores-exportar={dado} onClick={aoClicar} disabled={desligado}
+    <Dica texto={dicaDe("cores-exportar")} lado="cima"><button type="button" data-cores-exportar={dado} onClick={aoClicar} disabled={desligado}
       className="rounded-[var(--radius-control)] border border-platform-border px-3 py-1.5 text-[13px] text-platform-text disabled:opacity-40">
       {rotulo}
-    </button>
+    </button></Dica>
   );
 }
 

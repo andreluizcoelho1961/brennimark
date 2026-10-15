@@ -10,6 +10,12 @@ import {
   CHAVES_DAS_REGRAS, NOME_DA_REGRA, chavesQueFaltam, regrasParaOKit, valorLegivel, type ChaveDaRegra, type RegraDoLogo,
 } from "@/lib/kit/regras";
 import { KitAvulso } from "./KitAvulso";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
+
+/** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
+const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
+
 
 /**
  * O Kit do ASSINANTE (10/10/2026) — "ele conhece as regras do manual e usa".
@@ -250,7 +256,7 @@ function SeletorDeVersoes({ todas, escolha, falhas, automatica, aoEscolher }: {
                 const marcada = escolha[papel] === v.id;
                 const nome = nomeDaVariante(v);
                 return (
-                  <button key={v.id} type="button" data-kit-opcao={v.id} aria-pressed={marcada} disabled={desligada}
+                  <Dica key={v.id} texto={dicaDe("kit-versao")} lado="cima"><button type="button" data-kit-opcao={v.id} aria-pressed={marcada} disabled={desligada}
                     title={motivo ?? falha ?? (automatica[papel]?.id === v.id ? `${nome} (escolha do Kit)` : nome)}
                     onClick={() => aoEscolher(papel, v.id)}
                     className={`flex w-[104px] flex-col items-center gap-1 rounded-[var(--radius-control)] border p-1.5 text-center transition-colors ${marcada ? "border-platform-text" : "border-platform-border"} ${desligada ? "cursor-not-allowed opacity-45" : "hover:border-platform-text"}`}>
@@ -261,7 +267,7 @@ function SeletorDeVersoes({ todas, escolha, falhas, automatica, aoEscolher }: {
                         : <span className={`font-mono text-[11px] ${papel === "negativo" ? "text-white/70" : "text-black/50"}`}>{/\.([a-z0-9]+)$/i.exec(v.arquivo)?.[1]?.toUpperCase() ?? "?"}</span>}
                     </span>
                     <span className="line-clamp-2 text-[11px] leading-tight text-platform-text-muted">{nome}</span>
-                  </button>
+                  </button></Dica>
                 );
               })}
               {papel !== "logo" && (
@@ -359,7 +365,7 @@ function LinhaDaRegra({ chave, regra, lendo, podeEditar, podeAprovar, aoAprovar,
             {situacao && <span data-kit-regra-situacao className={situacao.classe}>{situacao.texto}</span>}
           </span>
           <span className="flex gap-3 text-[12.5px]">
-            {podeAprovar && regra.status === "draft" && <button type="button" data-kit-confirmar onClick={() => aoAprovar(regra.id)} className="font-medium text-platform-text underline">Confirmar</button>}
+            {podeAprovar && regra.status === "draft" && <Dica texto={dicaDe("kit-confirmar")} lado="cima"><button type="button" data-kit-confirmar onClick={() => aoAprovar(regra.id)} className="font-medium text-platform-text underline">Confirmar</button></Dica>}
             {podeEditar && <button type="button" onClick={abrir} className="text-platform-text-muted underline">Corrigir</button>}
           </span>
         </>

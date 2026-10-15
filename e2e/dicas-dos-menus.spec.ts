@@ -49,3 +49,17 @@ test("pelo teclado a dica aparece na hora", async ({ page }) => {
     await expect(page.locator("[data-dica]")).toContainText("Quem acessou, baixou e mudou o quê, e quando.", { timeout: 1500 });
   }).toPass({ timeout: 20_000 });
 });
+
+// ─── Etapa 2: os controles dentro das ferramentas (15/10/2026) ──────────────
+
+test("no Grids, os botões dizem o que fazem", async ({ page }) => {
+  await page.goto("/ferramentas/grids");
+  await expect(await dicaAoPassar(page, page.locator("[data-grids-baixar-pdf]"))).toHaveText("O grid em PDF, para usar em outros programas.");
+  await expect(await dicaAoPassar(page, page.locator('[data-grids-tipo="modular"]'))).toHaveText("O tipo de grid, da classificação de Timothy Samara.");
+});
+
+test("na administração, adicionar e ler pela IA têm dica", async ({ page }) => {
+  await page.goto("/dev/admin-panel");
+  await expect(await dicaAoPassar(page, page.locator("[data-adicionar-fonte]"))).toHaveText("Cadastra à mão uma cor ou fonte do manual.");
+  await expect(await dicaAoPassar(page, page.locator("[data-ler-tipografia]"))).toHaveText("A IA lê as páginas do manual e preenche o que falta, como rascunho.");
+});
