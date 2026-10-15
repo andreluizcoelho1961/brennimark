@@ -15,6 +15,12 @@ import { formatar, type Escolhas } from "@/lib/grids/calcular";
 import { nomeDaVariante, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
 import type { FonteDaMarca } from "@/lib/tipografia/tipografia";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
+
+/** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
+const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
+
 
 /**
  * O Grids do ASSINANTE (14/10/2026) — "o documento pronto para diagramar, com
@@ -216,16 +222,16 @@ export function GridsDoAssinante() {
                   <span data-grids-regra-situacao className="text-[12.5px] text-platform-text">{fraseDaOrigem({ tipo: "regra", regra: valendo, geral: !regra })}</span>
                   {valendo.descricao && <span className="text-[12px] leading-snug text-platform-text-muted">“{valendo.descricao}”</span>}
                   {estado.podeAprovar && valendo.status === "draft" && (
-                    <button type="button" data-grids-confirmar onClick={() => aprovar(valendo.id)} className={`self-start ${BOTAO_LINK}`}>Confirmar esta regra</button>
+                    <Dica texto={dicaDe("grids-confirmar")} lado="cima"><button type="button" data-grids-confirmar onClick={() => aprovar(valendo.id)} className={`self-start ${BOTAO_LINK}`}>Confirmar esta regra</button></Dica>
                   )}
                 </>
               ) : (
                 <span className="text-[12.5px] text-platform-text-muted">O manual não define o grid deste formato — vale a proposta do Brennimark.</span>
               )}
               {estado.podeEditar && (
-                <button type="button" data-grids-guardar onClick={() => guardar(c.formato, c.escolhas, regra)} className={`self-start ${BOTAO_LINK}`}>
+                <Dica texto={dicaDe("grids-guardar")} lado="cima"><button type="button" data-grids-guardar onClick={() => guardar(c.formato, c.escolhas, regra)} className={`self-start ${BOTAO_LINK}`}>
                   Guardar este grid como regra deste formato
-                </button>
+                </button></Dica>
               )}
               {avisoDaLeitura && <span className="text-[12px] leading-snug text-platform-text-muted">{avisoDaLeitura}</span>}
               {recado && <span role="status" className="text-[12px] text-platform-text">{recado}</span>}
@@ -245,9 +251,9 @@ export function GridsDoAssinante() {
                       {estado.versoesDoLogo.map((v) => <option key={v.id} value={v.id}>{nomeDaVariante(v)}</option>)}
                     </select>
                   )}
-                  <select data-grids-canto className={CAMPO} value={cantoDe(c.formato)} onChange={(e) => setCanto(e.target.value as Canto)} aria-label="Canto do logo">
+                  <Dica texto={dicaDe("grids-canto")} lado="cima"><select data-grids-canto className={CAMPO} value={cantoDe(c.formato)} onChange={(e) => setCanto(e.target.value as Canto)} aria-label="Canto do logo">
                     {CANTOS.map((k) => <option key={k.id} value={k.id}>Logo no canto {k.nome.toLowerCase()}</option>)}
-                  </select>
+                  </select></Dica>
                   {!logo && !erroDoLogo && <span className="text-[12px] text-platform-text-muted">Abrindo o logo dos Materiais…</span>}
                   {erroDoLogo && <span role="alert" className="text-[12.5px] text-platform-text">{erroDoLogo}</span>}
                   {logo && (
@@ -257,10 +263,10 @@ export function GridsDoAssinante() {
                   )}
                   {p?.avisos.map((a) => <span key={a} data-grids-aviso-logo className="text-[12.5px] leading-snug text-platform-text">{a}</span>)}
                   {p?.margemNecessaria && (
-                    <button type="button" data-grids-ajustar-margens className={`self-start ${BOTAO_LINK}`}
+                    <Dica texto={dicaDe("grids-ajustar-margens")} lado="cima"><button type="button" data-grids-ajustar-margens className={`self-start ${BOTAO_LINK}`}
                       onClick={() => c.mudar({ margens: margensComProtecao(c.escolhas, c.formato, cantoDe(c.formato), p.margemNecessaria!) })}>
                       Ajustar as margens à área de proteção ({formatar(p.margemNecessaria, c.grid.unidade)})
-                    </button>
+                    </button></Dica>
                   )}
                 </>
               )}

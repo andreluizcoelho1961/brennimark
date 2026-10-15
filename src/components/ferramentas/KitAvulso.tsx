@@ -7,6 +7,12 @@ import {
   carregarDesenho, contarArquivos, desenharItem, medirItem, fundoEscuro, itensDoPacote, montarPacote, type Desenho, type Escolhas, type Fundo,
 } from "@/lib/kit/desenhar-no-navegador";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
+
+/** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
+const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
+
 
 /**
  * O Brennimark Kit, versão AVULSA (gratuita, no site) — 09/10/2026.
@@ -162,11 +168,11 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
             <span className={ROTULO}>Fundo</span>
             <div className="flex flex-wrap gap-2">
               {([["branco", "Branco", "#ffffff"], ["escuro", "Escuro", "#111418"], ["cor", "Cor da marca", fundo.cor], ["transparente", "Transparente", ""]] as const).map(([tipo, rotulo, amostra]) => (
-                <button key={tipo} type="button" data-kit-fundo={tipo} aria-pressed={fundo.tipo === tipo} onClick={() => setFundo({ ...fundo, tipo })}
+                <Dica key={tipo} texto={dicaDe("kit-fundo")} lado="cima"><button type="button" data-kit-fundo={tipo} aria-pressed={fundo.tipo === tipo} onClick={() => setFundo({ ...fundo, tipo })}
                   className={`${PILULA} ${fundo.tipo === tipo ? "border-platform-text text-platform-text" : "border-platform-border text-platform-text-muted hover:text-platform-text"}`}>
                   <i aria-hidden className="h-3 w-3 rounded-full border border-platform-border" style={{ background: amostra || "repeating-conic-gradient(#999 0 25%,#ddd 0 50%) 0 0/6px 6px" }} />
                   {rotulo}
-                </button>
+                </button></Dica>
               ))}
             </div>
             {fundo.tipo === "cor" && fixo && fixo.coresDaMarca.length > 0 && (
@@ -186,10 +192,10 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
             {fundo.tipo === "transparente" && <p className="text-[13px] text-platform-text-muted">Perfis de rede com fundo transparente ganham o fundo que a rede escolher (branco ou preto).</p>}
             {avisosDoFundo.map((a) => <Aviso key={a} texto={a} />)}
           </div>
-          <label className="flex flex-col gap-1">
+          <Dica texto={dicaDe("kit-margem")} lado="cima"><label className="flex flex-col gap-1">
             <span className={ROTULO}>Margem · {margem}%</span>
             <input data-kit-margem type="range" min={4} max={30} value={margem} onChange={(e) => setMargem(+e.target.value)} />
-          </label>
+          </label></Dica>
           {simbolo && (
             <label className="flex items-center gap-2 text-sm text-platform-text">
               <input type="checkbox" checked={usarSimbolo} onChange={(e) => setUsarSimbolo(e.target.checked)} />
@@ -226,15 +232,15 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo 3</p>
           <h2 className={PASSO}>Baixar</h2>
-          <button type="button" data-kit-baixar-tudo disabled={!escolhas || Boolean(gerando)} onClick={() => baixar(GRUPOS_DO_KIT.map((g) => g.id))}
+          <Dica texto={dicaDe("kit-baixar-tudo")} lado="cima"><button type="button" data-kit-baixar-tudo disabled={!escolhas || Boolean(gerando)} onClick={() => baixar(GRUPOS_DO_KIT.map((g) => g.id))}
             className="flex items-center justify-between rounded-[var(--radius-control)] bg-platform-signal px-4 py-3 text-sm font-semibold text-platform-bg disabled:opacity-40">
             <span>{gerando ? `Gerando… ${gerando.prontos} de ${gerando.total}` : "Baixar tudo (.zip)"}</span>
             {totalDeArquivos !== null && <span data-kit-total className="font-mono text-[11px] opacity-80">{totalDeArquivos} arquivos</span>}
-          </button>
-          <button type="button" data-kit-baixar-grupo disabled={!escolhas || Boolean(gerando)} onClick={() => baixar([aba])}
+          </button></Dica>
+          <Dica texto={dicaDe("kit-baixar-grupo")} lado="cima"><button type="button" data-kit-baixar-grupo disabled={!escolhas || Boolean(gerando)} onClick={() => baixar([aba])}
             className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2.5 text-sm text-platform-text disabled:opacity-40">
             Só {GRUPOS_DO_KIT.find((g) => g.id === aba)!.nome.toLowerCase()}
-          </button>
+          </button></Dica>
           <p className="rounded-[var(--radius-control)] border border-platform-border p-3 text-[13px] leading-relaxed text-platform-text-muted">
             {fixo
               ? "Os arquivos são montados no seu computador, a partir dos originais dos Materiais. O LEIA-ME do pacote diz de que página do manual veio cada regra."
@@ -247,10 +253,10 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
       <section className="flex min-w-0 flex-col gap-6 p-6">
         <nav aria-label="Grupos de arquivos" className="flex flex-wrap gap-1 border-b border-platform-border">
           {GRUPOS_DO_KIT.map((g) => (
-            <button key={g.id} type="button" data-kit-aba={g.id} aria-current={aba === g.id ? "true" : undefined} onClick={() => setAba(g.id)}
+            <Dica key={g.id} texto={dicaDe("kit-aba")} lado="baixo"><button type="button" data-kit-aba={g.id} aria-current={aba === g.id ? "true" : undefined} onClick={() => setAba(g.id)}
               className={`-mb-px border-b-2 px-3 py-2.5 text-sm ${aba === g.id ? "border-platform-text font-medium text-platform-text" : "border-transparent text-platform-text-muted hover:text-platform-text"}`}>
               {g.nome}
-            </button>
+            </button></Dica>
           ))}
         </nav>
         {escolhas ? (
@@ -302,7 +308,7 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
     }
   }, [desenho, grande]);
   return (
-    <label
+    <Dica texto={dicaDe("kit-arquivo")} lado="baixo"><label
       onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
       onDragLeave={() => setArrastando(false)}
       onDrop={(e) => { e.preventDefault(); setArrastando(false); aoEscolher(e.dataTransfer.files[0]); }}
@@ -313,7 +319,7 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
       <span className="text-sm font-medium text-platform-text">{desenho ? `${rotulo} ✓` : rotulo}</span>
       <span className="text-[12px] text-platform-text-muted">{desenho ? "clique para trocar" : `arraste aqui ou clique · ${dica}`}</span>
       {desenho && aoTirar && <button type="button" onClick={(e) => { e.preventDefault(); aoTirar(); }} className="text-[12px] text-platform-text-muted underline">tirar</button>}
-    </label>
+    </label></Dica>
   );
 }
 
@@ -513,9 +519,9 @@ function CenaDoEmail({ escolhas, dados, setDados, marca, fonte }: {
           {/* Gerado por `assinaturaHtml`, que escapa tudo o que a pessoa digita. */}
           <div ref={caixa} data-kit-assinatura-previa dangerouslySetInnerHTML={{ __html: html }} />
         </div>
-        <button type="button" data-kit-copiar onClick={copiar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
+        <Dica texto={dicaDe("kit-copiar")} lado="cima"><button type="button" data-kit-copiar onClick={copiar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
           {copiada ? "Copiada ✓" : "Copiar assinatura"}
-        </button>
+        </button></Dica>
         <p className="text-[12px] leading-snug text-platform-text-muted">
           {fonte && <span data-kit-fonte-da-assinatura className="mb-1 block">Fonte: {fonte.nome}, {fonte.origem}.</span>}
           Gmail: Configurações → Ver todas → Assinatura → colar. Outlook: Configurações → Contas → Assinaturas → colar. Apple Mail: Ajustes → Assinaturas → colar e desmarcar “fonte padrão”.

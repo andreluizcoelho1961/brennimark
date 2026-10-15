@@ -6,6 +6,8 @@ import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import {
   NOMES_DOS_USOS, USOS, medidasDaFonte, nomeDaFonte, ordenarTipografia, type FonteDaMarca, type Uso,
 } from "@/lib/tipografia/tipografia";
+import { Dica } from "@/components/shell/Dica";
+import { textoDaDica } from "@/components/shell/dicas";
 
 /**
  * A tipografia da marca — 14/10/2026. O mesmo modelo da ficha da paleta.
@@ -209,9 +211,9 @@ export function TipografiaDaMarca({
 
       {podeEditar && !editando && (
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <button type="button" data-adicionar-fonte disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, uso: usosVazios[0] ?? "titulo", ordem: String(fontes.length) }); }} className={BOTAO_FORTE}>
+          <Dica texto={textoDaDica("admin-adicionar", isEnglish) ?? ""} lado="cima"><button type="button" data-adicionar-fonte disabled={ocupado} onClick={() => { setMensagem(""); setEditando({ ...VAZIO, uso: usosVazios[0] ?? "titulo", ordem: String(fontes.length) }); }} className={BOTAO_FORTE}>
             {t("Add font", "Adicionar fonte")}
-          </button>
+          </button></Dica>
         </div>
       )}
 
@@ -238,9 +240,9 @@ export function TipografiaDaMarca({
                 className={CAMPO}
               />
             </label>
-            <button type="button" data-ler-tipografia disabled={ocupado} onClick={lerDoManual} className={BOTAO}>
+            <Dica texto={textoDaDica("admin-ler-ia", isEnglish) ?? ""} lado="cima"><button type="button" data-ler-tipografia disabled={ocupado} onClick={lerDoManual} className={BOTAO}>
               {lendo ? t("Reading the pages…", "Lendo as páginas…") : t("Read from the manual", "Ler do manual")}
-            </button>
+            </button></Dica>
           </div>
         </div>
       )}
@@ -301,9 +303,9 @@ export function TipografiaDaMarca({
       {((podeAprovar && emRascunho.length > 1) || mensagem) && (
       <div data-barra-da-lista className="mt-6 flex flex-wrap items-center gap-3">
         {podeAprovar && emRascunho.length > 1 && (
-          <button type="button" data-aprovar-todas-as-fontes disabled={ocupado} onClick={() => aprovar(emRascunho.map((f) => f.id))} className={BOTAO_FORTE}>
+          <Dica texto={textoDaDica("admin-aprovar-todos", isEnglish) ?? ""} lado="cima"><button type="button" data-aprovar-todas-as-fontes disabled={ocupado} onClick={() => aprovar(emRascunho.map((f) => f.id))} className={BOTAO_FORTE}>
             {t(`Approve all drafts (${emRascunho.length})`, `Aprovar todos os rascunhos (${emRascunho.length})`)}
-          </button>
+          </button></Dica>
         )}
         {mensagem && <p role="status" className="text-sm text-platform-text-muted">{mensagem}</p>}
       </div>
@@ -362,10 +364,10 @@ export function TipografiaDaMarca({
                     <button type="button" data-aprovar-fonte disabled={ocupado} onClick={() => aprovar([f.id])} className={BOTAO}>{t("Approve", "Aprovar")}</button>
                   )}
                   {podeEditar && (
-                    <button type="button" data-editar-fonte disabled={ocupado} onClick={() => { setMensagem(""); setEditando(paraRascunho(f)); }} className={BOTAO}>{t("Edit", "Editar")}</button>
+                    <Dica texto={textoDaDica("admin-editar", isEnglish) ?? ""} lado="cima"><button type="button" data-editar-fonte disabled={ocupado} onClick={() => { setMensagem(""); setEditando(paraRascunho(f)); }} className={BOTAO}>{t("Edit", "Editar")}</button></Dica>
                   )}
                   {podeEditar && f.status === "draft" && (
-                    <button type="button" data-remover-fonte disabled={ocupado} onClick={() => remover(f)} className={BOTAO}>{t("Remove", "Remover")}</button>
+                    <Dica texto={textoDaDica("admin-remover", isEnglish) ?? ""} lado="cima"><button type="button" data-remover-fonte disabled={ocupado} onClick={() => remover(f)} className={BOTAO}>{t("Remove", "Remover")}</button></Dica>
                   )}
                 </div>
               </li>
