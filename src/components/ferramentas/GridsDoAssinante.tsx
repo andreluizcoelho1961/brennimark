@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { Grids, type ContextoDoGrid, type ModoMarca } from "./Grids";
 import type { Formato } from "@/lib/grids/formatos";
-import { aplicarRegras, fraseDaOrigem, regraDasEscolhas, type RegraDeGrid } from "@/lib/grids/regras";
+import { aplicarRegras, fraseDaOrigem, nomeDaRegra, regraDasEscolhas, regrasDoFormato, type RegraDeGrid } from "@/lib/grids/regras";
 import {
   CANTOS, cantoPadrao, coresParaODocumento, estilosDoFormato, larguraPadraoDoLogo, leiaMeDoGrid, linhasDosEstilos, margensComProtecao, posicionarLogo,
   type Canto, type CorDaPaleta,
@@ -71,6 +71,8 @@ export function GridsDoAssinante() {
   const [erroDoLogo, setErroDoLogo] = useState("");
   // Nulo até a pessoa escolher: aí o canto segue o formato (`cantoPadrao`).
   const [cantoEscolhido, setCanto] = useState<Canto | null>(null);
+  // O grid escolhido entre os da marca (16/10/2026); nulo = o primeiro da lista.
+  const [regraEscolhidaId, setRegraEscolhidaId] = useState<string | null>(null);
   const [baixando, setBaixando] = useState(false);
   const [lendo, setLendo] = useState<"nao" | "lendo" | "feito">("nao");
   const [avisoDaLeitura, setAvisoDaLeitura] = useState("");
@@ -162,11 +164,16 @@ export function GridsDoAssinante() {
     if (r?.ok) { await recarregarRegras(); setRecado("Regra aprovada."); } else setRecado("Não foi possível aprovar agora.");
   }
 
-  async function guardar(f: Formato, e: Escolhas, atual: RegraDeGrid | undefined) {
+  async function guardar(f: Formato, e: Escolhas, atual: RegraDeGrid | undefined, vemDaGeral: boolean) {
     setRecado("");
+    // Variante e segmento seguem o grid escolhido (são a identidade da regra);
+    // descrição e página só se a regra já era DESTE formato.
     const r = await fetch(comAlvo("/api/grids/regras", alvo), {
       method: "PATCH", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(regraDasEscolhas(f, e, { descricao: atual?.descricao, pagina: atual?.pagina ?? null })),
+      body: JSON.stringify(regraDasEscolhas(f, e, {
+        descricao: vemDaGeral ? "" : atual?.descricao, pagina: vemDaGeral ? null : atual?.pagina ?? null,
+        variante: atual?.variante, segmento: atual?.segmento,
+      })),
     }).catch(() => null);
     const corpo = r ? await r.json().catch(() => ({})) : {};
     if (r?.ok) { await recarregarRegras(); setRecado("Grid guardado como regra deste formato — em rascunho até alguém aprovar."); }
@@ -179,14 +186,20 @@ export function GridsDoAssinante() {
     const protecao = estado.regrasDoLogo.protecao;
     const cantoDe = (f: Formato) => cantoEscolhido ?? cantoPadrao(f);
     const slug = estado.marca.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "marca";
-    const nomeDoArquivo = (c: ContextoDoGrid) => `grid-${slug}-${c.formato.id}-${c.escolhas.tipo}`;
+    const slugDe = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    // Com vários grids no mesmo formato, o nome do arquivo diz qual é o escolhido.
+    const nomeDoArquivo = (c: ContextoDoGrid) => {
+      const o = aplicarRegras(c.formato, regras, regraEscolhidaId).origem;
+      const qual = o.tipo === "regra" && (o.regra.variante || o.regra.segmento) ? `-${slugDe(nomeDaRegra(o.regra))}` : "";
+      return `grid-${slug}-${c.formato.id}-${c.escolhas.tipo}${qual}`.slice(0, 120);
+    };
     const posicao = ({ grid, formato }: ContextoDoGrid) => logo
       ? posicionarLogo(grid, { largura: larguraPadraoDoLogo(grid), aspecto: logo.medido.aspecto, canto: cantoDe(formato), protecao, reducaoMinimaPx: estado.regrasDoLogo.reducao.logo })
       : null;
     return {
-      aplicar: (f) => aplicarRegras(f, regras).escolhas,
+      aplicar: (f) => aplicarRegras(f, regras, regraEscolhidaId).escolhas,
       origem: (f, e) => {
-        const a = aplicarRegras(f, regras);
+        const a = aplicarRegras(f, regras, regraEscolhidaId);
         return iguais(a.escolhas, e) ? fraseDaOrigem(a.origem) : "ajustado na tela — ainda não guardado como regra da marca";
       },
       sobrePrevia: (c) => {
@@ -202,9 +215,8 @@ export function GridsDoAssinante() {
       },
       secao: (c) => {
         const p = posicao(c);
-        const regra = regras.find((r) => r.formato === c.formato.id);
-        const geral = regras.find((r) => r.formato === "todos");
-        const valendo = regra ?? geral;
+        const { regras: candidatas, geral } = regrasDoFormato(c.formato, regras);
+        const valendo = candidatas.find((r) => r.id === regraEscolhidaId) ?? candidatas[0];
         const impresso = c.formato.unidade === "mm";
         const { cores, notas } = coresParaODocumento(estado.paleta, impresso);
         return (
@@ -217,9 +229,22 @@ export function GridsDoAssinante() {
             <div data-grids-regras className="flex flex-col gap-1.5 rounded-[var(--radius-panel)] border border-platform-border p-3">
               <span className="text-[13px] font-medium text-platform-text">Regra de grid deste formato</span>
               {lendo === "lendo" && <span data-grids-lendo className="text-[12.5px] text-platform-text-muted">Lendo o grid no manual da marca…</span>}
+              {candidatas.length > 1 && valendo && (
+                <Dica texto={dicaDe("grids-variante")} lado="cima">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-[12px] text-platform-text-muted">Grid da marca ({candidatas.length} no manual)</span>
+                    <select data-grids-variante className={CAMPO} value={valendo.id}
+                      onChange={(ev) => { setRegraEscolhidaId(ev.target.value); c.mudar(aplicarRegras(c.formato, regras, ev.target.value).escolhas); }}>
+                      {candidatas.map((r) => (
+                        <option key={r.id} value={r.id}>{nomeDaRegra(r)}{r.pagina ? ` — p. ${r.pagina}` : ""}{r.status === "ready" ? "" : " (rascunho)"}</option>
+                      ))}
+                    </select>
+                  </label>
+                </Dica>
+              )}
               {valendo ? (
                 <>
-                  <span data-grids-regra-situacao className="text-[12.5px] text-platform-text">{fraseDaOrigem({ tipo: "regra", regra: valendo, geral: !regra })}</span>
+                  <span data-grids-regra-situacao className="text-[12.5px] text-platform-text">{fraseDaOrigem({ tipo: "regra", regra: valendo, geral })}</span>
                   {valendo.descricao && <span className="text-[12px] leading-snug text-platform-text-muted">“{valendo.descricao}”</span>}
                   {estado.podeAprovar && valendo.status === "draft" && (
                     <Dica texto={dicaDe("grids-confirmar")} lado="cima"><button type="button" data-grids-confirmar onClick={() => aprovar(valendo.id)} className={`self-start ${BOTAO_LINK}`}>Confirmar esta regra</button></Dica>
@@ -229,7 +254,7 @@ export function GridsDoAssinante() {
                 <span className="text-[12.5px] text-platform-text-muted">O manual não define o grid deste formato — vale a proposta do Brennimark.</span>
               )}
               {estado.podeEditar && (
-                <Dica texto={dicaDe("grids-guardar")} lado="cima"><button type="button" data-grids-guardar onClick={() => guardar(c.formato, c.escolhas, regra)} className={`self-start ${BOTAO_LINK}`}>
+                <Dica texto={dicaDe("grids-guardar")} lado="cima"><button type="button" data-grids-guardar onClick={() => guardar(c.formato, c.escolhas, valendo, geral)} className={`self-start ${BOTAO_LINK}`}>
                   Guardar este grid como regra deste formato
                 </button></Dica>
               )}
@@ -307,7 +332,7 @@ export function GridsDoAssinante() {
         setBaixando(true);
         try {
           const p = posicao(c);
-          const a = aplicarRegras(c.formato, regras);
+          const a = aplicarRegras(c.formato, regras, regraEscolhidaId);
           const origemDoGrid = iguais(a.escolhas, c.escolhas) ? fraseDaOrigem(a.origem) : `ajustado na tela a partir de: ${fraseDaOrigem(a.origem)}`;
           const { cores, notas } = coresParaODocumento(estado.paleta, c.formato.unidade === "mm");
           const marca = {
@@ -344,7 +369,7 @@ export function GridsDoAssinante() {
       },
       baixando,
     };
-  }, [estado, logo, cantoEscolhido, lendo, avisoDaLeitura, recado, versaoId, erroDoLogo, baixando]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [estado, logo, cantoEscolhido, regraEscolhidaId, lendo, avisoDaLeitura, recado, versaoId, erroDoLogo, baixando]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (erro) return <p role="alert" className="m-6 text-sm text-platform-text">{erro}</p>;
   if (!estado || !modo) return <p data-grids-carregando className="m-6 text-sm text-platform-text-muted">Abrindo os Grids da marca…</p>;

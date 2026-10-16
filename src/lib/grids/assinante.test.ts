@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { formatoPorId } from "./formatos";
 import { PT_POR_MM, calcularGrid, escolhasPadrao } from "./calcular";
-import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, instrucoesDoGrid, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
+import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, instrucoesDoGrid, nomeDaRegra, regrasDoFormato, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
 import { cantoPadrao, coresParaODocumento, estilosDoFormato, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, linhasDosEstilos, margensComProtecao, posicionarLogo, type FonteParaOGrid } from "./marca";
 import { arquivosDoIdml } from "./idml";
 import { montarPdf } from "./pdf";
 import { unzlibSync } from "fflate";
 
 const regra = (p: Partial<RegraDeGrid>): RegraDeGrid => ({
-  id: "r", formato: "a4", tipo: "colunas", unidade: "mm", colunas: null, linhas: null, medianiz: null,
+  id: "r", formato: "a4", variante: "", segmento: "", tipo: "colunas", unidade: "mm", colunas: null, linhas: null, medianiz: null,
   margemSup: null, margemInf: null, margemEsq: null, margemDir: null, linhaDeBase: null, zonas: null,
   descricao: "", pagina: null, origem: "ia", status: "draft", ...p,
 });
@@ -294,18 +294,59 @@ test("a estrutura que o manual escreve (NxM) prevalece sobre os números que a I
   const [errada] = lerRegrasDeGridDaIA('{"formato": "todos", "tipo": "modular", "colunas": 1, "linhas": 3, "descricao": "Estrutura 3X3", "pagina": 30}', [30, 31]);
   assert.equal(errada.colunas, 3);
   assert.equal(errada.linhas, 3);
-  // Duas estruturas para o mesmo formato: a primeira vale, a segunda cai.
-  const duas = lerRegrasDeGridDaIA([
-    '{"formato": "todos", "tipo": "modular", "colunas": 3, "linhas": 3, "descricao": "Estrutura 3X3; o manual traz também a 5X5", "pagina": 30}',
+  // Sem variante, duas regras do mesmo formato são a MESMA identidade: a primeira vale.
+  const iguais = lerRegrasDeGridDaIA([
+    '{"formato": "todos", "tipo": "modular", "colunas": 3, "linhas": 3, "descricao": "Estrutura 3X3", "pagina": 30}',
     '{"formato": "todos", "tipo": "modular", "colunas": 5, "linhas": 5, "descricao": "Estrutura 5X5", "pagina": 31}',
   ].join("\n"), [30, 31]);
-  assert.equal(duas.length, 1);
-  assert.equal(duas[0].colunas, 3);
+  assert.equal(iguais.length, 1);
+  assert.equal(iguais[0].colunas, 3);
+  // Com variante, cada estrutura é uma regra (16/10/2026), e a NxM do nome também prevalece.
+  const varias = lerRegrasDeGridDaIA([
+    '{"formato": "todos", "variante": "Estrutura 3X3", "segmento": "Institucional / Varejo", "tipo": "modular", "colunas": 1, "linhas": 3, "pagina": 30}',
+    '{"formato": "todos", "variante": "Estrutura 5X5", "segmento": "Institucional / Varejo", "tipo": "modular", "colunas": 5, "linhas": 5, "pagina": 31}',
+    '{"formato": "todos", "variante": "Estrutura 3X3", "segmento": " Wealth / Atacado ", "tipo": "modular", "colunas": 3, "linhas": 3, "pagina": 35}',
+    '{"formato": "todos", "variante": "Estrutura 3X3", "segmento": "Institucional / Varejo", "tipo": "modular", "colunas": 3, "linhas": 3, "pagina": 31}',
+  ].join("\n"), [30, 31, 35]);
+  assert.deepEqual(varias.map((r) => `${r.variante}|${r.segmento}|${r.colunas}x${r.linhas}`),
+    ["Estrutura 3X3|Institucional / Varejo|3x3", "Estrutura 5X5|Institucional / Varejo|5x5", "Estrutura 3X3|Wealth / Atacado|3x3"],
+    "a repetição da mesma estrutura e segmento cai; o segmento é aparado; a NxM do nome corrige 1×3");
   // Descrição sem NxM, ou regra que não é modular, não é mexida.
   const [sem] = lerRegrasDeGridDaIA('{"formato": "todos", "tipo": "modular", "colunas": 4, "linhas": 6, "descricao": "módulos do manual", "pagina": 30}', [30]);
   assert.equal(sem.colunas, 4);
   const [colunas] = lerRegrasDeGridDaIA('{"formato": "a4", "tipo": "colunas", "colunas": 8, "descricao": "grid 2x4 de imagens", "pagina": 30}', [30]);
   assert.equal(colunas.colunas, 8);
   assert.match(instrucoesDoGrid([30]), /3 colunas e 3 linhas, nunca 1 coluna/);
-  assert.match(instrucoesDoGrid([30]), /SÓ a principal/);
+  assert.match(instrucoesDoGrid([30]), /UMA regra por ESTRUTURA/);
+  assert.match(instrucoesDoGrid([30]), /"variante": "...", "segmento": "..."/);
+});
+
+test("vários grids por marca: os do formato, ou os gerais; aprovados primeiro; a escolhida vale", () => {
+  const a4 = formatoPorId("a4");
+  const g3 = regra({ id: "g3", formato: "todos", unidade: "proporcao", tipo: "modular", variante: "Estrutura 3X3", segmento: "Institucional", colunas: 3, linhas: 3, pagina: 30 });
+  const g5 = regra({ id: "g5", formato: "todos", unidade: "proporcao", tipo: "modular", variante: "Estrutura 5X5", segmento: "Institucional", colunas: 5, linhas: 5, pagina: 31, status: "ready" });
+  const gw = regra({ id: "gw", formato: "todos", unidade: "proporcao", tipo: "modular", variante: "Estrutura 3X3", segmento: "Wealth", colunas: 3, linhas: 3, pagina: 35 });
+  const { regras, geral } = regrasDoFormato(a4, [g3, gw, g5]);
+  assert.equal(geral, true);
+  assert.deepEqual(regras.map((r) => r.id), ["g5", "g3", "gw"], "aprovada primeiro, depois por página");
+  assert.equal(nomeDaRegra(g3), "Estrutura 3X3 · Institucional");
+  assert.equal(nomeDaRegra(regra({ formato: "todos" })), "Grid geral");
+  // Sem escolha, vale o primeiro; com escolha, a escolhida; escolha de outro formato é ignorada.
+  assert.equal(aplicarRegras(a4, [g3, gw, g5]).escolhas.colunas, 5);
+  assert.equal(aplicarRegras(a4, [g3, gw, g5], "gw").escolhas.colunas, 3);
+  assert.equal(aplicarRegras(a4, [g3, gw, g5], "nao-existe").escolhas.colunas, 5);
+  const origem = aplicarRegras(a4, [g3, gw, g5], "gw").origem;
+  assert.equal(origem.tipo === "regra" && origem.regra.id, "gw");
+  assert.match(fraseDaOrigem(origem), /^Estrutura 3X3 · Wealth — do manual, p\. 35 \(regra geral da marca, aplicada a este formato\) — /);
+  // O grid do PRÓPRIO formato esconde os gerais.
+  const doA4 = regra({ id: "a4", formato: "a4", tipo: "colunas", colunas: 8 });
+  assert.deepEqual(regrasDoFormato(a4, [g3, doA4]).regras.map((r) => r.id), ["a4"]);
+  assert.equal(regrasDoFormato(a4, [g3, doA4]).geral, false);
+  // A regra de antes (sem nome) segue com a frase de sempre.
+  assert.equal(fraseDaOrigem({ tipo: "regra", regra: regra({ pagina: 31 }), geral: false }), "do manual, p. 31 — lida pela IA, ainda não confirmada");
+  // O banco passa variante e segmento.
+  const lida = deLinhaDaRegraDeGrid({ id: "x", formato: "todos", variante: "Estrutura 3X3", segmento: "Wealth", tipo: "modular", unidade: "proporcao", status: "draft", origem: "ia" });
+  assert.equal(lida?.variante, "Estrutura 3X3");
+  assert.equal(lida?.segmento, "Wealth");
+  assert.equal(deLinhaDaRegraDeGrid({ id: "y", formato: "a4", tipo: "colunas", unidade: "mm" })?.variante, "", "linha antiga, sem as colunas");
 });

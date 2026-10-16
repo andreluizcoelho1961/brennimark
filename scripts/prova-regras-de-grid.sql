@@ -276,11 +276,47 @@ begin
   select * into t from pg_temp.tentar(m.dona, pg_temp.regra(m.w1, m.marca_b, 'b9', 'hierarquico', 'px', 'zonas=''{1,-2}'''));
   perform pg_temp.registrar('zona negativa e recusada', '23514 regras_de_grid_zonas_check', t.estado || ' ' || t.nome);
   select * into t from pg_temp.tentar(m.dona, pg_temp.regra(m.w1, m.marca_a, 'a4', 'colunas', 'mm'));
-  perform pg_temp.registrar('duas regras do mesmo formato na mesma marca sao recusadas', '23505 regras_de_grid_uma_por_formato', t.estado || ' ' || t.nome);
+  perform pg_temp.registrar('duas regras do mesmo formato, segmento e variante na mesma marca sao recusadas', '23505 regras_de_grid_uma_por_variante', t.estado || ' ' || t.nome);
   select * into t from pg_temp.tentar(m.dona, pg_temp.regra(m.w1, m.marca_b, 'b10', 'colunas', 'mm', 'pagina=0'));
   perform pg_temp.registrar('pagina zero e recusada', '23514 regras_de_grid_pagina_check', t.estado || ' ' || t.nome);
   select * into t from pg_temp.tentar(m.dona, pg_temp.regra(m.w1, m.marca_b, 'b11', 'colunas', 'mm', 'colunas=12'));
   perform pg_temp.registrar('a regra valida da marca B entra (os casos alcancam a constraint, nao a policy)', 'ACEITOU', t.estado);
+
+
+  -- ─── 6. Vários grids por marca: variante e segmento (16/10/2026) ─────────
+  -- Cada caso na marca B, com formato próprio, para alcançar a constraint.
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, tipo, unidade) values (%L, %L, ''c1'', ''Estrutura 3X3'', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('a primeira variante de um formato entra', 'ACEITOU', t.estado);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, tipo, unidade) values (%L, %L, ''c1'', ''Estrutura 5X5'', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('outra variante do MESMO formato entra', 'ACEITOU', t.estado);
+  perform pg_temp.registrar('as duas variantes convivem', '2',
+    (select count(*)::text from public.regras_de_grid where brand_id = m.marca_b and formato = 'c1'));
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, tipo, unidade) values (%L, %L, ''c1'', ''Estrutura 3X3'', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('a mesma variante duas vezes e recusada', '23505 regras_de_grid_uma_por_variante', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, segmento, tipo, unidade) values (%L, %L, ''c1'', ''Estrutura 3X3'', ''Wealth'', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('a mesma variante em OUTRO segmento entra', 'ACEITOU', t.estado);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, segmento, tipo, unidade) values (%L, %L, ''c1'', ''Estrutura 3X3'', ''Wealth'', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('variante e segmento repetidos sao recusados', '23505 regras_de_grid_uma_por_variante', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, tipo, unidade) values (%L, %L, ''c2'', ''  Estrutura  '', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('variante com espaco nas pontas e recusada', '23514 regras_de_grid_variante_check', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, variante, tipo, unidade) values (%L, %L, ''c2'', %L, ''modular'', ''mm'')', m.w1, m.marca_b, repeat('x', 61)));
+  perform pg_temp.registrar('variante com mais de 60 caracteres e recusada', '23514 regras_de_grid_variante_check', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, segmento, tipo, unidade) values (%L, %L, ''c2'', '' Wealth'', ''modular'', ''mm'')', m.w1, m.marca_b));
+  perform pg_temp.registrar('segmento com espaco nas pontas e recusado', '23514 regras_de_grid_segmento_check', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('insert into public.regras_de_grid (workspace_id, brand_id, formato, segmento, tipo, unidade) values (%L, %L, ''c2'', %L, ''modular'', ''mm'')', m.w1, m.marca_b, repeat('x', 61)));
+  perform pg_temp.registrar('segmento com mais de 60 caracteres e recusado', '23514 regras_de_grid_segmento_check', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('update public.regras_de_grid set variante = ''Outra'' where brand_id = %L and formato = ''c1'' and variante = ''Estrutura 5X5''', m.marca_b));
+  perform pg_temp.registrar('a regra NAO muda de variante', '23514 regras_de_grid_fixa', t.estado || ' ' || t.nome);
+  select * into t from pg_temp.tentar(m.dona, format('update public.regras_de_grid set segmento = ''Atacado'' where brand_id = %L and formato = ''c1'' and variante = ''Estrutura 5X5''', m.marca_b));
+  perform pg_temp.registrar('a regra NAO muda de segmento', '23514 regras_de_grid_fixa', t.estado || ' ' || t.nome);
+  perform pg_temp.registrar('a IA grava uma variante nova do mesmo formato', 'true',
+    public.registrar_leitura_das_regras_de_grid(m.w1, m.marca_b, '{"formato":"c1","variante":"Estrutura 7X7","segmento":" Institucional ","tipo":"modular","unidade":"mm","colunas":7,"linhas":7,"pagina":30}'::jsonb)::text);
+  perform pg_temp.registrar('a variante e o segmento da IA entram aparados, como rascunho de origem ia', 'Estrutura 7X7|Institucional|draft|ia',
+    (select variante || '|' || segmento || '|' || status || '|' || origem from public.regras_de_grid where brand_id = m.marca_b and formato = 'c1' and variante = 'Estrutura 7X7'));
+  perform pg_temp.registrar('a IA NAO sobrescreve a mesma variante', 'false',
+    public.registrar_leitura_das_regras_de_grid(m.w1, m.marca_b, '{"formato":"c1","variante":"Estrutura 3X3","tipo":"modular","unidade":"mm","colunas":9}'::jsonb)::text);
+  perform pg_temp.registrar('a regra de antes (sem variante) continua com a identidade vazia', '|',
+    (select variante || '|' || segmento from public.regras_de_grid where brand_id = m.marca_a and formato = 'a4'));
 
   -- A marca sair leva as regras.
   delete from public.brands where id = m.marca_c;

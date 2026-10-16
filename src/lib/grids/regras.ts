@@ -23,6 +23,10 @@ import { escolhasPadrao, type Escolhas } from "./calcular";
 export type RegraDeGrid = {
   id: string;
   formato: string;
+  /** O nome da estrutura, como o manual a chama ("Estrutura 3X3"); '' quando só há uma. */
+  variante: string;
+  /** A linha de negócio ou meio a que vale ("Institucional", "Wealth"); '' quando vale para todos. */
+  segmento: string;
   tipo: TipoDeGrid;
   unidade: "mm" | "px" | "proporcao";
   colunas: number | null;
@@ -41,7 +45,7 @@ export type RegraDeGrid = {
 };
 
 export const COLUNAS_DAS_REGRAS_DE_GRID =
-  "id, formato, tipo, unidade, colunas, linhas, medianiz, margem_sup, margem_inf, margem_esq, margem_dir, linha_de_base, zonas, descricao, pagina, origem, status";
+  "id, formato, variante, segmento, tipo, unidade, colunas, linhas, medianiz, margem_sup, margem_inf, margem_esq, margem_dir, linha_de_base, zonas, descricao, pagina, origem, status";
 
 const TIPOS: readonly TipoDeGrid[] = ["manuscrito", "colunas", "modular", "hierarquico"];
 const num = (v: unknown): number | null => (v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null);
@@ -52,6 +56,8 @@ export function deLinhaDaRegraDeGrid(l: Record<string, unknown>): RegraDeGrid | 
   if (!TIPOS.includes(tipo) || !["mm", "px", "proporcao"].includes(unidade)) return null;
   return {
     id: String(l.id), formato: String(l.formato), tipo, unidade,
+    variante: typeof l.variante === "string" ? l.variante : "",
+    segmento: typeof l.segmento === "string" ? l.segmento : "",
     colunas: num(l.colunas), linhas: num(l.linhas), medianiz: num(l.medianiz),
     margemSup: num(l.margem_sup), margemInf: num(l.margem_inf), margemEsq: num(l.margem_esq), margemDir: num(l.margem_dir),
     linhaDeBase: num(l.linha_de_base),
@@ -63,21 +69,44 @@ export function deLinhaDaRegraDeGrid(l: Record<string, unknown>): RegraDeGrid | 
   };
 }
 
+const arred = (v: number) => Math.round(v * 100) / 100;
+
+/** O nome da regra na tela: "Estrutura 3X3 · Institucional"; sem nome, o que ela é. */
+export function nomeDaRegra(r: Pick<RegraDeGrid, "formato" | "variante" | "segmento">): string {
+  const base = r.variante || (r.formato === "todos" ? "Grid geral" : "Grid do formato");
+  return r.segmento ? `${base} · ${r.segmento}` : base;
+}
+
+/**
+ * Os grids da marca que valem para um formato: os DELE; sem nenhum, os da regra
+ * geral (`todos`). Aprovados primeiro, depois por página e nome — a ordem em
+ * que a tela os oferece, e o primeiro é o padrão.
+ */
+export function regrasDoFormato(f: Pick<Formato, "id">, regras: readonly RegraDeGrid[]): { regras: RegraDeGrid[]; geral: boolean } {
+  const doFormato = regras.filter((r) => r.formato === f.id);
+  const geral = doFormato.length === 0;
+  const lista = geral ? regras.filter((r) => r.formato === "todos") : doFormato;
+  const ordem = [...lista].sort((a, b) =>
+    Number(b.status === "ready") - Number(a.status === "ready")
+    || (a.pagina ?? 9999) - (b.pagina ?? 9999)
+    || nomeDaRegra(a).localeCompare(nomeDaRegra(b), "pt-BR"));
+  return { regras: ordem, geral };
+}
+
 export type OrigemDoGrid =
   | { tipo: "proposta" }
   | { tipo: "regra"; regra: RegraDeGrid; geral: boolean };
 
-const arred = (v: number) => Math.round(v * 100) / 100;
-
 /**
  * As escolhas de um formato com as regras da marca aplicadas, e de onde vieram.
- * Campo que a regra não define fica com a proposta do Brennimark.
+ * Campo que a regra não define fica com a proposta do Brennimark. Com várias
+ * regras para o formato, vale a escolhida (`idEscolhido`, se ela vale para este
+ * formato) ou a primeira da lista.
  */
-export function aplicarRegras(f: Formato, regras: readonly RegraDeGrid[]): { escolhas: Escolhas; origem: OrigemDoGrid } {
+export function aplicarRegras(f: Formato, regras: readonly RegraDeGrid[], idEscolhido?: string | null): { escolhas: Escolhas; origem: OrigemDoGrid } {
   const base = escolhasPadrao(f);
-  const doFormato = regras.find((r) => r.formato === f.id);
-  const geral = regras.find((r) => r.formato === "todos");
-  const regra = doFormato ?? geral;
+  const { regras: candidatas, geral } = regrasDoFormato(f, regras);
+  const regra = candidatas.find((r) => r.id === idEscolhido) ?? candidatas[0];
   if (!regra) return { escolhas: base, origem: { tipo: "proposta" } };
 
   // Regra geral: proporção do lado menor, na unidade do formato.
@@ -96,23 +125,26 @@ export function aplicarRegras(f: Formato, regras: readonly RegraDeGrid[]): { esc
     linhaDeBase: regra.linhaDeBase ?? base.linhaDeBase,
     zonas: regra.zonas && regra.zonas.length >= 2 ? regra.zonas : base.zonas,
   };
-  return { escolhas: e, origem: { tipo: "regra", regra, geral: !doFormato } };
+  return { escolhas: e, origem: { tipo: "regra", regra, geral } };
 }
 
 /** Como a tela e o LEIA-ME dizem de onde veio o grid. */
 export function fraseDaOrigem(o: OrigemDoGrid): string {
   if (o.tipo === "proposta") return "proposta do Brennimark — o manual não define o grid deste formato";
   const r = o.regra;
+  const nome = r.variante || r.segmento ? `${nomeDaRegra(r)} — ` : "";
   const onde = r.pagina ? `do manual, p. ${r.pagina}` : r.origem === "ia" ? "do manual" : "informada por quem edita a marca";
   const geral = o.geral ? " (regra geral da marca, aplicada a este formato)" : "";
   const situacao = r.status === "ready" ? "aprovada" : r.origem === "ia" ? "lida pela IA, ainda não confirmada" : "ainda não aprovada";
-  return `${onde}${geral} — ${situacao}`;
+  return `${nome}${onde}${geral} — ${situacao}`;
 }
 
 /** As escolhas da tela como regra da marca para aquele formato (o que o PATCH grava). */
-export function regraDasEscolhas(f: Formato, e: Escolhas, extra: { descricao?: string; pagina?: number | null } = {}) {
+export function regraDasEscolhas(f: Formato, e: Escolhas, extra: { descricao?: string; pagina?: number | null; variante?: string; segmento?: string } = {}) {
   return {
     formato: f.id,
+    variante: extra.variante ?? "",
+    segmento: extra.segmento ?? "",
     tipo: e.tipo,
     unidade: f.unidade,
     colunas: e.tipo === "manuscrito" ? null : e.colunas,
@@ -129,10 +161,10 @@ export function regraDasEscolhas(f: Formato, e: Escolhas, extra: { descricao?: s
 // ─── A leitura do manual pela IA ───────────────────────────────────────────
 
 /**
- * Sete (15/10/2026; eram quatro): o manual da Bradesco tem sete páginas de
- * grid, e as duas com números (Estrutura 3×3 e 5×5) ficavam de fora do corte.
+ * Dez (16/10/2026; eram sete, e antes quatro): o manual da Bradesco tem dez
+ * páginas de grid (28 a 37), com várias estruturas por segmento.
  */
-export const MAXIMO_DE_PAGINAS_DO_GRID = 7;
+export const MAXIMO_DE_PAGINAS_DO_GRID = 10;
 
 const TERMOS_DO_GRID =
   /\b(grid|grade|grelha|malha|diagrama[çc][ãa]o|colunas|medianiz|calha|margens?|m[óo]dulos?|layout|baseline|linha\s+de\s+base|gutter|columns|margins)\b/i;
@@ -152,7 +184,7 @@ export function instrucoesDoGrid(paginas: readonly number[]): string {
     `As páginas enviadas são, na ordem: ${paginas.join(", ")}.`,
     "",
     "Cada linha é um objeto com:",
-    '{"formato": "...", "tipo": "manuscrito|colunas|modular|hierarquico", "colunas": n, "linhas": n, "medianiz": n, "margem_sup": n, "margem_inf": n, "margem_esq": n, "margem_dir": n, "linha_de_base": n, "zonas": [n, n], "descricao": "como o manual diz", "pagina": n}',
+    '{"formato": "...", "variante": "...", "segmento": "...", "tipo": "manuscrito|colunas|modular|hierarquico", "colunas": n, "linhas": n, "medianiz": n, "margem_sup": n, "margem_inf": n, "margem_esq": n, "margem_dir": n, "linha_de_base": n, "zonas": [n, n], "descricao": "como o manual diz", "pagina": n}',
     "",
     `"formato" é um destes identificadores, quando o manual dá o grid de uma peça específica: ${lista}.`,
     'Se o manual define um sistema de grid geral (para todas as peças), use "formato": "todos", e dê margens e medianiz como FRAÇÃO DO LADO MENOR da peça (ex.: 0.08), nunca em mm ou px.',
@@ -163,12 +195,14 @@ export function instrucoesDoGrid(paginas: readonly number[]): string {
     "- Se o manual mede por um elemento (\"margem = 2x\", \"x = altura do símbolo\"), estime pela proporção do diagrama e diga a medida original em \"descricao\".",
     "- \"pagina\" é uma das enviadas.",
     "- Manual que define o grid como ESTRUTURA \"N×N\" ou \"NxM\" (ex.: \"Estrutura 3X3\", \"5x5\", módulos em frações 1/5, 2/5…) está dando um grid MODULAR: N COLUNAS × M LINHAS — \"3X3\" é 3 colunas e 3 linhas, nunca 1 coluna. Escreva \"tipo\": \"modular\", \"colunas\" e \"linhas\"; se ele vale para todas as peças, use \"formato\": \"todos\".",
-    "- Só UMA regra por formato (por \"todos\"). Se o manual apresenta mais de uma estrutura (3X3 e depois 5X5), escreva SÓ a principal, a primeira que ele apresenta, e cite a outra em \"descricao\" (ex.: \"Estrutura 3X3; o manual traz também a 5X5\"). Em \"descricao\", copie o nome da estrutura como o manual escreve.",
+    "- UMA regra por ESTRUTURA. O manual pode apresentar vários grids (\"Estrutura 3X3\", \"Estrutura 5X5\"…), e cada um é uma linha. \"variante\" é o NOME da estrutura copiado como o manual escreve (\"Estrutura 3X3\"); sem nome, omita.",
+    "- \"segmento\" é a linha de negócio ou o meio a que o grid vale, copiado do título da página (ex.: \"Institucional / Varejo / Negócios Digitais\", \"Wealth / Atacado\"). O manual que repete as mesmas estruturas para segmentos diferentes tem uma linha por estrutura E por segmento. Grid que vale para todos: omita.",
+    "- Não repita a mesma estrutura do mesmo segmento (a mesma estrutura costuma aparecer em páginas seguidas: escreva uma vez, com a primeira página).",
     "- Diagrama de composição sem medida (onde vão a foto, o título, a assinatura) não é regra de grid: não escreva nada para ele.",
   ].join("\n");
 }
 
-export type RegraDeGridLida = Record<string, unknown> & { formato: string; tipo: TipoDeGrid; pagina: number };
+export type RegraDeGridLida = Record<string, unknown> & { formato: string; variante: string; segmento: string; tipo: TipoDeGrid; pagina: number };
 
 const FAIXAS: Record<string, [number, number, boolean]> = {
   colunas: [1, 24, true], linhas: [1, 40, true], linha_de_base: [0.5, 200, false],
@@ -189,7 +223,10 @@ export function lerRegrasDeGridDaIA(texto: string, paginasEnviadas: readonly num
     try { o = JSON.parse(linha.slice(i, j + 1)); } catch { continue; }
     const formato = String(o.formato ?? "").trim();
     if (formato !== "todos" && !IDS_DOS_FORMATOS.includes(formato)) continue;
-    if (lidas.some((l) => l.formato === formato)) continue;
+    // Uma regra por formato × segmento × variante (a identidade no banco).
+    const variante = String(o.variante ?? "").trim().slice(0, 60).trim();
+    const segmento = String(o.segmento ?? "").trim().slice(0, 60).trim();
+    if (lidas.some((l) => l.formato === formato && l.segmento === segmento && l.variante === variante)) continue;
     const tipo = String(o.tipo ?? "") as TipoDeGrid;
     if (!TIPOS.includes(tipo)) continue;
     const pagina = Number(o.pagina);
@@ -197,7 +234,7 @@ export function lerRegrasDeGridDaIA(texto: string, paginasEnviadas: readonly num
     const f = FORMATOS.find((x) => x.id === formato);
     const unidade = formato === "todos" ? "proporcao" : f!.unidade;
     const teto = unidade === "proporcao" ? 0.5 : unidade === "mm" ? 1000 : 10000;
-    const regra: RegraDeGridLida = { formato, tipo, unidade, pagina, descricao: String(o.descricao ?? "").slice(0, 300) };
+    const regra: RegraDeGridLida = { formato, variante, segmento, tipo, unidade, pagina, descricao: String(o.descricao ?? "").slice(0, 300) };
     let util = false;
     for (const [campo, [min, max, inteiro]] of Object.entries(FAIXAS)) {
       const v = Number(o[campo]);
@@ -214,7 +251,7 @@ export function lerRegrasDeGridDaIA(texto: string, paginasEnviadas: readonly num
     // Rede de segurança (15/10/2026): na Bradesco a IA leu "Estrutura 3X3" e
     // gravou 1 coluna × 3 linhas. Quando a descrição traz "NxM" e a regra é
     // modular, as colunas e as linhas são esses números, e prevalecem.
-    const estrutura = /(\d{1,2})\s*[x×X]\s*(\d{1,2})/.exec(String(regra.descricao));
+    const estrutura = /(\d{1,2})\s*[x×X]\s*(\d{1,2})/.exec(`${variante} ${String(regra.descricao)}`);
     if (regra.tipo === "modular" && estrutura) {
       const [cols, lins] = [Number(estrutura[1]), Number(estrutura[2])];
       if (cols >= 1 && cols <= 24 && lins >= 1 && lins <= 40) { regra.colunas = cols; regra.linhas = lins; util = true; }
