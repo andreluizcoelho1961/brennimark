@@ -119,6 +119,10 @@ export default defineConfig({
       // Nenhuma chamada ao Stripe sai daqui.
       BRENNIMARK_CHAVE_STRIPE: "sk_test_falsa_da_suite",
       BRENNIMARK_SEGREDO_WEBHOOK_STRIPE: "whsec_falso_da_suite",
+
+      // Vazia de propósito: o `.env.local` da máquina tem a chave de serviço
+      // real, e com ela o checkout monta o cliente e falha com 500 em vez de 503.
+      SUPABASE_SECRET_KEY: "",
     },
   },
 });
