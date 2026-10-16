@@ -59,6 +59,7 @@ const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-
 const PASSO = "font-display text-[17px] font-semibold tracking-tight text-platform-text";
 const CAMPO = "w-full rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-3 py-2 text-sm text-platform-text";
 const BOTAO_LINK = "text-[12.5px] font-medium text-platform-text underline";
+const BOTAO_FORTE = "self-start bg-platform-signal px-4 py-2 font-display text-[11px] font-black uppercase text-platform-bg";
 
 const iguais = (a: Escolhas, b: Escolhas) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -156,12 +157,12 @@ export function GridsDoAssinante() {
     if (e) setEstado((a) => (a ? { ...a, regras: e.regras } : e));
   }, [carregar]);
 
-  async function aprovar(id: string) {
+  async function aprovar(ids: string[]) {
     setRecado("");
     const r = await fetch(comAlvo("/api/grids/regras/aprovar", alvo), {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids: [id] }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }),
     }).catch(() => null);
-    if (r?.ok) { await recarregarRegras(); setRecado("Regra aprovada."); } else setRecado("Não foi possível aprovar agora.");
+    if (r?.ok) { await recarregarRegras(); setRecado(ids.length === 1 ? "Grid aprovado." : `${ids.length} grids aprovados.`); } else setRecado("Não foi possível aprovar agora.");
   }
 
   async function guardar(f: Formato, e: Escolhas, atual: RegraDeGrid | undefined, vemDaGeral: boolean) {
@@ -176,7 +177,7 @@ export function GridsDoAssinante() {
       })),
     }).catch(() => null);
     const corpo = r ? await r.json().catch(() => ({})) : {};
-    if (r?.ok) { await recarregarRegras(); setRecado("Grid guardado como regra deste formato — em rascunho até alguém aprovar."); }
+    if (r?.ok) { await recarregarRegras(); setRecado("Grid guardado como regra SÓ deste formato — em rascunho até alguém aprovar."); }
     else setRecado(corpo.message ?? "Não foi possível guardar.");
   }
 
@@ -217,6 +218,10 @@ export function GridsDoAssinante() {
         const p = posicao(c);
         const { regras: candidatas, geral } = regrasDoFormato(c.formato, regras);
         const valendo = candidatas.find((r) => r.id === regraEscolhidaId) ?? candidatas[0];
+        // Tudo o que veio do manual e ainda é rascunho, em qualquer formato: o
+        // aviso e o botão "aprovar todos" ficam no alto do bloco (16/10/2026,
+        // o botão discreto ao pé da regra não foi percebido).
+        const pendentes = regras.filter((r) => r.status === "draft");
         const impresso = c.formato.unidade === "mm";
         const { cores, notas } = coresParaODocumento(estado.paleta, impresso);
         return (
@@ -227,6 +232,17 @@ export function GridsDoAssinante() {
             </div>
 
             <div data-grids-regras className="flex flex-col gap-1.5 rounded-[var(--radius-panel)] border border-platform-border p-3">
+              {estado.podeAprovar && pendentes.length > 0 && (
+                <div data-grids-pendentes className="mb-1 flex flex-col gap-2 rounded-[var(--radius-control)] border border-platform-signal p-3">
+                  <span className="text-[13px] font-medium text-platform-text">
+                    {pendentes.length === 1 ? "1 grid lido do manual aguarda a sua aprovação" : `${pendentes.length} grids lidos do manual aguardam a sua aprovação`}
+                  </span>
+                  <span className="text-[12px] leading-snug text-platform-text-muted">Enquanto estiverem em rascunho, não valem em silêncio. Confira com o manual e aprove.</span>
+                  <Dica texto={dicaDe("grids-aprovar-todos")} lado="cima"><button type="button" data-grids-aprovar-todos onClick={() => aprovar(pendentes.map((r) => r.id))} className={BOTAO_FORTE}>
+                    {pendentes.length === 1 ? "Aprovar este grid" : `Aprovar os ${pendentes.length} grids`}
+                  </button></Dica>
+                </div>
+              )}
               <span className="text-[13px] font-medium text-platform-text">Regra de grid deste formato</span>
               {lendo === "lendo" && <span data-grids-lendo className="text-[12.5px] text-platform-text-muted">Lendo o grid no manual da marca…</span>}
               {candidatas.length > 1 && valendo && (
@@ -247,7 +263,7 @@ export function GridsDoAssinante() {
                   <span data-grids-regra-situacao className="text-[12.5px] text-platform-text">{fraseDaOrigem({ tipo: "regra", regra: valendo, geral })}</span>
                   {valendo.descricao && <span className="text-[12px] leading-snug text-platform-text-muted">“{valendo.descricao}”</span>}
                   {estado.podeAprovar && valendo.status === "draft" && (
-                    <Dica texto={dicaDe("grids-confirmar")} lado="cima"><button type="button" data-grids-confirmar onClick={() => aprovar(valendo.id)} className={`self-start ${BOTAO_LINK}`}>Confirmar esta regra</button></Dica>
+                    <Dica texto={dicaDe("grids-confirmar")} lado="cima"><button type="button" data-grids-confirmar onClick={() => aprovar([valendo.id])} className={BOTAO_FORTE}>Aprovar este grid</button></Dica>
                   )}
                 </>
               ) : (
