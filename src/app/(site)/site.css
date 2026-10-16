@@ -854,3 +854,32 @@ body:has(.bm-site.mnav-open){overflow:hidden}
   .bm-site .phrase-panel .complete-sentence{font-size:30px;line-height:1.12}
   .bm-site .phrase-tabs{gap:6px 20px}
 }
+
+/* ---------- página do Brennimark Fonts (/fonts), 16/10/2026 ---------- */
+.bm-site .fx-beta{margin:20px 0 0;font:500 12px var(--mono);letter-spacing:.06em;color:var(--muted)}
+.bm-site .fx-beta b{color:var(--brasa);font-weight:600}
+.bm-site .fx-demo>div{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--app-line)}
+.bm-site .fx-demo span{font-size:10px;color:var(--app-muted)}
+.bm-site .fx-demo em{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;font:500 9.5px var(--mono);color:var(--app-brasa-ink)}
+.bm-site .fx-aviso b{color:var(--app-brasa-ink)}
+.bm-site .fx-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--line)}
+.bm-site .fx-grid li{padding:24px 22px 26px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.bm-site .fx-grid b{font-size:17px;font-weight:500;letter-spacing:-.02em}
+.bm-site .fx-grid span{font-size:14px;line-height:1.6;color:var(--muted)}
+.bm-site .fx-next{list-style:none;margin:0;padding:0;display:grid;gap:0;border-top:1px solid var(--line)}
+.bm-site .fx-next li{padding:16px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--muted)}
+.bm-site .fx-next li:before{content:"em desenvolvimento";display:block;font:500 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--brasa);margin-bottom:4px}
+.bm-site .fx-tab{border-top:1px solid var(--line);font-size:14px;line-height:1.5}
+.bm-site .fx-tr{display:grid;grid-template-columns:.8fr 1.1fr 1.1fr;gap:20px;padding:14px 0;border-bottom:1px solid var(--line)}
+.bm-site .fx-th{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.bm-site .fx-item{font-weight:500}
+.bm-site .fx-tr [data-melhor]{color:var(--text);box-shadow:inset 3px 0 0 var(--brasa);padding-left:12px}
+.bm-site .fx-tr>span:not(.fx-item):not([data-melhor]){color:var(--muted)}
+.bm-site .fx-fonte{max-width:760px;margin:22px 0 0;font-size:13px;line-height:1.65;color:var(--muted)}
+@media (max-width:1023px){.bm-site .fx-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){
+  .bm-site .fx-grid{grid-template-columns:1fr}.bm-site .fx-grid li{padding-right:0}
+  .bm-site .fx-tr{grid-template-columns:1fr;gap:6px}.bm-site .fx-th{display:none}
+  .bm-site .fx-tr>span:nth-child(2):before{content:"Fonts: ";font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .bm-site .fx-tr>span:nth-child(3):before{content:"FontBase: ";font-family:var(--mono);font-size:11px;color:var(--muted)}
+}
