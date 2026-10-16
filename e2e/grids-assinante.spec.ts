@@ -94,8 +94,11 @@ test("a regra geral vale onde o formato não tem regra, identificada como rascun
   await expect(page.locator("[data-grids-origem]")).toContainText("regra geral da marca");
   await expect(page.locator("[data-grids-origem]")).toContainText("lida pela IA, ainda não confirmada");
   await expect(page.locator("[data-grids-tipo=modular]")).toHaveAttribute("aria-pressed", "true");
+  // O aviso no alto do bloco diz que há grid esperando e oferece aprovar de uma vez.
+  await expect(page.locator("[data-grids-pendentes]")).toContainText("aguarda a sua aprovação");
+  await expect(page.locator("[data-grids-aprovar-todos]")).toBeVisible();
   await page.locator("[data-grids-confirmar]").click();
-  await expect(page.locator("[data-grids-regras] [role=status]")).toHaveText("Regra aprovada.");
+  await expect(page.locator("[data-grids-regras] [role=status]")).toHaveText("Grid aprovado.");
   expect(chamadas.aprovar).toEqual([["rtodos"]]);
 });
 
