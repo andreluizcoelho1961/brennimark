@@ -162,7 +162,8 @@ export function instrucoesDoGrid(paginas: readonly number[]): string {
     "- Só o que está nas páginas. Campo que o manual não dá, OMITA. Formato que o manual não cita, não escreva. Nunca invente nem complete com o usual.",
     "- Se o manual mede por um elemento (\"margem = 2x\", \"x = altura do símbolo\"), estime pela proporção do diagrama e diga a medida original em \"descricao\".",
     "- \"pagina\" é uma das enviadas.",
-    "- Manual que define o grid como ESTRUTURA \"N×N\" ou \"NxM\" (ex.: \"Estrutura 3X3\", \"5x5\", módulos em frações 1/5, 2/5…) está dando um grid MODULAR: N colunas × M linhas. Escreva \"tipo\": \"modular\", \"colunas\" e \"linhas\"; se ele vale para todas as peças, use \"formato\": \"todos\". Uma linha por estrutura, a mais citada primeiro.",
+    "- Manual que define o grid como ESTRUTURA \"N×N\" ou \"NxM\" (ex.: \"Estrutura 3X3\", \"5x5\", módulos em frações 1/5, 2/5…) está dando um grid MODULAR: N COLUNAS × M LINHAS — \"3X3\" é 3 colunas e 3 linhas, nunca 1 coluna. Escreva \"tipo\": \"modular\", \"colunas\" e \"linhas\"; se ele vale para todas as peças, use \"formato\": \"todos\".",
+    "- Só UMA regra por formato (por \"todos\"). Se o manual apresenta mais de uma estrutura (3X3 e depois 5X5), escreva SÓ a principal, a primeira que ele apresenta, e cite a outra em \"descricao\" (ex.: \"Estrutura 3X3; o manual traz também a 5X5\"). Em \"descricao\", copie o nome da estrutura como o manual escreve.",
     "- Diagrama de composição sem medida (onde vão a foto, o título, a assinatura) não é regra de grid: não escreva nada para ele.",
   ].join("\n");
 }
@@ -209,6 +210,14 @@ export function lerRegrasDeGridDaIA(texto: string, paginasEnviadas: readonly num
     if (Array.isArray(o.zonas)) {
       const z = (o.zonas as unknown[]).map(Number);
       if (z.length >= 2 && z.length <= 6 && z.every((n) => Number.isFinite(n) && n > 0)) { regra.zonas = z; util = true; }
+    }
+    // Rede de segurança (15/10/2026): na Bradesco a IA leu "Estrutura 3X3" e
+    // gravou 1 coluna × 3 linhas. Quando a descrição traz "NxM" e a regra é
+    // modular, as colunas e as linhas são esses números, e prevalecem.
+    const estrutura = /(\d{1,2})\s*[x×X]\s*(\d{1,2})/.exec(String(regra.descricao));
+    if (regra.tipo === "modular" && estrutura) {
+      const [cols, lins] = [Number(estrutura[1]), Number(estrutura[2])];
+      if (cols >= 1 && cols <= 24 && lins >= 1 && lins <= 40) { regra.colunas = cols; regra.linhas = lins; util = true; }
     }
     if (util) lidas.push(regra);
   }
