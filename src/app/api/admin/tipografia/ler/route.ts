@@ -10,6 +10,7 @@ import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
+import { devolverReserva, esperaDaLeitura } from "@/lib/ai/reserva-da-leitura";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import {
@@ -93,6 +94,8 @@ export async function POST(request: Request) {
   const enviadas = vistas.map((v) => v.pagina);
 
   let executionId: string | undefined;
+  // Desfaz a reserva do teto se a leitura não acontecer (falha da IA, orçamento recusado).
+  let devolver: (() => Promise<void>) | null = null;
   try {
     const routing = await resolveChatRouting(workspaceId);
     if (routing.attempts.length === 0) {
@@ -118,6 +121,7 @@ export async function POST(request: Request) {
           "A IA já procurou a tipografia nas últimas 24 horas. Para ler de novo agora, digite as páginas de tipografia.",
         ));
       }
+      devolver = () => devolverReserva(serviceClient, "leituras_da_tipografia", brandId);
     }
 
     const instrucoes = instrucoesDaTipografia(enviadas);
@@ -129,7 +133,7 @@ export async function POST(request: Request) {
       auth.supabase, serviceClient, auth.user.id, pedido,
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
-    if (!decisao.pode) return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish));
+    if (!decisao.pode) { await devolver?.(); return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish)); }
 
     const inicio = Date.now();
     let motivoDoFim: PromiseLike<string> | null = null;
@@ -140,7 +144,7 @@ export async function POST(request: Request) {
       request: pedido,
       attempts,
       primeira: { pricing: decisao.capabilities.pricing!, reservedMicros: decisao.reservedMicros, maxOutputTokens: decisao.maxOutputTokens },
-      firstChunkTimeoutMs: routing.timeoutMs,
+      firstChunkTimeoutMs: esperaDaLeitura(routing.timeoutMs),
       parentSignal: request.signal,
       onAttemptFailure: registrarFalhaNaFila("tipografia", executionId),
       onReservaRecusada: registrarReservaRecusada("tipografia", executionId),
@@ -214,6 +218,7 @@ export async function POST(request: Request) {
       semImagem: paginas.filter((p) => !enviadas.includes(p)),
     });
   } catch (error) {
+    await devolver?.();
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
     const { code, message, detalheTecnico } = classifyAIError(raiz);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "tipografia", code, detalheTecnico, executionId }));
