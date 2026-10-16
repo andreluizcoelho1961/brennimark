@@ -106,12 +106,18 @@ export async function PATCH(request: Request) {
   if (pagina !== null && !(Number.isInteger(pagina) && pagina >= 1)) return NextResponse.json({ message: "Página inválida." }, { status: 400 });
   const zonas = Array.isArray(c?.zonas) ? (c.zonas as unknown[]).map(Number) : null;
 
+  // Variante e segmento são a identidade da regra (16/10/2026): vários grids por formato.
+  const aparar = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const variante = aparar(c?.variante);
+  const segmento = aparar(c?.segmento);
+  if (variante.length > 60 || segmento.length > 60) return NextResponse.json({ message: "Nome da estrutura e segmento: até 60 caracteres." }, { status: 400 });
+
   const linha = {
-    workspace_id: auth.workspaceId, brand_id: contexto.brand.id, formato, tipo: String(c?.tipo ?? ""), unidade,
+    workspace_id: auth.workspaceId, brand_id: contexto.brand.id, formato, variante, segmento, tipo: String(c?.tipo ?? ""), unidade,
     ...valores, zonas, pagina, descricao: typeof c?.descricao === "string" ? c.descricao.slice(0, 300) : "",
   };
   const { data, error } = await auth.supabase.from("regras_de_grid")
-    .upsert(linha, { onConflict: "brand_id,formato" }).select(COLUNAS_DAS_REGRAS_DE_GRID).single();
+    .upsert(linha, { onConflict: "brand_id,formato,segmento,variante" }).select(COLUNAS_DAS_REGRAS_DE_GRID).single();
   if (error?.code === "23514") return NextResponse.json({ message: "Algum valor está fora do que uma regra de grid admite." }, { status: 400 });
   if (error?.code === "42501") return NextResponse.json({ message: "Só quem edita esta marca guarda regras de grid." }, { status: 403 });
   if (error || !data) return NextResponse.json({ message: "Não foi possível guardar a regra." }, { status: 500 });

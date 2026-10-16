@@ -141,8 +141,10 @@ export async function POST(request: Request) {
       execucao.cleanup();
     }
 
-    const existentes = new Set(regras.map((x) => x.formato));
-    const encontradas = lerRegrasDeGridDaIA(texto, enviadas).filter((l) => !existentes.has(l.formato));
+    // Só entra o grid que a marca ainda não tem: a identidade é formato × segmento × variante.
+    const chave = (x: { formato: string; segmento: string; variante: string }) => `${x.formato}|${x.segmento}|${x.variante}`;
+    const existentes = new Set(regras.map(chave));
+    const encontradas = lerRegrasDeGridDaIA(texto, enviadas).filter((l) => !existentes.has(chave(l)));
     let lidas = 0;
     for (const l of encontradas) {
       const gravada = await serviceClient.rpc("registrar_leitura_das_regras_de_grid", { p_workspace_id: workspaceId, p_brand_id: brandId, p_regra: l });

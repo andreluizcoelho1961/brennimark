@@ -55,6 +55,7 @@ export const DICAS = {
   "grids-baixar-pdf": { pt: "O grid em PDF, para usar em outros programas.", en: "The grid as a PDF, for other programs." },
   "grids-canto": { pt: "Onde o logo entra na peça.", en: "Where the logo goes on the piece." },
   "grids-ajustar-margens": { pt: "Aumenta as margens até caber a área de proteção do logo.", en: "Widens the margins to fit the logo's clear space." },
+  "grids-variante": { pt: "O manual traz vários grids: escolha qual usar (cada estrutura e segmento é um).", en: "The manual has several grids: choose which to use (each structure and segment is one)." },
   "grids-guardar": { pt: "Salva estas medidas como regra da marca para este formato.", en: "Saves these measurements as the brand's rule for this format." },
   "grids-confirmar": { pt: "Aprova a regra de grid que veio do manual.", en: "Approves the grid rule that came from the manual." },
   "admin-adicionar": { pt: "Cadastra à mão uma cor ou fonte do manual.", en: "Adds a manual color or font by hand." },

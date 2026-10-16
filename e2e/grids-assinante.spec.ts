@@ -9,8 +9,8 @@ import { strFromU8, unzipSync } from "fflate";
  * que o pacote abre no InDesign foi provado no InDesign 2026 do André (14/10).
  */
 const LOGO = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60"><rect width="60" height="60" fill="#ff4103"/><rect x="72" y="12" width="128" height="36" fill="#001621"/></svg>`;
-const REGRA_A4 = { id: "ra4", formato: "a4", tipo: "colunas", unidade: "mm", colunas: 8, linhas: null, medianiz: 5, margemSup: 20, margemInf: 25, margemEsq: 18, margemDir: 18, linhaDeBase: 12, zonas: null, descricao: "grid de 8 colunas", pagina: 31, origem: "ia", status: "ready" };
-const REGRA_GERAL = { id: "rtodos", formato: "todos", tipo: "modular", unidade: "proporcao", colunas: 4, linhas: 5, medianiz: 0.02, margemSup: 0.06, margemInf: 0.06, margemEsq: 0.06, margemDir: 0.06, linhaDeBase: 12, zonas: null, descricao: "sistema modular", pagina: 32, origem: "ia", status: "draft" };
+const REGRA_A4 = { id: "ra4", formato: "a4", variante: "", segmento: "", tipo: "colunas", unidade: "mm", colunas: 8, linhas: null, medianiz: 5, margemSup: 20, margemInf: 25, margemEsq: 18, margemDir: 18, linhaDeBase: 12, zonas: null, descricao: "grid de 8 colunas", pagina: 31, origem: "ia", status: "ready" };
+const REGRA_GERAL = { id: "rtodos", formato: "todos", variante: "", segmento: "", tipo: "modular", unidade: "proporcao", colunas: 4, linhas: 5, medianiz: 0.02, margemSup: 0.06, margemInf: 0.06, margemEsq: 0.06, margemDir: 0.06, linhaDeBase: 12, zonas: null, descricao: "sistema modular", pagina: 32, origem: "ia", status: "draft" };
 const VERSAO = { id: "v1", itemId: "i1", tipo: "logo", arquivo: "Acme Logo horizontal.svg", mime: "image/svg+xml", hierarquia: "principal", lockup: "horizontal", cor: "colorido", polaridade: "positivo", espacoDeCor: "rgb", rotulo: null, miniatura: null };
 
 async function fingir(page: Page, o: { regras?: unknown[]; versoes?: unknown[]; protecao?: number; tipografia?: unknown[]; fontesEmRascunho?: number } = {}) {
@@ -171,4 +171,33 @@ test("o PDF do assinante é igual ao InDesign: logo no canto, área de proteçã
   expect(latin).toContain("/SMask 6 0 R");
   const caminho = process.env.SAIDA_DO_PDF;
   if (caminho) await (await import("node:fs/promises")).writeFile(caminho, bytes);
+});
+
+test("com vários grids no manual, a tela oferece a escolha e o pacote diz qual", async ({ page }) => {
+  const g = (id: string, variante: string, segmento: string, colunas: number, pagina: number, status: string) =>
+    ({ ...REGRA_GERAL, id, variante, segmento, colunas, linhas: colunas, pagina, status });
+  await fingir(page, { regras: [g("g3", "Estrutura 3X3", "Institucional", 3, 30, "draft"), g("g5", "Estrutura 5X5", "Institucional", 5, 31, "ready"), g("gw", "Estrutura 3X3", "Wealth", 3, 35, "draft")] });
+  await abrir(page);
+  const seletor = page.locator("[data-grids-variante]");
+  await expect(seletor.locator("option")).toHaveCount(3);
+  // A aprovada vem primeiro e é o padrão.
+  await expect(seletor).toHaveValue("g5");
+  await expect(page.locator("[data-grids-campo=colunas]")).toHaveValue("5");
+  await expect(seletor.locator("option").nth(1)).toHaveText("Estrutura 3X3 · Institucional — p. 30 (rascunho)");
+  await seletor.selectOption("gw");
+  await expect(page.locator("[data-grids-campo=colunas]")).toHaveValue("3");
+  await expect(page.locator("[data-grids-origem]")).toContainText("Estrutura 3X3 · Wealth — do manual, p. 35");
+
+  const baixando = page.waitForEvent("download");
+  await page.locator("[data-grids-baixar-idml]").click();
+  const download = await baixando;
+  expect(download.suggestedFilename()).toBe("grid-acme-a4-modular-estrutura-3x3-wealth.zip");
+  const zip = unzipSync(new Uint8Array(await readFile((await download.path())!)));
+  expect(strFromU8(zip["LEIA-ME.txt"])).toContain("Estrutura 3X3 · Wealth — do manual, p. 35");
+});
+
+test("com um grid só, não há seletor", async ({ page }) => {
+  await fingir(page);
+  await abrir(page);
+  await expect(page.locator("[data-grids-variante]")).toHaveCount(0);
 });
