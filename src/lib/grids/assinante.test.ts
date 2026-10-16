@@ -288,3 +288,24 @@ test("o grid da Bradesco (15/10/2026): as sete páginas de grid vão à IA, e Es
   const [regra] = lerRegrasDeGridDaIA('{"formato": "todos", "tipo": "modular", "colunas": 3, "linhas": 3, "descricao": "Estrutura 3X3", "pagina": 30}', [30, 31]);
   assert.deepEqual({ formato: regra.formato, tipo: regra.tipo, colunas: regra.colunas, linhas: regra.linhas, unidade: regra.unidade }, { formato: "todos", tipo: "modular", colunas: 3, linhas: 3, unidade: "proporcao" });
 });
+
+test("a estrutura que o manual escreve (NxM) prevalece sobre os números que a IA leu, e só uma regra por formato vale", () => {
+  // O caso real da Bradesco (15/10/2026): "Estrutura 3X3" gravada como 1 coluna × 3 linhas.
+  const [errada] = lerRegrasDeGridDaIA('{"formato": "todos", "tipo": "modular", "colunas": 1, "linhas": 3, "descricao": "Estrutura 3X3", "pagina": 30}', [30, 31]);
+  assert.equal(errada.colunas, 3);
+  assert.equal(errada.linhas, 3);
+  // Duas estruturas para o mesmo formato: a primeira vale, a segunda cai.
+  const duas = lerRegrasDeGridDaIA([
+    '{"formato": "todos", "tipo": "modular", "colunas": 3, "linhas": 3, "descricao": "Estrutura 3X3; o manual traz também a 5X5", "pagina": 30}',
+    '{"formato": "todos", "tipo": "modular", "colunas": 5, "linhas": 5, "descricao": "Estrutura 5X5", "pagina": 31}',
+  ].join("\n"), [30, 31]);
+  assert.equal(duas.length, 1);
+  assert.equal(duas[0].colunas, 3);
+  // Descrição sem NxM, ou regra que não é modular, não é mexida.
+  const [sem] = lerRegrasDeGridDaIA('{"formato": "todos", "tipo": "modular", "colunas": 4, "linhas": 6, "descricao": "módulos do manual", "pagina": 30}', [30]);
+  assert.equal(sem.colunas, 4);
+  const [colunas] = lerRegrasDeGridDaIA('{"formato": "a4", "tipo": "colunas", "colunas": 8, "descricao": "grid 2x4 de imagens", "pagina": 30}', [30]);
+  assert.equal(colunas.colunas, 8);
+  assert.match(instrucoesDoGrid([30]), /3 colunas e 3 linhas, nunca 1 coluna/);
+  assert.match(instrucoesDoGrid([30]), /SÓ a principal/);
+});
