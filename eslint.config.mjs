@@ -10,6 +10,8 @@ const eslintConfig = defineConfig([
     // Default ignores of eslint-config-next:
     ".next/**",
     ".tmp/**",
+    // Worktrees locais do Claude Code: cópias de outras branches, não código deste checkout.
+    ".claude/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
