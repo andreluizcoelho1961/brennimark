@@ -23,6 +23,7 @@ test("o site passa sem sessão: a home e cada página pública", () => {
   assert.equal(caminhoPublico("/"), true);
   assert.equal(caminhoPublico("/vini"), true);
   assert.equal(caminhoPublico("/licenca-de-fontes"), true);
+  assert.equal(caminhoPublico("/fonts"), true);
 });
 
 test("o site casa pelo caminho exato: a home não abre o produto", () => {

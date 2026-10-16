@@ -32,6 +32,7 @@ export const PAGINAS_DO_SITE: readonly PaginaDoSite[] = [
   { slug: "vini", titulo: "Vini Max", resumo: "Consulta, revisão de peça e prompts alinhados à marca", grupo: "plataforma" },
   { slug: "entrega", titulo: "Entrega e acesso", resumo: "Link com prazo e acesso por marca", grupo: "plataforma" },
   { slug: "complementos", titulo: "Complementos e lacunas", resumo: "O que o manual não diz, escrito e citado", grupo: "plataforma" },
+  { slug: "fonts", titulo: "Brennimark Fonts", resumo: "Gerenciador de fontes por marca, em beta", grupo: "plataforma" },
   { slug: "studio", titulo: "Studio", resumo: "Onde a agência publica e cuida da marca", grupo: "plataforma" },
   { slug: "seguranca", titulo: "Segurança e privacidade", resumo: "Acesso por marca, conversas privadas, dados seus", grupo: "plataforma" },
   { slug: "agencias", titulo: "Agências e estúdios", resumo: "A marca entregue pronta para usar", grupo: "para-quem" },
