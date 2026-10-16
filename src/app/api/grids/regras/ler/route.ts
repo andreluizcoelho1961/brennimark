@@ -10,6 +10,7 @@ import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
+import { devolverReserva, esperaDaLeitura } from "@/lib/ai/reserva-da-leitura";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import {
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
   const enviadas = vistas.map((v) => v.pagina);
 
   let executionId: string | undefined;
+  // Desfaz a reserva do teto se a leitura não acontecer (falha da IA, orçamento recusado).
+  let devolver: (() => Promise<void>) | null = null;
   try {
     const routing = await resolveChatRouting(workspaceId);
     if (routing.attempts.length === 0) {
@@ -86,6 +89,7 @@ export async function POST(request: Request) {
         message: "O manual desta marca foi lido nas últimas 24 horas. Quem edita a marca pode guardar o grid de cada formato.",
       });
     }
+    devolver = () => devolverReserva(serviceClient, "leituras_das_regras_de_grid", brandId);
     const instrucoes = instrucoesDoGrid(enviadas);
     const pedido = {
       workspaceId, brandId, executionId, task: "assist" as const, role: "",
@@ -95,7 +99,7 @@ export async function POST(request: Request) {
       auth.supabase, serviceClient, auth.user.id, pedido,
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
-    if (!decisao.pode) return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, false));
+    if (!decisao.pode) { await devolver?.(); return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, false)); }
 
     const inicio = Date.now();
     const execucao = await executarEmFila({
@@ -105,7 +109,7 @@ export async function POST(request: Request) {
       request: pedido,
       attempts,
       primeira: { pricing: decisao.capabilities.pricing!, reservedMicros: decisao.reservedMicros, maxOutputTokens: decisao.maxOutputTokens },
-      firstChunkTimeoutMs: routing.timeoutMs,
+      firstChunkTimeoutMs: esperaDaLeitura(routing.timeoutMs),
       parentSignal: request.signal,
       onAttemptFailure: registrarFalhaNaFila("grids-regras", executionId),
       onReservaRecusada: registrarReservaRecusada("grids-regras", executionId),
@@ -162,6 +166,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ regras: (await ler()) ?? regras, lidas, paginas: enviadas });
   } catch (error) {
+    await devolver?.();
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
     const { code, message, detalheTecnico } = classifyAIError(raiz);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "grids-regras", code, detalheTecnico, executionId }));
