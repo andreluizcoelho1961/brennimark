@@ -203,6 +203,8 @@ Garantia que ninguém reexecuta é garantia que alguém remove numa refatoraçã
 
 - `scripts/prova-de-concorrencia-ai-ledger.sh` — as travas do razão de IA
 - `scripts/prova-manifesto-por-pagina.sh` — as constraints do documento-fonte
+- `scripts/prova-da-demonstracao.sh` — o tour: entrada só de login anônimo, contador, vencidos e a
+  autorização negativa do visitante
 
 **Prova confere o NOME EXATO da constraint**, não "algum erro". Uma versão anterior tratava
 qualquer `violates` como sucesso, e um caso cuja preparação falhava passava sem nunca alcançar a
