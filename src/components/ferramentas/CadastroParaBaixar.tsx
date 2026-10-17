@@ -110,6 +110,13 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
           respostas: { equipe, marcas, comoConheceu },
         }),
       });
+      // 429: o limite de pedidos por IP (regra do Firewall da Vercel). O corpo não
+      // é nosso, então a mensagem também não pode vir dele.
+      if (r.status === 429) {
+        setErro("Muitos pedidos deste endereço em pouco tempo. Espere alguns minutos e tente de novo.");
+        setEnviando(false);
+        return;
+      }
       if (r.status >= 400 && r.status < 500) {
         const corpo = await r.json().catch(() => null) as { message?: string } | null;
         setErro(corpo?.message ?? "Confira os campos e tente de novo.");
