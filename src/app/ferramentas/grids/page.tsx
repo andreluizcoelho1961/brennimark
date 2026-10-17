@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
 import { Grids } from "@/components/ferramentas/Grids";
 import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
 
@@ -15,12 +16,15 @@ export const metadata: Metadata = {
 export default function PaginaDoGrids() {
   return (
     <>
-      <div className="border-b border-platform-border px-6 py-6">
+      <div className="relative border-b border-platform-border px-6 py-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Brennimark Grids</p>
         <h1 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-tight">O grid pronto para o InDesign, nos formatos mais usados</h1>
         <p className="mt-2 max-w-[46rem] text-[15px] leading-relaxed text-platform-text-muted">
           Manuscrito, colunas, modular ou hierárquico. Margens, medianiz, linha de base, sangria e área segura das plataformas, num documento que abre pronto para diagramar. Gratuito, e nada sai do seu computador.
         </p>
+        <div className="mt-4 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AjudaDaFerramenta ferramenta="grids" audiencia="site" />
+        </div>
       </div>
       <Grids />
       <ConviteDaFerramenta

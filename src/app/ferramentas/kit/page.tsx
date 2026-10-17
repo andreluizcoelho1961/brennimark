@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
 import { KitAvulso } from "@/components/ferramentas/KitAvulso";
 import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
 
@@ -15,12 +16,15 @@ export const metadata: Metadata = {
 export default function PaginaDoKit() {
   return (
     <>
-      <div className="border-b border-platform-border px-6 py-6">
+      <div className="relative border-b border-platform-border px-6 py-6">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Brennimark Kit</p>
         <h1 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-tight">Todos os tamanhos do seu logo, num clique</h1>
         <p className="mt-2 max-w-[44rem] text-[15px] leading-relaxed text-platform-text-muted">
           Ícones do site, perfis e capas das redes, assinatura de e-mail, endomarketing e arquivos de apresentação. Gratuito, e o seu arquivo não sai do seu computador.
         </p>
+        <div className="mt-4 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AjudaDaFerramenta ferramenta="kit" audiencia="site" />
+        </div>
       </div>
       <KitAvulso />
       <ConviteDaFerramenta

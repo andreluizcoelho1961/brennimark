@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
 import { GridsDoAssinante } from "@/components/ferramentas/GridsDoAssinante";
 
 export const metadata: Metadata = { title: "Grids da marca" };
@@ -10,9 +11,12 @@ export const metadata: Metadata = { title: "Grids da marca" };
 export default function PaginaDosGrids() {
   return (
     <div>
-      <div className="border-b border-platform-border px-6 py-5">
+      <div className="relative border-b border-platform-border px-6 py-5">
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Grids da marca</p>
         <h1 className="mt-1.5 text-[clamp(1.3rem,2.4vw,1.7rem)] font-semibold tracking-tight">O documento pronto para diagramar, com as regras do manual</h1>
+        <div className="mt-4 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AjudaDaFerramenta ferramenta="grids" audiencia="marca" />
+        </div>
       </div>
       <GridsDoAssinante />
     </div>

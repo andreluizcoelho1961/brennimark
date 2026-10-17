@@ -110,3 +110,12 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastros"), false);
   assert.equal(caminhoPublico("/api/cadastro/qualquer"), false);
 });
+
+test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () => {
+  assert.equal(caminhoPublico("/ajuda"), true);
+  assert.equal(caminhoPublico("/ajuda/kit"), true);
+  assert.equal(caminhoPublico("/ajuda/categoria/materiais-da-marca"), true);
+  // vizinhos: nada que apenas comece com as mesmas letras
+  assert.equal(caminhoPublico("/ajudax"), false);
+  assert.equal(caminhoPublico("/ajuda-interna"), false);
+});
