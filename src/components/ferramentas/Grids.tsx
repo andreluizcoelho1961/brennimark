@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FORMATOS, GRUPOS, formatoPorId, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
+import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
 import { calcularGrid, escolhasPadrao, formatar, type Escolhas, type Grid, type Proporcao } from "@/lib/grids/calcular";
 import { montarIdml } from "@/lib/grids/idml";
 import { montarPdf } from "@/lib/grids/pdf";
@@ -130,11 +130,12 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
           <Dica texto={dicaDe("grids-formato")} lado="baixo"><select data-grids-formato className={CAMPO} value={formatoId} onChange={(e) => trocarFormato(e.target.value)}>
             {GRUPOS.map((g) => (
               <optgroup key={g.id} label={g.nome}>
-                {FORMATOS.filter((f) => f.grupo === g.id).map((f) => (
+                {FORMATOS.filter((f) => f.grupo === g.id && (marca || FORMATOS_GRATIS.has(f.id))).map((f) => (
                   <option key={f.id} value={f.id}>{f.nome} — {String(f.largura).replace(".", ",")} × {String(f.altura).replace(".", ",")} {f.unidade}</option>
                 ))}
               </optgroup>
             ))}
+            {!marca && <option disabled data-grids-formatos-bloqueados>{`+ ${FORMATOS.length - FORMATOS_GRATIS.size} formatos, como livro, cartaz e carreiras: no plano de assinatura`}</option>}
           </select></Dica>
           <p data-grids-fonte className="text-[12px] leading-snug text-platform-text-muted">
             Medida: {formato.fonte}.{formato.corpo ? ` Corpo de texto da proposta: ${formato.corpo}.` : ""}
@@ -196,7 +197,15 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
           )}
         </section>
 
-        {!formato.livro && (
+        {!formato.livro && !marca && (
+          <section className="flex flex-col gap-3" data-grids-desconstrucao-bloqueada>
+            <p className={ROTULO}>Passo 3 · assinante</p>
+            <h2 className={PASSO}>Desconstrução</h2>
+            <p className="text-[12.5px] leading-snug text-platform-text-muted">Grid sobreposto e grid rotacionado, cada um numa camada própria do InDesign, são do plano de assinatura.</p>
+          </section>
+        )}
+
+        {!formato.livro && marca && (
           <section className="flex flex-col gap-3">
             <p className={ROTULO}>Passo 3 · opcional</p>
             <h2 className={PASSO}>Desconstrução</h2>

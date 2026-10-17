@@ -67,30 +67,19 @@ test("Stories traz a área segura do Meta; mudar colunas e margens refaz o grid"
   expect(strFromU8(z["designmap.xml"])).toContain("Área segura da plataforma");
 });
 
-test("desconstrução: sobreposto e rotacionado entram em camadas próprias", async ({ page }) => {
+test("a versão gratuita tem 13 formatos e deixa a desconstrução para o assinante", async ({ page }) => {
   await abrir(page);
-  await page.locator("[data-grids-sobreposto]").check();
-  await page.locator("[data-grids-rotacionado]").check();
-  await expect(page.locator("[data-grids-legenda]")).toContainText("grid sobreposto");
-  await expect(page.locator("[data-grids-legenda]")).toContainText("grid rotacionado");
-  const { bytes } = await baixar(page, "[data-grids-baixar-idml]");
-  const z = unzipSync(bytes);
-  const mapa = strFromU8(z["designmap.xml"]);
-  expect(mapa).toContain("Desconstrução — grid sobreposto");
-  expect(mapa).toContain("Desconstrução — grid rotacionado");
-  expect(strFromU8(z["Spreads/Spread_sp1.xml"])).toContain("<GraphicLine ");
+  const opcoes = page.locator("[data-grids-formato] option:not([disabled])");
+  await expect(opcoes).toHaveCount(13);
+  await expect(page.locator("[data-grids-formato] option[value=livro-14x21]")).toHaveCount(0);
+  await expect(page.locator("[data-grids-formato] option[value=gupy-carreiras]")).toHaveCount(0);
+  await expect(page.locator("[data-grids-formatos-bloqueados]")).toBeDisabled();
+  await expect(page.locator("[data-grids-formatos-bloqueados]")).toContainText("no plano de assinatura");
+  await expect(page.locator("[data-grids-desconstrucao-bloqueada]")).toContainText("do plano de assinatura");
+  await expect(page.locator("[data-grids-sobreposto]")).toHaveCount(0);
+  await expect(page.locator("[data-grids-rotacionado]")).toHaveCount(0);
 
   const pdf = await baixar(page, "[data-grids-baixar-pdf]");
   expect(pdf.nome).toBe("grid-a4-colunas.pdf");
   expect(strFromU8(pdf.bytes.subarray(0, 8))).toBe("%PDF-1.4");
-});
-
-test("capa de livro: lombada e orelhas informadas viram painéis e dobras", async ({ page }) => {
-  await abrir(page);
-  await page.locator("[data-grids-formato]").selectOption("livro-14x21");
-  const orelha = page.locator("[data-grids-campo=orelha]");
-  await orelha.fill("90");
-  await orelha.press("Enter");
-  await expect(page.locator("[data-grids-previa] text")).toHaveText(["Orelha (verso)", "Contracapa", "Lombada", "Capa", "Orelha (frente)"]);
-  await expect(page.locator("[data-grids-sobreposto]")).toHaveCount(0);
 });
