@@ -47,6 +47,9 @@ export function Cabecalho() {
         <nav className="site-nav" aria-label="Navegação principal">
           <ItemDoMenu {...MENUS[0]} />
           <ItemDoMenu {...MENUS[1]} />
+          <Link className="nav-link" href="/#ferramentas" data-go="ferramentas">
+            Ferramentas
+          </Link>
           <Link className="nav-link" href="/#planos" data-go="planos">
             Planos
           </Link>
@@ -90,6 +93,11 @@ function MenuDoCelular() {
       <p className="mnav-k">Recursos</p>
       {lista("recursos")}
       <ul>
+        <li>
+          <Link href="/#ferramentas" data-go="ferramentas">
+            Ferramentas gratuitas
+          </Link>
+        </li>
         <li>
           <Link href="/#planos" data-go="planos">
             Planos

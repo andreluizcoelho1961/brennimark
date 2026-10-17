@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Grids } from "@/components/ferramentas/Grids";
+import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
 
 export const metadata: Metadata = {
   title: "Brennimark Grids — o grid pronto para o InDesign",
@@ -22,6 +23,10 @@ export default function PaginaDoGrids() {
         </p>
       </div>
       <Grids />
+      <ConviteDaFerramenta
+        titulo="Com a marca do cliente, o documento já nasce pronto."
+        itens={["Logo na área de proteção que o manual define", "Cores aprovadas e estilos de texto com a fonte da marca", "Todos os formatos e a desconstrução em camadas próprias"]}
+      />
     </>
   );
 }
