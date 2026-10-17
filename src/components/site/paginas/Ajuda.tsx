@@ -1,23 +1,32 @@
 import Link from "next/link";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { BuscaDaAjuda } from "../ajuda/BuscaDaAjuda";
+import { CATEGORIAS, artigosDaCategoria, listarArtigos } from "@/lib/ajuda/artigos";
 
-/** Central de ajuda — `/ajuda`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
+/** Central de ajuda — `/ajuda`. Os cartões e a busca são reais desde 17/10/2026; o resto do texto é do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoAjuda() {
+  const indice = listarArtigos().map(({ slug, titulo, resumo, texto }) => ({ slug, titulo, resumo, texto }));
   return (
     <>
       <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
       <div className="pg-wrap" style={{ paddingTop: "72px" }}>
       <p className="crumb"><a href="#" data-open-menu="m-rec">Recursos</a> · Central de ajuda</p>
       <Titulo como="h1" className="pg-h1" partes={["Como podemos ajudar?"]} />
-      <div className="hsearch"><span>⌕</span><input type="search" placeholder="Busque por um assunto: link de entrega, fonte, Vini…" aria-label="Buscar na central de ajuda" /></div>
+      <BuscaDaAjuda indice={indice} />
       <div className="related" style={{ marginTop: "48px" }}>
-      <Link className="rel" href="/ajuda"><small>8 artigos</small><b>Primeiros passos</b><span>Criar a primeira marca e publicar o manual.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>11 artigos</small><b>O manual em PDF</b><span>Envio, índice, versões e download.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>14 artigos</small><b>Materiais da marca</b><span>Grupos, formatos, regras de uso e o kit.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>12 artigos</small><b>Vini Max</b><span>Perguntas, análise de peça, prompts e limites.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>9 artigos</small><b>Pessoas e acesso</b><span>Convites, papéis e acesso por marca.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>7 artigos</small><b>Assinatura</b><span>Planos, cobrança, exportação e encerramento.</span><em>→</em></Link>
+      {CATEGORIAS.map((c) => {
+        const artigos = artigosDaCategoria(c.slug);
+        if (artigos.length === 0) {
+          return (
+            <div key={c.slug} className="rel rel-em-breve" aria-disabled="true"><small>Em breve</small><b>{c.titulo}</b><span>{c.descricao}</span></div>
+          );
+        }
+        const href = artigos.length === 1 ? `/ajuda/${artigos[0].slug}` : `/ajuda/categoria/${c.slug}`;
+        return (
+          <Link key={c.slug} className="rel" href={href}><small>{artigos.length} {artigos.length === 1 ? "artigo" : "artigos"}</small><b>{c.titulo}</b><span>{c.descricao}</span><em>→</em></Link>
+        );
+      })}
       </div>
       </div>
       </section>

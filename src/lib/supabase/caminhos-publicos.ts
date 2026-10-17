@@ -55,11 +55,18 @@
  * pelo caminho exato e pelo mesmo motivo — o grid é calculado e o IDML montado
  * no navegador; nenhum dado lido.
  *
+ * Os ARTIGOS DA CENTRAL DE AJUDA entraram em 17/10/2026: `/ajuda/<artigo>` e
+ * `/ajuda/categoria/<categoria>`, por PREFIXO (`/ajuda/`, com a barra) — a
+ * própria `/ajuda` já é do site, pelo caminho exato. São HTML gerado no
+ * build a partir de Markdown do repositório; só existem os endereços que o
+ * `generateStaticParams` conhece (`dynamicParams = false`), então o prefixo
+ * não abre nada além deles. `/ajudax` não casa.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
-export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
+export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/"] as const;
 
 export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids"]);
 

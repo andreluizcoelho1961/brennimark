@@ -906,3 +906,24 @@ body:has(.bm-site.mnav-open){overflow:hidden}
   .bm-site .fx-tr>span:nth-child(2):before{content:"Fonts: ";font-family:var(--mono);font-size:11px;color:var(--muted)}
   .bm-site .fx-tr>span:nth-child(3):before{content:"FontBase: ";font-family:var(--mono);font-size:11px;color:var(--muted)}
 }
+
+/* ---------- Central de ajuda: busca real, cartão "em breve" e o texto do artigo (17/10/2026) ---------- */
+.bm-site .ajuda-resultados{margin-top:14px;max-width:640px}
+.bm-site .ajuda-resultados ul{list-style:none;margin:0;padding:0}
+.bm-site .ajuda-resultados a{display:flex;flex-direction:column;gap:2px;padding:14px 0;border-top:1px solid var(--line)}
+.bm-site .ajuda-resultados a span{color:var(--muted);font-size:14px}
+.bm-site .rel-em-breve{opacity:.55;cursor:default}
+.bm-site .rel-em-breve:hover{transform:none}
+.bm-site .ajuda-artigo{max-width:720px;margin-top:40px;font-size:17px;line-height:1.7}
+.bm-site .ajuda-artigo h2{margin:2em 0 .5em;font-size:26px;font-weight:500;letter-spacing:-.02em;line-height:1.2}
+.bm-site .ajuda-artigo p{margin:.9em 0}
+.bm-site .ajuda-artigo ul{margin:.9em 0;padding-left:1.3em}
+.bm-site .ajuda-artigo ol{margin:.9em 0;padding-left:1.3em}
+.bm-site .ajuda-artigo li{margin:.35em 0}
+.bm-site .ajuda-artigo li>ul,.bm-site .ajuda-artigo li>ol{margin:.3em 0}
+.bm-site .ajuda-artigo code{font-family:var(--mono,ui-monospace,monospace);font-size:.9em;background:var(--surface);padding:.1em .35em;border-radius:4px}
+.bm-site .ajuda-artigo a{text-decoration:underline;text-underline-offset:3px}
+.bm-site .ajuda-artigo blockquote{margin:1.2em 0;padding:.2em 1.1em;border-left:3px solid var(--line);color:var(--muted)}
+.bm-site .ajuda-artigo table{width:100%;margin:1.2em 0;border-collapse:collapse;font-size:15px}
+.bm-site .ajuda-artigo th,.bm-site .ajuda-artigo td{border-bottom:1px solid var(--line);padding:.6em .7em;text-align:left;vertical-align:top}
+.bm-site .ajuda-artigo th{font-weight:600}

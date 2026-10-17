@@ -54,6 +54,16 @@ const supabaseImagem = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  /*
+   * Os artigos da Central de ajuda são lidos do disco (`src/content/ajuda`).
+   * As páginas do assinante são dinâmicas, e o Vercel só leva para a função o
+   * que o rastreamento enxerga; um `fs` com caminho montado em tempo de
+   * execução não é enxergado. Sem esta linha o "Como usar" funcionaria no
+   * computador e quebraria em produção.
+   */
+  outputFileTracingIncludes: {
+    "/w/[workspaceSlug]/b/[brandKey]/docs/*": ["./src/content/ajuda/**/*"],
+  },
   images: {
     /*
      * Achado da auditoria de produto (04/09): sem isto, `next/image` não
