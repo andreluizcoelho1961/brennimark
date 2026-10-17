@@ -301,6 +301,22 @@ body:has(.bm-site){overflow:hidden}
 .bm-site .plan .btn:hover{background:var(--brasa);border-color:var(--brasa);color:var(--bg)}
 .bm-site .plans-note .link{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .bm-site .plans-note{margin:18px 0 0;font-size:12px;color:var(--muted)}
+.bm-site .ferr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:34px}
+.bm-site .ferr{display:flex;flex-direction:column;gap:14px;padding:22px 20px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.bm-site .ferr h3{margin:0;font-size:26px;font-weight:500;letter-spacing:-.035em}
+.bm-site .ferr-what{margin:0;font-size:14px;line-height:1.6;color:var(--muted)}
+.bm-site .ferr-tier{margin:0;flex:1}
+.bm-site .ferr-tier div{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);font-size:13px}
+.bm-site .ferr-tier dt{flex:none;min-width:74px;margin-top:2px;padding:2px 7px;border-radius:3px;background:var(--raised);font:500 10px/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase;text-align:center}
+.bm-site .ferr-tier dt.sub{background:var(--brasa);color:var(--bg)}
+.bm-site .ferr-tier dd{margin:0;color:var(--muted)}
+.bm-site .ferr .btn{justify-content:center}
+.bm-site .ferr-fonts{display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:14px;padding:22px 20px;background:var(--surface);border:1px solid var(--brasa);border-radius:8px}
+.bm-site .ferr-fonts>div{flex:1;min-width:240px}
+.bm-site .ferr-fonts h3{margin:0 0 6px;font-size:22px;font-weight:500;letter-spacing:-.03em}
+.bm-site .ferr-fonts p{margin:0;font-size:14px;color:var(--muted)}
+.bm-site .ferr-fonts-n{margin:0;font:600 40px/1 var(--mono);color:var(--brasa)}
+.bm-site .ferr-fonts-n span{display:block;margin-top:6px;font:500 10px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 /* ---------- 8 · fechamento ---------- */
 .bm-site .closing h2{margin:0;max-width:1000px;font-size:clamp(40px,5vw,76px);line-height:1.05;font-weight:500;letter-spacing:-.05em;text-wrap:balance}
@@ -775,6 +791,7 @@ body:has(.bm-site.mnav-open){overflow:hidden}
   .bm-site .step:nth-child(2),.bm-site .step:nth-child(3){margin-top:0}
   .bm-site .flow-head{display:block}
   .bm-site .plans{grid-template-columns:1fr}
+  .bm-site .ferr-grid{grid-template-columns:1fr}
   .bm-site .plans-head{display:block}
   .bm-site .app{grid-template-columns:40px 1fr}
   .bm-site .app-stage{padding:12px}
