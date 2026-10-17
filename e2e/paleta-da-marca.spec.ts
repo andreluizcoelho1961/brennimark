@@ -14,8 +14,27 @@ function secaoDaPaleta(page: Page) {
   return page.getByRole("region", { name: "Paleta da marca" });
 }
 
+/**
+ * Abre a administração de bancada e espera ela LIGAR, não carregar.
+ *
+ * Medido em 14/10/2026, depois de "sem rede, a ficha avisa" estourar 30 s na
+ * suíte inteira: `goto` espera o evento `load`, e o servidor de
+ * DESENVOLVIMENTO pede um segundo script do cliente de HMR depois da
+ * hidratação. Atrasado 25 s só esse script, que o teste não usa, o teste levou
+ * 25 s; atrasado 30 s, estourou na mesma linha da falha. Em produção ele não
+ * existe. Esperar só o HTML, porém, não basta: clicando antes da hidratação, o
+ * clique se perde e o aviso nunca vem. O marcador da administração nasce
+ * depois que a árvore inteira, a ficha da paleta inclusa, tem os handlers.
+ * Com todo script atrasado 9 s, ele chegou em 18,6 s e o teste passou.
+ */
+async function abrir(page: Page, caminho: string) {
+  await page.goto(caminho, { waitUntil: "commit" });
+  await expect(page.locator("[data-admin-editor-ready]"))
+    .toHaveAttribute("data-admin-editor-ready", "true", { timeout: 25_000 });
+}
+
 test("a ficha mostra as cores, a contagem e o status de cada uma", async ({ page }) => {
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
 
   await expect(secao.locator("[data-resumo-da-paleta]")).toHaveText(
@@ -33,7 +52,7 @@ test("a ficha mostra as cores, a contagem e o status de cada uma", async ({ page
 });
 
 test("quem edita e não aprova não vê Aprovar", async ({ page }) => {
-  await page.goto("/dev/admin-panel?papel=editora");
+  await abrir(page, "/dev/admin-panel?papel=editora");
   const secao = secaoDaPaleta(page);
   await expect(secao.locator("[data-adicionar-cor]")).toBeVisible();
   await expect(secao.locator("[data-editar-cor]").first()).toBeVisible();
@@ -57,7 +76,7 @@ test("quem aprova e não edita só aprova", async ({ page }) => {
     });
   });
 
-  await page.goto("/dev/admin-panel?papel=aprovadora");
+  await abrir(page, "/dev/admin-panel?papel=aprovadora");
   const secao = secaoDaPaleta(page);
   await expect(secao.locator("[data-adicionar-cor]")).toHaveCount(0);
   await expect(secao.locator("[data-editar-cor]")).toHaveCount(0);
@@ -89,7 +108,7 @@ test("adicionar uma cor manda os campos e ela entra como rascunho", async ({ pag
     });
   });
 
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   await secao.locator("[data-adicionar-cor]").click();
   const formulario = secao.locator("[data-formulario-da-cor]");
@@ -112,7 +131,7 @@ test("a recusa do servidor aparece e o formulário continua aberto", async ({ pa
     await rota.fulfill({ status: 400, json: { message: "O HEX tem seis dígitos, como #CC092F." } });
   });
 
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   await secao.locator("[data-editar-cor]").first().click();
   const formulario = secao.locator("[data-formulario-da-cor]");
@@ -142,7 +161,7 @@ test("sugerir pela IA manda as páginas, e as cores entram como rascunho marcada
     });
   });
 
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   const sugestao = secao.locator("[data-sugestao-da-paleta]");
   await sugestao.getByLabel("Páginas da paleta (opcional)").fill("12, 13");
@@ -165,7 +184,7 @@ test("sugestão recusada diz o que fazer, e nada muda na ficha", async ({ page }
     status: 409,
     json: { error: "paginas_sem_imagem", message: "As páginas 21, 22 ainda não foram preparadas. No manual, use antes \"Preparar o manual para o Vini\"." },
   }));
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   await secao.locator("[data-sugerir-cores]").click();
   await expect(secao.getByRole("status")).toContainText("ainda não foram preparadas");
@@ -175,7 +194,7 @@ test("sugestão recusada diz o que fazer, e nada muda na ficha", async ({ page }
 
 test("sem rede, a ficha avisa e os botões voltam", async ({ page }) => {
   await page.route("**/api/admin/paleta/sugerir**", (rota) => rota.abort("internetdisconnected"));
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   await secao.locator("[data-sugerir-cores]").click();
   await expect(secao.getByRole("status")).toHaveText("Sem conexão: nada foi guardado.");
@@ -183,7 +202,7 @@ test("sem rede, a ficha avisa e os botões voltam", async ({ page }) => {
 });
 
 test("quem só aprova não vê a sugestão", async ({ page }) => {
-  await page.goto("/dev/admin-panel?papel=aprovadora");
+  await abrir(page, "/dev/admin-panel?papel=aprovadora");
   await expect(secaoDaPaleta(page).locator("[data-sugestao-da-paleta]")).toHaveCount(0);
 });
 
@@ -193,7 +212,7 @@ test("resposta cortada pelo teto da IA é dita como cortada, não como 'sem pale
   await page.route("**/api/admin/paleta/sugerir**", (rota) => rota.fulfill({
     status: 200, json: { cores: [], lidas: 0, repetidas: 0, paginas: [21, 22], semImagem: [], cortada: true },
   }));
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   await secao.locator("[data-sugerir-cores]").click();
   await expect(secao.getByRole("status")).toHaveText("A resposta da IA foi cortada antes de qualquer cor.");
@@ -202,7 +221,7 @@ test("resposta cortada pelo teto da IA é dita como cortada, não como 'sem pale
 // ─── A conferência contra o texto do manual (27/09/2026, opção A) ──────────
 
 test("cada cor diz se os códigos estão escritos no manual, e onde conferir", async ({ page }) => {
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   await expect(secao.locator('[data-cor-da-paleta="c0000000-0000-4000-8000-000000000001"] [data-conferencia]'))
     .toHaveText("✓ Conferida: todos os códigos estão escritos na p. 12");
@@ -223,7 +242,7 @@ test("'Aprovar as conferidas' manda só os rascunhos conferidos — um clique, d
       status: "ready", aprovadoEm: "2026-09-27T13:00:00.000Z", origem: "ia",
     }] } });
   });
-  await page.goto("/dev/admin-panel");
+  await abrir(page, "/dev/admin-panel");
   const secao = secaoDaPaleta(page);
   const botao = secao.locator("[data-aprovar-conferidas]");
   await expect(botao).toHaveText("Aprovar as conferidas (1)");
@@ -239,7 +258,7 @@ test("'Aprovar as conferidas' manda só os rascunhos conferidos — um clique, d
 });
 
 test("quem edita e não aprova vê o selo, mas não o botão de aprovar", async ({ page }) => {
-  await page.goto("/dev/admin-panel?papel=editora");
+  await abrir(page, "/dev/admin-panel?papel=editora");
   const secao = secaoDaPaleta(page);
   await expect(secao.locator("[data-conferencia]").first()).toBeVisible();
   await expect(secao.locator("[data-aprovar-conferidas]")).toHaveCount(0);
