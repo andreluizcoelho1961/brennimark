@@ -19,3 +19,24 @@ for (const ferramenta of ["kit", "cores", "grids"]) {
     await expect(convite.getByRole("link", { name: "Ver os planos" })).toHaveAttribute("href", "/assinar");
   });
 }
+
+test("o capítulo tem quatro cartões do mesmo tamanho, e o primeiro é o Fonts", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/", { waitUntil: "commit" });
+  const cartoes = page.locator("#ferramentas .ferr");
+  await expect(cartoes).toHaveCount(4);
+  await expect(cartoes.first().getByRole("heading", { level: 3 })).toHaveText("Fonts");
+  await expect(cartoes.first()).toHaveClass(/ferr--destaque/);
+  await expect(cartoes.first().getByRole("link", { name: /Pedir convite/ })).toHaveAttribute("href", "/fonts");
+  const alturas = await cartoes.evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().height)));
+  expect(new Set(alturas).size, "os quatro cartões têm a mesma altura").toBe(1);
+});
+
+test("no /fonts, o botão de pedir acesso aparece na primeira tela", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto("/fonts", { waitUntil: "commit" });
+  const botao = page.getByRole("link", { name: /Pedir acesso ao beta/ });
+  await expect(botao).toBeVisible();
+  const caixa = await botao.boundingBox();
+  expect(caixa!.y + caixa!.height, "o botão inteiro cabe em 720 px de altura").toBeLessThanOrEqual(720);
+});

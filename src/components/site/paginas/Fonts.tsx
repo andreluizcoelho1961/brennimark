@@ -106,8 +106,8 @@ const PERGUNTAS = [
 export function ConteudoFonts() {
   return (
     <>
-      <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
-      <div className="pg-wrap pg-hero">
+      <section className="pg-sec pg-sec--topo"><Losango classe="l1" velocidade={-0.22} />
+      <div className="pg-wrap pg-hero pg-hero--compacto">
       <div>
       <p className="crumb"><a href="#" data-open-menu="m-plat">Plataforma</a> · Brennimark Fonts</p>
       <Titulo como="h1" className="pg-h1" partes={["O gerenciador de fontes feito para quem trabalha com marcas."]} />
