@@ -355,9 +355,18 @@ export function CapitulosDaHome() {
           <Losango classe="l1" velocidade={-0.3} />
           <div className="wrap">
             <p className="eyebrow">Ferramentas</p>
-            <Titulo className="title rise" partes={["Três ferramentas ", { em: "de graça" }, ". Sem cadastro."]} />
-            <p className="intro">Para quem desdobra marcas todo dia. Use à vontade. Quando a marca do cliente estiver na plataforma, as mesmas ferramentas passam a trabalhar com ela.</p>
+            <Titulo className="title rise" partes={["Quatro ferramentas, ", { em: "três de graça" }, "."]} />
+            <p className="intro">Para quem desdobra marcas todo dia. Kit, Cores e Grids são gratuitos, sem cadastro; o Fonts abre para os 50 primeiros. Quando a marca do cliente estiver na plataforma, as ferramentas passam a trabalhar com ela.</p>
             <div className="ferr-grid">
+              <article className="ferr ferr--destaque">
+                <h3>Fonts</h3>
+                <p className="ferr-what">O app que ativa as fontes de cada marca no seu computador, e desativa quando o trabalho acaba.</p>
+                <dl className="ferr-tier">
+                  <div><dt>50 primeiros</dt><dd>90 dias de graça, por convite. Vagas limitadas.</dd></div>
+                  <div><dt className="sub">Assinante</dt><dd>Vem incluso na assinatura, com as fontes ligadas à marca.</dd></div>
+                </dl>
+                <Link className="btn" href="/fonts">Pedir convite <span className="arrow" aria-hidden="true">→</span></Link>
+              </article>
               <article className="ferr">
                 <h3>Kit</h3>
                 <p className="ferr-what">Um logo entra. Saem todos os tamanhos de perfil, capa e favicon, nas medidas oficiais de cada rede.</p>
@@ -385,14 +394,6 @@ export function CapitulosDaHome() {
                 </dl>
                 <Link className="btn btn--ghost" href="/ferramentas/grids">Usar o Grids <span className="arrow" aria-hidden="true">→</span></Link>
               </article>
-            </div>
-            <div className="ferr-fonts">
-              <p className="ferr-fonts-n" aria-hidden="true">50<span>primeiros</span></p>
-              <div>
-                <h3>Fonts: os 50 primeiros usam 90 dias, de graça.</h3>
-                <p>O app que ativa as fontes de cada marca. Beta por convite, com vagas limitadas. Depois, vem incluso na assinatura.</p>
-              </div>
-              <Link className="btn" href="/fonts">Pedir convite <span className="arrow" aria-hidden="true">→</span></Link>
             </div>
             <p className="plans-note">As versões de assinante moram dentro da plataforma, ligadas ao manual de cada marca.</p>
           </div>
