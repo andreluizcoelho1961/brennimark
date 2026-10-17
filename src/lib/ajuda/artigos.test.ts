@@ -38,9 +38,9 @@ test("os artigos das ferramentas têm as duas visões, e elas diferem", () => {
   }
 });
 
-test("o texto não promete o que o produto recusa", () => {
+// O codinome legado já é barrado em todo o repositório por `src/platform/codinome.test.ts`.
+test("o artigo não leva marca de rascunho esquecida", () => {
   for (const a of listarArtigos()) {
-    assert.doesNotMatch(a.corpo, /Brandville/i, `${a.slug}: codinome legado`);
     assert.doesNotMatch(a.corpo, /⚠️/, `${a.slug}: marca de rascunho esquecida`);
   }
 });
