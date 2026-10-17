@@ -77,7 +77,7 @@ test("a home abre no primeiro capítulo, com o título inteiro visível", async 
   // A animação termina com cada palavra no lugar; um título preso no ponto de
   // partida é texto invisível para quem visita.
   await expect(titulo).toHaveClass(/\bin\b/);
-  await expect(page.locator("#chap-n")).toHaveText("01 / 14");
+  await expect(page.locator("#chap-n")).toHaveText("01 / 15");
   await expect(page.locator("#chap-t")).toHaveText("Início");
   expect(erros).toEqual([]);
 });
