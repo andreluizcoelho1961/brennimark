@@ -105,6 +105,10 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/ferramentas/grids"), true);
   assert.equal(caminhoPublico("/ferramentas/gridsx"), false);
   assert.equal(caminhoPublico("/ferramentas/grids/qualquer"), false);
+  // O cadastro gratuito (17/10/2026): só o caminho exato.
+  assert.equal(caminhoPublico("/api/cadastro"), true);
+  assert.equal(caminhoPublico("/api/cadastros"), false);
+  assert.equal(caminhoPublico("/api/cadastro/qualquer"), false);
 });
 
 test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () => {

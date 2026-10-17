@@ -62,13 +62,18 @@
  * `generateStaticParams` conhece (`dynamicParams = false`), então o prefixo
  * não abre nada além deles. `/ajudax` não casa.
  *
+ * O CADASTRO GRATUITO entrou em 17/10/2026: `/api/cadastro`, pelo caminho
+ * exato. Quem baixa de uma ferramenta do site não tem conta. A rota não dá
+ * acesso a nada: só grava uma linha numa tabela fechada a qualquer sessão, com
+ * a chave de serviço, e responde igual exista o e-mail ou não.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/api/cadastro"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
