@@ -19,7 +19,7 @@ export default function PaginaDoGrids() {
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Brennimark Grids</p>
         <h1 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-tight">O grid pronto para o InDesign, nos formatos mais usados</h1>
         <p className="mt-2 max-w-[46rem] text-[15px] leading-relaxed text-platform-text-muted">
-          Manuscrito, colunas, modular ou hierárquico. Margens, medianiz, linha de base, sangria e área segura das plataformas, num documento que abre pronto para diagramar. Gratuito, e nada sai do seu computador.
+          Manuscrito, colunas, modular ou hierárquico. Margens, medianiz, linha de base, sangria e área segura das plataformas, num documento que abre pronto para diagramar. Gratuito, com um cadastro rápido na hora de baixar. Nada sai do seu computador.
         </p>
       </div>
       <Grids />

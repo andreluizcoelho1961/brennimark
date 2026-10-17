@@ -19,7 +19,7 @@ export default function PaginaDoCores() {
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Brennimark Cores</p>
         <h1 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-tight">Que cor é essa?</h1>
         <p className="mt-2 max-w-[44rem] text-[15px] leading-relaxed text-platform-text-muted">
-          Pegue uma cor de qualquer lugar da tela e saiba os códigos, um nome em português, se dá para ler texto sobre ela e como ela aparece para quem não enxerga certas cores. Gratuito, e nada sai do seu computador.
+          Pegue uma cor de qualquer lugar da tela e saiba os códigos, um nome em português, se dá para ler texto sobre ela e como ela aparece para quem não enxerga certas cores. Gratuito, com um cadastro rápido na hora de exportar. Nada sai do seu computador.
         </p>
       </div>
       <Cores />

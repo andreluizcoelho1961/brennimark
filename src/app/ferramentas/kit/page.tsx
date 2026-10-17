@@ -19,7 +19,7 @@ export default function PaginaDoKit() {
         <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Brennimark Kit</p>
         <h1 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-tight">Todos os tamanhos do seu logo, num clique</h1>
         <p className="mt-2 max-w-[44rem] text-[15px] leading-relaxed text-platform-text-muted">
-          Ícones do site, perfis e capas das redes, assinatura de e-mail, endomarketing e arquivos de apresentação. Gratuito, e o seu arquivo não sai do seu computador.
+          Ícones do site, perfis e capas das redes, assinatura de e-mail, endomarketing e arquivos de apresentação. Gratuito, com um cadastro rápido na hora de baixar. O seu arquivo não sai do seu computador.
         </p>
       </div>
       <KitAvulso />

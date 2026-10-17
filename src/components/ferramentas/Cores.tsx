@@ -8,6 +8,7 @@ import {
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
+import { useCadastroParaBaixar } from "./CadastroParaBaixar";
 
 /** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
 const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
@@ -52,6 +53,7 @@ function lerHistorico(): string[] {
 }
 
 export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
+  const { pedir, dialogo } = useCadastroParaBaixar("cores", { ativo: !marca });
   const [cor, setCor] = useState("#FF4103");
   const [codigo, setCodigo] = useState("");
   const [erroDoCodigo, setErroDoCodigo] = useState("");
@@ -177,6 +179,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
 
   return (
     <div data-cores className="flex flex-col gap-6 p-6">
+      {dialogo}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* ─── 1. A cor da vez ───────────────────────────────────────────── */}
         <section className={CAIXA} aria-labelledby="titulo-cor">
@@ -357,12 +360,12 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             Levar {marca && marca.paleta.some((c) => c.status === "ready") ? "a paleta aprovada da marca" : "as cores pegas"}:
           </span>
           <Exportar rotulo="ASE (Adobe)" dado="ase" desligado={paraExportar.length === 0}
-            aoClicar={() => salvarArquivo(new Blob([paletaEmAse(paraExportar) as BlobPart], { type: "application/octet-stream" }), `${baseDoArquivo}.ase`)} />
+            aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmAse(paraExportar) as BlobPart], { type: "application/octet-stream" }), `${baseDoArquivo}.ase`))} />
           <Exportar rotulo="CSS" dado="css" desligado={paraExportar.length === 0}
-            aoClicar={() => salvarArquivo(new Blob([paletaEmCss(paraExportar)], { type: "text/css" }), `${baseDoArquivo}.css`)} />
+            aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmCss(paraExportar)], { type: "text/css" }), `${baseDoArquivo}.css`))} />
           <Exportar rotulo="JSON" dado="json" desligado={paraExportar.length === 0}
-            aoClicar={() => salvarArquivo(new Blob([paletaEmJson(paraExportar)], { type: "application/json" }), `${baseDoArquivo}.json`)} />
-          <Exportar rotulo="PNG" dado="png" desligado={paraExportar.length === 0} aoClicar={() => baixarPng(paraExportar, baseDoArquivo)} />
+            aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmJson(paraExportar)], { type: "application/json" }), `${baseDoArquivo}.json`))} />
+          <Exportar rotulo="PNG" dado="png" desligado={paraExportar.length === 0} aoClicar={() => pedir(() => baixarPng(paraExportar, baseDoArquivo))} />
           <Copiar rotulo="Copiar lista" texto={paletaEmTexto(paraExportar)} desligado={paraExportar.length === 0} />
         </div>
       </section>

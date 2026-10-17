@@ -48,6 +48,15 @@ export default defineConfig({
 
   use: {
     baseURL: `http://localhost:${PORTA}`,
+    /*
+     * Quem já se cadastrou (cookie `bm_cadastro`): as ferramentas gratuitas
+     * pedem o cadastro na primeira vez que a pessoa baixa, e os testes de
+     * download não são sobre isso. `cadastro-ao-baixar.spec.ts` começa do zero.
+     */
+    storageState: {
+      cookies: [{ name: "bm_cadastro", value: "1", domain: "localhost", path: "/", expires: -1, httpOnly: false, secure: false, sameSite: "Lax" }],
+      origins: [],
+    },
     // Guardar só o que ajuda a entender uma falha. Execução verde não deixa
     // rastro: artefato de teste que passou é lixo que ninguém abre.
     trace: "retain-on-failure",
