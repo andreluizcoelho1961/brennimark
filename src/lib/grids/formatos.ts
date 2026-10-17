@@ -112,6 +112,19 @@ export const GRUPOS: readonly { id: Grupo; nome: string }[] = [
   { id: "apresentacao", nome: "Apresentação" },
 ];
 
+/**
+ * Os formatos da versão GRATUITA (decisão do André, 16/10/2026): 13 dos mais
+ * usados, um recorte de cada grupo. Os outros — A3, cartaz, capas de livro,
+ * Gupy, Glassdoor, Viva Engage, aba Vida, evento, videochamada e os demais
+ * banners — são do assinante. É só vitrine: o assinante usa a lista inteira.
+ */
+export const FORMATOS_GRATIS: ReadonlySet<string> = new Set([
+  "a4", "a5", "cartao-br",
+  "post-4x5", "post-1x1", "stories", "linkedin-carrossel", "linkedin-capa", "link", "youtube-banner",
+  "iab-300x250", "email-cabecalho",
+  "slide-16x9",
+]);
+
 export function formatoPorId(id: string): Formato {
   return FORMATOS.find((f) => f.id === id) ?? FORMATOS[0];
 }
