@@ -380,7 +380,7 @@ export function CapitulosDaHome() {
                 <h3>Grids</h3>
                 <p className="ferr-what">O grid pronto para o InDesign, em IDML, nos formatos que você mais usa.</p>
                 <dl className="ferr-tier">
-                  <div><dt>Grátis</dt><dd>Os formatos mais usados, com os quatro tipos de grid.</dd></div>
+                  <div><dt>Grátis</dt><dd>13 formatos, com os quatro tipos de grid.</dd></div>
                   <div><dt className="sub">Assinante</dt><dd>Todos os formatos, com logo, cores e estilos da marca.</dd></div>
                 </dl>
                 <Link className="btn btn--ghost" href="/ferramentas/grids">Usar o Grids <span className="arrow" aria-hidden="true">→</span></Link>

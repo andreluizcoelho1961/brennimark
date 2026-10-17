@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cores } from "@/components/ferramentas/Cores";
+import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
 
 export const metadata: Metadata = {
   title: "Brennimark Cores — que cor é essa?",
@@ -22,6 +23,10 @@ export default function PaginaDoCores() {
         </p>
       </div>
       <Cores />
+      <ConviteDaFerramenta
+        titulo="Com a marca do cliente, o Cores responde se aquela é a cor da marca."
+        itens={["Compara com a paleta aprovada no manual", "Diz qual cor da marca é a mais próxima", "Guarda os códigos oficiais, com a página do manual"]}
+      />
     </>
   );
 }

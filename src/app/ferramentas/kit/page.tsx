@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { KitAvulso } from "@/components/ferramentas/KitAvulso";
+import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
 
 export const metadata: Metadata = {
   title: "Brennimark Kit — todos os tamanhos do seu logo",
@@ -22,6 +23,10 @@ export default function PaginaDoKit() {
         </p>
       </div>
       <KitAvulso />
+      <ConviteDaFerramenta
+        titulo="Com a marca do cliente na plataforma, o Kit já sabe o que pode e o que não pode."
+        itens={["Usa o logo e as regras de proteção aprovados no manual", "Pega o arquivo certo nos Materiais, sem caçar em pasta", "Mostra a regra no momento de baixar"]}
+      />
     </>
   );
 }
