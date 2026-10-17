@@ -1,17 +1,21 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * As ferramentas gratuitas no rodapé do site (10/10/2026): o da página inicial
- * e o das páginas internas levam ao Kit, ao Cores e ao Grids.
+ * As ferramentas gratuitas no site (17/10/2026): a entrada no menu do topo e o
+ * convite à assinatura no fim de cada ferramenta.
  */
-for (const pagina of ["/", "/termos"]) {
-  test(`o rodapé de ${pagina} leva ao Kit, ao Cores e ao Grids`, async ({ page }) => {
-    // `commit`, não `load`: sob a suíte inteira, a home leva mais de 30 s para
-    // terminar de chegar no servidor de desenvolvimento (ver `abrir`, em site.spec).
-    await page.goto(pagina, { waitUntil: "commit" });
-    const ferramentas = page.locator("[data-ferramentas-gratuitas]");
-    await expect(ferramentas.getByRole("link", { name: "Kit: todos os tamanhos do logo" })).toHaveAttribute("href", "/ferramentas/kit");
-    await expect(ferramentas.getByRole("link", { name: "Cores: que cor é essa?" })).toHaveAttribute("href", "/ferramentas/cores");
-    await expect(ferramentas.getByRole("link", { name: "Grids: o grid pronto para o InDesign" })).toHaveAttribute("href", "/ferramentas/grids");
+test("o menu do topo leva ao capítulo das ferramentas", async ({ page }) => {
+  await page.goto("/", { waitUntil: "commit" });
+  const link = page.locator(".site-nav").getByRole("link", { name: "Ferramentas" });
+  await expect(link).toHaveAttribute("href", "/#ferramentas");
+  await expect(page.locator("#ferramentas")).toBeAttached();
+});
+
+for (const ferramenta of ["kit", "cores", "grids"]) {
+  test(`o ${ferramenta} termina com o convite à assinatura`, async ({ page }) => {
+    await page.goto(`/ferramentas/${ferramenta}`, { waitUntil: "commit" });
+    const convite = page.locator("[data-convite-assinatura]");
+    await expect(convite).toBeAttached();
+    await expect(convite.getByRole("link", { name: "Ver os planos" })).toHaveAttribute("href", "/assinar");
   });
 }
