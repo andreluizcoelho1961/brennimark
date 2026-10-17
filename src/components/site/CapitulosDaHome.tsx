@@ -356,7 +356,7 @@ export function CapitulosDaHome() {
           <div className="wrap">
             <p className="eyebrow">Ferramentas</p>
             <Titulo className="title rise" partes={["Quatro ferramentas, ", { em: "três de graça" }, "."]} />
-            <p className="intro">Para quem desdobra marcas todo dia. Kit, Cores e Grids são gratuitos, sem cadastro; o Fonts abre para os 50 primeiros. Quando a marca do cliente estiver na plataforma, as ferramentas passam a trabalhar com ela.</p>
+            <p className="intro">Para quem desdobra marcas todo dia. Kit, Cores e Grids são gratuitos: você usa à vontade e se cadastra só na hora de baixar. O Fonts abre para os 50 primeiros. Quando a marca do cliente estiver na plataforma, as ferramentas passam a trabalhar com ela.</p>
             <div className="ferr-grid">
               <article className="ferr ferr--destaque">
                 <h3>Fonts</h3>
