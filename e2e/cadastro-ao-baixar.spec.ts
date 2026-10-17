@@ -70,6 +70,20 @@ test("recusa de campo mostra a mensagem e não solta o arquivo", async ({ page }
   expect(baixou).toBe(false);
 });
 
+test("limite de pedidos (429) diz para esperar e não solta o arquivo", async ({ page }) => {
+  await page.route("**/api/cadastro", (r) => r.fulfill({ status: 429, contentType: "text/html", body: "<html>Too Many Requests</html>" }));
+  await abrir(page);
+  let baixou = false;
+  page.on("download", () => { baixou = true; });
+  await page.locator("[data-grids-baixar-idml]").click();
+  await preencher(page);
+  await page.locator("[data-cadastro-enviar]").click();
+  await expect(page.locator("[data-cadastro-erro]")).toContainText("Muitos pedidos");
+  await expect(page.locator("[data-cadastro-enviar]")).toBeEnabled();
+  await page.waitForTimeout(500);
+  expect(baixou).toBe(false);
+});
+
 test("falha do servidor NÃO trava o download", async ({ page }) => {
   await page.route("**/api/cadastro", (r) => r.fulfill({ status: 503, json: { message: "indisponível" } }));
   await abrir(page);
