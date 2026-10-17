@@ -12,6 +12,8 @@ test("a página do Fonts avisa do beta e do instalador sem assinatura", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText("gerenciador de fontes");
   await expect(page.getByText("Beta fechado, gratuito, por convite")).toBeVisible();
   await expect(page.getByText("90 dias").first()).toBeVisible();
+  await expect(page.locator(".fx-beta")).toContainText("só os 50 primeiros");
+  await expect(page.getByText("E se as 50 vagas acabarem?")).toBeAttached();
   await expect(page.getByText("Executar assim mesmo")).toBeAttached();
   await expect(page.getByText("Abrir mesmo assim")).toBeAttached();
   await expect(page.getByText("lançamento oficial", { exact: false }).first()).toBeAttached();
