@@ -872,6 +872,7 @@ body:has(.bm-site.mnav-open){overflow:hidden}
 /* ---------- página do Brennimark Fonts (/fonts), 16/10/2026 ---------- */
 .bm-site .fx-beta{margin:20px 0 0;font:500 12px var(--mono);letter-spacing:.06em;color:var(--muted)}
 .bm-site .fx-beta b{color:var(--brasa);font-weight:600}
+.bm-site .fx-pedido{margin:0;padding:12px 16px;border:1px solid var(--brasa);border-radius:4px;font-size:14px;line-height:1.5;max-width:340px}
 /* O topo do /fonts cabe numa tela com o botão à vista (17/10/2026): título menor, menos ar em cima. */
 @media (min-width:768px){
   .bm-site .pg-sec--topo{padding-top:40px;padding-bottom:56px}

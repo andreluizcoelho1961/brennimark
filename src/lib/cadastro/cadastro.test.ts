@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COMO_CONHECEU, EQUIPES, MARCAS, VERSAO_DO_ACEITE, validarCadastro } from "./cadastro";
+import { BIBLIOTECAS, COMO_CONHECEU, EQUIPES, MARCAS, SISTEMAS, VERSAO_DO_ACEITE, comMarcaDoConvite, validarCadastro } from "./cadastro";
 
 const valido = { email: "Ana@Agencia.test ", nome: "  Ana   Souza ", origem: "kit" };
 
@@ -61,4 +61,28 @@ test("as respostas válidas passam, e chaves desconhecidas são descartadas", ()
 
 test("a versão do aceite tem o formato que o banco exige", () => {
   assert.match(VERSAO_DO_ACEITE, /^\d{4}-\d{2}-\d{2}$/);
+});
+
+test("o pedido do Fonts traz o sistema e a biblioteca, e valor fora da lista é recusado", () => {
+  const ok = validarCadastro({ ...valido, origem: "fonts", respostas: { sistema: SISTEMAS[0].id, biblioteca: BIBLIOTECAS[1].id } });
+  assert.equal(ok.ok, true);
+  if (ok.ok) assert.deepEqual(ok.dados.respostas, { sistema: "mac-apple", biblioteca: "500-5000" });
+  const r = validarCadastro({ ...valido, origem: "fonts", respostas: { sistema: "linux" } });
+  assert.equal(r.ok ? "ok" : r.campo, "sistema");
+});
+
+test("só o servidor marca o convite do Fonts, e só quando a origem é o Fonts", () => {
+  const agora = new Date("2026-10-18T12:00:00.000Z");
+  const dados = (origem: string) => { const r = validarCadastro({ ...valido, origem }); assert.ok(r.ok); return r.ok ? r.dados : (null as never); };
+
+  const fonts = comMarcaDoConvite(dados("fonts"), agora);
+  assert.equal(fonts.respostas.fontsBeta, "pedido");
+  assert.equal(fonts.respostas.fontsBetaEm, "2026-10-18T12:00:00.000Z");
+
+  for (const origem of ["kit", "cores", "grids"]) {
+    assert.equal(comMarcaDoConvite(dados(origem), agora).respostas.fontsBeta, undefined, `${origem} não pede convite`);
+  }
+  // O navegador não consegue forjar a marca: chaves desconhecidas já caem na validação.
+  const forjado = validarCadastro({ ...valido, origem: "kit", respostas: { fontsBeta: "pedido" } });
+  assert.ok(forjado.ok && forjado.dados.respostas.fontsBeta === undefined);
 });

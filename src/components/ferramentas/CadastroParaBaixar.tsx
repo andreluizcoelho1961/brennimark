@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import {
-  CARGOS, COMO_CONHECEU, COOKIE_DO_CADASTRO, EQUIPES, MARCAS, TEXTO_DO_ACEITE, type Origem,
+  BIBLIOTECAS, CARGOS, COMO_CONHECEU, COOKIE_DO_CADASTRO, EQUIPES, MARCAS, SISTEMAS, TEXTO_DO_ACEITE, type Origem,
 } from "@/lib/cadastro/cadastro";
+import { EMPRESA } from "@/lib/site/empresa";
 
 /**
  * O cadastro na hora de baixar (17/10/2026), nas ferramentas gratuitas.
@@ -77,7 +79,14 @@ function Seletor({ id, rotulo, valor, aoMudar, opcoes }: { id: string; rotulo: s
   );
 }
 
-function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem; aoConcluir: () => void; aoFechar: () => void }) {
+/**
+ * `baixar` (as ferramentas): falha do servidor NÃO trava o download.
+ * `convite` (o beta do Fonts): o contrário. Ali o cadastro É o pedido, e dizer
+ * "recebemos" sem ter gravado deixaria a pessoa esperando um convite que nunca
+ * entrou na fila — então a falha mostra o erro, mantém o formulário e oferece o
+ * e-mail como caminho.
+ */
+export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, aoFechar }: { origem: Origem; variante?: "baixar" | "convite"; aoConcluir: () => void; aoFechar: () => void }) {
   const dialogo = useRef<HTMLDialogElement>(null);
   const base = useId();
   const [nome, setNome] = useState("");
@@ -87,6 +96,8 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
   const [equipe, setEquipe] = useState("");
   const [marcas, setMarcas] = useState("");
   const [comoConheceu, setComoConheceu] = useState("");
+  const [sistema, setSistema] = useState("");
+  const [biblioteca, setBiblioteca] = useState("");
   const [aceite, setAceite] = useState(false);
   const [website, setWebsite] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -107,7 +118,7 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email, nome, agencia, cargo, origem, aceiteMarketing: aceite, website,
-          respostas: { equipe, marcas, comoConheceu },
+          respostas: { equipe, marcas, comoConheceu, ...(variante === "convite" ? { sistema, biblioteca } : {}) },
         }),
       });
       // 429: o limite de pedidos por IP (regra do Firewall da Vercel). O corpo não
@@ -123,14 +134,23 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
         setEnviando(false);
         return;
       }
-      // Sucesso, ou falha nossa: nos dois casos a pessoa leva o arquivo.
-      aoConcluir();
+      if (r.ok || variante === "baixar") { aoConcluir(); return; }
+      falhaDoConvite();
     } catch {
-      aoConcluir();
+      if (variante === "baixar") { aoConcluir(); return; }
+      falhaDoConvite();
     }
   }
 
-  return (
+  function falhaDoConvite() {
+    setErro(`Não foi possível enviar o pedido agora. Tente de novo em instantes, ou escreva para ${EMPRESA.email}.`);
+    setEnviando(false);
+  }
+
+  // No <body>, fora de qualquer moldura: o site tem regras próprias para <dialog>
+  // (`.bm-site dialog`), e dentro dele esta janela perderia a largura e as cores.
+  // O formulário só existe depois de um clique, então `document` já está lá.
+  return createPortal(
     <dialog
       ref={dialogo}
       data-cadastro
@@ -140,9 +160,13 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
     >
       <form onSubmit={enviar} className="flex flex-col gap-4 p-6">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Quase lá</p>
-          <h2 id={`${base}-t`} className="mt-1 text-xl font-semibold tracking-tight">Para baixar, um cadastro rápido</h2>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-platform-text-muted">Só uma vez. A ferramenta continua gratuita, e o seu arquivo não sai do seu computador.</p>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">{variante === "convite" ? "Beta do Brennimark Fonts" : "Quase lá"}</p>
+          <h2 id={`${base}-t`} className="mt-1 text-xl font-semibold tracking-tight">{variante === "convite" ? "Pedir acesso ao beta" : "Para baixar, um cadastro rápido"}</h2>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-platform-text-muted">
+            {variante === "convite"
+              ? "São 50 vagas, por convite, com 90 dias de uso gratuito. Vamos avaliar o seu pedido e escrever para você com o instalador."
+              : "Só uma vez. A ferramenta continua gratuita, e o seu arquivo não sai do seu computador."}
+          </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -161,6 +185,12 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
           <Seletor id={`${base}-cargo`} rotulo="Cargo" valor={cargo} aoMudar={setCargo} opcoes={CARGOS} />
           <Seletor id={`${base}-equipe`} rotulo="Tamanho da equipe" valor={equipe} aoMudar={setEquipe} opcoes={EQUIPES} />
           <Seletor id={`${base}-marcas`} rotulo="Marcas que você cuida" valor={marcas} aoMudar={setMarcas} opcoes={MARCAS} />
+          {variante === "convite" && (
+            <>
+              <Seletor id={`${base}-sistema`} rotulo="Computador" valor={sistema} aoMudar={setSistema} opcoes={SISTEMAS} />
+              <Seletor id={`${base}-biblioteca`} rotulo="Tamanho da biblioteca de fontes" valor={biblioteca} aoMudar={setBiblioteca} opcoes={BIBLIOTECAS} />
+            </>
+          )}
           <div className="sm:col-span-2">
             <Seletor id={`${base}-conheceu`} rotulo="Como conheceu o Brennimark" valor={comoConheceu} aoMudar={setComoConheceu} opcoes={COMO_CONHECEU} />
           </div>
@@ -181,10 +211,11 @@ function FormularioDeCadastro({ origem, aoConcluir, aoFechar }: { origem: Origem
         <div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" data-cadastro-fechar onClick={aoFechar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">Agora não</button>
           <button type="submit" data-cadastro-enviar disabled={enviando} className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
-            {enviando ? "Enviando…" : "Cadastrar e baixar"}
+            {enviando ? "Enviando…" : variante === "convite" ? "Enviar o pedido" : "Cadastrar e baixar"}
           </button>
         </div>
       </form>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }

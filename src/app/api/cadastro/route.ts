@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { COOKIE_DO_CADASTRO, VERSAO_DO_ACEITE, validarCadastro } from "@/lib/cadastro/cadastro";
+import { COOKIE_DO_CADASTRO, VERSAO_DO_ACEITE, comMarcaDoConvite, validarCadastro } from "@/lib/cadastro/cadastro";
 
 /**
  * O cadastro gratuito (17/10/2026): quem baixa ou exporta de uma ferramenta do
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const v = validarCadastro(corpo);
   if (!v.ok) return NextResponse.json({ message: v.mensagem, campo: v.campo }, { status: 400 });
-  const d = v.dados;
+  const d = comMarcaDoConvite(v.dados, new Date());
 
   let servico;
   try { servico = createServiceClient(); } catch {
