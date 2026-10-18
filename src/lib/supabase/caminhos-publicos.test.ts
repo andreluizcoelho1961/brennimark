@@ -115,6 +115,12 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastro/saida"), true);
   assert.equal(caminhoPublico("/api/cadastro/saidax"), false);
   assert.equal(caminhoPublico("/api/cadastro/saida/qualquer"), false);
+  // A confirmação do e-mail (18/10/2026): o mesmo desenho.
+  assert.equal(caminhoPublico("/confirmar/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
+  assert.equal(caminhoPublico("/confirmarx"), false);
+  assert.equal(caminhoPublico("/api/cadastro/confirmar"), true);
+  assert.equal(caminhoPublico("/api/cadastro/confirmarx"), false);
+  assert.equal(caminhoPublico("/api/cadastro/confirmar/qualquer"), false);
 });
 
 test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () => {

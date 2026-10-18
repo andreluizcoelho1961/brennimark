@@ -24,3 +24,10 @@ export function lerPedidoDeSaida(corpo: unknown): { token: string; acao: AcaoDeS
   const a = ACOES_DE_SAIDA.find((x) => x === acao);
   return a ? { token: token.toLowerCase(), acao: a } : null;
 }
+
+/** O clique no botão do e-mail de confirmação: só o token (a ação é uma só). */
+export function lerPedidoDeConfirmacao(corpo: unknown): { token: string } | null {
+  if (!corpo || typeof corpo !== "object") return null;
+  const { token } = corpo as { token?: unknown };
+  return tokenDeSaidaValido(token) ? { token: token.toLowerCase() } : null;
+}

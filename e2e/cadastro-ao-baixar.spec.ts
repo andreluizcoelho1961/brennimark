@@ -50,10 +50,11 @@ test("o primeiro download pede o cadastro, grava a origem e solta o arquivo; o s
   expect(corpos).toHaveLength(1);
 });
 
-test("a caixa de marketing nasce desmarcada", async ({ page }) => {
+test("a caixa de marketing nasce desmarcada e avisa que haverá confirmação por e-mail", async ({ page }) => {
   await abrir(page);
   await page.locator("[data-grids-baixar-idml]").click();
   await expect(page.locator("[data-cadastro-aceite]")).not.toBeChecked();
+  await expect(page.locator("[data-cadastro]")).toContainText("confirme por e-mail");
 });
 
 test("recusa de campo mostra a mensagem e não solta o arquivo", async ({ page }) => {

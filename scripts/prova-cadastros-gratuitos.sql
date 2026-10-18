@@ -192,6 +192,84 @@ begin
     pg_temp.valor_do_servidor(format('select public.apagar_cadastro(%L)', tok)));
   perform pg_temp.registrar('apagada: a linha inteira saiu', '0',
     (select count(*)::text from public.cadastros_gratuitos where email = 'ana@agencia.test'));
+  -- 5. A confirmação por e-mail (double opt-in, 18/10/2026).
+  declare
+    regj text := 'select (public.registrar_cadastro(%L, %L, %L, %L, %L::jsonb, %L, %L, %L))->>%L';
+    tk uuid; tk2 uuid; antes timestamptz;
+  begin
+    -- Sem a caixa de marketing, não há o que confirmar.
+    perform pg_temp.registrar('sem a caixa nao se pede confirmacao', 'false',
+      pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'kit', false, null, 'confirmar')));
+    -- Com a caixa, pede, e devolve o token.
+    perform pg_temp.registrar('com a caixa se pede a confirmacao', 'true',
+      pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'kit', true, '2026-10-18', 'confirmar')));
+    select token_de_saida into tk from public.cadastros_gratuitos where email = 'bia@agencia.test';
+    perform pg_temp.registrar('o envio fica registrado', 'true',
+      (select (confirmacao_enviada_em is not null)::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+    -- O limite de um e-mail por 24 horas: nada de encher a caixa de outra pessoa.
+    perform pg_temp.registrar('de novo dentro de 24 horas NAO pede outra', 'false',
+      pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'grids', true, '2026-10-18', 'confirmar')));
+    perform pg_temp.registrar('e o token nao sai quando nao ha envio', 'true',
+      (pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'grids', true, '2026-10-18', 'token')) is null)::text);
+    update public.cadastros_gratuitos set confirmacao_enviada_em = now() - interval '25 hours' where email = 'bia@agencia.test';
+    perform pg_temp.registrar('passadas 24 horas, pede de novo', 'true',
+      pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'cores', true, '2026-10-18', 'confirmar')));
+
+    -- Quem confirma.
+    perform pg_temp.registrar('token inexistente nao confirma ninguem', 'false',
+      pg_temp.valor_do_servidor('select public.confirmar_cadastro(gen_random_uuid())'));
+    perform pg_temp.registrar('antes do clique, nao esta confirmada', 'true',
+      (select (confirmado_em is null)::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+    perform pg_temp.registrar('o clique confirma', 'true',
+      pg_temp.valor_do_servidor(format('select public.confirmar_cadastro(%L)', tk)));
+    select confirmado_em into antes from public.cadastros_gratuitos where email = 'bia@agencia.test';
+    perform pg_temp.registrar('confirmada: a data fica registrada', 'true', (antes is not null)::text);
+    perform pg_temp.registrar('confirmar de novo e inofensivo e mantem a primeira data', 'true/true',
+      pg_temp.valor_do_servidor(format('select public.confirmar_cadastro(%L)', tk)) || '/'
+      || (select (confirmado_em = antes)::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+    perform pg_temp.registrar('ja confirmada e inscrita: marcar a caixa de novo NAO pede outra', 'false',
+      pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'kit', true, '2026-10-18', 'confirmar')));
+    perform pg_temp.registrar('e a confirmacao continua de pe', 'true',
+      (select (confirmado_em = antes)::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+    perform pg_temp.registrar('confirmada e inscrita: e elegivel ao marketing', '1',
+      (select count(*)::text from public.cadastros_gratuitos where email = 'bia@agencia.test' and aceite_marketing and confirmado_em is not null and descadastrado_em is null));
+
+    -- Quem nao aceitou nao se confirma; so o servidor confirma.
+    perform pg_temp.papel('service_role', format(reg, 'cris@agencia.test', 'Cris', null, null, '{}', 'kit', false, null));
+    select token_de_saida into tk2 from public.cadastros_gratuitos where email = 'cris@agencia.test';
+    perform pg_temp.registrar('quem nao aceitou o marketing nao e confirmada', 'false',
+      pg_temp.valor_do_servidor(format('select public.confirmar_cadastro(%L)', tk2)));
+    perform pg_temp.registrar('e nao e elegivel', '0',
+      (select count(*)::text from public.cadastros_gratuitos where email = 'cris@agencia.test' and aceite_marketing and confirmado_em is not null and descadastrado_em is null));
+    perform pg_temp.registrar('a sessao NAO confirma', '42501', pg_temp.como(a, 'select public.confirmar_cadastro(gen_random_uuid())'));
+    perform pg_temp.registrar('o visitante NAO confirma', '42501', pg_temp.papel('anon', 'select public.confirmar_cadastro(gen_random_uuid())'));
+    perform pg_temp.registrar('confirmacao sem aceite e barrada pela constraint', '23514 cadastros_confirmacao_com_aceite',
+      pg_temp.direto($s$insert into public.cadastros_gratuitos (email, nome, primeira_origem, ultima_origem, confirmado_em) values ('dani@agencia.test', 'Dani', 'kit', 'kit', now())$s$));
+
+    -- Sair zera a confirmacao; voltar exige confirmar de novo.
+    perform pg_temp.registrar('sair acha a pessoa', 'true',
+      pg_temp.valor_do_servidor(format('select public.descadastrar_cadastro(%L)', tk)));
+    perform pg_temp.registrar('sair zera a confirmacao e o aceite', 'true/false',
+      (select (confirmado_em is null)::text || '/' || aceite_marketing::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+    perform pg_temp.registrar('quem saiu nao pode ser confirmada pelo link antigo', 'false',
+      pg_temp.valor_do_servidor(format('select public.confirmar_cadastro(%L)', tk)));
+    perform pg_temp.papel('service_role', format(reg, 'bia@agencia.test', 'Bia', null, null, '{}', 'kit', false, null));
+    perform pg_temp.registrar('voltar sem a caixa continua sem confirmacao', 'true',
+      (select (confirmado_em is null and descadastrado_em is not null)::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+    update public.cadastros_gratuitos set confirmacao_enviada_em = now() - interval '25 hours' where email = 'bia@agencia.test';
+    perform pg_temp.registrar('voltar COM a caixa pede confirmar de novo', 'true',
+      pg_temp.valor_do_servidor(format(regj, 'bia@agencia.test', 'Bia', null, null, '{}', 'kit', true, '2026-10-18', 'confirmar')));
+    perform pg_temp.registrar('e ainda nao e elegivel ate clicar', '0',
+      (select count(*)::text from public.cadastros_gratuitos where email = 'bia@agencia.test' and aceite_marketing and confirmado_em is not null and descadastrado_em is null));
+    perform pg_temp.registrar('clicar de novo confirma', 'true',
+      pg_temp.valor_do_servidor(format('select public.confirmar_cadastro(%L)', tk)));
+    perform pg_temp.registrar('apagar acha a pessoa', 'true',
+      pg_temp.valor_do_servidor(format('select public.apagar_cadastro(%L)', tk)));
+    -- A contagem vem numa consulta SEPARADA: na mesma, ela enxergaria o estado de
+    -- antes da exclusão.
+    perform pg_temp.registrar('e a linha inteira saiu', '0',
+      (select count(*)::text from public.cadastros_gratuitos where email = 'bia@agencia.test'));
+  end;
 end $$;
 
 select ordem, caso, esperado, obtido, case when passou then 'ok' else 'FALHOU' end as resultado from resultado order by ordem;

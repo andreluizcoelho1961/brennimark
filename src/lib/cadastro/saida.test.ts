@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { lerPedidoDeSaida, tokenDeSaidaValido } from "./saida";
+import { lerPedidoDeConfirmacao, lerPedidoDeSaida, tokenDeSaidaValido } from "./saida";
 
 const TOKEN = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
 
@@ -20,5 +20,12 @@ test("o pedido de saída traz o token e uma das duas ações", () => {
 test("pedido torto é recusado, e ação desconhecida não vira apagar", () => {
   for (const ruim of [null, undefined, "x", [], {}, { token: TOKEN }, { acao: "sair" }, { token: TOKEN, acao: "excluir" }, { token: "x", acao: "sair" }]) {
     assert.equal(lerPedidoDeSaida(ruim), null);
+  }
+});
+
+test("o pedido de confirmação traz só o token, e token torto é recusado", () => {
+  assert.deepEqual(lerPedidoDeConfirmacao({ token: TOKEN.toUpperCase() }), { token: TOKEN });
+  for (const ruim of [null, undefined, "x", [], {}, { token: "x" }, { token: `${TOKEN}0` }, { acao: "sair" }]) {
+    assert.equal(lerPedidoDeConfirmacao(ruim), null);
   }
 });

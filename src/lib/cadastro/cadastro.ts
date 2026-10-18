@@ -66,8 +66,8 @@ export const BIBLIOTECAS = [
  * data do aceite: mudou a frase, muda a versão — senão o registro deixa de
  * provar com quais palavras a pessoa concordou.
  */
-export const VERSAO_DO_ACEITE = "2026-10-17";
-export const TEXTO_DO_ACEITE = "Quero receber e-mails do Brennimark com novidades e conteúdo para quem trabalha com marcas. Posso sair a qualquer momento.";
+export const VERSAO_DO_ACEITE = "2026-10-18";
+export const TEXTO_DO_ACEITE = "Quero receber e-mails do Brennimark com novidades e conteúdo para quem trabalha com marcas. Vamos pedir que você confirme por e-mail, e você pode sair a qualquer momento.";
 
 /** O cookie que diz ao navegador que esta pessoa já se cadastrou (não é segredo). */
 export const COOKIE_DO_CADASTRO = "bm_cadastro";
@@ -152,4 +152,21 @@ export function validarCadastro(entrada: unknown): ResultadoDaValidacao {
 export function comMarcaDoConvite(dados: DadosDoCadastro, agora: Date): DadosDoCadastro {
   if (dados.origem !== "fonts") return dados;
   return { ...dados, respostas: { ...dados.respostas, fontsBeta: "pedido", fontsBetaEm: agora.toISOString() } };
+}
+
+/**
+ * O que `registrar_cadastro` devolve (18/10/2026): `{ confirmar, token }`. O
+ * banco decide se é preciso mandar o e-mail de confirmação (caixa marcada, ainda
+ * não confirmou, nenhum envio nas últimas 24 horas) e só entrega o token nesse
+ * caso. Qualquer resposta fora dessa forma vale como "não enviar": errar para o
+ * lado de não mandar e-mail é o lado seguro.
+ */
+export function lerRespostaDoRegistro(data: unknown): { confirmar: true; token: string } | { confirmar: false } {
+  if (data && typeof data === "object") {
+    const { confirmar, token } = data as { confirmar?: unknown; token?: unknown };
+    if (confirmar === true && typeof token === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)) {
+      return { confirmar: true, token: token.toLowerCase() };
+    }
+  }
+  return { confirmar: false };
 }
