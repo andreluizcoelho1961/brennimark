@@ -142,3 +142,21 @@ export function mensagemDePedidoDeExportacao(p: { conta: string; pedidoPor: stri
     html: html(paragrafos, { rotulo: "Abrir o Console", link: p.linkDoConsole }),
   };
 }
+
+/**
+ * A confirmação da inscrição na lista (18/10/2026, double opt-in). É uma
+ * mensagem de serviço, sem nada de propaganda: pede um clique para provar que o
+ * endereço é de quem se inscreveu. Quem não clicar não recebe marketing nenhum.
+ */
+export function mensagemDeConfirmacaoDaLista(p: { link: string; linkDeSair: string }): Mensagem {
+  const paragrafos = [
+    "Você pediu para receber e-mails do Brennimark, com novidades e conteúdo para quem trabalha com marcas.",
+    "Para confirmar que este e-mail é seu, clique no botão abaixo. Sem a confirmação, não enviamos nada.",
+  ];
+  const fim = `Se não foi você, ignore esta mensagem: nada será enviado. Para apagar o seu cadastro, use ${p.linkDeSair}`;
+  return {
+    assunto: "Confirme o seu e-mail no Brennimark",
+    texto: [...paragrafos, "", `Confirmar: ${p.link}`, "", fim].join("\n"),
+    html: html(paragrafos, { rotulo: "Confirmar o meu e-mail", link: p.link }).replace("</body>", `<p style="margin:0;font-size:12px;color:#555">${escaparHtml(fim)}</p></body>`),
+  };
+}

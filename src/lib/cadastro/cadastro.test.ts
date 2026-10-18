@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BIBLIOTECAS, COMO_CONHECEU, EQUIPES, MARCAS, SISTEMAS, VERSAO_DO_ACEITE, comMarcaDoConvite, validarCadastro } from "./cadastro";
+import { BIBLIOTECAS, COMO_CONHECEU, EQUIPES, MARCAS, SISTEMAS, TEXTO_DO_ACEITE, VERSAO_DO_ACEITE, comMarcaDoConvite, lerRespostaDoRegistro, validarCadastro } from "./cadastro";
 
 const valido = { email: "Ana@Agencia.test ", nome: "  Ana   Souza ", origem: "kit" };
 
@@ -85,4 +85,17 @@ test("só o servidor marca o convite do Fonts, e só quando a origem é o Fonts"
   // O navegador não consegue forjar a marca: chaves desconhecidas já caem na validação.
   const forjado = validarCadastro({ ...valido, origem: "kit", respostas: { fontsBeta: "pedido" } });
   assert.ok(forjado.ok && forjado.dados.respostas.fontsBeta === undefined);
+});
+
+test("o texto da caixa avisa da confirmação, e a versão acompanha a data da mudança", () => {
+  assert.match(TEXTO_DO_ACEITE, /confirme por e-mail/);
+  assert.equal(VERSAO_DO_ACEITE, "2026-10-18");
+});
+
+test("só um {confirmar: true, token uuid} manda o e-mail; o resto vale como não enviar", () => {
+  const TOKEN = "3f2504e0-4f89-41d3-9a0c-0305e82c3301";
+  assert.deepEqual(lerRespostaDoRegistro({ confirmar: true, token: TOKEN.toUpperCase() }), { confirmar: true, token: TOKEN });
+  for (const ruim of [null, undefined, "x", 1, {}, { confirmar: false, token: null }, { confirmar: true }, { confirmar: true, token: "x" }, { confirmar: "true", token: TOKEN }, { confirmar: true, token: `${TOKEN}'--` }]) {
+    assert.deepEqual(lerRespostaDoRegistro(ruim), { confirmar: false });
+  }
 });
