@@ -47,6 +47,20 @@ export const COMO_CONHECEU = [
   { id: "outro", rotulo: "Outro" },
 ] as const;
 
+/** O pedido de convite do beta do Fonts: o computador e o tamanho da biblioteca de fontes. */
+export const SISTEMAS = [
+  { id: "mac-apple", rotulo: "Mac com chip Apple" },
+  { id: "mac-intel", rotulo: "Mac com chip Intel" },
+  { id: "windows", rotulo: "Windows" },
+] as const;
+
+export const BIBLIOTECAS = [
+  { id: "ate-500", rotulo: "Até 500 fontes" },
+  { id: "500-5000", rotulo: "De 500 a 5 mil" },
+  { id: "mais-de-5000", rotulo: "Mais de 5 mil" },
+  { id: "nao-sei", rotulo: "Não sei" },
+] as const;
+
 /**
  * O texto da caixa de marketing e a VERSÃO dele. O banco guarda a versão e a
  * data do aceite: mudou a frase, muda a versão — senão o registro deixa de
@@ -75,6 +89,8 @@ const CARGOS_IDS = ids(CARGOS);
 const EQUIPES_IDS = ids(EQUIPES);
 const MARCAS_IDS = ids(MARCAS);
 const CONHECEU_IDS = ids(COMO_CONHECEU);
+const SISTEMAS_IDS = ids(SISTEMAS);
+const BIBLIOTECAS_IDS = ids(BIBLIOTECAS);
 
 function texto(v: unknown, max: number): string | null {
   if (typeof v !== "string") return null;
@@ -116,7 +132,7 @@ export function validarCadastro(entrada: unknown): ResultadoDaValidacao {
 
   const respostas: Record<string, string> = {};
   const r = (c.respostas && typeof c.respostas === "object" ? c.respostas : {}) as Record<string, unknown>;
-  for (const [chave, permitidos] of [["equipe", EQUIPES_IDS], ["marcas", MARCAS_IDS], ["comoConheceu", CONHECEU_IDS]] as const) {
+  for (const [chave, permitidos] of [["equipe", EQUIPES_IDS], ["marcas", MARCAS_IDS], ["comoConheceu", CONHECEU_IDS], ["sistema", SISTEMAS_IDS], ["biblioteca", BIBLIOTECAS_IDS]] as const) {
     const v = r[chave];
     if (v === undefined || v === null || v === "") continue;
     if (typeof v !== "string" || !permitidos.has(v)) return { ok: false, campo: chave, mensagem: "Escolha uma opção da lista." };
@@ -124,4 +140,16 @@ export function validarCadastro(entrada: unknown): ResultadoDaValidacao {
   }
 
   return { ok: true, dados: { email, nome, agencia, cargo, respostas, origem, aceiteMarketing: c.aceiteMarketing === true } };
+}
+
+/**
+ * O pedido de convite do beta do Fonts (17/10/2026) fica marcado nas respostas
+ * da própria linha do cadastro, sem coluna nova: `fontsBeta` diz que pediu, e
+ * `fontsBetaEm` quando. É o que permite contar os 50 primeiros e ver a ordem do
+ * pedido (`select … where respostas ? 'fontsBeta' order by respostas->>'fontsBetaEm'`).
+ * Quem decide a marca é o servidor, nunca o navegador.
+ */
+export function comMarcaDoConvite(dados: DadosDoCadastro, agora: Date): DadosDoCadastro {
+  if (dados.origem !== "fonts") return dados;
+  return { ...dados, respostas: { ...dados.respostas, fontsBeta: "pedido", fontsBetaEm: agora.toISOString() } };
 }
