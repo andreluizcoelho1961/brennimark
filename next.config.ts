@@ -63,6 +63,7 @@ const nextConfig: NextConfig = {
    */
   outputFileTracingIncludes: {
     "/w/[workspaceSlug]/b/[brandKey]/docs/*": ["./src/content/ajuda/**/*"],
+    "/api/ajuda": ["./src/content/ajuda/**/*"],
   },
   images: {
     /*

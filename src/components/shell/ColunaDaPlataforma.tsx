@@ -8,6 +8,7 @@ import { itemAtivo, type GrupoDaColuna } from "./coluna";
 import { IconeDaColunaSvg } from "./IconeDaColuna";
 import { Dica } from "./Dica";
 import { textoDaDica } from "./dicas";
+import { EVENTO_ABRIR_AJUDA } from "@/components/ajuda/AjudaDaMoldura";
 
 /**
  * A coluna da plataforma: faixa de ícones que se EXPANDE ao passar o mouse,
@@ -134,6 +135,18 @@ export function ColunaDaPlataforma({ grupos }: { grupos: GrupoDaColuna[] }) {
             })}
           </div>
         ))}
+        {/* A Ajuda (17/10/2026): no pé da coluna, para todos — quem só consulta
+            também precisa dela. Abre o painel Ajuda; não navega. */}
+        <div data-grupo-da-coluna="ajuda" className="mt-auto flex flex-col gap-[var(--space-shell-1)] px-[var(--space-shell-2)]">
+          <Dica titulo={isEnglish ? "Help" : "Ajuda"} texto={textoDaDica("ajuda", isEnglish) ?? ""}>
+            <button type="button" data-ajuda-abrir
+              onClick={() => { aoSair(); window.dispatchEvent(new Event(EVENTO_ABRIR_AJUDA)); }}
+              className="relative flex min-h-10 items-center gap-[var(--space-shell-3)] rounded-[var(--radius-control)] px-[var(--space-shell-2)] text-[13px] text-platform-text-muted transition-colors hover:bg-platform-panel hover:text-platform-text">
+              <IconeDaColunaSvg icone="ajuda" />
+              <span className={expandida ? "min-w-0 flex-1 truncate text-left" : "sr-only"}>{isEnglish ? "Help" : "Ajuda"}</span>
+            </button>
+          </Dica>
+        </div>
       </nav>
     </div>
   );
@@ -178,6 +191,14 @@ export function ListaDaColuna({ grupos, onNavigate }: { grupos: GrupoDaColuna[];
           })}
         </div>
       ))}
+      <div className="flex flex-col gap-[var(--space-shell-1)]">
+        <button type="button" data-ajuda-abrir
+          onClick={() => { onNavigate?.(); window.dispatchEvent(new Event(EVENTO_ABRIR_AJUDA)); }}
+          className="relative flex min-h-11 items-center gap-[var(--space-shell-3)] rounded-[var(--radius-control)] px-[var(--space-shell-3)] text-[13px] text-platform-text-muted hover:bg-platform-panel hover:text-platform-text">
+          <IconeDaColunaSvg icone="ajuda" />
+          <span className="min-w-0 flex-1 truncate text-left">{isEnglish ? "Help" : "Ajuda"}</span>
+        </button>
+      </div>
     </>
   );
 }

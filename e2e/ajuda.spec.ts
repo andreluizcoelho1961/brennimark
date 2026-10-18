@@ -5,17 +5,26 @@ import { expect, test } from "@playwright/test";
  * A mecânica do Markdown está provada em `src/lib/ajuda/*.test.ts`; aqui, a tela.
  */
 
-test("a /ajuda mostra categorias reais: as com artigo levam a ele, as sem artigo dizem 'em breve'", async ({ page }) => {
+test("a /ajuda mostra categorias reais, todas com artigo, e cada cartão leva a ele", async ({ page }) => {
   await page.goto("/ajuda");
-  await expect(page.getByRole("link", { name: /Primeiros passos/ })).toHaveAttribute("href", "/ajuda/primeiros-passos");
-  await expect(page.getByRole("link", { name: /Materiais da marca/ })).toHaveAttribute("href", "/ajuda/categoria/materiais-da-marca");
-  await expect(page.getByRole("link", { name: /O manual em PDF/ })).toHaveAttribute("href", "/ajuda/manual-em-pdf");
-  await expect(page.getByRole("link", { name: /Pessoas e acesso/ })).toHaveAttribute("href", "/ajuda/pessoas-e-acesso");
-  // Só Vini Max e Assinatura ainda não têm artigo.
-  await expect(page.getByText("Em breve")).toHaveCount(2);
+  const cartoes = page.locator(".related");
+  await expect(cartoes.getByRole("link", { name: /Primeiros passos/ })).toHaveAttribute("href", "/ajuda/primeiros-passos");
+  await expect(cartoes.getByRole("link", { name: /O manual em PDF/ })).toHaveAttribute("href", "/ajuda/categoria/manual-em-pdf");
+  await expect(cartoes.getByRole("link", { name: /Materiais da marca/ })).toHaveAttribute("href", "/ajuda/categoria/materiais-da-marca");
+  await expect(cartoes.getByRole("link", { name: /Vini Max/ })).toHaveAttribute("href", "/ajuda/vini-max");
+  await expect(cartoes.getByRole("link", { name: /Pessoas e acesso/ })).toHaveAttribute("href", "/ajuda/categoria/pessoas-e-acesso");
+  await expect(cartoes.getByRole("link", { name: /Assinatura/ }).first()).toHaveAttribute("href", "/ajuda/assinatura");
+  await expect(page.getByText("Em breve")).toHaveCount(0);
   // O contador deixou de ser inventado.
   await expect(page.getByText("14 artigos")).toHaveCount(0);
-  await expect(page.getByText("3 artigos")).toBeVisible();
+  await expect(page.getByText("4 artigos")).toBeVisible();
+});
+
+test("o FAQ não promete o que o produto não faz", async ({ page }) => {
+  await page.goto("/ajuda");
+  await expect(page.locator(".faq")).not.toContainText("limite de downloads");
+  await expect(page.locator(".faq")).not.toContainText("uso adicional");
+  await expect(page.locator(".faq")).not.toContainText("No Studio, crie a marca");
 });
 
 test("a busca encontra o artigo certo, sem acento e sem caixa", async ({ page }) => {
@@ -71,4 +80,25 @@ test("Grids e Kit gratuitos têm o seu 'Como usar', com o link para a Central", 
     await expect(painel).toContainText(trecho);
     await expect(painel.getByRole("link", { name: "Abrir na Central de ajuda" })).toHaveAttribute("href", `/ajuda/${rota}`);
   }
+});
+
+test("o botão Ajuda da moldura abre o painel, mostra a lista numa tela sem artigo, e Esc devolve o foco", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/dev/marcas?marca=festival");
+  const botao = page.locator("[data-ajuda-abrir]").first();
+  await expect(page.locator("[data-ajuda-da-moldura]")).toHaveCount(0);
+  // Foco e Enter, e não clique: o botão "N" do Next (só em desenvolvimento) cobre o canto de baixo
+  // da coluna e intercepta o ponteiro. É também a prova de que o teclado abre a Ajuda.
+  await botao.focus();
+  await page.keyboard.press("Enter");
+  const painel = page.locator("[data-ajuda-da-moldura]");
+  await expect(painel).toBeVisible();
+  await expect(painel.locator("[data-ajuda-lista]")).toContainText("Pessoas e acesso — como usar");
+  await painel.getByRole("button", { name: /Registros — como usar/ }).click();
+  await expect(painel.locator("[data-ajuda-artigo]")).toContainText("quem fez o quê e quando");
+  await painel.locator("[data-ajuda-outros]").click();
+  await expect(painel.locator("[data-ajuda-lista]")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(painel).toHaveCount(0);
+  await expect(botao).toBeFocused();
 });
