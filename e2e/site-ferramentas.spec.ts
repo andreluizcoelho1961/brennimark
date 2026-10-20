@@ -35,7 +35,7 @@ test("o capítulo tem quatro cartões do mesmo tamanho, e o primeiro é o Fonts"
 test("no /fonts, o botão de pedir acesso aparece na primeira tela", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/fonts", { waitUntil: "commit" });
-  const botao = page.getByRole("link", { name: /Pedir acesso ao beta/ });
+  const botao = page.locator("[data-fonts-pedir]");
   await expect(botao).toBeVisible();
   const caixa = await botao.boundingBox();
   expect(caixa!.y + caixa!.height, "o botão inteiro cabe em 720 px de altura").toBeLessThanOrEqual(720);

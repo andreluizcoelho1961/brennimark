@@ -19,11 +19,10 @@ test("a página do Fonts avisa do beta e do instalador sem assinatura", async ({
   await expect(page.getByText("lançamento oficial", { exact: false }).first()).toBeAttached();
 });
 
-test("o pedido de acesso e o aviso de lançamento são e-mails para o contato", async ({ page }) => {
+test("o aviso de lançamento é um e-mail para o contato, e o pedido de acesso abre o cadastro", async ({ page }) => {
   await page.goto("/fonts", { waitUntil: "commit" });
-  const pedir = page.getByRole("link", { name: /Pedir acesso ao beta/ });
-  await expect(pedir).toHaveAttribute("href", /^mailto:contato@brennimark\.com\?subject=/);
   await expect(page.getByRole("link", { name: /Avisar-me do lançamento/ })).toHaveAttribute("href", /^mailto:contato@brennimark\.com/);
+  await expect(page.locator("[data-fonts-pedir]")).toBeVisible();
 });
 
 test("Linux e o que está em desenvolvimento não aparecem como pronto", async ({ page }) => {

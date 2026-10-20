@@ -67,13 +67,22 @@
  * acesso a nada: só grava uma linha numa tabela fechada a qualquer sessão, com
  * a chave de serviço, e responde igual exista o e-mail ou não.
  *
+ * A SAÍDA DA LISTA entrou no mesmo dia: `/sair/` (a página do link de todo
+ * e-mail de marketing) e `/api/cadastro/saida`. Quem recebe o e-mail não tem
+ * conta. A página não lê nada, e a rota só obedece ao token que o banco conferiu.
+ *
+ * A CONFIRMAÇÃO DO E-MAIL entrou em 18/10/2026: `/confirmar/` (a página do botão
+ * do e-mail) e `/api/cadastro/confirmar`. Mesmo desenho da saída: quem recebe o
+ * e-mail não tem conta, a página não lê nada, e a rota só obedece ao token que o
+ * banco conferiu.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
-export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/"] as const;
+export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/api/cadastro"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;

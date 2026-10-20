@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EMPRESA } from "@/lib/site/empresa";
 import { Losango } from "../Losango";
+import { PedirConviteDoFonts } from "../PedirConviteDoFonts";
 import { Titulo } from "../Titulo";
 
 /**
@@ -11,20 +12,12 @@ import { Titulo } from "../Titulo";
  * usa só o que se sabe do concorrente pelo site dele (análise de 14/10/2026,
  * o aplicativo dele não foi testado) e diz isso na própria tabela.
  *
- * Sem banco e sem arquivo: o pedido de acesso é um e-mail pré-preenchido para
- * `EMPRESA.email`, e o instalador é enviado por link privado a cada testador.
+ * O pedido de acesso (17/10/2026) é o cadastro gratuito do site, em modo
+ * convite (`PedirConviteDoFonts`): cai na lista, marcado como pedido do Fonts.
+ * O instalador é enviado por link privado a cada testador, à mão. O aviso de
+ * lançamento continua sendo um e-mail pré-preenchido para `EMPRESA.email`.
  */
 
-const ASSUNTO = "Quero testar o Brennimark Fonts (beta)";
-const CORPO = [
-  "Olá! Quero participar do beta do Brennimark Fonts.",
-  "",
-  "Nome:",
-  "Agência ou estúdio:",
-  "Sistema (macOS ou Windows) e versão:",
-  "Tamanho da biblioteca de fontes (aprox.):",
-].join("\n");
-const PEDIR_ACESSO = `mailto:${EMPRESA.email}?subject=${encodeURIComponent(ASSUNTO)}&body=${encodeURIComponent(CORPO)}`;
 const AVISAR_LANCAMENTO = `mailto:${EMPRESA.email}?subject=${encodeURIComponent("Avisem-me do lançamento do Brennimark Fonts")}`;
 
 const RECURSOS = [
@@ -113,7 +106,7 @@ export function ConteudoFonts() {
       <Titulo como="h1" className="pg-h1" partes={["O gerenciador de fontes feito para quem trabalha com marcas."]} />
       <p className="pg-lead">Biblioteca local, ativação confiável e fontes organizadas por marca e por cliente. A meta é ser o melhor gerenciador de fontes para diretores de arte, agências e estúdios.</p>
       <p className="fx-beta"><b>Beta fechado, gratuito, por convite</b> · só os 50 primeiros · 90 dias · macOS e Windows · Linux em preparação</p>
-      <div className="pg-actions"><a className="btn" href={PEDIR_ACESSO}>Pedir acesso ao beta <span className="arrow" aria-hidden="true">↗</span></a><a className="btn btn--ghost" href={AVISAR_LANCAMENTO}>Avisar-me do lançamento <span className="arrow" aria-hidden="true">→</span></a></div>
+      <div className="pg-actions"><PedirConviteDoFonts rotulo="Pedir acesso ao beta" /><a className="btn btn--ghost" href={AVISAR_LANCAMENTO}>Avisar-me do lançamento <span className="arrow" aria-hidden="true">→</span></a></div>
       </div>
       <div className="frame"><div className="mk" role="img" aria-label="Janela do Brennimark Fonts: famílias de uma marca, com um kit pronto para ativar e um conflito de nomes avisado"><div className="mk-bar"><b>Brennimark Fonts</b><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Beta</span></div><div className="mk-body fx-demo">
       <div><b>Kit · Marca Exemplo</b><span>3 famílias · 11 estilos</span><em>Ativar kit</em></div>

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDePedidoDeExportacao, mensagemDeRecuperacao } from "./mensagens";
+import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDeConfirmacaoDaLista, mensagemDePedidoDeExportacao, mensagemDeRecuperacao } from "./mensagens";
 
 test("a recuperação leva o link, o prazo e o que fazer se não foi você", () => {
   const m = mensagemDeRecuperacao({ link: "https://x.test/l?a=1&b=2", validoPorMinutos: 60 });
@@ -61,4 +61,15 @@ test("o aviso de exportação à equipe: a conta, quem, quando e o prazo", () =>
   assert.match(m.texto, /pediu a exportação do conteúdo em 8 de outubro de 2026, por dona@agencia\.com/);
   assert.match(m.texto, /Prazo prometido nos Termos: 23 de outubro de 2026/);
   assert.ok(m.html.includes("Agência &lt;X&gt;"));
+});
+
+test("a confirmação da lista leva o botão, o aviso de que sem clique nada é enviado e o caminho de saída", () => {
+  const m = mensagemDeConfirmacaoDaLista({ link: "https://x.test/confirmar/abc?a=1&b=2", linkDeSair: "https://x.test/sair/abc" });
+  assert.equal(m.assunto, "Confirme o seu e-mail no Brennimark");
+  assert.match(m.texto, /Confirmar: https:\/\/x\.test\/confirmar\/abc\?a=1&b=2/);
+  assert.match(m.texto, /Sem a confirmação, não enviamos nada/);
+  assert.match(m.texto, /Se não foi você, ignore/);
+  assert.match(m.texto, /https:\/\/x\.test\/sair\/abc/);
+  assert.match(m.html, /href="https:\/\/x\.test\/confirmar\/abc\?a=1&amp;b=2"/);
+  assert.doesNotMatch(m.html + m.texto, /desconto|promoção|oferta/i, "mensagem de serviço, sem propaganda");
 });

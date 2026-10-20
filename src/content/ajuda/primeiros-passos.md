@@ -47,7 +47,7 @@ Em **Pessoas**, use **Conceder acesso**:
 | **Consulta** | Lê o manual e baixa os materiais, só das marcas que você escolher. |
 | **Administra a conta** | Alcança todas as marcas, inclusive as criadas depois, e concede acesso a outras pessoas. |
 
-Escolha o nível, escolha as marcas (para Consulta, ao menos uma) e confirme. O Brennimark mostra uma **senha provisória**: copie e entregue à pessoa. A linha fica em *Esperando o primeiro acesso* até ela entrar.
+Escolha o nível, escolha as marcas (para Consulta, ao menos uma) e confirme. O Brennimark mostra uma **senha provisória**: copie e entregue à pessoa. A linha fica em *Esperando o primeiro acesso* até ela entrar. Detalhes, como gerar outra senha ou tirar acesso, em [Pessoas e acesso](/ajuda/pessoas-e-acesso).
 
 ## 7. Mande para quem não tem conta
 
