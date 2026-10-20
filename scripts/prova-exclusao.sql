@@ -143,6 +143,13 @@ begin
     (y, dono_y, 'owner'), (y, duplo, 'member');
   insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal)
   values (x, 'marca-prova-excl', 'Marca X', 'X', 'x', 'pt-BR', '{}', '{}', '{}', '{}', '{}') returning id into marca_x;
+  -- Conteúdo AUTORIADO por um login que a exclusão também apaga: a chave
+  -- `created_by ... on delete set null` faz UPDATE nas tabelas travadas contra
+  -- escrita, e a exclusão aos 12 meses não pode ser barrada por isso (20/10).
+  insert into public.brand_asset_items (workspace_id, brand_id, tipo, nome, created_by)
+  values (x, marca_x, 'foto', 'Foto da prova', convidado_x);
+  insert into public.analysis_runs (workspace_id, brand_id, created_by, file_name, image_media_type, image_size_bytes, image_fingerprint, question, analysis, provider, model, elapsed_ms)
+  values (x, marca_x, convidado_x, 'p.png', 'image/png', 1, 'f1', 'q', '{}', 'x', 'y', 1);
   -- A conta X: cancelada há 13 meses, avisada há 31 dias. A Y: ativa.
   perform pg_temp.assinatura(x, 'sub_excl_x', 'prova-excl-dono-x@local.test', interval '13 months', interval '31 days');
   perform pg_temp.assinatura(y, 'sub_excl_y', 'prova-excl-dono-y@local.test', null);
