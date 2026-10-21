@@ -71,6 +71,12 @@
  * e-mail de marketing) e `/api/cadastro/saida`. Quem recebe o e-mail não tem
  * conta. A página não lê nada, e a rota só obedece ao token que o banco conferiu.
  *
+ * A SAÍDA EM UM CLIQUE entrou em 22/10/2026: `/api/sair/` (prefixo, o token vai no
+ * endereço). É o endereço do cabeçalho `List-Unsubscribe` de todo e-mail de
+ * marketing: o Gmail e o iCloud fazem um POST sem sessão. Só PARA de receber, e
+ * quem decide é o token que o banco conferiu. Fica fora de `/api/cadastro` para
+ * a regra de limite do Firewall não barrar o provedor de e-mail.
+ *
  * A CONFIRMAÇÃO DO E-MAIL entrou em 18/10/2026: `/confirmar/` (a página do botão
  * do e-mail) e `/api/cadastro/confirmar`. Mesmo desenho da saída: quem recebe o
  * e-mail não tem conta, a página não lê nada, e a rota só obedece ao token que o
@@ -85,7 +91,7 @@
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
-export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/"] as const;
+export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/", "/api/sair/"] as const;
 
 export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar"]);
 

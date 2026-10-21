@@ -160,3 +160,42 @@ export function mensagemDeConfirmacaoDaLista(p: { link: string; linkDeSair: stri
     html: html(paragrafos, { rotulo: "Confirmar o meu e-mail", link: p.link }).replace("</body>", `<p style="margin:0;font-size:12px;color:#555">${escaparHtml(fim)}</p></body>`),
   };
 }
+
+/**
+ * Um e-mail de marketing (22/10/2026): o texto da campanha mais o rodapé legal.
+ * O rodapé diz quem manda, por que a pessoa recebe e como sair, em um clique: a
+ * identificação do remetente e a saída fácil são exigência da LGPD e do Marco
+ * Civil, e o filtro de spam do Gmail e do iCloud lê o mesmo rodapé.
+ */
+export function mensagemDeMarketing(p: {
+  assunto: string;
+  paragrafos: string[];
+  botao?: { rotulo: string; link: string };
+  quando: string;
+  linkDeSair: string;
+  linkDaPolitica: string;
+  empresa: { nome: string; cnpj: string; endereco: string };
+}): Mensagem {
+  const motivo = `Você recebe este e-mail porque se cadastrou nas ferramentas gratuitas do Brennimark em ${p.quando} e confirmou o seu e-mail.`;
+  const quem = `Brennimark, operado por ${p.empresa.nome}, CNPJ ${p.empresa.cnpj}, ${p.empresa.endereco}.`;
+  const sair = `Para parar de receber estes e-mails ou apagar o seu cadastro: ${p.linkDeSair}`;
+  const politica = `Política de Privacidade: ${p.linkDaPolitica}`;
+
+  const rodapeHtml =
+    `<hr style="border:0;border-top:1px solid #ddd;margin:32px 0 16px">`
+    + `<p style="margin:0 0 8px;font-size:12px;color:#555">${escaparHtml(motivo)}</p>`
+    + `<p style="margin:0 0 8px;font-size:12px;color:#555">${escaparHtml(quem)}</p>`
+    + `<p style="margin:0 0 8px;font-size:12px;color:#555">`
+    + `<a href="${escaparHtml(p.linkDeSair)}" style="color:#111">Sair da lista ou apagar o meu cadastro</a>`
+    + ` &middot; <a href="${escaparHtml(p.linkDaPolitica)}" style="color:#111">Política de Privacidade</a></p>`;
+
+  return {
+    assunto: p.assunto,
+    texto: [
+      ...p.paragrafos,
+      ...(p.botao ? ["", `${p.botao.rotulo}: ${p.botao.link}`] : []),
+      "", "--", motivo, quem, sair, politica,
+    ].join("\n"),
+    html: html(p.paragrafos, p.botao).replace("</body>", `${rodapeHtml}</body>`),
+  };
+}
