@@ -76,13 +76,18 @@
  * e-mail não tem conta, a página não lê nada, e a rota só obedece ao token que o
  * banco conferiu.
  *
+ * A FERRAMENTA EM JANELA SOLTA entrou em 21/10/2026: `/ferramentas/janela/kit`,
+ * `/ferramentas/janela/cores` e `/ferramentas/janela/grids`, cada um pelo caminho
+ * EXATO. É a mesma tela das páginas normais, sem o menu do site: estática, tudo
+ * no navegador, nenhum dado lido.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
