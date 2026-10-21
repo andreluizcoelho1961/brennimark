@@ -101,3 +101,4 @@
 20261016133034 varios_grids_por_marca
 20261017193658 cadastros_gratuitos
 20261018144415 cadastros_confirmacao_por_email
+20261021171123 licencas_do_fonts

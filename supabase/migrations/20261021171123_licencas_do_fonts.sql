@@ -172,7 +172,6 @@ begin
     if ocupados >= lic.max_dispositivos then
       raise exception 'limite de dispositivos' using errcode = 'P0001', detail = 'limite_de_dispositivos';
     end if;
-    -- Código fora da forma: a constraint recusa com 23514, que a rota traduz.
     insert into private.ativacoes_fonts (licenca_id, codigo_dispositivo, ativada_por)
     values (lic.id, codigo, (select auth.uid()))
     returning * into ativacao;
