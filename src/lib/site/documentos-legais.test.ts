@@ -66,3 +66,10 @@ test("o Vini não promete chave própria do assinante: a IA é da plataforma (AD
   const texto = POLITICA_DE_PRIVACIDADE.secoes.flatMap((s) => s.paragrafos).join(" ");
   assert.doesNotMatch(texto, /própria chave/);
 });
+
+test("a privacidade diz que o Fonts não recebe a biblioteca de fontes e quais dados da licença guarda", () => {
+  const texto = POLITICA_DE_PRIVACIDADE.secoes.flatMap((s) => s.paragrafos).join(" ");
+  assert.match(texto, /Beta do Brennimark Fonts/);
+  assert.match(texto, /código público do computador/);
+  assert.match(texto, /não recebemos suas fontes/);
+});

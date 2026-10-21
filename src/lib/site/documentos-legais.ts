@@ -14,6 +14,9 @@
  * na hora. A versão ficou a mesma porque ninguém tinha aceitado o texto anterior
  * dela (zero aceites em produção, conferido) e a versão é uma data.
  *
+ * 16/10/2026: a Política (versão 2026-10-16) ganhou um parágrafo no §2 sobre os dados da
+ * licença do beta do Brennimark Fonts. Os Termos não mudaram.
+ *
  * Revisão de conformidade (CDC, LGPD, Marco Civil, Decreto 7.962/2013,
  * Resolução CD/ANPD 19/2024), feita pelo André com ajuda de IA e aplicada
  * literalmente a partir de `brennimark-termos-ajustes.md`. Ainda passa por
@@ -122,8 +125,8 @@ export const TERMOS_DE_USO: DocumentoLegal = {
 };
 
 export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
-  versao: "2026-10-08",
-  vigenteDesde: "8 de outubro de 2026",
+  versao: "2026-10-16",
+  vigenteDesde: "16 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem trata os dados", paragrafos: [
       `Esta política explica como o Brennimark, operado por ${E.nome}, ${E.natureza} inscrito no CNPJ ${E.cnpj}, com endereço em ${E.endereco}, ${E.cidade}, CEP ${E.cep}, trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).`,
@@ -134,6 +137,7 @@ export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
       `Cadastro: nome, e-mail e empresa de quem assina e de quem é convidado.`,
       `Pagamento: o Stripe processa o cartão; recebemos dele só o necessário para manter a assinatura (situação, plano, datas e e-mail do titular). Não guardamos o número do cartão.`,
       `Conteúdo: manuais, materiais, complementos e demais arquivos enviados, e as conversas com o Vini.`,
+      `Beta do Brennimark Fonts: nome, e-mail e agência informados no pedido de acesso, o número da licença, o código público do computador e as datas de ativação, usados só para emitir e acompanhar a licença. O aplicativo funciona no seu computador: não recebemos suas fontes, nomes de fontes, caminhos de arquivos nem dados da sua biblioteca.`,
       `Registros de uso: quem acessou cada marca, quem baixou cada material e as ações de edição, para que o assinante saiba o que aconteceu na conta dele.`,
       `Dados técnicos: endereço IP, navegador e horários de acesso, registrados por segurança. Os registros de acesso à aplicação (IP, data e hora) são guardados por 6 meses, em sigilo, como exige o Marco Civil da Internet (Lei 12.965/2014, art. 15).`,
     ] },

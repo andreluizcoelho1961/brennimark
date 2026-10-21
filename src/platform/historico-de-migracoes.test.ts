@@ -57,6 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `licencas_do_fonts` (16/10/2026): aplicada só ao banco local. Vai ao hospedado
+  // com autorização nominal do André, DEPOIS do merge; então sai desta lista.
+  "licencas_do_fonts",
   // `varios_grids_por_marca` saiu daqui em 16/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261016133034`;
   // impressão digital igual à do local (81 itens: as duas tabelas, constraints,

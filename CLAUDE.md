@@ -203,6 +203,10 @@ Garantia que ninguém reexecuta é garantia que alguém remove numa refatoraçã
 
 - `scripts/prova-de-concorrencia-ai-ledger.sh` — as travas do razão de IA
 - `scripts/prova-manifesto-por-pagina.sh` — as constraints do documento-fonte
+- `scripts/prova-licencas-do-fonts.sh` e `scripts/prova-concorrencia-licencas-do-fonts.sh` — as licenças do beta do
+  Brennimark Fonts: só a equipe alcança, limite de computadores, validade, revogação e a corrida no último lugar.
+  A chave que ASSINA os certificados (`BRENNIMARK_CHAVE_LICENCAS_FONTS`, Ed25519) mora só na Vercel: nunca no banco,
+  nunca numa tela. A pública está embutida no aplicativo; trocar a chave exige aplicativo novo.
 
 **Prova confere o NOME EXATO da constraint**, não "algum erro". Uma versão anterior tratava
 qualquer `violates` como sucesso, e um caso cuja preparação falhava passava sem nunca alcançar a
