@@ -148,8 +148,23 @@ begin
     pg_temp.como(m.equipe, $q$select public.console_fonts_criar_licenca('studio', 0, 'X', 'x@y.test', '', 90, 'prova')$q$));
   perform pg_temp.registrar('validade de zero dias: recusada', '22023',
     pg_temp.como(m.equipe, $q$select public.console_fonts_criar_licenca('beta', 1, 'X', 'x@y.test', '', 0, 'prova')$q$));
+  perform pg_temp.registrar('validade de 91 dias: recusada', '22023',
+    pg_temp.como(m.equipe, $q$select public.console_fonts_criar_licenca('beta', 1, 'X', 'x@y.test', '', 91, 'prova')$q$));
   perform pg_temp.registrar('e-mail sem arroba: recusado', '23514',
     pg_temp.como(m.equipe, $q$select public.console_fonts_criar_licenca('beta', 1, 'X', 'semarroba', '', 90, 'prova')$q$));
+end $$;
+
+-- A trava dos 90 dias no PRÓPRIO banco, sem passar pela função: confere o nome exato.
+do $$
+declare c text := 'ACEITOU';
+begin
+  begin
+    insert into private.licencas_fonts (plano, max_dispositivos, titular_nome, titular_email, expira_em)
+    values ('beta', 1, 'Direto', 'direto@y.test', clock_timestamp() + interval '100 days');
+  exception when check_violation then
+    get stacked diagnostics c = constraint_name;
+  end;
+  perform pg_temp.registrar('inserção direta com 100 dias: constraint certa', 'licencas_fonts_validade_ate_90_dias', c);
 end $$;
 
 -- ─── 3. O limite de computadores ────────────────────────────────────────────

@@ -66,6 +66,9 @@ create table private.licencas_fonts (
   constraint licencas_fonts_nome_forma check (length(btrim(titular_nome)) between 1 and 120),
   constraint licencas_fonts_email_forma check (length(btrim(titular_email)) between 3 and 254 and titular_email like '%@%'),
   constraint licencas_fonts_validade_depois_da_emissao check (expira_em > emitida_em),
+  -- O aplicativo do beta recusa certificado com prazo acima de 90 dias; a margem de
+  -- 1 minuto cobre os microssegundos entre o default de `emitida_em` e o `expira_em`.
+  constraint licencas_fonts_validade_ate_90_dias check (expira_em <= emitida_em + interval '90 days 1 minute'),
   constraint licencas_fonts_revogacao_com_motivo check ((revogada_em is null) = (revogada_motivo is null))
 );
 
@@ -112,7 +115,7 @@ begin
   if not private.eh_da_equipe() then
     raise exception 'só a equipe da Brennimark' using errcode = '42501';
   end if;
-  if p_dias is null or p_dias < 1 or p_dias > 400 then
+  if p_dias is null or p_dias < 1 or p_dias > 90 then
     raise exception 'validade inválida' using errcode = '22023';
   end if;
 

@@ -110,6 +110,7 @@ test("criar: valida plano, limite, e-mail e validade; 90 dias é o padrão", () 
   assert.equal(lerAcaoDeFonts({ acao: "criar", plano: "gratis", dispositivos: 1, nome: "A", email: "a@b.co" }).ok, false);
   assert.equal(lerAcaoDeFonts({ acao: "criar", plano: "beta", dispositivos: 1, nome: "A", email: "sem-arroba" }).ok, false);
   assert.equal(lerAcaoDeFonts({ acao: "criar", plano: "beta", dispositivos: 1, nome: "A", email: "a@b.co", dias: 0 }).ok, false);
+  assert.equal(lerAcaoDeFonts({ acao: "criar", plano: "beta", dispositivos: 1, nome: "A", email: "a@b.co", dias: 91 }).ok, false, "o app recusa mais de 90 dias");
   assert.equal(lerAcaoDeFonts({ acao: "criar", plano: "beta", dispositivos: 1, nome: "", email: "a@b.co" }).ok, false);
 });
 

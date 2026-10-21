@@ -132,7 +132,7 @@ export function lerAcaoDeFonts(corpo: unknown): { ok: true; acao: AcaoDeFonts } 
       const email = texto(c.email);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return { ok: false, motivo: "E-mail inválido." };
       const dias = c.dias === undefined || c.dias === "" ? 90 : Number(c.dias);
-      if (!Number.isInteger(dias) || dias < 1 || dias > 400) return { ok: false, motivo: "A validade vai de 1 a 400 dias." };
+      if (!Number.isInteger(dias) || dias < 1 || dias > 90) return { ok: false, motivo: "A validade vai de 1 a 90 dias: o aplicativo recusa prazo maior." };
       return { ok: true, acao: { acao: "criar", plano: c.plano, dispositivos, nome, email, agencia: texto(c.agencia).slice(0, 120), dias } };
     }
     case "ativar": {

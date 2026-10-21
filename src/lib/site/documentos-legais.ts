@@ -17,6 +17,10 @@
  * 16/10/2026: a Política (versão 2026-10-16) ganhou um parágrafo no §2 sobre os dados da
  * licença do beta do Brennimark Fonts. Os Termos não mudaram.
  *
+ * 21/10/2026: a Política (versão 2026-10-21) passou a cobrir o cadastro gratuito das
+ * ferramentas (dados, base legal, confirmação por e-mail, saída e exclusão por link,
+ * cookie `bm_cadastro`, serviço de e-mail). Os Termos não mudaram.
+ *
  * Revisão de conformidade (CDC, LGPD, Marco Civil, Decreto 7.962/2013,
  * Resolução CD/ANPD 19/2024), feita pelo André com ajuda de IA e aplicada
  * literalmente a partir de `brennimark-termos-ajustes.md`. Ainda passa por
@@ -125,8 +129,8 @@ export const TERMOS_DE_USO: DocumentoLegal = {
 };
 
 export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
-  versao: "2026-10-16",
-  vigenteDesde: "16 de outubro de 2026",
+  versao: "2026-10-21",
+  vigenteDesde: "21 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem trata os dados", paragrafos: [
       `Esta política explica como o Brennimark, operado por ${E.nome}, ${E.natureza} inscrito no CNPJ ${E.cnpj}, com endereço em ${E.endereco}, ${E.cidade}, CEP ${E.cep}, trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).`,
@@ -137,12 +141,13 @@ export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
       `Cadastro: nome, e-mail e empresa de quem assina e de quem é convidado.`,
       `Pagamento: o Stripe processa o cartão; recebemos dele só o necessário para manter a assinatura (situação, plano, datas e e-mail do titular). Não guardamos o número do cartão.`,
       `Conteúdo: manuais, materiais, complementos e demais arquivos enviados, e as conversas com o Vini.`,
-      `Beta do Brennimark Fonts: nome, e-mail e agência informados no pedido de acesso, o número da licença, o código público do computador e as datas de ativação, usados só para emitir e acompanhar a licença. O aplicativo funciona no seu computador: não recebemos suas fontes, nomes de fontes, caminhos de arquivos nem dados da sua biblioteca.`,
+      `Cadastro gratuito das ferramentas (Kit, Cores e Grids, no site): nome, e-mail, agência e cargo, as respostas opcionais do formulário (como equipe, marcas, sistemas e como nos conheceu), a ferramenta de onde veio o cadastro, a data do aceite e o texto a que você deu aceite. Não é preciso criar conta nem senha.`,
+    `Beta do Brennimark Fonts: nome, e-mail e agência informados no pedido de acesso, o número da licença, o código público do computador e as datas de ativação, usados só para emitir e acompanhar a licença. O aplicativo funciona no seu computador: não recebemos suas fontes, nomes de fontes, caminhos de arquivos nem dados da sua biblioteca.`,
       `Registros de uso: quem acessou cada marca, quem baixou cada material e as ações de edição, para que o assinante saiba o que aconteceu na conta dele.`,
       `Dados técnicos: endereço IP, navegador e horários de acesso, registrados por segurança. Os registros de acesso à aplicação (IP, data e hora) são guardados por 6 meses, em sigilo, como exige o Marco Civil da Internet (Lei 12.965/2014, art. 15).`,
     ] },
     { titulo: "3. Para que usamos", paragrafos: [
-      `Para prestar o serviço contratado (execução de contrato); para emitir nota fiscal e cumprir obrigações legais; para manter a plataforma segura e prevenir abuso (legítimo interesse); e para melhorar o produto com números agregados e anonimizados, sem identificar quem perguntou ou fez o quê (legítimo interesse). Dados anonimizados deixam de ser dados pessoais (art. 12 da LGPD). Os registros de acesso exigidos pelo Marco Civil são guardados para cumprir obrigação legal.`,
+      `Para prestar o serviço contratado (execução de contrato); para enviar e-mails de novidades e conteúdo a quem se cadastrou nas ferramentas gratuitas e confirmou o e-mail (consentimento); para emitir nota fiscal e cumprir obrigações legais; para manter a plataforma segura e prevenir abuso (legítimo interesse); e para melhorar o produto com números agregados e anonimizados, sem identificar quem perguntou ou fez o quê (legítimo interesse). Dados anonimizados deixam de ser dados pessoais (art. 12 da LGPD). Os registros de acesso exigidos pelo Marco Civil são guardados para cumprir obrigação legal.`,
       `Não vendemos dados pessoais e não usamos o conteúdo das marcas para publicidade.`,
     ] },
     { titulo: "4. Conversas com o Vini", paragrafos: [
@@ -150,24 +155,24 @@ export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
       `Para responder, o Vini envia ao provedor de inteligência artificial a pergunta e os trechos do manual necessários. Só usamos provedores e planos que, por contrato, não usam esses dados para treinar modelos e não os guardam além do necessário para responder.`,
     ] },
     { titulo: "5. Com quem compartilhamos", paragrafos: [
-      `Só com os fornecedores necessários para o serviço funcionar, cada um tratando os dados conforme as nossas instruções: Vercel (hospedagem do site e da aplicação), Supabase (banco de dados e arquivos, em servidores em São Paulo), Stripe (pagamento), os provedores de inteligência artificial que a plataforma usa em cada momento (hoje, entre Anthropic, Google, OpenAI, Groq e OpenRouter) e, quando ligado, um serviço de envio de e-mail.`,
+      `Só com os fornecedores necessários para o serviço funcionar, cada um tratando os dados conforme as nossas instruções: Vercel (hospedagem do site e da aplicação), Supabase (banco de dados e arquivos, em servidores em São Paulo), Stripe (pagamento), os provedores de inteligência artificial que a plataforma usa em cada momento (hoje, entre Anthropic, Google, OpenAI, Groq e OpenRouter) e o Resend, serviço de envio de e-mail usado para as confirmações e as mensagens do cadastro gratuito.`,
       `Alguns desses fornecedores tratam dados nos Estados Unidos e em outros países. Essas transferências se apoiam nas cláusulas-padrão contratuais aprovadas pela ANPD (Resolução CD/ANPD nº 19/2024), incorporadas aos contratos com cada fornecedor. Você pode pedir a lista atualizada de fornecedores, os países e a íntegra das cláusulas pelo canal de privacidade; respondemos em até 15 dias.`,
       `Também compartilhamos dados quando a lei ou uma ordem judicial exigir.`,
     ] },
     { titulo: "6. Cookies", paragrafos: [
-      `Usamos só cookies necessários: os da sessão de quem entra na plataforma e um cookie temporário da compra, que permite criar a senha na volta do pagamento. A preferência de tema fica guardada no próprio navegador. Não usamos cookies de publicidade nem de rastreamento.`,
+      `Usamos só cookies necessários: os da sessão de quem entra na plataforma e um cookie temporário da compra, que permite criar a senha na volta do pagamento. Quem se cadastra nas ferramentas gratuitas recebe também o cookie “bm_cadastro”, que dura 1 ano e só avisa ao navegador que o cadastro já foi feito, para não pedir de novo; ele não contém dados pessoais. A preferência de tema fica guardada no próprio navegador. Não usamos cookies de publicidade nem de rastreamento.`,
     ] },
     { titulo: "7. Por quanto tempo guardamos", paragrafos: [
       `Enquanto a assinatura estiver ativa, guardamos os dados para prestar o serviço.`,
       `Depois do cancelamento, a conta fica guardada, só para leitura, por 12 meses, para que o assinante possa voltar ou exportar o que é dele. Avisamos 30 dias antes do fim desse prazo. Depois disso, o conteúdo é excluído definitivamente. O assinante pode pedir a exclusão antes.`,
-      `Registros de acesso ficam 6 meses, como exige o Marco Civil da Internet. Dados que a lei manda guardar por mais tempo (como os fiscais) ficam pelo prazo legal.`,
+      `Cadastro gratuito: guardamos até você pedir para sair ou apagar. Quem pede para sair deixa de receber e-mails; quem pede para apagar tem os dados eliminados. Enviamos só mensagens a quem confirmou o e-mail (confirmação em duas etapas), no máximo um pedido de confirmação por dia. Registros de acesso ficam 6 meses, como exige o Marco Civil da Internet. Dados que a lei manda guardar por mais tempo (como os fiscais) ficam pelo prazo legal.`,
     ] },
     { titulo: "8. Segurança", paragrafos: [
       `O acesso é controlado por marca: cada pessoa só vê as marcas que lhe foram liberadas, e isso é imposto pelo banco de dados, não só pela tela. A comunicação é cifrada, os arquivos não têm endereço público, e os links de entrega têm prazo e podem ser revogados.`,
       `Se houver um incidente de segurança que possa causar risco ou dano relevante, comunicaremos a ANPD e as pessoas afetadas, nos prazos da lei.`,
     ] },
     { titulo: "9. Seus direitos", paragrafos: [
-      `Você pode pedir, a qualquer momento: confirmação de que tratamos seus dados; acesso; correção; anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desacordo com a lei; portabilidade; eliminação de dados tratados com base no seu consentimento; informação sobre com quem os compartilhamos; informação sobre a possibilidade de não consentir e o que isso implica; e revogação do consentimento. Também pode se opor a um tratamento feito com base em outra hipótese legal, se ele descumprir a lei (art. 18 da LGPD).`,
+      `Você pode pedir, a qualquer momento: confirmação de que tratamos seus dados; acesso; correção; anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desacordo com a lei; portabilidade; eliminação de dados tratados com base no seu consentimento; informação sobre com quem os compartilhamos; informação sobre a possibilidade de não consentir e o que isso implica; e revogação do consentimento. Todo e-mail do cadastro gratuito traz um link para sair da lista ou apagar seus dados, sem precisar de login. Também pode se opor a um tratamento feito com base em outra hipótese legal, se ele descumprir a lei (art. 18 da LGPD).`,
       `Peça pelo e-mail ${E.emailDePrivacidade}. Respondemos em até 15 dias. Se o pedido for sobre conteúdo de uma marca, avisamos você e encaminhamos ao assinante, que é o controlador desses dados.`,
       `Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD).`,
     ] },

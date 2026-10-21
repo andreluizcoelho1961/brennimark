@@ -142,7 +142,7 @@ function NovaLicenca({ aoCriar }: { aoCriar: () => void }) {
         <label><span className={ROTULO}>Computadores</span>
           <input className={`${CAMPO} w-full`} type="number" min={1} max={plano === "studio" ? 1000 : 2} value={dispositivos} onChange={(e) => setDispositivos(e.target.value)} /></label>
         <label><span className={ROTULO}>Validade (dias)</span>
-          <input className={`${CAMPO} w-full`} type="number" min={1} max={400} value={dias} onChange={(e) => setDias(e.target.value)} /></label>
+          <input className={`${CAMPO} w-full`} type="number" min={1} max={90} value={dias} onChange={(e) => setDias(e.target.value)} /></label>
         <label><span className={ROTULO}>Nome do testador</span>
           <input className={`${CAMPO} w-full`} value={nome} onChange={(e) => setNome(e.target.value)} /></label>
         <label><span className={ROTULO}>E-mail</span>

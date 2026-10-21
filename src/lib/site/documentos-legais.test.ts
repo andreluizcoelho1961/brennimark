@@ -73,3 +73,12 @@ test("a privacidade diz que o Fonts não recebe a biblioteca de fontes e quais d
   assert.match(texto, /código público do computador/);
   assert.match(texto, /não recebemos suas fontes/);
 });
+
+test("a privacidade cobre o cadastro gratuito: dados, confirmação em duas etapas, cookie e saída por link", () => {
+  const texto = POLITICA_DE_PRIVACIDADE.secoes.flatMap((s) => s.paragrafos).join(" ");
+  assert.match(texto, /Cadastro gratuito das ferramentas/);
+  assert.match(texto, /confirmação em duas etapas/);
+  assert.match(texto, /bm_cadastro/);
+  assert.match(texto, /link para sair da lista ou apagar/);
+  assert.match(texto, /Resend/);
+});
