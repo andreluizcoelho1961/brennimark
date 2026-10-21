@@ -30,14 +30,25 @@ export function emailConfigurado(): boolean {
 }
 
 /** Resend: https://resend.com/docs/api-reference/emails/send-email */
-export async function enviarEmail(para: string, mensagem: Mensagem): Promise<Envio> {
+export type OpcoesDeEnvio = {
+  /** Para onde vai a resposta de quem aperta "Responder" (o `from` é o remetente da plataforma). */
+  replyTo?: string;
+  /** Cabeçalhos extras, como `List-Unsubscribe` nos e-mails de marketing. */
+  headers?: Record<string, string>;
+};
+
+export async function enviarEmail(para: string, mensagem: Mensagem, opcoes: OpcoesDeEnvio = {}): Promise<Envio> {
   const c = configuracao();
   if (!c) return { ok: false, motivo: "nao-configurado" };
   try {
     const resposta = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${c.chave}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from: c.remetente, to: [para], subject: mensagem.assunto, text: mensagem.texto, html: mensagem.html }),
+      body: JSON.stringify({
+        from: c.remetente, to: [para], subject: mensagem.assunto, text: mensagem.texto, html: mensagem.html,
+        ...(opcoes.replyTo ? { reply_to: opcoes.replyTo } : {}),
+        ...(opcoes.headers ? { headers: opcoes.headers } : {}),
+      }),
       signal: AbortSignal.timeout(10_000),
     });
     if (!resposta.ok) {

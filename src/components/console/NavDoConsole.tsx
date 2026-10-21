@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 /** As partes do Console da Brennimark. Só a equipe chega aqui (o banco decide). */
-type Parte = "custos" | "ia" | "operacao" | "cobranca" | "fonts";
+type Parte = "custos" | "ia" | "operacao" | "cobranca" | "fonts" | "email";
 
 export function NavDoConsole({ atual }: { atual: Parte }) {
   const item = (id: Parte, href: string, rotulo: string) => (
@@ -17,6 +17,7 @@ export function NavDoConsole({ atual }: { atual: Parte }) {
       {item("operacao", "/console/operacao", "Operação")}
       {item("cobranca", "/console/cobranca", "Cobrança")}
       {item("fonts", "/console/fonts", "Fonts")}
+      {item("email", "/console/email", "E-mail")}
     </nav>
   );
 }

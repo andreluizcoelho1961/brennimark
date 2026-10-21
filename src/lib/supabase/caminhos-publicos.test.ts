@@ -121,6 +121,11 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastro/confirmar"), true);
   assert.equal(caminhoPublico("/api/cadastro/confirmarx"), false);
   assert.equal(caminhoPublico("/api/cadastro/confirmar/qualquer"), false);
+  // A saída em um clique (22/10/2026): o endereço do cabeçalho List-Unsubscribe.
+  assert.equal(caminhoPublico("/api/sair/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
+  assert.equal(caminhoPublico("/api/sairx"), false);
+  assert.equal(caminhoPublico("/api/sair"), false);
+  assert.equal(caminhoPublico("/api/console/email"), false);
   // A ferramenta em janela solta (21/10/2026): só as três, pelo caminho exato.
   for (const f of ["kit", "cores", "grids"]) assert.equal(caminhoPublico(`/ferramentas/janela/${f}`), true);
   assert.equal(caminhoPublico("/ferramentas/janela"), false);
