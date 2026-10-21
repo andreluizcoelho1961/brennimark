@@ -121,6 +121,12 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastro/confirmar"), true);
   assert.equal(caminhoPublico("/api/cadastro/confirmarx"), false);
   assert.equal(caminhoPublico("/api/cadastro/confirmar/qualquer"), false);
+  // A ferramenta em janela solta (21/10/2026): só as três, pelo caminho exato.
+  for (const f of ["kit", "cores", "grids"]) assert.equal(caminhoPublico(`/ferramentas/janela/${f}`), true);
+  assert.equal(caminhoPublico("/ferramentas/janela"), false);
+  assert.equal(caminhoPublico("/ferramentas/janela/fonts"), false);
+  assert.equal(caminhoPublico("/ferramentas/janela/grids/x"), false);
+  assert.equal(caminhoPublico("/ferramentas/janela/gridsx"), false);
 });
 
 test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () => {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
 import { Grids } from "@/components/ferramentas/Grids";
 import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
+import { AbrirEmJanela } from "@/components/ferramentas/AbrirEmJanela";
 
 export const metadata: Metadata = {
   title: "Brennimark Grids — o grid pronto para o InDesign",
@@ -22,7 +23,8 @@ export default function PaginaDoGrids() {
         <p className="mt-2 max-w-[46rem] text-[15px] leading-relaxed text-platform-text-muted">
           Manuscrito, colunas, modular ou hierárquico. Margens, medianiz, linha de base, sangria e área segura das plataformas, num documento que abre pronto para diagramar. Gratuito, com um cadastro rápido na hora de baixar. Nada sai do seu computador.
         </p>
-        <div className="mt-4 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+        <div className="mt-4 flex flex-wrap items-center gap-2 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AbrirEmJanela ferramenta="grids" />
           <AjudaDaFerramenta ferramenta="grids" audiencia="site" />
         </div>
       </div>

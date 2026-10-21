@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
 import { KitAvulso } from "@/components/ferramentas/KitAvulso";
 import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
+import { AbrirEmJanela } from "@/components/ferramentas/AbrirEmJanela";
 
 export const metadata: Metadata = {
   title: "Brennimark Kit — todos os tamanhos do seu logo",
@@ -22,7 +23,8 @@ export default function PaginaDoKit() {
         <p className="mt-2 max-w-[44rem] text-[15px] leading-relaxed text-platform-text-muted">
           Ícones do site, perfis e capas das redes, assinatura de e-mail, endomarketing e arquivos de apresentação. Gratuito, com um cadastro rápido na hora de baixar. O seu arquivo não sai do seu computador.
         </p>
-        <div className="mt-4 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+        <div className="mt-4 flex flex-wrap items-center gap-2 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AbrirEmJanela ferramenta="kit" />
           <AjudaDaFerramenta ferramenta="kit" audiencia="site" />
         </div>
       </div>
