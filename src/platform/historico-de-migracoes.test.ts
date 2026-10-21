@@ -57,6 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `cobranca_so_leitura_nao_apaga` (20/10/2026): escrita, provada no banco local,
+  // NÃO aplicada ao banco hospedado — aplicar só com autorização nominal do André.
+  "cobranca_so_leitura_nao_apaga",
   // Tour de demonstração, fatia 1 (17/10/2026): NÃO aplicada ao banco hospedado.
   // Sai daqui quando o André autorizar a aplicação e ela for carimbada.
   "tour_de_demonstracao",

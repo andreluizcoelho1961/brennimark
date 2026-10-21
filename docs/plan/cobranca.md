@@ -54,6 +54,11 @@ estão nos comentários da migration `cobranca` e de `src/lib/cobranca/`.
      funciona; depois, ou se cancelada, só leitura. O Vini recusa (`conta_so_leitura`); a edição
      para por um gatilho nas 9 tabelas de conteúdo; marca nova para. Download, revogar link e
      administrar pessoas seguem. Nada é apagado. Conta sem assinatura (as abertas à mão) não muda;
+   - **a exclusão também para** (20/10/2026, migration `cobranca_so_leitura_nao_apaga`): gatilho de
+     DELETE nas 12 tabelas de conteúdo e policy restritiva no Storage (3 buckets). Seguem permitidos:
+     revogar link, administrar pessoas, apagar a própria conversa, drenar a fila de arquivos de
+     marca já excluída e a exclusão aos 12 meses (reconhecida por `exclusao_iniciada_em`). Prova:
+     `scripts/prova-cobranca-so-leitura-exclusao.sh`;
    - **limite de marcas do plano**, imposto pelo banco na criação da marca;
    - **Configurações → Plano** (quem administra): plano, marcas do limite, pago até, o aviso de
      atraso e o botão **Gerenciar assinatura** → Portal do Stripe (cartão, plano, cancelamento,

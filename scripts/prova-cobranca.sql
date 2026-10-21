@@ -499,7 +499,7 @@ begin
   perform pg_temp.registrar('no link de entrega a trava e so ao criar (revogar segue)', 'INSERT',
     (select case when (t.tgtype & 4) <> 0 and (t.tgtype & 16) = 0 then 'INSERT' else 'OUTRO' end
        from pg_trigger t where t.tgname = 'cobranca_so_leitura' and t.tgrelid = 'public.links_de_entrega'::regclass));
-  perform pg_temp.registrar('a trava esta nas 9 tabelas de conteudo', '9',
+  perform pg_temp.registrar('a trava de escrita esta nas 13 tabelas de conteudo (9 + regras, tipografia e analises, 20/10)', '13',
     (select count(*)::text from pg_trigger where tgname = 'cobranca_so_leitura'));
 
   -- Cancelada também é só leitura; voltar a pagar devolve tudo.
