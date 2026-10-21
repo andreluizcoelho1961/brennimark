@@ -59,6 +59,7 @@ export const DICAS = {
   "grids-guardar": { pt: "Cria uma regra só para este formato, com estas medidas. Não é a aprovação do grid do manual.", en: "Saves these measurements as the brand's rule for this format." },
   "grids-aprovar-todos": { pt: "Aprova de uma vez todos os grids lidos do manual que estão em rascunho.", en: "Approves every grid read from the manual that is still a draft." },
   "grids-confirmar": { pt: "Aprova a regra de grid que veio do manual.", en: "Approves the grid rule that came from the manual." },
+  ajuda: { pt: "O manual de uso da plataforma: abre o artigo da tela em que você está.", en: "The platform's user guide: opens the article for the screen you're on." },
   "como-usar": { pt: "O passo a passo desta ferramenta, sem sair da tela.", en: "This tool's step-by-step guide, without leaving the screen." },
   "admin-adicionar": { pt: "Cadastra à mão uma cor ou fonte do manual.", en: "Adds a manual color or font by hand." },
   "admin-ler-ia": { pt: "A IA lê as páginas do manual e preenche o que falta, como rascunho.", en: "The AI reads the manual pages and fills in what's missing, as drafts." },
