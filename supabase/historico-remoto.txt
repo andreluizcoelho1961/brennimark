@@ -99,3 +99,5 @@
 20261014114055 regras_de_grid
 20261014170618 tipografia_da_marca
 20261016133034 varios_grids_por_marca
+20261017193658 cadastros_gratuitos
+20261018144415 cadastros_confirmacao_por_email

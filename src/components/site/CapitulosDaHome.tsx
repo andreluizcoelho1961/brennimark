@@ -10,7 +10,7 @@ import { NumSoLugar } from "./NumSoLugar";
 import { Titulo } from "./Titulo";
 
 /**
- * Os 14 capítulos da home, na ordem do trilho. O segundo, "Num só lugar",
+ * Os 15 capítulos da home, na ordem do trilho. O segundo, "Num só lugar",
  * entrou em 03/10/2026, vindo da prévia do Codex (ver `NumSoLugar.tsx`).
  *
  * O texto é o do protótipo de 29/09/2026, convertido sem edição — autoria do
@@ -348,6 +348,54 @@ export function CapitulosDaHome() {
                 <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
               </figure>
             </div>
+          </div>
+        </section>
+
+        <section className="panel" id="ferramentas" aria-label="Ferramentas gratuitas">
+          <Losango classe="l1" velocidade={-0.3} />
+          <div className="wrap">
+            <p className="eyebrow">Ferramentas</p>
+            <Titulo className="title rise" partes={["Quatro ferramentas, ", { em: "três de graça" }, "."]} />
+            <p className="intro">Para quem desdobra marcas todo dia. Kit, Cores e Grids são gratuitos: você usa à vontade e se cadastra só na hora de baixar. O Fonts abre para os 50 primeiros. Quando a marca do cliente estiver na plataforma, as ferramentas passam a trabalhar com ela.</p>
+            <div className="ferr-grid">
+              <article className="ferr ferr--destaque">
+                <h3>Fonts</h3>
+                <p className="ferr-what">O app que ativa as fontes de cada marca no seu computador, e desativa quando o trabalho acaba.</p>
+                <dl className="ferr-tier">
+                  <div><dt>50 primeiros</dt><dd>90 dias de graça, por convite. Vagas limitadas.</dd></div>
+                  <div><dt className="sub">Assinante</dt><dd>Vem incluso na assinatura, com as fontes ligadas à marca.</dd></div>
+                </dl>
+                <Link className="btn" href="/fonts">Pedir convite <span className="arrow" aria-hidden="true">→</span></Link>
+              </article>
+              <article className="ferr">
+                <h3>Kit</h3>
+                <p className="ferr-what">Um logo entra. Saem todos os tamanhos de perfil, capa e favicon, nas medidas oficiais de cada rede.</p>
+                <dl className="ferr-tier">
+                  <div><dt>Grátis</dt><dd>Todos os tamanhos, a partir do seu arquivo.</dd></div>
+                  <div><dt className="sub">Assinante</dt><dd>Usa o logo e as regras de proteção aprovados no manual da marca.</dd></div>
+                </dl>
+                <Link className="btn btn--ghost" href="/ferramentas/kit">Usar o Kit <span className="arrow" aria-hidden="true">→</span></Link>
+              </article>
+              <article className="ferr">
+                <h3>Cores</h3>
+                <p className="ferr-what">Que cor é essa? Conta-gotas ou print colado: nome em português, códigos e contraste.</p>
+                <dl className="ferr-tier">
+                  <div><dt>Grátis</dt><dd>Mede qualquer cor e mostra o contraste.</dd></div>
+                  <div><dt className="sub">Assinante</dt><dd>Compara com a paleta aprovada e responde se é a cor da marca.</dd></div>
+                </dl>
+                <Link className="btn btn--ghost" href="/ferramentas/cores">Usar o Cores <span className="arrow" aria-hidden="true">→</span></Link>
+              </article>
+              <article className="ferr">
+                <h3>Grids</h3>
+                <p className="ferr-what">O grid pronto para o InDesign, em IDML, nos formatos que você mais usa.</p>
+                <dl className="ferr-tier">
+                  <div><dt>Grátis</dt><dd>13 formatos, com os quatro tipos de grid.</dd></div>
+                  <div><dt className="sub">Assinante</dt><dd>Todos os formatos, com logo, cores e estilos da marca.</dd></div>
+                </dl>
+                <Link className="btn btn--ghost" href="/ferramentas/grids">Usar o Grids <span className="arrow" aria-hidden="true">→</span></Link>
+              </article>
+            </div>
+            <p className="plans-note">As versões de assinante moram dentro da plataforma, ligadas ao manual de cada marca.</p>
           </div>
         </section>
 

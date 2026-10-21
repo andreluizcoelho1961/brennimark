@@ -60,6 +60,19 @@ const PENDENTES_ESPERADAS: string[] = [
   // `licencas_do_fonts` (16/10/2026): aplicada só ao banco local. Vai ao hospedado
   // com autorização nominal do André, DEPOIS do merge; então sai desta lista.
   "licencas_do_fonts",
+  // Tour de demonstração, fatia 1 (17/10/2026): NÃO aplicada ao banco hospedado.
+  // Sai daqui quando o André autorizar a aplicação e ela for carimbada.
+  "tour_de_demonstracao",
+  // `cadastros_confirmacao_por_email` saiu daqui em 18/10/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20261018144415`;
+  // impressão digital igual à do local (72 itens: colunas, constraints, índice,
+  // RLS, privilégios de anon/authenticated e as 4 funções, com corpo e acesso),
+  // fora os privilégios padrão da `service_role` no hospedado.
+  // `cadastros_gratuitos` saiu daqui em 17/10/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20261017193658`; impressão
+  // digital igual à do local (64 itens: colunas, constraints, índice, RLS,
+  // privilégios de anon/authenticated e as 3 funções, com corpo e acesso), fora
+  // os privilégios padrão da `service_role` no hospedado.
   // `varios_grids_por_marca` saiu daqui em 16/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261016133034`;
   // impressão digital igual à do local (81 itens: as duas tabelas, constraints,

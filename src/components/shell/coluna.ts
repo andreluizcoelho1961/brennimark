@@ -23,7 +23,7 @@
 export type IconeDaColuna =
   | "manual" | "materiais" | "complementos"
   | "marcas" | "pessoas" | "links" | "registros" | "configuracoes"
-  | "assistente" | "analise" | "historico" | "importar" | "administracao" | "ia" | "kit" | "cores" | "grids";
+  | "assistente" | "analise" | "historico" | "importar" | "administracao" | "ia" | "kit" | "cores" | "grids" | "ajuda";
 
 export interface ItemDaColuna {
   id: string;

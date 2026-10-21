@@ -204,3 +204,23 @@ test("com um grid só, não há seletor", async ({ page }) => {
   await abrir(page);
   await expect(page.locator("[data-grids-variante]")).toHaveCount(0);
 });
+
+test("o assinante tem a lista inteira de formatos e a desconstrução em camadas próprias", async ({ page }) => {
+  await fingir(page);
+  await abrir(page);
+  await expect(page.locator("[data-grids-formatos-bloqueados]")).toHaveCount(0);
+  await expect(page.locator("[data-grids-formato] option[value=gupy-carreiras]")).toHaveCount(1);
+  await expect(page.locator("[data-grids-desconstrucao-bloqueada]")).toHaveCount(0);
+
+  await page.locator("[data-grids-sobreposto]").check();
+  await page.locator("[data-grids-rotacionado]").check();
+  await expect(page.locator("[data-grids-legenda]")).toContainText("grid sobreposto");
+  await expect(page.locator("[data-grids-legenda]")).toContainText("grid rotacionado");
+
+  await page.locator("[data-grids-formato]").selectOption("livro-14x21");
+  const orelha = page.locator("[data-grids-campo=orelha]");
+  await orelha.fill("90");
+  await orelha.press("Enter");
+  await expect(page.locator("[data-grids-previa] text")).toHaveText(["Orelha (verso)", "Contracapa", "Lombada", "Capa", "Orelha (frente)"]);
+  await expect(page.locator("[data-grids-sobreposto]")).toHaveCount(0);
+});

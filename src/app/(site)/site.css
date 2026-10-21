@@ -59,6 +59,8 @@ body:has(.bm-site){overflow:hidden}
 
 /* ---------- cabeçalho ---------- */
 .bm-site .site-head{position:fixed;z-index:10;left:0;right:0;top:0;height:calc(var(--head) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 4.5vw 0;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:32px}
+/* As ferramentas gratuitas levam só o cabeçalho do site: ele fica fixo também no celular. */
+.bm-site.on-tool .site-head{position:fixed}
 .bm-site .lockup{display:block;width:196px;color:var(--text)}
 .bm-site .lockup svg{display:block;width:100%;height:auto}
 .bm-site .site-nav{margin-left:auto;display:flex;gap:28px;font-size:13px;color:var(--muted)}
@@ -301,6 +303,18 @@ body:has(.bm-site){overflow:hidden}
 .bm-site .plan .btn:hover{background:var(--brasa);border-color:var(--brasa);color:var(--bg)}
 .bm-site .plans-note .link{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .bm-site .plans-note{margin:18px 0 0;font-size:12px;color:var(--muted)}
+.bm-site .ferr-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:26px}
+.bm-site .ferr{display:flex;flex-direction:column;gap:10px;padding:18px 18px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.bm-site .ferr h3{margin:0;font-size:24px;font-weight:500;letter-spacing:-.035em}
+.bm-site .ferr-what{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.bm-site .ferr-tier{margin:0;flex:1}
+.bm-site .ferr-tier div{display:flex;flex-direction:column;gap:5px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);font-size:12.5px;line-height:1.45}
+.bm-site .ferr-tier dt{flex:none;padding:2px 7px;border-radius:3px;background:var(--raised);font:500 10px/1.5 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.bm-site .ferr-tier dt.sub{background:var(--brasa);color:var(--bg)}
+.bm-site .ferr-tier dd{margin:0;color:var(--muted)}
+.bm-site .ferr .btn{justify-content:center}
+.bm-site .ferr--destaque{border-color:var(--brasa)}
+.bm-site .ferr--destaque .btn{background:var(--brasa);border-color:var(--brasa);color:var(--bg)}
 
 /* ---------- 8 · fechamento ---------- */
 .bm-site .closing h2{margin:0;max-width:1000px;font-size:clamp(40px,5vw,76px);line-height:1.05;font-weight:500;letter-spacing:-.05em;text-wrap:balance}
@@ -740,6 +754,7 @@ body:has(.bm-site.mnav-open){overflow:hidden}
 @media (max-width:1100px) and (min-width:768px){
   .bm-site .site-nav{gap:18px}.bm-site .lockup{width:170px}
   .bm-site .plans{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bm-site .ferr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bm-site .hero-copy{width:62%}
 }
 @media (max-width:767px){
@@ -775,6 +790,7 @@ body:has(.bm-site.mnav-open){overflow:hidden}
   .bm-site .step:nth-child(2),.bm-site .step:nth-child(3){margin-top:0}
   .bm-site .flow-head{display:block}
   .bm-site .plans{grid-template-columns:1fr}
+  .bm-site .ferr-grid{grid-template-columns:1fr}
   .bm-site .plans-head{display:block}
   .bm-site .app{grid-template-columns:40px 1fr}
   .bm-site .app-stage{padding:12px}
@@ -858,6 +874,16 @@ body:has(.bm-site.mnav-open){overflow:hidden}
 /* ---------- página do Brennimark Fonts (/fonts), 16/10/2026 ---------- */
 .bm-site .fx-beta{margin:20px 0 0;font:500 12px var(--mono);letter-spacing:.06em;color:var(--muted)}
 .bm-site .fx-beta b{color:var(--brasa);font-weight:600}
+.bm-site .fx-pedido{margin:0;padding:12px 16px;border:1px solid var(--brasa);border-radius:4px;font-size:14px;line-height:1.5;max-width:340px}
+/* O topo do /fonts cabe numa tela com o botão à vista (17/10/2026): título menor, menos ar em cima. */
+@media (min-width:768px){
+  .bm-site .pg-sec--topo{padding-top:40px;padding-bottom:56px}
+  .bm-site .pg-hero--compacto{grid-template-columns:1.1fr .9fr;padding-top:0}
+  .bm-site .pg-hero--compacto .pg-h1{font-size:clamp(36px,3.9vw,58px)}
+  .bm-site .pg-hero--compacto .pg-lead{margin-top:16px;font-size:17px}
+  .bm-site .pg-hero--compacto .fx-beta{margin-top:14px}
+  .bm-site .pg-hero--compacto .pg-actions{margin-top:22px}
+}
 .bm-site .fx-demo>div{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:9px 0;border-bottom:1px solid var(--app-line)}
 .bm-site .fx-demo span{font-size:10px;color:var(--app-muted)}
 .bm-site .fx-demo em{grid-row:1/3;grid-column:2;align-self:center;font-style:normal;font:500 9.5px var(--mono);color:var(--app-brasa-ink)}
@@ -883,3 +909,24 @@ body:has(.bm-site.mnav-open){overflow:hidden}
   .bm-site .fx-tr>span:nth-child(2):before{content:"Fonts: ";font-family:var(--mono);font-size:11px;color:var(--muted)}
   .bm-site .fx-tr>span:nth-child(3):before{content:"FontBase: ";font-family:var(--mono);font-size:11px;color:var(--muted)}
 }
+
+/* ---------- Central de ajuda: busca real, cartão "em breve" e o texto do artigo (17/10/2026) ---------- */
+.bm-site .ajuda-resultados{margin-top:14px;max-width:640px}
+.bm-site .ajuda-resultados ul{list-style:none;margin:0;padding:0}
+.bm-site .ajuda-resultados a{display:flex;flex-direction:column;gap:2px;padding:14px 0;border-top:1px solid var(--line)}
+.bm-site .ajuda-resultados a span{color:var(--muted);font-size:14px}
+.bm-site .rel-em-breve{opacity:.55;cursor:default}
+.bm-site .rel-em-breve:hover{transform:none}
+.bm-site .ajuda-artigo{max-width:720px;margin-top:40px;font-size:17px;line-height:1.7}
+.bm-site .ajuda-artigo h2{margin:2em 0 .5em;font-size:26px;font-weight:500;letter-spacing:-.02em;line-height:1.2}
+.bm-site .ajuda-artigo p{margin:.9em 0}
+.bm-site .ajuda-artigo ul{margin:.9em 0;padding-left:1.3em}
+.bm-site .ajuda-artigo ol{margin:.9em 0;padding-left:1.3em}
+.bm-site .ajuda-artigo li{margin:.35em 0}
+.bm-site .ajuda-artigo li>ul,.bm-site .ajuda-artigo li>ol{margin:.3em 0}
+.bm-site .ajuda-artigo code{font-family:var(--mono,ui-monospace,monospace);font-size:.9em;background:var(--surface);padding:.1em .35em;border-radius:4px}
+.bm-site .ajuda-artigo a{text-decoration:underline;text-underline-offset:3px}
+.bm-site .ajuda-artigo blockquote{margin:1.2em 0;padding:.2em 1.1em;border-left:3px solid var(--line);color:var(--muted)}
+.bm-site .ajuda-artigo table{width:100%;margin:1.2em 0;border-collapse:collapse;font-size:15px}
+.bm-site .ajuda-artigo th,.bm-site .ajuda-artigo td{border-bottom:1px solid var(--line);padding:.6em .7em;text-align:left;vertical-align:top}
+.bm-site .ajuda-artigo th{font-weight:600}

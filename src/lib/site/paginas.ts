@@ -73,6 +73,7 @@ export const CAPITULOS_DA_HOME = [
   { id: "viva", titulo: "Marca viva" },
   { id: "publico", titulo: "Para quem" },
   { id: "depoimentos", titulo: "Quem usa" },
+  { id: "ferramentas", titulo: "Ferramentas" },
   { id: "planos", titulo: "Planos" },
   { id: "demonstracao", titulo: "Demonstração" },
 ] as const;

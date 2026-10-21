@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { EMPRESA } from "@/lib/site/empresa";
 import { Losango } from "../Losango";
+import { PedirConviteDoFonts } from "../PedirConviteDoFonts";
 import { Titulo } from "../Titulo";
 
 /**
@@ -11,20 +12,12 @@ import { Titulo } from "../Titulo";
  * usa só o que se sabe do concorrente pelo site dele (análise de 14/10/2026,
  * o aplicativo dele não foi testado) e diz isso na própria tabela.
  *
- * Sem banco e sem arquivo: o pedido de acesso é um e-mail pré-preenchido para
- * `EMPRESA.email`, e o instalador é enviado por link privado a cada testador.
+ * O pedido de acesso (17/10/2026) é o cadastro gratuito do site, em modo
+ * convite (`PedirConviteDoFonts`): cai na lista, marcado como pedido do Fonts.
+ * O instalador é enviado por link privado a cada testador, à mão. O aviso de
+ * lançamento continua sendo um e-mail pré-preenchido para `EMPRESA.email`.
  */
 
-const ASSUNTO = "Quero testar o Brennimark Fonts (beta)";
-const CORPO = [
-  "Olá! Quero participar do beta do Brennimark Fonts.",
-  "",
-  "Nome:",
-  "Agência ou estúdio:",
-  "Sistema (macOS ou Windows) e versão:",
-  "Tamanho da biblioteca de fontes (aprox.):",
-].join("\n");
-const PEDIR_ACESSO = `mailto:${EMPRESA.email}?subject=${encodeURIComponent(ASSUNTO)}&body=${encodeURIComponent(CORPO)}`;
 const AVISAR_LANCAMENTO = `mailto:${EMPRESA.email}?subject=${encodeURIComponent("Avisem-me do lançamento do Brennimark Fonts")}`;
 
 const RECURSOS = [
@@ -65,7 +58,7 @@ const COMPARACAO: readonly Linha[] = [
   { item: "Google Fonts e novidades de foundries", fonts: "Google Fonts em desenvolvimento.", outro: "Sim.", nota: "outro" },
   { item: "Sincronização entre máquinas", fonts: "Em desenvolvimento.", outro: "Sim (Dropbox e Drive).", nota: "outro" },
   { item: "Times e licenças por fonte", fonts: "Entrega com prazo e evidência de licença pela plataforma Brennimark.", outro: "Contador de assentos por fonte.", nota: "fonts" },
-  { item: "Maturidade", fonts: "Beta, com poucos testadores.", outro: "Produto estabelecido.", nota: "outro" },
+  { item: "Maturidade", fonts: "Beta, limitado aos 50 primeiros.", outro: "Produto estabelecido.", nota: "outro" },
 ];
 
 const PERGUNTAS = [
@@ -91,7 +84,11 @@ const PERGUNTAS = [
   },
   {
     p: "O beta é pago? Por quanto tempo vale?",
-    r: "Não é pago, e é por convite. Pedido o acesso, avaliamos e enviamos o instalador; o teste vale 90 dias. Depois disso, é preciso migrar para a versão paga, que estará pronta até lá.",
+    r: "Não é pago, e é por convite, limitado aos 50 primeiros pedidos aprovados. Pedido o acesso, avaliamos e enviamos o instalador; o teste vale 90 dias. Depois disso, é preciso migrar para a versão paga, que estará pronta até lá.",
+  },
+  {
+    p: "E se as 50 vagas acabarem?",
+    r: "O beta não abre vagas além das 50. Quem ficar de fora pode pedir o aviso de lançamento, no topo da página, e usa o Fonts incluso na assinatura do Brennimark ou na versão avulsa, quando sair.",
   },
   {
     p: "Quando é o lançamento oficial?",
@@ -102,14 +99,14 @@ const PERGUNTAS = [
 export function ConteudoFonts() {
   return (
     <>
-      <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
-      <div className="pg-wrap pg-hero">
+      <section className="pg-sec pg-sec--topo"><Losango classe="l1" velocidade={-0.22} />
+      <div className="pg-wrap pg-hero pg-hero--compacto">
       <div>
       <p className="crumb"><a href="#" data-open-menu="m-plat">Plataforma</a> · Brennimark Fonts</p>
       <Titulo como="h1" className="pg-h1" partes={["O gerenciador de fontes feito para quem trabalha com marcas."]} />
       <p className="pg-lead">Biblioteca local, ativação confiável e fontes organizadas por marca e por cliente. A meta é ser o melhor gerenciador de fontes para diretores de arte, agências e estúdios.</p>
-      <p className="fx-beta"><b>Beta fechado, gratuito, por convite</b> · 90 dias · macOS e Windows · Linux em preparação</p>
-      <div className="pg-actions"><a className="btn" href={PEDIR_ACESSO}>Pedir acesso ao beta <span className="arrow" aria-hidden="true">↗</span></a><a className="btn btn--ghost" href={AVISAR_LANCAMENTO}>Avisar-me do lançamento <span className="arrow" aria-hidden="true">→</span></a></div>
+      <p className="fx-beta"><b>Beta fechado, gratuito, por convite</b> · só os 50 primeiros · 90 dias · macOS e Windows · Linux em preparação</p>
+      <div className="pg-actions"><PedirConviteDoFonts rotulo="Pedir acesso ao beta" /><a className="btn btn--ghost" href={AVISAR_LANCAMENTO}>Avisar-me do lançamento <span className="arrow" aria-hidden="true">→</span></a></div>
       </div>
       <div className="frame"><div className="mk" role="img" aria-label="Janela do Brennimark Fonts: famílias de uma marca, com um kit pronto para ativar e um conflito de nomes avisado"><div className="mk-bar"><b>Brennimark Fonts</b><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Beta</span></div><div className="mk-body fx-demo">
       <div><b>Kit · Marca Exemplo</b><span>3 famílias · 11 estilos</span><em>Ativar kit</em></div>
@@ -167,7 +164,7 @@ export function ConteudoFonts() {
       <section className="pg-sec">
       <div className="pg-wrap">
       <div className="sec-head"><p className="eyebrow">Beta e instalação</p><Titulo className="h2" partes={["O que esperar ao instalar."]} /></div>
-      <div className="steps"><div className="stp"><b>Beta gratuito, por convite</b><p>Para poucos testadores, em macOS e Windows. Cada convite vale 90 dias. Pode ter falhas e mudar. Linux vem depois.</p><small>90 dias</small></div><div className="stp"><b>Aviso do sistema</b><p>O instalador ainda não é assinado. O macOS e o Windows vão avisar que a origem não é verificada; a seção de perguntas mostra o passo a passo.</p><small>Esperado</small></div><div className="stp"><b>Lançamento oficial</b><p>Vem em breve, com instalador assinado e licença anual. Terminados os 90 dias, quem testou passa para a versão paga em condição de lançamento, a anunciar.</p><small>Em breve</small></div></div>
+      <div className="steps"><div className="stp"><b>Beta gratuito, por convite</b><p>Só os 50 primeiros pedidos aprovados, em macOS e Windows. Cada convite vale 90 dias. Pode ter falhas e mudar. Linux vem depois.</p><small>90 dias</small></div><div className="stp"><b>Aviso do sistema</b><p>O instalador ainda não é assinado. O macOS e o Windows vão avisar que a origem não é verificada; a seção de perguntas mostra o passo a passo.</p><small>Esperado</small></div><div className="stp"><b>Lançamento oficial</b><p>Vem em breve, com instalador assinado e licença anual. Terminados os 90 dias, quem testou passa para a versão paga em condição de lançamento, a anunciar.</p><small>Em breve</small></div></div>
       </div>
       </section>
 

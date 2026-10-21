@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FORMATOS, GRUPOS, formatoPorId, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
+import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
 import { calcularGrid, escolhasPadrao, formatar, type Escolhas, type Grid, type Proporcao } from "@/lib/grids/calcular";
 import { montarIdml } from "@/lib/grids/idml";
 import { montarPdf } from "@/lib/grids/pdf";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
+import { useCadastroParaBaixar } from "./CadastroParaBaixar";
 
 /** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
 const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
@@ -85,6 +86,7 @@ export type ModoMarca = {
 };
 
 export function Grids({ marca }: { marca?: ModoMarca } = {}) {
+  const { pedir, dialogo } = useCadastroParaBaixar("grids", { ativo: !marca });
   const [formatoId, setFormatoId] = useState("a4");
   const formato = formatoPorId(formatoId);
   const inicial = (f: Formato) => (marca ? marca.aplicar(f) : escolhasPadrao(f));
@@ -123,6 +125,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
 
   return (
     <div ref={raiz} data-grids className="grid min-h-[calc(100dvh-var(--shell-topbar))] lg:grid-cols-[400px_1fr]">
+      {dialogo}
       <aside className="flex flex-col gap-7 border-platform-border p-6 lg:border-r">
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo 1</p>
@@ -130,11 +133,12 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
           <Dica texto={dicaDe("grids-formato")} lado="baixo"><select data-grids-formato className={CAMPO} value={formatoId} onChange={(e) => trocarFormato(e.target.value)}>
             {GRUPOS.map((g) => (
               <optgroup key={g.id} label={g.nome}>
-                {FORMATOS.filter((f) => f.grupo === g.id).map((f) => (
+                {FORMATOS.filter((f) => f.grupo === g.id && (marca || FORMATOS_GRATIS.has(f.id))).map((f) => (
                   <option key={f.id} value={f.id}>{f.nome} — {String(f.largura).replace(".", ",")} × {String(f.altura).replace(".", ",")} {f.unidade}</option>
                 ))}
               </optgroup>
             ))}
+            {!marca && <option disabled data-grids-formatos-bloqueados>{`+ ${FORMATOS.length - FORMATOS_GRATIS.size} formatos, como livro, cartaz e carreiras: no plano de assinatura`}</option>}
           </select></Dica>
           <p data-grids-fonte className="text-[12px] leading-snug text-platform-text-muted">
             Medida: {formato.fonte}.{formato.corpo ? ` Corpo de texto da proposta: ${formato.corpo}.` : ""}
@@ -196,7 +200,15 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
           )}
         </section>
 
-        {!formato.livro && (
+        {!formato.livro && !marca && (
+          <section className="flex flex-col gap-3" data-grids-desconstrucao-bloqueada>
+            <p className={ROTULO}>Passo 3 · assinante</p>
+            <h2 className={PASSO}>Desconstrução</h2>
+            <p className="text-[12.5px] leading-snug text-platform-text-muted">Grid sobreposto e grid rotacionado, cada um numa camada própria do InDesign, são do plano de assinatura.</p>
+          </section>
+        )}
+
+        {!formato.livro && marca && (
           <section className="flex flex-col gap-3">
             <p className={ROTULO}>Passo 3 · opcional</p>
             <h2 className={PASSO}>Desconstrução</h2>
@@ -224,12 +236,12 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo {formato.livro ? 3 : 4}</p>
           <h2 className={PASSO}>Baixar</h2>
-          <Dica texto={dicaDe(marca ? "grids-baixar-idml" : "grids-baixar-idml-gratis")} lado="cima"><button type="button" data-grids-baixar-idml onClick={() => (marca ? marca.baixar({ grid, formato, escolhas }) : baixar("idml"))}
+          <Dica texto={dicaDe(marca ? "grids-baixar-idml" : "grids-baixar-idml-gratis")} lado="cima"><button type="button" data-grids-baixar-idml onClick={() => (marca ? marca.baixar({ grid, formato, escolhas }) : pedir(() => baixar("idml")))}
             disabled={grid.avisos.some((a) => a.startsWith("As margens somam")) || Boolean(marca?.baixando)}
             className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
             {marca ? (marca.baixando ? "Montando o pacote…" : "Baixar para o InDesign (.idml + Links)") : "Baixar para o InDesign (.idml)"}
           </button></Dica>
-          <Dica texto={dicaDe("grids-baixar-pdf")} lado="cima"><button type="button" data-grids-baixar-pdf onClick={() => (marca?.baixarPdf ? marca.baixarPdf({ grid, formato, escolhas }) : baixar("pdf"))} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
+          <Dica texto={dicaDe("grids-baixar-pdf")} lado="cima"><button type="button" data-grids-baixar-pdf onClick={() => (marca?.baixarPdf ? marca.baixarPdf({ grid, formato, escolhas }) : pedir(() => baixar("pdf")))} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
             PDF de referência (outros programas)
           </button></Dica>
           <p className="text-[12px] leading-snug text-platform-text-muted">
