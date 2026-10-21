@@ -58,7 +58,11 @@ concurrency:
 jobs:
   verify:
     name: Lint, tipos, testes, build e navegador
-    runs-on: ubuntu-latest
+    # Fixado em 20/10/2026: `ubuntu-latest` passou a ser o 26.04 e o WebKit em cache
+    # (compilado para o 24.04) deixou de abrir — `libicudata.so.74` ausente, 102 falhas
+    # em `webkit-importador`, sem relação com o código. Subir a versão é decisão, com
+    # o cache dos navegadores invalidado junto.
+    runs-on: ubuntu-24.04
     # 45, e não 20 (01/10/2026): o #77 foi cortado três vezes com a suíte
     # inteira verde, porque baixar os navegadores levou de 5 a 19 minutos. O
     # cache abaixo tira o download do caminho; a folga cobre a execução que
