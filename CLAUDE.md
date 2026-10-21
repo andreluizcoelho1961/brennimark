@@ -205,6 +205,8 @@ Garantia que ninguém reexecuta é garantia que alguém remove numa refatoraçã
 - `scripts/prova-manifesto-por-pagina.sh` — as constraints do documento-fonte
 - `scripts/prova-da-demonstracao.sh` — o tour: entrada só de login anônimo, contador, vencidos e a
   autorização negativa do visitante
+- `scripts/prova-do-visitante-sem-vinculo.sh` — com o login anônimo ligado, `authenticated` é qualquer
+  um: mede policies, RLS, tabelas e funções que um estranho alcança. Exceção nova é decisão, com motivo
 
 **Prova confere o NOME EXATO da constraint**, não "algum erro". Uma versão anterior tratava
 qualquer `violates` como sucesso, e um caso cuja preparação falhava passava sem nunca alcançar a

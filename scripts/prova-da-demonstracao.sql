@@ -16,6 +16,8 @@
 --   G. Apagar o login do visitante funciona e deixa o consumo no razão com
 --      `user_id` nulo (o razão precisa bater com o custo).
 --   H. As constraints da configuração e do visitante, pelo NOME EXATO.
+--   I. (fatia 2a) O perfil do visitante e o destino da entrada, e a lista de
+--      órfãos: só login anônimo, só sem sessão de tour, só depois de 2 h.
 --
 -- Cada caso usa dados próprios: dado compartilhado entre casos foi o que
 -- produziu o falso positivo da prova anterior (CLAUDE.md, "Provas versionadas").
@@ -200,10 +202,10 @@ end $$;
 
 -- ═══ C. A entrada ═══════════════════════════════════════════════════════════
 do $$
-declare m mundo%rowtype; e1 timestamptz; e2 timestamptz;
+declare m mundo%rowtype; e1 timestamptz; e2 timestamptz; d_conta text; d_marca text;
 begin
   select * into m from mundo;
-  e1 := public.demonstracao_entrar(m.v1);
+  select r.expira_em, r.conta_slug, r.marca_key into e1, d_conta, d_marca from public.demonstracao_entrar(m.v1) r;
   perform pg_temp.registrar('C1 a validade é de cerca de 24 h', 'true',
     (e1 > now() + interval '23 hours' and e1 <= now() + interval '24 hours 1 minute')::text);
   perform pg_temp.registrar('C2 o visitante tem UMA linha de marca', '1',
@@ -232,6 +234,23 @@ begin
   delete from public.brand_members where user_id = m.real;
   perform pg_temp.registrar('C10 e a revogação dela também', '1',
     (select count(*)::text from public.brand_access_log where pessoa = m.real and acao = 'revogado'));
+
+  -- A fatia 2a: perfil e destino.
+  perform pg_temp.registrar('C11 a entrada devolve a conta do tour', (select slug from public.workspaces where id = m.conta_a), d_conta);
+  perform pg_temp.registrar('C12 e a marca do tour', 'dm-tour', d_marca);
+  perform pg_temp.registrar('C13 o visitante ganhou perfil com nome', 'Visitante',
+    (select full_name from public.profiles where id = m.v1));
+  perform pg_temp.registrar('C14 com e-mail sintético que nunca entrega', 'true',
+    (select (email = 'visitante-' || replace(m.v1::text, '-', '') || '@visitante.invalid')::text from public.profiles where id = m.v1));
+  perform pg_temp.registrar('C15 entrar de novo não duplica o perfil', '1',
+    (select count(*)::text from (select 1 from public.demonstracao_entrar(m.v1)) x, public.profiles p where p.id = m.v1));
+  perform pg_temp.registrar('C16 criar o perfil NÃO abriu conta nenhuma: o único vínculo é o do tour', '1',
+    (select count(*)::text from public.workspace_members where user_id = m.v1));
+  perform pg_temp.registrar('C17 nenhuma concessão pendente foi convertida para o visitante', '0',
+    (select count(*)::text from public.concessoes_de_acesso where convertida_para = m.v1));
+  perform public.demonstracao_entrar(m.v2);   -- o v2 entra aqui e segue no tour para os casos D
+  perform pg_temp.registrar('C18 dois visitantes não dividem o mesmo e-mail sintético', '2',
+    (select count(distinct email)::text from public.profiles where id in (m.v1, m.v2)));
 end $$;
 
 -- ═══ D. Autorização negativa ════════════════════════════════════════════════
@@ -299,6 +318,12 @@ begin
     pg_temp.chama_como('anon', 'select count(*)::text from public.demonstracao_visitantes'));
   perform pg_temp.registrar('D25 o contador do v1 segue em zero depois de tudo', '0',
     (select perguntas_feitas::text from public.demonstracao_visitantes where user_id = m.v1));
+  perform pg_temp.registrar('D26 v1 lê só o próprio perfil', '1',
+    pg_temp.como(m.v1, 'select count(*)::text from public.profiles'));
+  perform pg_temp.registrar('D27 v1 não lê o perfil do v2', '0',
+    pg_temp.como(m.v1, format('select count(*)::text from public.profiles where id = %L', m.v2)));
+  perform pg_temp.registrar('D28 v1 não lê o perfil do dono da conta', '0',
+    pg_temp.como(m.v1, format('select count(*)::text from public.profiles where id = %L', m.dono_a)));
 end $$;
 
 -- ═══ E. O contador ══════════════════════════════════════════════════════════
@@ -414,6 +439,43 @@ begin
     pg_temp.constraint_de(format('update private.demonstracao_config set brand_id = %L', m.marca_b)));
   perform pg_temp.registrar('H6 contador negativo é recusado', 'demonstracao_visitantes_perguntas_feitas_check',
     pg_temp.constraint_de(format('update public.demonstracao_visitantes set perguntas_feitas = -1 where user_id = %L', m.v1)));
+end $$;
+
+-- ═══ I. Os órfãos (fatia 2a) ═══════════════════════════════════════════════
+do $$
+declare
+  m mundo%rowtype;
+  u_velho   uuid := 'd0d0d0d0-0000-4000-8000-0000000000b5';
+  u_recente uuid := 'd0d0d0d0-0000-4000-8000-0000000000b6';
+begin
+  select * into m from mundo;
+  perform pg_temp.entrar_anonimo(u_velho);
+  perform pg_temp.entrar_anonimo(u_recente);
+  update auth.users set created_at = now() - interval '3 hours' where id = u_velho;
+  update auth.users set created_at = now() - interval '10 minutes' where id = u_recente;
+  -- Controles: um visitante COM sessão, antigo; e uma conta real, antiga.
+  update auth.users set created_at = now() - interval '5 hours' where id = m.v1;
+  update auth.users set created_at = now() - interval '1 day' where id = m.real;
+
+  perform pg_temp.registrar('I1 só o anônimo antigo e sem sessão de tour é órfão', '1',
+    (select count(*)::text from public.demonstracao_orfaos()));
+  perform pg_temp.registrar('I2 e é ele', u_velho::text,
+    (select string_agg(o::text, ',') from public.demonstracao_orfaos() o));
+  perform pg_temp.registrar('I3 o anônimo recente ainda não é órfão (o captcha pode estar em curso)', '0',
+    (select count(*)::text from public.demonstracao_orfaos() o where o = u_recente));
+  perform pg_temp.registrar('I4 visitante com sessão de tour nunca é órfão, por mais antigo que seja', '0',
+    (select count(*)::text from public.demonstracao_orfaos() o where o = m.v1));
+  perform pg_temp.registrar('I5 conta REAL antiga e sem sessão de tour nunca é órfã', '0',
+    (select count(*)::text from public.demonstracao_orfaos() o where o = m.real));
+  perform pg_temp.registrar('I6 authenticated não lista os órfãos', '42501',
+    pg_temp.chama_como('authenticated', 'select count(*)::text from public.demonstracao_orfaos()'));
+  perform pg_temp.registrar('I7 anon não lista os órfãos', '42501',
+    pg_temp.chama_como('anon', 'select count(*)::text from public.demonstracao_orfaos()'));
+
+  -- Apagar o órfão (o que a rotina faz) não deixa rastro.
+  delete from auth.users where id = u_velho;
+  perform pg_temp.registrar('I8 apagado o órfão, a lista esvazia', '0',
+    (select count(*)::text from public.demonstracao_orfaos()));
 end $$;
 
 -- Apagar a marca muda o mundo — por isso fica por último.
