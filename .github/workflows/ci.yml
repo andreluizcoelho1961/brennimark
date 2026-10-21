@@ -109,12 +109,19 @@ jobs:
       # Os navegadores ficam em cache entre execuções, pela versão do lockfile:
       # o download (~500 MB) era o passo mais lento e o mais instável do CI.
       # Com o cache, só as dependências do sistema são instaladas.
+      #
+      # A chave leva a IMAGEM do runner, não só `runner.os` (que vale "Linux"
+      # para qualquer Ubuntu). Em 21/10/2026 o cache preenchido em
+      # ubuntu-26.04 — WebKit compilado para ele, ligado a libicu78 — foi
+      # restaurado depois da fixação em ubuntu-24.04, que não tem essa
+      # biblioteca: 102 testes de WebKit caíam de uma vez, no PR #155 e em
+      # todo PR seguinte. Trocar o runner acima exige trocar o texto abaixo.
       - name: Cache dos navegadores
         id: cache-navegadores
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-ubuntu-24.04-${{ hashFiles('package-lock.json') }}
 
       - name: Navegadores do Playwright
         if: steps.cache-navegadores.outputs.cache-hit != 'true'
