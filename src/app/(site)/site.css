@@ -59,6 +59,8 @@ body:has(.bm-site){overflow:hidden}
 
 /* ---------- cabeçalho ---------- */
 .bm-site .site-head{position:fixed;z-index:10;left:0;right:0;top:0;height:calc(var(--head) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) 4.5vw 0;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:32px}
+/* As ferramentas gratuitas levam só o cabeçalho do site: ele fica fixo também no celular. */
+.bm-site.on-tool .site-head{position:fixed}
 .bm-site .lockup{display:block;width:196px;color:var(--text)}
 .bm-site .lockup svg{display:block;width:100%;height:auto}
 .bm-site .site-nav{margin-left:auto;display:flex;gap:28px;font-size:13px;color:var(--muted)}

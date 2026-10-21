@@ -10,6 +10,7 @@ import { ColunaDaPlataforma } from "./ColunaDaPlataforma";
 import { gruposDaGaveta, type DestinoDaMarca, type GrupoDaColuna } from "./coluna";
 import { JanelaDoVini } from "@/components/vini/JanelaDoVini";
 import { NavigationDrawer } from "./NavigationDrawer";
+import { AjudaDaMoldura } from "@/components/ajuda/AjudaDaMoldura";
 import { PlatformTopBar } from "./PlatformTopBar";
 import { AvisoDaCobranca } from "./AvisoDaCobranca";
 import type { ShellSection } from "./navigation";
@@ -309,6 +310,8 @@ export function AppShellV2({
           <JanelaDoVini key={basePath} destinos={vini} basePath={basePath} />
         </div>
       )}
+
+      <AjudaDaMoldura />
 
       <NavigationDrawer
         open={modal === "nav"}

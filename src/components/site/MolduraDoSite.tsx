@@ -45,16 +45,27 @@ export function MolduraDoSite({ pagina = false, children }: { pagina?: boolean; 
         </svg>
       </button>
       {children}
-      <dialog id="dlg-demo" aria-labelledby="dlg-demo-t">
-        <button className="dlg-close" type="button" data-close aria-label="Fechar">
-          ×
-        </button>
-        <h2 id="dlg-demo-t">Vamos mostrar o Brennimark funcionando.</h2>
-        <p>Escreva para a equipe comercial. Marcamos com você uma demonstração presencial, na sua agência, ou por vídeo.</p>
-        <span className="addr">‹e-mail comercial a definir›</span>
-        <p>Protótipo: o endereço de contato ainda não existe.</p>
-      </dialog>
+      <DialogoDeDemonstracao />
       <ComportamentoDoSite />
     </div>
+  );
+}
+
+/**
+ * O diálogo de contato do botão "Agendar demonstração". Separado para as
+ * ferramentas gratuitas o terem também: o cabeçalho do site vai ao topo delas,
+ * e o botão dele precisa de onde abrir.
+ */
+export function DialogoDeDemonstracao() {
+  return (
+    <dialog id="dlg-demo" aria-labelledby="dlg-demo-t">
+      <button className="dlg-close" type="button" data-close aria-label="Fechar">
+        ×
+      </button>
+      <h2 id="dlg-demo-t">Vamos mostrar o Brennimark funcionando.</h2>
+      <p>Escreva para a equipe comercial. Marcamos com você uma demonstração presencial, na sua agência, ou por vídeo.</p>
+      <span className="addr">‹e-mail comercial a definir›</span>
+      <p>Protótipo: o endereço de contato ainda não existe.</p>
+    </dialog>
   );
 }

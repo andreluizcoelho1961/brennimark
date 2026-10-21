@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
 import { Cores } from "@/components/ferramentas/Cores";
 import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
+import { AbrirEmJanela } from "@/components/ferramentas/AbrirEmJanela";
 
 export const metadata: Metadata = {
   title: "Brennimark Cores — que cor é essa?",
@@ -22,7 +23,8 @@ export default function PaginaDoCores() {
         <p className="mt-2 max-w-[44rem] text-[15px] leading-relaxed text-platform-text-muted">
           Pegue uma cor de qualquer lugar da tela e saiba os códigos, um nome em português, se dá para ler texto sobre ela e como ela aparece para quem não enxerga certas cores. Gratuito, com um cadastro rápido na hora de exportar. Nada sai do seu computador.
         </p>
-        <div className="mt-4 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+        <div className="mt-4 flex flex-wrap items-center gap-2 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AbrirEmJanela ferramenta="cores" />
           <AjudaDaFerramenta ferramenta="cores" audiencia="site" />
         </div>
       </div>
