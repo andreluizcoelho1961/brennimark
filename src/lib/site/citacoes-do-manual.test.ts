@@ -5,13 +5,14 @@ import path from "node:path";
 
 /**
  * O site cita páginas do manual do Brennimark, e o manual de exemplo dentro da
- * plataforma é a edição de demonstração, de 33 páginas (30/09/2026). Quem
- * visita o site e abre o manual precisa achar a regra na página citada.
+ * plataforma é a edição de demonstração. Desde 22/10/2026 é a versão 0.3, de
+ * 42 páginas (era a de 33, de 30/09/2026): o manual que inaugura a plataforma.
+ * Quem visita o site e abre o manual precisa achar a regra na página citada.
  *
  * A versão completa (v0.2) tem 64 páginas e numeração diferente: uma citação
  * copiada dela aponta para outra página, ou para uma que não existe.
  */
-const PAGINAS_DA_DEMONSTRACAO = 33;
+const PAGINAS_DA_DEMONSTRACAO = 42;
 const PASTA = path.join(process.cwd(), "src/components/site");
 
 function arquivosDoSite(pasta: string): string[] {
@@ -39,6 +40,16 @@ test("toda página citada existe na edição de demonstração", () => {
   }
   assert.ok(citacoes > 10, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
   assert.deepEqual(fora, [], "página além da edição de demonstração");
+});
+
+// Na v0.3 a área de proteção do logotipo e a do símbolo ficaram numa página só
+// (a 10), e a paleta primária passou à 14. Citação com a numeração antiga leva a
+// pessoa à página errada sem dar erro nenhum.
+test("as citações usam a numeração da versão 0.3", () => {
+  const tudo = fontes.map((f) => f.texto).join("\n");
+  assert.doesNotMatch(tudo, /Manual, p\. 9\b|Área de proteção do símbolo · p\.|Cores, p\. 13|p\. 24–26|p\. 4–12/);
+  assert.match(tudo, /Manual, p\. 10\b/);
+  assert.match(tudo, /Paleta de cores primárias · p\. 14/);
 });
 
 test("o fólio e a contagem do manual são os da edição de demonstração", () => {
