@@ -146,7 +146,7 @@ export function JanelaDoVini({
           onDrop={temAnalise ? (e) => { e.preventDefault(); setArrastando(false); void receber(e.dataTransfer.files[0]); } : undefined}
           className={`pointer-events-auto relative flex flex-col overflow-hidden rounded-[var(--radius-entry,12px)] border bg-platform-panel shadow-[0_16px_40px_rgba(0,0,0,0.28)] ${
             modo !== "conversa"
-              ? "h-[calc(100dvh-6.5rem)] w-[min(37.5rem,calc(100vw-2rem))]"
+              ? "h-[calc(100dvh-11rem)] w-[min(37.5rem,calc(100vw-2rem))]"
               : "h-[min(70dvh,40rem)] w-[min(27.5rem,calc(100vw-2rem))]"
           } ${arrastando ? "border-platform-signal" : "border-platform-border"}`}
         >
