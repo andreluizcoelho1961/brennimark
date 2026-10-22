@@ -691,8 +691,10 @@ body:has(.bm-site.mnav-open){overflow:hidden}
 :where(html[data-site-movimento] .bm-site) :where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage):not(:where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage) *){transition:opacity .9s var(--ease) var(--d,0ms),transform 1.1s var(--ease) var(--d,0ms)}
 :where(html[data-site-movimento] .bm-site) :where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage):not(:where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage) *):not(.in){opacity:0;transform:translateY(70px)}
 
-/* títulos que surgem palavra por palavra */
-.bm-site .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em}
+/* títulos que surgem palavra por palavra. A folga à direita (compensada pela
+   margem negativa) é a do itálico: a ponta inclinada passa da largura da
+   palavra, e o overflow cortava "Veja como funciona." (22/10/2026). */
+.bm-site .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em;padding-right:.14em;margin-right:-.14em}
 .bm-site .w>span{display:inline-block}
 :where(html[data-site-movimento] .bm-site) .split .w>span{transform:translateY(110%) rotate(4deg);transform-origin:0 100%;transition:transform 1s var(--ease) calc(var(--i,0) * 45ms)}
 :where(html[data-site-movimento] .bm-site) .split.in .w>span{transform:none}
@@ -1063,3 +1065,24 @@ body:has(.home-v){overflow:auto}
 .bm-site .tour-copy .more{white-space:nowrap}
 .bm-site .tour-tab[aria-selected="true"] span{color:var(--text);opacity:.82}
 .bm-site .tour-tela .app{min-height:360px}
+
+/* ---------- as telas reais do tour (22/10/2026) ----------
+ * A captura da plataforma e, por cima, os destaques em Brasa que acendem no
+ * roteiro (`passo`). A caixa fica em %, então acompanha a imagem em qualquer
+ * largura. O rótulo sai acima da caixa; no celular, some (a imagem é pequena
+ * demais para ler o rótulo e a tela ao mesmo tempo). */
+.bm-site .tela-real{padding:8px}
+.bm-site .tela-real-img{position:relative;border-radius:6px;overflow:hidden;line-height:0}
+.bm-site .tela-real-img img{width:100%;height:auto;display:block}
+.bm-site .tela-real .destaque{position:absolute;border:2px solid var(--brasa);border-radius:8px;box-shadow:0 0 0 4px rgba(255,65,3,.16);pointer-events:none}
+.bm-site .tela-real .destaque em{position:absolute;left:-2px;bottom:calc(100% + 4px);font:600 11px/1.2 var(--sans,inherit);font-style:normal;white-space:nowrap;color:#fff;background:var(--brasa);padding:4px 7px;border-radius:5px;letter-spacing:.01em}
+@media (max-width:767px){.bm-site .tela-real .destaque em{display:none}}
+.bm-site .tela-real .destaque[data-abaixo] em{bottom:auto;top:calc(100% + 4px)}
+.bm-site .tela-real .destaque[data-direita] em{left:auto;right:-2px}
+/* a câmera: aproxima a região que importa no passo dela */
+.bm-site .tela-camera{position:relative;transform-origin:0 0}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera{animation:bm-camera 1.4s var(--ease) calc(var(--p) * .8s) forwards}
+@keyframes bm-camera{from{transform:none}to{transform:var(--alvo)}}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque{border-width:calc(2px / var(--z,1));border-radius:calc(8px / var(--z,1));box-shadow:0 0 0 calc(4px / var(--z,1)) rgba(255,65,3,.16)}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque em{font-size:calc(11px / var(--z,1));padding:calc(4px / var(--z,1)) calc(7px / var(--z,1));border-radius:calc(5px / var(--z,1));bottom:calc(100% + 4px / var(--z,1))}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque[data-abaixo] em{bottom:auto;top:calc(100% + 4px / var(--z,1))}
