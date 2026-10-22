@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { PAGINAS_FUNDIDAS } from "./src/lib/site/paginas";
 
 /**
  * A guarda vigiava o NOME ERRADO, e por isso não guardava nada.
@@ -54,6 +55,10 @@ const supabaseImagem = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  // Páginas do site que viraram bloco de outra (22/10/2026): 308, antes do proxy.
+  async redirects() {
+    return PAGINAS_FUNDIDAS.map(({ de, para }) => ({ source: de, destination: para, permanent: true }));
+  },
   images: {
     /*
      * Achado da auditoria de produto (04/09): sem isto, `next/image` não

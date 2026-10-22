@@ -30,15 +30,10 @@ export const PAGINAS_DO_SITE: readonly PaginaDoSite[] = [
   { slug: "manual", titulo: "O manual em PDF", resumo: "Fiel ao que o estúdio diagramou, com índice e busca", grupo: "plataforma" },
   { slug: "materiais", titulo: "Materiais da marca", resumo: "O kit inteiro num clique, com a regra junto", grupo: "plataforma" },
   { slug: "vini", titulo: "Vini Max", resumo: "Consulta, revisão de peça e prompts alinhados à marca", grupo: "plataforma" },
-  { slug: "entrega", titulo: "Entrega e acesso", resumo: "Link com prazo e acesso por marca", grupo: "plataforma" },
-  { slug: "complementos", titulo: "Complementos e lacunas", resumo: "O que o manual não diz, escrito e citado", grupo: "plataforma" },
-  { slug: "studio", titulo: "Studio", resumo: "Onde a agência publica e cuida da marca", grupo: "plataforma" },
   { slug: "seguranca", titulo: "Segurança e privacidade", resumo: "Acesso por marca, conversas privadas, dados seus", grupo: "plataforma" },
   { slug: "agencias", titulo: "Agências e estúdios", resumo: "A marca entregue pronta para usar", grupo: "para-quem" },
   { slug: "empresas", titulo: "Empresas", resumo: "Fornecedores e equipes com a mesma referência", grupo: "para-quem" },
-  { slug: "novidades", titulo: "Novidades", resumo: "O que entrou no produto", grupo: "recursos" },
   { slug: "ajuda", titulo: "Central de ajuda", resumo: "Guias e perguntas frequentes", grupo: "recursos" },
-  { slug: "suporte", titulo: "Suporte", resumo: "Fale com a equipe sobre um problema", grupo: "recursos" },
   { slug: "manifesto", titulo: "Manifesto", resumo: "Por que a Brennimark existe", grupo: "recursos" },
   { slug: "termos", titulo: "Termos de uso", resumo: "As condições de uso da plataforma", grupo: "institucional" },
   { slug: "privacidade", titulo: "Privacidade", resumo: "Como os dados são tratados", grupo: "institucional" },
@@ -70,3 +65,17 @@ export const CAPITULOS_DA_HOME = [
   { id: "planos", titulo: "Planos" },
   { id: "demonstracao", titulo: "Demonstração" },
 ] as const;
+
+/**
+ * As páginas que viraram bloco de outra (22/10/2026). O `next.config` as
+ * redireciona em definitivo (308) ANTES do `proxy`, e por isso elas não
+ * precisam de lugar na lista de caminhos públicos. Quem tinha o link salvo,
+ * ou o buscador, chega no bloco certo.
+ */
+export const PAGINAS_FUNDIDAS: readonly { de: string; para: string }[] = [
+  { de: "/entrega", para: "/materiais#entrega" },
+  { de: "/complementos", para: "/manual#complementos" },
+  { de: "/studio", para: "/agencias#studio" },
+  { de: "/suporte", para: "/ajuda#suporte" },
+  { de: "/novidades", para: "/ajuda#novidades" },
+];

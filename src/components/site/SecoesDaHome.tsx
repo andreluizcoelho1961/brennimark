@@ -108,9 +108,9 @@ export function SecoesDaHome() {
               <article className="feat-card"><i>01</i><h3>Manual fiel, do jeito que o estúdio diagramou.</h3><p>O PDF aparece inteiro, com índice e busca. Nada é remontado.</p><Link className="more" href="/manual">O manual em PDF <span aria-hidden="true">→</span></Link></article>
               <article className="feat-card"><i>02</i><h3>Pergunte. O Vini responde com a página.</h3><p>Cita o manual, mostra a página e diz quando não há diretriz documentada.</p><Link className="more" href="/vini">Consultar com o Vini <span aria-hidden="true">→</span></Link></article>
               <article className="feat-card"><i>03</i><h3>Uma segunda leitura antes de enviar.</h3><p>Solte a peça na janela do Vini: ele compara com a paleta e as regras, e mostra a página de cada achado.</p><Link className="more" href="/vini">Analisar uma peça <span aria-hidden="true">→</span></Link></article>
-              <article className="feat-card"><i>04</i><h3>A sua ideia, com a marca no prompt.</h3><p>O Vini acrescenta cores, luz e o que evitar, com a fonte de cada linha. Só orientação aprovada entra.</p><Link className="more" href="/complementos">Complementos e lacunas <span aria-hidden="true">→</span></Link></article>
+              <article className="feat-card"><i>04</i><h3>A sua ideia, com a marca no prompt.</h3><p>O Vini acrescenta cores, luz e o que evitar, com a fonte de cada linha. Só orientação aprovada entra.</p><Link className="more" href="/manual#complementos">Complementos e lacunas <span aria-hidden="true">→</span></Link></article>
               <article className="feat-card"><i>05</i><h3>O kit inteiro, com a regra de cada arquivo.</h3><p>Logo, ícones, cores e a fonte da marca num pacote. Convide equipe e fornecedores sem pagar por pessoa.</p><Link className="more" href="/materiais">Materiais da marca <span aria-hidden="true">→</span></Link></article>
-              <article className="feat-card"><i>06</i><h3>Entrega por link com prazo.</h3><p>A gráfica recebe a versão atual, e o acesso expira. Uma orientação nova aprovada já vale para todos.</p><Link className="more" href="/entrega">Entrega e acesso <span aria-hidden="true">→</span></Link></article>
+              <article className="feat-card"><i>06</i><h3>Entrega por link com prazo.</h3><p>A gráfica recebe a versão atual, e o acesso expira. Uma orientação nova aprovada já vale para todos.</p><Link className="more" href="/materiais#entrega">Entrega e acesso <span aria-hidden="true">→</span></Link></article>
             </div>
           </div>
         </section>
@@ -233,7 +233,7 @@ export function SecoesDaHome() {
             </div>
             <footer className="site-foot">
               <Link className="lockup" href="/" aria-label="Brennimark, voltar ao início"><svg viewBox="0 0 750 170" role="img" aria-label="Brennimark"><use href="#bm-logo" /></svg></Link>
-              <nav className="foot-links" aria-label="Institucional"><Link href="/manifesto">Manifesto</Link><Link href="/suporte">Suporte</Link><Link href="/termos">Termos</Link><Link href="/privacidade">Privacidade</Link><Link href="/licenca-de-fontes">Licença de fontes</Link></nav>
+              <nav className="foot-links" aria-label="Institucional"><Link href="/manifesto">Manifesto</Link><Link href="/ajuda#suporte">Suporte</Link><Link href="/termos">Termos</Link><Link href="/privacidade">Privacidade</Link><Link href="/licenca-de-fontes">Licença de fontes</Link></nav>
               <LinksDasFerramentas />
               <span className="foot-empresa" data-empresa>{EMPRESA.nome}, {EMPRESA.natureza} · CNPJ {EMPRESA.cnpj} · {ENDERECO_COMPLETO} · {EMPRESA.email}</span>
             </footer>

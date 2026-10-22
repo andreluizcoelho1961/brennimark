@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { CAPITULOS_DA_HOME, PAGINAS_DO_SITE } from "../src/lib/site/paginas";
+import { CAPITULOS_DA_HOME, PAGINAS_DO_SITE, PAGINAS_FUNDIDAS } from "../src/lib/site/paginas";
 
 /**
  * O site público, remontado do protótipo (29/09/2026) — fatia 1: a home e a
@@ -305,5 +305,20 @@ test("as funcionalidades e as ferramentas da home levam a páginas que existem",
   for (const href of new Set(destinos)) {
     const r = await request.get(href as string);
     expect(r.status(), String(href)).toBe(200);
+  }
+});
+
+test("as páginas fundidas redirecionam para o bloco certo", async ({ request }) => {
+  for (const { de, para } of PAGINAS_FUNDIDAS) {
+    const r = await request.get(de, { maxRedirects: 0 });
+    expect(r.status(), de).toBe(308);
+    expect(r.headers()["location"], de).toBe(para);
+  }
+});
+
+test("os blocos fundidos existem nas páginas de destino, com âncora", async ({ page }) => {
+  for (const [rota, id] of [["/materiais", "entrega"], ["/manual", "complementos"], ["/agencias", "studio"], ["/ajuda", "suporte"], ["/ajuda", "novidades"]]) {
+    await abrir(page, rota);
+    await expect(page.locator(`#${id}`), `${rota}#${id}`).toHaveCount(1);
   }
 });
