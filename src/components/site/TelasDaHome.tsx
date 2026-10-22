@@ -152,11 +152,11 @@ export function TelaMateriais() {
 
 export function TelaEntrega() {
   return (
-<div className="frame"><div className="mk" role="img" aria-label="Formulário de link de entrega: destinatário, materiais, validade e limite de downloads"><div className="mk-bar"><b>Novo link de entrega</b></div><div className="mk-body form">
+<div className="frame"><div className="mk" role="img" aria-label="Formulário de link de entrega: destinatário, materiais e validade"><div className="mk-bar"><b>Novo link de entrega</b></div><div className="mk-body form">
       <label>Para<span className="inp">grafica@exemplo.com.br</span></label>
       <label>Materiais<span className="inp chips"><em>Logotipo</em><em>Cores</em><em>Regras de uso</em></span></label>
       <label>Válido por<span className="inp">7 dias · expira em 04/10/2026</span></label>
-      <label>Downloads<span className="inp">até 3</span></label>
+      
       <div className="form-foot"><span className="mono" style={{ fontSize: "9.5px", color: "var(--app-muted)" }}>brennimark.com/e/7Qk2…</span><span className="mk-btn">Criar e copiar o link</span></div></div></div></div>
   );
 }

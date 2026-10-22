@@ -22,9 +22,13 @@ test("a /ajuda mostra categorias reais, todas com artigo, e cada cartão leva a 
 
 test("o FAQ não promete o que o produto não faz", async ({ page }) => {
   await page.goto("/ajuda");
-  await expect(page.locator(".faq")).not.toContainText("limite de downloads");
-  await expect(page.locator(".faq")).not.toContainText("uso adicional");
-  await expect(page.locator(".faq")).not.toContainText("No Studio, crie a marca");
+  // Desde 22/10/2026 a /ajuda tem dois FAQs (o geral e o do Suporte, que virou
+  // bloco dela); a regra vale para os dois.
+  await expect(page.locator(".faq").first()).toBeVisible();
+  const faqs = (await page.locator(".faq").allInnerTexts()).join(" ");
+  expect(faqs).not.toContain("limite de downloads");
+  expect(faqs).not.toContain("uso adicional");
+  expect(faqs).not.toContain("No Studio, crie a marca");
 });
 
 test("a busca encontra o artigo certo, sem acento e sem caixa", async ({ page }) => {

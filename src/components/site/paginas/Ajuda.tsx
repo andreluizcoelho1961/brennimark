@@ -51,7 +51,7 @@ export function ConteudoAjuda() {
       <section className="pg-sec">
       <div className="pg-wrap faq">
       <div><p className="eyebrow">Antes de escrever</p><Titulo className="h2" partes={["Talvez a resposta já esteja aqui."]} /></div>
-      <div><details open><summary>Não consigo ver uma marca.</summary><p>O acesso é por marca. Peça a quem gere a marca que convide você para ela.</p></details><details><summary>O link de entrega não abre.</summary><p>Ele pode ter expirado, atingido o limite de downloads ou sido cancelado. Peça um novo a quem enviou.</p></details><details><summary>A fonte não aparece para baixar.</summary><p>A fonte é só para membros da marca, depois de a licença ser aceita no envio. Por link de entrega, ela não vai.</p></details></div>
+      <div><details open><summary>Não consigo ver uma marca.</summary><p>O acesso é por marca. Peça a quem gere a marca que convide você para ela.</p></details><details><summary>O link de entrega não abre.</summary><p>Ele pode ter expirado ou sido cancelado. Peça um novo a quem enviou.</p></details><details><summary>A fonte não aparece para baixar.</summary><p>A fonte é só para membros da marca, depois de a licença ser aceita no envio. Por link de entrega, ela não vai.</p></details></div>
       </div>
       </section>
 

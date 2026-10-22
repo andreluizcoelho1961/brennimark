@@ -19,12 +19,12 @@ export function BlocosDeEntrega() {
       <div>
       <p className="eyebrow">Link de entrega</p>
       <Titulo className="h2" partes={["Para quem não tem conta, um link que expira."]} />
-      <p className="body">Escolha os materiais, o prazo e o número de downloads. O link para de funcionar sozinho, e cada uso fica registrado.</p>
-      <ul className="ticks"><li>Prazo e limite de downloads</li><li>Sem criar conta para o fornecedor</li><li>A fonte fica de fora: só membros da marca baixam</li></ul>
+      <p className="body">Escolha os materiais e o prazo. O link para de funcionar sozinho, e cada uso fica registrado.</p>
+      <ul className="ticks"><li>Prazo de validade</li><li>Sem criar conta para o fornecedor</li><li>A fonte fica de fora: só membros da marca baixam</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="O que o fornecedor recebe: a página do link com os materiais, o prazo e os downloads restantes"><div className="recv"><div className="recv-top"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div className="mk-body"><p className="recv-k">MATERIAIS DA MARCA BRENNIMARK</p><p className="recv-by">Enviados por Carolina Menezes · Estúdio Alvéolo</p>
+      <div className="frame"><div className="mk" role="img" aria-label="O que o fornecedor recebe: a página do link com os materiais, e o prazo"><div className="recv"><div className="recv-top"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div className="mk-body"><p className="recv-k">MATERIAIS DA MARCA BRENNIMARK</p><p className="recv-by">Enviados por Carolina Menezes · Estúdio Alvéolo</p>
       <div className="kit-row"><span className="ck">↓</span><b>Logotipo</b><em>SVG · PNG · PDF</em></div><div className="kit-row"><span className="ck">↓</span><b>Cores</b><em>ASE · PDF</em></div><div className="kit-row"><span className="ck">↓</span><b>Regras de uso</b><em>PDF</em></div>
-      <div className="kit-foot"><span>Válido até 04/10/2026 · 2 de 3 downloads restantes</span><span className="mk-btn">Baixar tudo</span></div></div></div></div></div>
+      <div className="kit-foot"><span>Válido até 04/10/2026</span><span className="mk-btn">Baixar tudo</span></div></div></div></div></div>
       </div>
 
       <div className="feat-row rev">
