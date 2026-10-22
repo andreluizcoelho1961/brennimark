@@ -13,12 +13,14 @@ import { TourDaPlataforma } from "./TourDaPlataforma";
  * A home em rolagem vertical (22/10/2026), refeita no mesmo dia para vender
  * na primeira tela: a abertura já lista o que tem dentro, e logo abaixo o tour
  * mostra a tela de cada recurso. Depois: antes × depois, o Vini, para quem é,
- * as ferramentas grátis, planos e chamada final.
+ * os depoimentos, as ferramentas grátis, planos e chamada final.
+ *
+ * Os depoimentos são de marcação, com "Depoimento fictício" no lugar do nome
+ * (decisão do André, 29/09 e de novo em 22/10): guardam o lugar até chegarem
+ * os depoimentos dos pilotos.
  *
  * Substitui os 14 capítulos do trilho horizontal. O texto e os estudos de tela
- * são os mesmos de antes (autoria do André); mudou a ordem e o corte. Os
- * depoimentos fictícios saíram: numa home que quer vender, texto de marcação
- * derruba a credibilidade. Voltam quando houver cliente real para citar.
+ * são os mesmos de antes (autoria do André); mudou a ordem e o corte.
  */
 /** Os recursos que a abertura lista e o tour mostra, na mesma ordem. */
 const RECURSOS = [
@@ -130,6 +132,28 @@ export function SecoesDaHome() {
               </div>
             </div>
             <p className="aud-note">Designers independentes também assinam.</p>
+          </div>
+        </section>
+
+        <section className="panel" id="depoimentos" aria-label="O que dizem as agências">
+          <Losango classe="l3" velocidade={-0.28} />
+          <div className="wrap">
+            <p className="eyebrow">Quem usa</p>
+            <Titulo className="title rise" partes={["Mais tempo para a criação, menos tempo procurando."]} />
+            <div className="quotes">
+              <figure className="quote">
+                <blockquote>A pergunta que mais chegava no nosso WhatsApp era &quot;qual é o laranja certo?&quot;. Hoje a equipe encontra a resposta com a página, e a gente volta a falar de ideia.</blockquote>
+                <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
+              </figure>
+              <figure className="quote">
+                <blockquote>Entregamos a marca e ela continua trabalhando. O manual deixou de ser um arquivo que ninguém abre.</blockquote>
+                <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
+              </figure>
+              <figure className="quote">
+                <blockquote>Mandar o kit para a gráfica com link que expira mudou nosso fim de tarde. E ela sempre recebe a versão atual.</blockquote>
+                <figcaption><i>✦</i><div>Depoimento fictício<span>Texto de marcação do layout</span></div></figcaption>
+              </figure>
+            </div>
           </div>
         </section>
 
