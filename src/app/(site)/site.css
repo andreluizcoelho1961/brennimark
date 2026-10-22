@@ -854,3 +854,31 @@ body:has(.bm-site.mnav-open){overflow:hidden}
   .bm-site .phrase-panel .complete-sentence{font-size:30px;line-height:1.12}
   .bm-site .phrase-tabs{gap:6px 20px}
 }
+
+/* ---------- home em rolagem vertical (22/10/2026) ---------- */
+body:has(.home-v){overflow:auto}
+.bm-site.home-v{--foot:0px}
+.bm-site.home-v .site-head{position:sticky}
+.bm-site.home-v .shell,.bm-site.home-v .home-flow{position:static;display:block}
+.bm-site.home-v .panel{height:auto;display:block;overflow-x:clip;overflow-y:visible;padding:clamp(64px,11vh,120px) 6vw;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--head) + env(safe-area-inset-top,0px))}
+.bm-site.home-v .hero{display:flex;align-items:center;padding:0;min-height:min(88vh,840px);overflow:hidden}
+.bm-site.home-v .rise{animation:bm-rise .6s var(--ease) both}
+.bm-site.home-v .rise-2{animation:bm-rise .6s var(--ease) .12s both}
+.bm-site.home-v .stamp-cta{width:88px;height:88px;bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.bm-site.home-v .stamp-ring{font-size:9px}.bm-site.home-v .stamp-sym{width:28px;height:26px}
+.bm-site .feat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:48px}
+.bm-site .feat-card{display:flex;flex-direction:column;gap:12px;padding:24px 22px;background:var(--surface);border:1px solid var(--line);border-radius:8px;transition:transform .5s var(--ease),border-color .2s}
+.bm-site .feat-card:hover{transform:translateY(-4px);border-color:var(--muted)}
+.bm-site .feat-card i{font:500 11px var(--mono);font-style:normal;letter-spacing:.1em;color:var(--brasa)}
+.bm-site .feat-card h3{margin:0;font-size:20px;line-height:1.25;font-weight:500;letter-spacing:-.03em;text-wrap:balance}
+.bm-site .feat-card p{margin:0;font-size:14px;line-height:1.65;color:var(--muted)}
+.bm-site .feat-card .more{margin-top:auto;padding-top:6px}
+.bm-site .feat-grid--3 .feat-card{min-height:170px}
+.bm-site .platform-wide{margin-top:0}
+@media (max-width:1023px){.bm-site .feat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){
+  .bm-site.home-v .panel{padding:56px 16px}
+  .bm-site.home-v .hero{flex-direction:column;align-items:stretch;min-height:0;padding:0}
+  .bm-site.home-v .site-head{position:sticky}
+  .bm-site .feat-grid{grid-template-columns:1fr;margin-top:32px}
+}

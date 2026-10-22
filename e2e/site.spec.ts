@@ -68,7 +68,7 @@ async function semErros(page: Page) {
   return erros;
 }
 
-test("a home abre no primeiro capítulo, com o título inteiro visível", async ({ page }) => {
+test("a home abre na primeira seção, com o título inteiro visível", async ({ page }) => {
   const erros = await semErros(page);
   await abrir(page, "/");
   await expect(page).toHaveTitle("Brennimark · Plataforma de gestão de marca");
@@ -77,88 +77,7 @@ test("a home abre no primeiro capítulo, com o título inteiro visível", async 
   // A animação termina com cada palavra no lugar; um título preso no ponto de
   // partida é texto invisível para quem visita.
   await expect(titulo).toHaveClass(/\bin\b/);
-  await expect(page.locator("#chap-n")).toHaveText("01 / 14");
-  await expect(page.locator("#chap-t")).toHaveText("Início");
   expect(erros).toEqual([]);
-});
-
-test("as setas andam pelos capítulos e o endereço acompanha", async ({ page }) => {
-  await abrir(page, "/");
-  await page.keyboard.press("ArrowRight");
-  await expect(page).toHaveURL(/#num-so-lugar$/);
-  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
-  await expect(page.locator("#num-so-lugar")).toHaveClass(/is-active/);
-  const largura = await page.locator("#track").evaluate((t) => t.clientWidth);
-  await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(largura - 4);
-
-  await page.getByRole("button", { name: "Próximo capítulo" }).click();
-  await expect(page.locator("#chap-t")).toHaveText("O problema");
-  await page.getByRole("button", { name: "Capítulo anterior" }).click();
-  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
-});
-
-test("um clique logo depois de outro movimento não é desfeito pelo encaixe atrasado", async ({ page }) => {
-  // Defeito achado em 10/10/2026: o encaixe da rolagem à mão decide o capítulo
-  // 120 ms depois do último aviso de rolagem. Se um aviso ainda pendente cai
-  // depois de um clique em "Próximo" e ANTES de o deslize começar, ele lê a
-  // tela velha e desfaz o clique — e o "Anterior" seguinte volta dois. Num
-  // aparelho lento o deslize demora a começar; aqui, o atraso é fabricado.
-  await abrir(page, "/");
-  await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
-  const largura = await page.locator("#track").evaluate((t) => t.clientWidth);
-  await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(largura - 4);
-  await page.locator("#track").evaluate((t) => {
-    const original = t.scrollTo.bind(t) as (o: ScrollToOptions) => void;
-    t.scrollTo = ((o: ScrollToOptions) => { window.setTimeout(() => original(o), 500); }) as typeof t.scrollTo;
-  });
-  await page.getByRole("button", { name: "Próximo capítulo" }).click();
-  // Um aviso de rolagem atrasado, como o do fim do movimento anterior.
-  await page.locator("#track").evaluate((t) => t.dispatchEvent(new Event("scroll")));
-  await page.waitForTimeout(300);
-  // Lido no instante, sem esperar: depois que o deslize atrasado acontece, o
-  // encaixe volta ao capítulo certo e o defeito some da tela — mas o clique já
-  // tinha sido desfeito, e o "Anterior" daquele momento voltaria dois.
-  expect(await page.evaluate(() => [document.querySelector("#chap-t")?.textContent, location.hash])).toEqual(["O problema", "#problema"]);
-  await expect.poll(() => page.locator("#track").evaluate((t) => t.scrollLeft)).toBeGreaterThan(2 * largura - 4);
-  await page.getByRole("button", { name: "Capítulo anterior" }).click();
-  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
-});
-
-test("os pontos e os links de capítulo deslizam o trilho, sem recarregar", async ({ page }) => {
-  await abrir(page, "/");
-  const pontos = page.locator(".chapnav .dot");
-  await expect(pontos).toHaveCount(CAPITULOS_DA_HOME.length);
-
-  await pontos.nth(4).click();
-  await expect(page.locator("#chap-t")).toHaveText("A plataforma");
-
-  // "Planos" do cabeçalho aponta para /#planos; na home, o trilho desliza.
-  await page.evaluate(() => ((window as unknown as { __mesmaPagina: boolean }).__mesmaPagina = true));
-  await page.locator(".site-head .nav-link", { hasText: "Planos" }).click();
-  await expect(page).toHaveURL(/\/#planos$/);
-  await expect(page.locator("#chap-t")).toHaveText("Planos");
-  expect(await page.evaluate(() => (window as unknown as { __mesmaPagina?: boolean }).__mesmaPagina)).toBe(true);
-});
-
-test("abrir num capítulo pelo endereço cai nele", async ({ page }) => {
-  await abrir(page, "/#depoimentos");
-  await expect(page.locator("#chap-t")).toHaveText("Quem usa");
-  await expect(page.locator("#depoimentos")).toHaveClass(/is-active/);
-});
-
-test("o selo de demonstração sai de cena nos capítulos que já têm o chamado", async ({ page }) => {
-  await abrir(page, "/");
-  const selo = page.locator(".stamp-cta");
-  await expect(page.locator(".bm-site")).toHaveClass(/stamp-off-home/);
-  // "Num só lugar": o selo cobriria as abas, então também sai.
-  await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
-  await expect(page.locator(".bm-site")).toHaveClass(/stamp-off-home/);
-  await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#chap-t")).toHaveText("O problema");
-  await expect(page.locator(".bm-site")).not.toHaveClass(/stamp-off-home/);
-  await expect(selo).toBeVisible();
 });
 
 test("Entrar leva ao login; com sessão, a porta vira Abrir a plataforma", async ({ page, context }) => {
@@ -223,33 +142,6 @@ test("cada página do site responde, com o próprio título", async ({ page }) =
   expect(erros).toEqual([]);
 });
 
-test("o vídeo do Vini só carrega quando o capítulo chega", async ({ page }) => {
-  await abrir(page, "/");
-  const video = page.locator("#vini-video");
-  expect(await video.getAttribute("src")).toBeNull();
-  await page.locator(".chapnav .dot").nth(5).click();
-  // Chromium lê o WebM com transparência; o Safari receberia o HEVC.
-  await expect(video).toHaveAttribute("src", "/site/vini.webm");
-});
-
-test("abrir estreito e alargar a janela não muda o capítulo", async ({ page }) => {
-  // Defeito herdado do protótipo: o observador do celular ficava ligado depois
-  // que a janela virava de computador, e o trilho pulava de capítulo sozinho.
-  await page.setViewportSize({ width: 390, height: 844 });
-  await abrir(page, "/");
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await page.mouse.move(700, 450);
-  await expect(page.locator("#chap-t")).toHaveText("Início");
-  // No celular o endereço registra o capítulo à vista (`#inicio`); o que não
-  // pode é ele pular para outro.
-  await expect(page).toHaveURL(/\/(#inicio)?$/);
-  await expect(page.locator("#inicio")).toHaveClass(/is-active/);
-  expect(await page.locator("#track").evaluate((t) => t.scrollLeft)).toBe(0);
-  // E continua andando normalmente.
-  await page.keyboard.press("ArrowRight");
-  await expect(page.locator("#chap-t")).toHaveText("Num só lugar");
-});
-
 test("o site fica fora dos buscadores, e a prévia de link funciona", async ({ page, request }) => {
   // Decisão do André (29/09/2026): no ar para teste, fora dos buscadores até a
   // divulgação. A prévia (WhatsApp, LinkedIn) não depende de indexação.
@@ -284,7 +176,8 @@ test("todo depoimento leva a marcação de fictício, sem nome de pessoa", async
     return faltas;
   }, ["/", ...PAGINAS_DO_SITE.map((p) => `/${p.slug}`)]);
   expect(semMarcacao).toEqual([]);
-  await expect(page.locator(".quote figcaption").first()).toContainText("Depoimento fictício");
+  // A home deixou de ter depoimentos em 22/10/2026 (texto de marcação não vende);
+  // as páginas internas que ainda os tenham seguem obrigadas à marcação acima.
 });
 
 test("nenhuma classe do site coincide com uma regra de fora dele", async ({ page }) => {
@@ -331,9 +224,6 @@ test.describe("movimento reduzido", () => {
     await expect(page.locator("html")).not.toHaveAttribute("data-site-movimento", /.*/);
     const palavra = page.locator(".hero h1 .w > span").first();
     await expect(palavra).toHaveCSS("transform", "none");
-    // O vídeo fica no quadro de pôster.
-    await page.locator(".chapnav .dot").nth(5).click();
-    expect(await page.locator("#vini-video").getAttribute("src")).toBeNull();
   });
 });
 
@@ -378,20 +268,6 @@ test("Termos e Privacidade mostram o texto com a versão, e o /assinar aponta pa
   await expect(page.locator("[data-aceite-dos-termos] a[href='/privacidade']")).toBeVisible();
 });
 
-test("o capítulo Num só lugar: a aba escolhe a palavra e a foto, e Pausar alterna", async ({ page }) => {
-  await abrir(page, "/#num-so-lugar");
-  const painel = page.locator("#num-so-lugar");
-  await expect(painel.locator("[data-palavra]")).toHaveText("MANUAL");
-  await painel.locator("[data-palavra-aba='2']").click();
-  await expect(painel.locator("[data-palavra]")).toHaveText("REGRAS");
-  await expect(painel.locator("[data-palavra-aba='2']")).toHaveAttribute("aria-pressed", "true");
-  await expect(painel.locator(".manual-page.is-shown")).toHaveCount(1);
-  await expect(painel.locator(".complete-sentence")).toContainText("num só lugar.");
-  const pausar = painel.getByRole("button", { name: "Pausar troca de imagens" });
-  await pausar.click();
-  await expect(painel.getByRole("button", { name: "Retomar troca de imagens" })).toHaveAttribute("aria-pressed", "true");
-});
-
 test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé, link entre os documentos", async ({ page }) => {
   await page.goto("/dev/assinar", { waitUntil: "commit" });
   await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Assinatura mensal com renovação automática");
@@ -401,4 +277,33 @@ test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé,
   await expect(link).toHaveAttribute("href", "/termos#dados-tratados-em-nome-do-assinante");
   await link.click();
   await expect(page.locator("#dados-tratados-em-nome-do-assinante li")).toHaveCount(5);
+});
+
+test("a home rola na vertical: todas as seções, na ordem, sem rolagem de lado", async ({ page }) => {
+  await abrir(page, "/");
+  const ids = await page.locator(".home-flow > .panel").evaluateAll((els) => els.map((e) => e.id));
+  expect(ids).toEqual(CAPITULOS_DA_HOME.map((c) => c.id));
+  // Sem trilho, sem barra de capítulos, sem depoimento de marcação.
+  await expect(page.locator("#track, .chapnav, #depoimentos")).toHaveCount(0);
+  const { sw, cw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+  expect(sw).toBeLessThanOrEqual(cw);
+});
+
+test("'Planos' do cabeçalho leva à seção de planos, na mesma página", async ({ page }) => {
+  await abrir(page, "/");
+  await page.evaluate(() => ((window as unknown as { __mesmaPagina: boolean }).__mesmaPagina = true));
+  await page.locator(".site-head .nav-link", { hasText: "Planos" }).click();
+  await expect(page).toHaveURL(/\/#planos$/);
+  await expect(page.locator("#planos")).toBeInViewport();
+  expect(await page.evaluate(() => (window as unknown as { __mesmaPagina?: boolean }).__mesmaPagina)).toBe(true);
+});
+
+test("as funcionalidades e as ferramentas da home levam a páginas que existem", async ({ page, request }) => {
+  await abrir(page, "/");
+  const destinos = await page.locator("#funcionalidades a, #ferramentas a").evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).getAttribute("href")));
+  expect(destinos.length).toBeGreaterThanOrEqual(9);
+  for (const href of new Set(destinos)) {
+    const r = await request.get(href as string);
+    expect(r.status(), String(href)).toBe(200);
+  }
 });

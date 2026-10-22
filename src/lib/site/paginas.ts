@@ -58,20 +58,15 @@ export function paginaDoSite(slug: string): PaginaDoSite {
 /** Os caminhos EXATOS que o site ocupa: a home e cada página. */
 export const CAMINHOS_DO_SITE: ReadonlySet<string> = new Set(["/", ...PAGINAS_DO_SITE.map((p) => `/${p.slug}`)]);
 
-/** Os capítulos da home, na ordem do trilho. O `id` é a âncora (`/#planos`). */
+/** As seções da home, na ordem da rolagem. O `id` é a âncora (`/#planos`). */
 export const CAPITULOS_DA_HOME = [
   { id: "inicio", titulo: "Início" },
-  { id: "num-so-lugar", titulo: "Num só lugar" },
   { id: "problema", titulo: "O problema" },
-  { id: "fluxo", titulo: "O dia a dia" },
   { id: "plataforma", titulo: "A plataforma" },
+  { id: "funcionalidades", titulo: "O que ela faz" },
   { id: "vini", titulo: "Vini Max" },
-  { id: "assistente", titulo: "Consultar" },
-  { id: "analise", titulo: "Analisar" },
-  { id: "dna", titulo: "Preparar" },
-  { id: "viva", titulo: "Marca viva" },
   { id: "publico", titulo: "Para quem" },
-  { id: "depoimentos", titulo: "Quem usa" },
+  { id: "ferramentas", titulo: "Ferramentas gratuitas" },
   { id: "planos", titulo: "Planos" },
   { id: "demonstracao", titulo: "Demonstração" },
 ] as const;

@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { CapitulosDaHome } from "@/components/site/CapitulosDaHome";
 import { metadadosDoSite } from "@/components/site/metadados";
 import { MolduraDoSite } from "@/components/site/MolduraDoSite";
-import { TrilhoDaHome } from "@/components/site/TrilhoDaHome";
+import { SecoesDaHome } from "@/components/site/SecoesDaHome";
 
 /**
  * A home do site. Quem já entrou nem chega aqui: o `proxy` leva ao produto.
@@ -18,10 +17,10 @@ export const metadata: Metadata = metadadosDoSite({
 
 export default function HomeDoSite() {
   return (
-    <MolduraDoSite>
-      <TrilhoDaHome>
-        <CapitulosDaHome />
-      </TrilhoDaHome>
+    <MolduraDoSite home>
+      <main className="home-flow">
+        <SecoesDaHome />
+      </main>
     </MolduraDoSite>
   );
 }
