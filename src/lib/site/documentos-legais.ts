@@ -14,6 +14,11 @@
  * na hora. A versão ficou a mesma porque ninguém tinha aceitado o texto anterior
  * dela (zero aceites em produção, conferido) e a versão é uma data.
  *
+ * 22/10/2026: decisão do André — o nome do titular e o endereço (residencial)
+ * saem dos dois textos; ficam o nome fantasia, o CNPJ e o e-mail. A versão subiu.
+ * O Decreto 7.962/2013 (art. 2º) pede endereço físico: risco aceito por ele,
+ * até haver um endereço comercial.
+ *
  * Revisão de conformidade (CDC, LGPD, Marco Civil, Decreto 7.962/2013,
  * Resolução CD/ANPD 19/2024), feita pelo André com ajuda de IA e aplicada
  * literalmente a partir de `brennimark-termos-ajustes.md`. Ainda passa por
@@ -34,11 +39,11 @@ export type DocumentoLegal = { versao: string; vigenteDesde: string; secoes: rea
 const E = EMPRESA;
 
 export const TERMOS_DE_USO: DocumentoLegal = {
-  versao: "2026-10-08",
-  vigenteDesde: "8 de outubro de 2026",
+  versao: "2026-10-22",
+  vigenteDesde: "22 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem somos", paragrafos: [
-      `O Brennimark é uma plataforma de gestão de marca operada por ${E.nome}, ${E.natureza} inscrito no CNPJ ${E.cnpj}, com endereço em ${E.endereco}, ${E.cidade}, CEP ${E.cep}, e-mail ${E.email} ("Brennimark", "nós").`,
+      `O Brennimark é uma plataforma de gestão de marca inscrita no CNPJ ${E.cnpj}, com contato pelo e-mail ${E.email} ("Brennimark", "nós").`,
       `Estes termos valem para quem assina o Brennimark e para todas as pessoas que usam a plataforma pela conta de um assinante.`,
     ] },
     { titulo: "2. Quem é quem", paragrafos: [
@@ -122,11 +127,11 @@ export const TERMOS_DE_USO: DocumentoLegal = {
 };
 
 export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
-  versao: "2026-10-08",
-  vigenteDesde: "8 de outubro de 2026",
+  versao: "2026-10-22",
+  vigenteDesde: "22 de outubro de 2026",
   secoes: [
     { titulo: "1. Quem trata os dados", paragrafos: [
-      `Esta política explica como o Brennimark, operado por ${E.nome}, ${E.natureza} inscrito no CNPJ ${E.cnpj}, com endereço em ${E.endereco}, ${E.cidade}, CEP ${E.cep}, trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).`,
+      `Esta política explica como o Brennimark, inscrito no CNPJ ${E.cnpj}, trata dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018).`,
       `O Brennimark é o **controlador** dos dados de cadastro, login, assinatura, pagamento e segurança de todas as pessoas que usam a plataforma, inclusive as convidadas.`,
       `O **assinante** é o controlador do conteúdo das marcas e dos registros de atividade dentro delas (quem acessou, baixou ou editou o quê). Para esses dados, o Brennimark é **operador**: trata só para prestar o serviço e segue as instruções do assinante, conforme a seção "[[termos#dados-tratados-em-nome-do-assinante|Dados tratados em nome do assinante]]" dos Termos de uso.`,
     ] },
@@ -168,7 +173,7 @@ export const POLITICA_DE_PRIVACIDADE: DocumentoLegal = {
       `Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD).`,
     ] },
     { titulo: "10. Contato e encarregado", paragrafos: [
-      `Como agente de tratamento de pequeno porte, o Brennimark não é obrigado a nomear um encarregado (Resolução CD/ANPD nº 2/2022). O canal para qualquer questão sobre dados pessoais é ${E.emailDePrivacidade}, atendido por ${E.nome}.`,
+      `Como agente de tratamento de pequeno porte, o Brennimark não é obrigado a nomear um encarregado (Resolução CD/ANPD nº 2/2022). O canal para qualquer questão sobre dados pessoais é ${E.emailDePrivacidade}, atendido pela equipe do Brennimark.`,
     ] },
     { titulo: "11. Mudanças nesta política", paragrafos: [
       `Quando esta política mudar, a nova versão é publicada aqui, com a data. Mudanças relevantes são avisadas a quem administra cada conta.`,
