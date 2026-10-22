@@ -617,3 +617,39 @@ test("sem rede, a lista de conversas diz que falhou em vez de ficar carregando",
   await expect(lista.getByRole("alert")).toHaveText("Sem conexão: não foi possível carregar suas conversas.");
   await expect(lista).not.toContainText("Carregando");
 });
+
+/*
+ * O Vini em pessoa (22/10/2026): pequeno, em cima da janela, andando. Só
+ * existe com a janela aberta — o vídeo não carrega para quem não chamou o
+ * Vini —, é decorativo e, com "reduzir movimento", fica parado no pôster.
+ */
+test("o Vini aparece em cima da janela aberta, e só nela", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(MARCA);
+  const boneco = page.locator("[data-vini-andando]");
+  await expect(boneco).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Pergunte ao Vini" }).click();
+  await expect(boneco).toHaveAttribute("aria-hidden", "true");
+  const janela = await page.locator("[data-vini-janela]").boundingBox();
+  const caixa = await boneco.boundingBox();
+  // De pé na borda de cima: o pé encosta no topo da janela (a folga é a
+  // janela ainda subindo, na animação de entrada).
+  expect(Math.abs(caixa!.y + caixa!.height - janela!.y)).toBeLessThan(8);
+  await expect(boneco.locator("video")).toHaveAttribute("src", /\/site\/vini\.(webm|mov)$/);
+
+  await page.keyboard.press("Escape");
+  await expect(boneco).toHaveCount(0);
+});
+
+test("com 'reduzir movimento', o Vini fica parado e o vídeo não carrega", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(MARCA);
+  await page.getByRole("button", { name: "Pergunte ao Vini" }).click();
+  const boneco = page.locator("[data-vini-andando]");
+  await expect(boneco.locator("video")).toHaveAttribute("poster", /.+/);
+  await expect(boneco.locator("video")).not.toHaveAttribute("src", /.+/);
+  await page.waitForTimeout(2000);
+  await expect(page.locator(".vini-passo[data-andando]")).toHaveCount(0);
+});

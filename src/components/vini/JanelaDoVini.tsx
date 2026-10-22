@@ -15,6 +15,7 @@ import type { TipoDePrompt } from "@/lib/ai/copiloto";
 import { useAnaliseDaPeca } from "./useAnaliseDaPeca";
 import { FORMATOS_DA_PECA } from "@/lib/ai/peca";
 import { useConversaDaMarca } from "./useConversaDaMarca";
+import { ViniAndando } from "./ViniAndando";
 
 /**
  * O Vini — a janela da IA, no canto inferior direito (fatia 4a).
@@ -133,6 +134,8 @@ export function JanelaDoVini({
   return (
     <div data-vini className="pointer-events-none fixed bottom-[max(env(safe-area-inset-bottom),1.25rem)] right-[max(env(safe-area-inset-right),1rem)] z-40 flex flex-col items-end gap-[var(--space-shell-3)]">
       {aberta && (
+        <div className="relative">
+        <ViniAndando />
         <section
           id="vini-janela"
           data-vini-janela
@@ -412,6 +415,7 @@ export function JanelaDoVini({
             )}
           </footer>
         </section>
+        </div>
       )}
 
       {(() => {
