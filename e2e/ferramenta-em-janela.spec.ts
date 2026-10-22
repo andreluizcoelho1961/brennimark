@@ -57,7 +57,14 @@ test("'Voltar à aba do site' fecha a janela", async ({ page }) => {
   await janela.waitForLoadState("domcontentloaded");
   const fechou = janela.waitForEvent("close");
   await expect(async () => {
-    await janela.locator("[data-janela-voltar]").click({ timeout: 1_000 });
+    // Sob carga a janela fecha NO MEIO do clique: o clique falha com "página fechada" e
+    // a nova tentativa nunca teria alvo. Janela fechada é justamente o que se espera.
+    if (janela.isClosed()) return;
+    try {
+      await janela.locator("[data-janela-voltar]").click({ timeout: 1_000 });
+    } catch (erro) {
+      if (!janela.isClosed()) throw erro;
+    }
   }).toPass({ timeout: 30_000 });
   await fechou;
   expect(janela.isClosed()).toBe(true);

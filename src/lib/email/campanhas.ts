@@ -22,12 +22,14 @@ export const CAMPANHAS: readonly Campanha[] = [
   {
     id: "convite-fonts-beta",
     rotulo: "Convite do beta do Brennimark Fonts",
-    assunto: "O beta do Brennimark Fonts abriu: 50 convites, 90 dias grátis",
+    assunto: "Brennimark Fonts: um kit por marca, um clique para ativar",
     paragrafos: [
       "Olá, {nome}.",
-      "O Brennimark Fonts, o aplicativo para organizar, visualizar e ativar as fontes da sua biblioteca, está abrindo o beta para os 50 primeiros convidados.",
-      "O beta é gratuito por 90 dias. A sua biblioteca continua no seu computador: o aplicativo não envia as suas fontes para lugar nenhum.",
-      "Para pedir o seu convite, use o botão abaixo.",
+      "Brennimark Fonts. O gerenciador de fontes pensado para quem trabalha com marcas.",
+      "Um kit tipográfico por cliente, versionado. Um clique, e as fontes da marca ficam ativas na sua sessão de trabalho, protegidas de conflito com as fontes que já estão no sistema.",
+      "Escolha o documento e o kit, e abra o InDesign, o Illustrator ou o Photoshop com as fontes do cliente prontas.",
+      "Prévia completa de glifos e OpenType. Fontes parecidas, encontradas na sua própria biblioteca. Pastas vigiadas. Mac e Windows.",
+      "Beta para os 50 primeiros. Gratuito por 90 dias.",
     ],
     botao: { rotulo: "Pedir o meu convite", caminho: "/fonts" },
   },

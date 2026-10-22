@@ -31,8 +31,9 @@ test("mostra a campanha, o rodapé legal e os números do alcance", async ({ pag
   await fingir(page, []);
   await page.goto("/dev/console-email");
 
-  await expect(page.locator("[data-previa]")).toContainText("O beta do Brennimark Fonts abriu");
+  await expect(page.locator("[data-previa]")).toContainText("um kit por marca, um clique para ativar");
   await expect(page.locator("[data-previa]")).toContainText("Olá, Ana.");
+  await expect(page.locator("[data-previa]")).toContainText("Beta para os 50 primeiros");
   await expect(page.locator("[data-previa]")).toContainText("rodapé legal");
   await expect(page.locator("[data-elegiveis]")).toHaveText("12");
   await expect(page.locator("[data-alcance]")).toHaveText("8");
