@@ -125,6 +125,49 @@ test("criar item manda tipo, nome e descrição", async ({ page }) => {
   expect(corpos[0]).toEqual({ tipo: "gabarito", nome: "Gabarito de cartão", descricao: "" });
 });
 
+test("corrigir o nome do arquivo manda só o texto, e o botão mostra que está salvando", async ({ page }) => {
+  await comAcervo(page);
+  const corpos: unknown[] = [];
+  let liberar = () => {};
+  const segurando = new Promise<void>((r) => { liberar = r; });
+  await page.route((url) => url.pathname === "/api/admin/assets", async (rota) => {
+    if (rota.request().method() !== "PATCH") return rota.fallback();
+    corpos.push(rota.request().postDataJSON());
+    await segurando;
+    await rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, renomeado: true }) });
+  });
+  await page.goto("/dev/biblioteca");
+  const linha = page.locator("[data-variante='v-horizontal']");
+  await linha.getByRole("button", { name: "Editar nome" }).click();
+  const form = linha.locator("[data-editar-texto]");
+  await form.getByLabel("Nome").fill("Horizontal positivo — RGB");
+  await form.getByRole("button", { name: "Salvar" }).click();
+
+  await expect(form.getByRole("button", { name: "Salvando…" })).toHaveAttribute("aria-busy", "true");
+  liberar();
+  await expect.poll(() => corpos.length).toBe(1);
+  expect(corpos[0]).toEqual({ id: "v-horizontal", label: "Horizontal positivo — RGB", description: "" });
+  await expect(page.locator("[data-aviso-do-acervo]")).toHaveText("Alteração salva.");
+  await expect(linha.locator("[data-editar-texto]")).toHaveCount(0);
+});
+
+test("o item também tem o nome corrigível", async ({ page }) => {
+  await comAcervo(page);
+  const corpos: unknown[] = [];
+  await page.route("**/api/admin/assets/itens**", async (rota) => {
+    corpos.push(rota.request().postDataJSON());
+    await rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
+  await page.goto("/dev/biblioteca");
+  const item = page.locator('[data-item="item-paleta"]');
+  await item.getByRole("button", { name: "Editar item" }).click();
+  await item.locator("[data-editar-texto]").getByLabel("Nome").fill("Paleta da marca");
+  await item.getByRole("button", { name: "Salvar" }).click();
+
+  await expect.poll(() => corpos.length).toBe(1);
+  expect(corpos[0]).toEqual({ id: "item-paleta", nome: "Paleta da marca", descricao: "" });
+});
+
 test("quem só consulta vê a matriz e baixa, sem formulários", async ({ page }) => {
   await comAcervo(page);
   await page.goto("/dev/biblioteca?gerencia=0");
@@ -132,4 +175,5 @@ test("quem só consulta vê a matriz e baixa, sem formulários", async ({ page }
   await expect(page.locator("[data-form-item]")).toHaveCount(0);
   await expect(page.locator("[data-form-envio]")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Baixar" })).toHaveCount(3);
+  await expect(page.getByRole("button", { name: /Editar/ })).toHaveCount(0);
 });

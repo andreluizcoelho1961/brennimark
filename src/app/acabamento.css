@@ -334,6 +334,48 @@ a[class~="border"][class~="bg-platform-panel"]:not(.bm-site *, [data-brand-canva
   border-radius: var(--radius-control);
 }
 
+/*
+ * Todo botão reage — 22/10/2026, pedido do André ("clica e não acontece nada,
+ * você não sabe se aquilo aconteceu"). O Tailwind 4 tirou a mãozinha dos
+ * botões, e o botão leve só ganhava hover se o próprio componente declarasse
+ * um — quase nenhum declarava. Agora todo botão da moldura tem os três sinais:
+ * mãozinha ao passar, mudança de tom no hover, e "afundar" no clique.
+ *
+ * O tom do hover fica em `@layer base`, abaixo das utilidades: o botão que
+ * declara o próprio `hover:` continua mandando; o que não declara herda este.
+ * O cursor e o afundar ficam fora de camada: utilidade nenhuma os disputa.
+ */
+:is(button, [role="button"], summary, select, label:has(> input[type="checkbox"], > input[type="radio"])):not(:disabled, [aria-disabled="true"]) {
+  cursor: pointer;
+}
+:is(button, [role="button"]):is(:disabled, [aria-disabled="true"]) {
+  cursor: not-allowed;
+}
+/* Ação em andamento: o botão diz que está trabalhando. */
+:is(button, [role="button"])[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.7;
+}
+:is(button, a)[class~="border"][class~="border-platform-border"]:not(:disabled, .bm-site *, [data-brand-canvas] *) {
+  transition: background-color var(--motion-control) var(--ease-shell), border-color var(--motion-control) var(--ease-shell), color var(--motion-control) var(--ease-shell), transform var(--motion-control) var(--ease-mola);
+}
+:is(button, a)[class~="border"][class~="border-platform-border"]:not(:disabled, [aria-busy="true"], .bm-site *, [data-brand-canvas] *):active {
+  transform: scale(0.97);
+  transition-duration: 80ms;
+}
+@layer base {
+  :is(button, a)[class~="border"][class~="border-platform-border"]:not(:disabled, [aria-busy="true"], .bm-site *, [data-brand-canvas] *):hover {
+    /* A borda e a cor do texto são da utilidade (e ela vence esta camada): o
+       contorno escurece por um anel interno, que utilidade nenhuma desses
+       botões declara. */
+    background-color: color-mix(in oklab, var(--color-platform-text) 7%, transparent);
+    box-shadow: inset 0 0 0 1px var(--color-platform-text-muted);
+  }
+  :is(button, a)[class~="border"][class~="border-platform-border"]:not(:disabled, [aria-busy="true"], .bm-site *, [data-brand-canvas] *):active {
+    background-color: color-mix(in oklab, var(--color-platform-text) 11%, transparent);
+  }
+}
+
 /* Cantos: campo e painel que não declaram arredondamento ganham o da escala
    (antes eram quadrados por omissão, não por decisão). */
 :is(input, textarea, select)[class~="border"]:not([class*="rounded"], [type="checkbox"], [type="radio"], .bm-site *, [data-brand-canvas] *) {

@@ -51,6 +51,20 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   const [downloads, setDownloads] = useState<Download[] | null>(null);
   // O item escolhido no envio decide quais eixos o formulário pede.
   const [itemDoEnvio, setItemDoEnvio] = useState("");
+  // A ação em andamento (22/10/2026): "item-novo", ou o id do asset/item. O
+  // botão dela mostra que está trabalhando — clicar e não ver nada acontecer
+  // deixava a pessoa sem saber se a ação tinha ido.
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  // O asset ou item cujo nome está sendo corrigido, no lugar (22/10/2026).
+  const [editando, setEditando] = useState<string | null>(null);
+
+  // O aviso some sozinho: ele aparece fixo no pé da tela, perto de onde quer
+  // que a pessoa tenha clicado, e não pode ficar cobrindo o acervo.
+  useEffect(() => {
+    if (!message || uploading) return;
+    const espera = window.setTimeout(() => setMessage(""), 6000);
+    return () => window.clearTimeout(espera);
+  }, [message, uploading]);
 
   const aplicar = useCallback((response: Response, data: { itens?: Item[]; assets?: Asset[]; message?: string }) => {
     setLoading(false);
@@ -153,10 +167,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     event.preventDefault(); setMessage("");
     const form = event.currentTarget;
     const dados = new FormData(form);
+    setOcupado("item-novo");
     const response = await fetch(comAlvo("/api/admin/assets/itens", alvo), {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tipo: dados.get("tipo"), nome: dados.get("nome"), descricao: dados.get("descricao") }),
-    });
+    }).finally(() => setOcupado(null));
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Item created. Now add its files." : "Item criado. Agora envie os arquivos dele.") : (data.message ?? (isEnglish ? "Couldn't create the item." : "Não foi possível criar o item.")));
     if (response.ok) { form.reset(); setItemDoEnvio(data.item?.id ?? ""); await load(); }
@@ -164,7 +179,8 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
 
   async function removerItem(id: string, nome: string) {
     if (!window.confirm(isEnglish ? `Remove the empty item "${nome}"?` : `Remover o item vazio “${nome}”?`)) return;
-    const response = await fetch(comAlvo("/api/admin/assets/itens", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setOcupado(id);
+    const response = await fetch(comAlvo("/api/admin/assets/itens", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).finally(() => setOcupado(null));
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Item removed." : "Item removido.") : (data.message ?? (isEnglish ? "Couldn't remove the item." : "Não foi possível remover o item.")));
     if (response.ok) {
@@ -189,17 +205,58 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     if (!window.confirm(isEnglish
       ? `Take "${label}" out of use? It stays in the library, marked as discontinued.`
       : `Tirar “${label}” de uso? Ele continua na biblioteca, marcado como descontinuado.`)) return;
-    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setOcupado(id);
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).finally(() => setOcupado(null));
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Asset discontinued." : "Asset descontinuado.") : (data.message ?? (isEnglish ? "Couldn't discontinue." : "Não foi possível descontinuar.")));
     if (response.ok) await load();
   }
 
   async function reativar(id: string) {
-    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setOcupado(id);
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).finally(() => setOcupado(null));
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Asset back in use." : "Asset de volta ao uso.") : (data.message ?? (isEnglish ? "Couldn't reactivate." : "Não foi possível reativar.")));
     if (response.ok) await load();
+  }
+
+  /*
+   * Corrigir nome e descrição, no lugar (22/10/2026, pedido do André): errar o
+   * nome obrigava a apagar e subir o arquivo de novo. Vale para o arquivo
+   * (`label`/`description`) e para o item (`nome`/`descricao`); arquivo, eixos
+   * e tipo continuam como entraram.
+   */
+  async function salvarTexto(event: React.FormEvent<HTMLFormElement>, alvoDaEdicao: "asset" | "item", id: string) {
+    event.preventDefault();
+    const dados = new FormData(event.currentTarget);
+    const corpo = alvoDaEdicao === "asset"
+      ? { id, label: dados.get("label"), description: dados.get("description") }
+      : { id, nome: dados.get("nome"), descricao: dados.get("descricao") };
+    setOcupado(id);
+    const response = await fetch(comAlvo(alvoDaEdicao === "asset" ? "/api/admin/assets" : "/api/admin/assets/itens", alvo), {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo),
+    }).finally(() => setOcupado(null));
+    const data = await response.json().catch(() => ({}));
+    setMessage(response.ok ? (isEnglish ? "Saved." : "Alteração salva.") : (data.message ?? (isEnglish ? "Couldn't save." : "Não foi possível salvar.")));
+    if (response.ok) { setEditando(null); await load(); }
+  }
+
+  function formularioDeTexto(alvoDaEdicao: "asset" | "item", id: string, nome: string, descricao: string) {
+    const [campoNome, campoDescricao] = alvoDaEdicao === "asset" ? ["label", "description"] : ["nome", "descricao"];
+    return (
+      <form onSubmit={(event) => salvarTexto(event, alvoDaEdicao, id)} data-editar-texto={id} className="grid gap-2">
+        <label><span className="sr-only">{isEnglish ? "Name" : "Nome"}</span>
+          <input name={campoNome} defaultValue={nome} required maxLength={120} autoFocus className={`${campo} py-2 text-sm`} /></label>
+        <label><span className="sr-only">{isEnglish ? "Description" : "Descrição"}</span>
+          <input name={campoDescricao} defaultValue={descricao} maxLength={500} placeholder={isEnglish ? "Description (optional)" : "Descrição (opcional)"} className={`${campo} py-2 text-sm`} /></label>
+        <div className="flex gap-2">
+          <button disabled={ocupado === id} aria-busy={ocupado === id} className="bg-platform-signal px-3 py-1.5 font-display text-[10px] font-black uppercase text-platform-bg">
+            {ocupado === id ? (isEnglish ? "Saving…" : "Salvando…") : (isEnglish ? "Save" : "Salvar")}
+          </button>
+          <button type="button" onClick={() => setEditando(null)} className={botaoSecundario}>{isEnglish ? "Cancel" : "Cancelar"}</button>
+        </div>
+      </form>
+    );
   }
 
   /*
@@ -213,7 +270,8 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     if (!window.confirm(isEnglish
       ? `Delete "${label}" for good? The file is erased and this cannot be undone.`
       : `Apagar “${label}” em definitivo? O arquivo é apagado e não há como desfazer.`)) return;
-    const response = await fetch(comAlvo("/api/admin/assets?definitivo=1", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
+    setOcupado(id);
+    const response = await fetch(comAlvo("/api/admin/assets?definitivo=1", alvo), { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) }).finally(() => setOcupado(null));
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Asset deleted." : "Asset apagado.") : (data.message ?? (isEnglish ? "Couldn't delete." : "Não foi possível apagar.")));
     if (response.ok) await load();
@@ -243,9 +301,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
         ))}
         <td className="py-3 pr-4 font-mono text-[12px] text-platform-text">{formatoDoArquivo(asset.file_name)}</td>
         <td className="py-3 pr-4">
-          <p className="text-platform-text">{asset.label}</p>
+          {editando === asset.id
+            ? formularioDeTexto("asset", asset.id, asset.label, asset.description)
+            : <p className="text-platform-text">{asset.label}</p>}
           <p className="font-mono text-[11px] text-platform-text-muted">{asset.file_name} · {formatSize(asset.size_bytes)}</p>
-          {asset.description && <p className="mt-1 text-[12px] leading-relaxed text-platform-text-muted">{asset.description}</p>}
+          {asset.description && editando !== asset.id && <p className="mt-1 text-[12px] leading-relaxed text-platform-text-muted">{asset.description}</p>}
           {/* A identificação que o item 10 exige: descontinuado é visível e
               DIZ por quê — quando o sucessor existe, ele é nomeado. */}
           {fora && (
@@ -262,17 +322,22 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
             {/* Descontinuado continua baixável: quem precisa da versão anterior
                 de um logo é justamente quem tem material antigo para conferir. */}
             {asset.baixavel && <a href={comAlvo(`/api/assets/${asset.id}/download`, alvo)} download={asset.file_name} className="bg-platform-signal px-3 py-1.5 font-display text-[10px] font-black uppercase text-platform-bg">{isEnglish ? "Download" : "Baixar"}</a>}
+            {canManage && editando !== asset.id && (
+              <button type="button" onClick={() => setEditando(asset.id)} className={botaoSecundario}>
+                {isEnglish ? "Rename" : "Editar nome"}
+              </button>
+            )}
             {canManage && !fora && (
-              <button type="button" onClick={() => descontinuar(asset.id, asset.label)} className={botaoSecundario}>
-                {isEnglish ? "Discontinue" : "Descontinuar"}
+              <button type="button" onClick={() => descontinuar(asset.id, asset.label)} disabled={ocupado === asset.id} aria-busy={ocupado === asset.id} className={botaoSecundario}>
+                {ocupado === asset.id ? (isEnglish ? "Discontinuing…" : "Descontinuando…") : (isEnglish ? "Discontinue" : "Descontinuar")}
               </button>
             )}
             {canManage && fora && (
               <>
-                <button type="button" onClick={() => reativar(asset.id)} className={botaoSecundario}>
+                <button type="button" onClick={() => reativar(asset.id)} disabled={ocupado === asset.id} aria-busy={ocupado === asset.id} className={botaoSecundario}>
                   {isEnglish ? "Put back in use" : "Voltar ao uso"}
                 </button>
-                <button type="button" onClick={() => removerEmDefinitivo(asset.id, asset.label)} className={botaoSecundario}>
+                <button type="button" onClick={() => removerEmDefinitivo(asset.id, asset.label)} disabled={ocupado === asset.id} aria-busy={ocupado === asset.id} className={botaoSecundario}>
                   {isEnglish ? "Delete for good" : "Apagar em definitivo"}
                 </button>
               </>
@@ -316,13 +381,22 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     return (
       <section key={item.id} data-item={item.id} className="border border-platform-border bg-platform-panel p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <p className="font-display text-[10px] font-black uppercase tracking-widest text-platform-text-muted">{rotulo(item.tipo, isEnglish)}</p>
-            <h3 className="mt-2 font-display text-lg font-black uppercase text-platform-text">{item.nome}</h3>
-            {item.descricao && <p className="mt-1 max-w-[42rem] text-sm leading-relaxed text-platform-text-muted">{item.descricao}</p>}
+            {editando === item.id
+              ? <div className="mt-2 max-w-[32rem]">{formularioDeTexto("item", item.id, item.nome, item.descricao)}</div>
+              : <>
+                  <h3 className="mt-2 font-display text-lg font-black uppercase text-platform-text">{item.nome}</h3>
+                  {item.descricao && <p className="mt-1 max-w-[42rem] text-sm leading-relaxed text-platform-text-muted">{item.descricao}</p>}
+                </>}
           </div>
+          {canManage && editando !== item.id && (
+            <button type="button" onClick={() => setEditando(item.id)} className={botaoSecundario}>
+              {isEnglish ? "Rename item" : "Editar item"}
+            </button>
+          )}
           {canManage && doItem.length === 0 && (
-            <button type="button" onClick={() => removerItem(item.id, item.nome)} className={botaoSecundario}>
+            <button type="button" onClick={() => removerItem(item.id, item.nome)} disabled={ocupado === item.id} aria-busy={ocupado === item.id} className={botaoSecundario}>
               {isEnglish ? "Remove item" : "Remover item"}
             </button>
           )}
@@ -361,7 +435,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
         </label>
         <label><span className={rotuloDeCampo}>{isEnglish ? "Item name" : "Nome do item"}</span><input name="nome" required maxLength={120} className={campo} /></label>
         <label><span className={rotuloDeCampo}>{isEnglish ? "Description" : "Descrição"}</span><input name="descricao" maxLength={500} className={campo} /></label>
-        <div><button className="border border-platform-border px-5 py-3 font-display text-xs font-black uppercase text-platform-text">{isEnglish ? "Create item" : "Criar item"}</button></div>
+        <div><button disabled={ocupado === "item-novo"} aria-busy={ocupado === "item-novo"} className="border border-platform-border px-5 py-3 font-display text-xs font-black uppercase text-platform-text">{ocupado === "item-novo" ? (isEnglish ? "Creating…" : "Criando…") : (isEnglish ? "Create item" : "Criar item")}</button></div>
       </form>
 
       <form onSubmit={upload} data-form-envio className="grid content-start gap-4 border border-platform-border bg-platform-panel p-5 md:grid-cols-2">
@@ -404,7 +478,9 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
             </>}
       </form>
     </div>}
-    {message && <p role="status" className="mt-4 text-sm text-platform-text-muted">{message}</p>}
+    {/* Fixo no pé da tela: o botão Descontinuar fica lá embaixo, no acervo, e
+        um aviso no topo do formulário não era visto por quem clicou nele. */}
+    <p role="status" data-aviso-do-acervo className={message ? "fixed bottom-6 left-1/2 z-40 max-w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 rounded-[var(--radius-control)] bg-platform-text px-4 py-3 text-sm text-platform-bg shadow-lg" : "sr-only"}>{message}</p>
 
     {loading ? <p className="mt-8 text-sm text-platform-text-muted">{isEnglish ? "Loading library…" : "Carregando biblioteca…"}</p>
       : itens.length === 0 ? <p className="mt-8 border border-dashed border-platform-border p-6 text-sm text-platform-text-muted">{isEnglish ? "No items have been added yet." : "Nenhum item foi cadastrado ainda."}</p>
