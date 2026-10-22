@@ -80,6 +80,10 @@ const PENDENTES_ESPERADAS: string[] = [
   // digital igual à do local (64 itens: colunas, constraints, índice, RLS,
   // privilégios de anon/authenticated e as 3 funções, com corpo e acesso), fora
   // os privilégios padrão da `service_role` no hospedado.
+  // Pareamento do desktop Fonts: aguardando a aplicação autorizada por André
+  // em 22/10/2026. A lista deixa explícito que o arquivo novo ainda não está
+  // no histórico remoto; o carimbo sai daqui após a conferência no Supabase.
+  "fonts_device_pairing",
   // `varios_grids_por_marca` saiu daqui em 16/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261016133034`;
   // impressão digital igual à do local (81 itens: as duas tabelas, constraints,
