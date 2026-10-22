@@ -233,6 +233,27 @@ export async function PATCH(request: Request) {
   const input = await request.json().catch(() => null);
   const id = typeof input?.id === "string" ? input.id : "";
 
+  /*
+   * Corrigir o nome exibido e a descrição (22/10/2026, pedido do André): errar
+   * o nome obrigava a apagar e subir o arquivo de novo. Só texto muda aqui — o
+   * arquivo, os eixos e o item continuam como entraram. Quem pode alterar
+   * decide a RLS, a mesma da reativação.
+   */
+  if (input && "label" in input) {
+    const label = typeof input.label === "string" ? input.label.trim() : "";
+    const description = typeof input.description === "string" ? input.description.trim() : "";
+    if (!id || !label || label.length > 120 || description.length > 500) {
+      return NextResponse.json({ message: isEnglish ? "Give the file a name (up to 120 characters)." : "Dê um nome ao arquivo (até 120 caracteres)." }, { status: 400 });
+    }
+    const { data, error } = await context.auth.supabase.from("brand_assets")
+      .update({ label, description })
+      .eq("id", id).eq("brand_id", context.brandId)
+      .select("id").maybeSingle();
+    if (error) return NextResponse.json({ message: isEnglish ? "Couldn't rename the asset." : "Não foi possível renomear o asset." }, { status: 500 });
+    if (!data) return NextResponse.json({ message: isEnglish ? "Asset not found." : "Asset não encontrado." }, { status: 404 });
+    return NextResponse.json({ ok: true, renomeado: true });
+  }
+
   const { data, error } = await context.auth.supabase.from("brand_assets")
     // `substituido_por` sai junto: um asset em uso que ainda apontasse para o
     // sucessor diria "fui trocado e continuo valendo". A trava do banco recusa
