@@ -298,10 +298,10 @@ test("'Planos' do cabeçalho leva à seção de planos, na mesma página", async
   expect(await page.evaluate(() => (window as unknown as { __mesmaPagina?: boolean }).__mesmaPagina)).toBe(true);
 });
 
-test("as funcionalidades e as ferramentas da home levam a páginas que existem", async ({ page, request }) => {
+test("o tour e as ferramentas da home levam a páginas que existem", async ({ page, request }) => {
   await abrir(page, "/");
-  const destinos = await page.locator("#funcionalidades a, #ferramentas a").evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).getAttribute("href")));
-  expect(destinos.length).toBeGreaterThanOrEqual(9);
+  const destinos = await page.locator("#plataforma a, #ferramentas a").evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).getAttribute("href")));
+  expect(destinos.length).toBeGreaterThanOrEqual(10);
   for (const href of new Set(destinos)) {
     const r = await request.get(href as string);
     expect(r.status(), String(href)).toBe(200);
@@ -321,4 +321,18 @@ test("os blocos fundidos existem nas páginas de destino, com âncora", async ({
     await abrir(page, rota);
     await expect(page.locator(`#${id}`), `${rota}#${id}`).toHaveCount(1);
   }
+});
+
+test("a barra da abertura abre o tour na aba do recurso, e as abas trocam a tela", async ({ page }) => {
+  await abrir(page, "/");
+  await expect(page.locator(".hero-bar a")).toHaveCount(7);
+  await page.locator(".hero-bar a", { hasText: "Entrega por link" }).click();
+  await expect(page).toHaveURL(/#recurso-entrega$/);
+  await expect(page.getByRole("tab", { name: /Entrega por link/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#tour-tela-entrega")).toBeVisible();
+  await expect(page.locator("#tour-tela-manual")).toBeHidden();
+  await page.getByRole("tab", { name: /Análise de peça/ }).click();
+  await expect(page.locator("#tour-tela-analise")).toBeVisible();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.getByRole("tab", { name: /Prompt com a marca/ })).toBeFocused();
 });

@@ -56,9 +56,8 @@ export const CAMINHOS_DO_SITE: ReadonlySet<string> = new Set(["/", ...PAGINAS_DO
 /** As seções da home, na ordem da rolagem. O `id` é a âncora (`/#planos`). */
 export const CAPITULOS_DA_HOME = [
   { id: "inicio", titulo: "Início" },
-  { id: "problema", titulo: "O problema" },
-  { id: "plataforma", titulo: "A plataforma" },
-  { id: "funcionalidades", titulo: "O que ela faz" },
+  { id: "plataforma", titulo: "A plataforma por dentro" },
+  { id: "problema", titulo: "Antes e depois" },
   { id: "vini", titulo: "Vini Max" },
   { id: "publico", titulo: "Para quem" },
   { id: "ferramentas", titulo: "Ferramentas gratuitas" },
