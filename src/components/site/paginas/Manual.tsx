@@ -19,7 +19,7 @@ export function ConteudoManual() {
       <div className="viewer"><div className="thumbs"><i></i><i className="on"></i><i></i><i></i><i></i></div>
       <div className="vpage"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>BRENNIMARK · MANUAL DA MARCA</small><b>01</b><strong>Área de proteção</strong><i></i><i></i><i></i></div><div className="pdf-right"><div className="clear"><svg className="sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg></div></div></div>
       <div className="toc"><small>ÍNDICE</small><p className="on">01 Marca</p><p>02 Cores</p><p>03 Tipografia</p><p>04 Elementos gráficos</p><p>05 Fotografia</p><p>06 Vini Max</p><p>07 Tom de voz</p></div></div></div>
-      <div className="app-folio"><span>9 / 33</span><span>Área de proteção</span><span>ajustado à largura</span></div></div></div>
+      <div className="app-folio"><span>10 / 42</span><span>Área de proteção</span><span>ajustado à largura</span></div></div></div>
       </div>
       </section>
 
@@ -38,7 +38,7 @@ export function ConteudoManual() {
       </div>
       <div className="frame"><div className="kit" role="img" aria-label="Publicação do manual em quatro etapas concluídas">
       <h4>Publicando: Manual da marca Brennimark.pdf</h4>
-      <div className="kit-row"><span className="ck">✓</span><b>PDF enviado</b><em>33 páginas</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>PDF enviado</b><em>42 páginas</em></div>
       <div className="kit-row"><span className="ck">✓</span><b>Texto das páginas lido</b><em>concluído</em></div>
       <div className="kit-row"><span className="ck">✓</span><b>Índice conferido por você</b><em>8 capítulos</em></div>
       <div className="kit-row"><span className="ck">✓</span><b>Publicado para a equipe</b><em>12 pessoas</em></div>
@@ -64,7 +64,7 @@ export function ConteudoManual() {
       <ul className="ticks"><li>Busca no texto de todas as páginas</li><li>Trecho com a palavra marcada</li><li>Clique e o manual abre na página</li></ul>
       </div>
       <div className="frame"><div className="mk" role="img" aria-label="Busca por laranja com três resultados e as páginas"><div className="mk-bar"><span className="sbox">⌕ Brasa</span><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>3 resultados</span></div>
-      <div className="mk-body res"><p><b>p. 13 · Paleta de cores primárias</b>…um laranja parecido não é o <mark>Brasa</mark>. #FF4103…</p><p><b>p. 13 · Paleta de cores primárias</b>O <mark>Brasa</mark> é muito saturado e provavelmente fica fora da gama CMYK…</p><p><b>p. 24 · Linguagem fotográfica</b>…a Noite Polar nas sombras, a <mark>Brasa</mark> num único ponto.</p></div></div></div>
+      <div className="mk-body res"><p><b>p. 14 · Paleta de cores primárias</b>…um laranja parecido não é o <mark>Brasa</mark>. #FF4103…</p><p><b>p. 14 · Paleta de cores primárias</b>…o <mark>Brasa</mark> é muito saturado e fica perto do limite do CMYK.</p><p><b>p. 27 · Linguagem fotográfica</b>…a Noite Polar nas sombras, a <mark>Brasa</mark> num único ponto.</p></div></div></div>
       </div>
       </div>
       </section>
