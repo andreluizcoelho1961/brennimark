@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { IconeDoRecurso } from "./IconeDoRecurso";
 
 /**
  * O tour da plataforma na home (22/10/2026): uma aba por recurso, e a tela do
@@ -17,6 +18,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 export interface AbaDoTour {
   id: string;
   rotulo: string;
+  curto: string;
   titulo: string;
   texto: string;
   href: string;
@@ -78,9 +80,9 @@ export function TourDaPlataforma({ abas }: { abas: AbaDoTour[] }) {
             className="tour-tab"
             onClick={() => setAtual(i)}
           >
-            <i>{String(i + 1).padStart(2, "0")}</i>
+            <IconeDoRecurso id={a.id} />
             <b>{a.rotulo}</b>
-            <span>{a.titulo}</span>
+            <span>{a.curto}</span>
           </button>
         ))}
       </div>

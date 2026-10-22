@@ -930,3 +930,15 @@ body:has(.home-v){overflow:auto}
   .bm-site .hero-bar a:nth-child(even){border-left:1px solid var(--line)}
   .bm-site .cmp-home{grid-template-columns:1fr}
 }
+
+/* ícones dos recursos e a margem única do topo (22/10/2026) */
+.bm-site .icone-recurso{width:22px;height:22px;flex:none;color:var(--brasa)}
+.bm-site .hero-bar .icone-recurso{margin-bottom:8px}
+.bm-site .tour-tab .icone-recurso{grid-row:span 2;width:20px;height:20px;margin-top:1px;color:var(--muted)}
+.bm-site .tour-tab[aria-selected="true"] .icone-recurso{color:var(--brasa)}
+@media (min-width:768px){
+  .bm-site .site-head{padding-left:6vw;padding-right:6vw}
+  .bm-site.home-v .hero-copy{padding-left:6vw}
+  .bm-site .hero-bar{padding:0 6vw}
+}
+@media (max-width:1023px){.bm-site .tour-tab .icone-recurso{display:none}}

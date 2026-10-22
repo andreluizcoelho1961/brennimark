@@ -3,6 +3,7 @@ import Link from "next/link";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA, ENDERECO_COMPLETO } from "@/lib/site/empresa";
 import equipeNaMesa from "./imagens/equipe-na-mesa.jpg";
+import { IconeDoRecurso } from "./IconeDoRecurso";
 import { Losango } from "./Losango";
 import { FichaDoVini, TelaAnalise, TelaComplementos, TelaConsulta, TelaEntrega, TelaManual, TelaMateriais, TelaPrompt } from "./TelasDaHome";
 import { Titulo } from "./Titulo";
@@ -21,13 +22,13 @@ import { TourDaPlataforma } from "./TourDaPlataforma";
  */
 /** Os recursos que a abertura lista e o tour mostra, na mesma ordem. */
 const RECURSOS = [
-  { id: "manual", rotulo: "Manual em PDF", curto: "Fiel ao que o estúdio diagramou", titulo: "O manual, exatamente como o estúdio diagramou.", texto: "O PDF aparece inteiro, com índice, busca e zoom. Nada é remontado. A equipe toda consulta a mesma versão, no navegador.", href: "/manual", link: "O manual em PDF", tela: <TelaManual /> },
-  { id: "consulta", rotulo: "Vini responde", curto: "A regra, com a página", titulo: "O manual passa a responder.", texto: "Pergunte como perguntaria a um colega. O Vini responde com a orientação e a página, e diz quando o manual não trata do assunto.", href: "/vini", link: "Conheça o Vini Max", tela: <TelaConsulta /> },
-  { id: "analise", rotulo: "Análise de peça", curto: "Segunda leitura antes de enviar", titulo: "Uma segunda leitura antes de enviar.", texto: "Solte a peça na janela do Vini. Ele compara com a paleta e as regras documentadas, marca o que encontrou e mostra a página de cada achado.", href: "/vini", link: "Como a análise funciona", tela: <TelaAnalise /> },
-  { id: "prompt", rotulo: "Prompt com a marca", curto: "A ideia, com o DNA da marca", titulo: "A sua ideia, com a marca no prompt.", texto: "Você traz a ideia; o Vini acrescenta cores, luz, enquadramento e o que evitar, com a fonte de cada linha. Só orientação aprovada entra.", href: "/vini", link: "Prompts alinhados à marca", tela: <TelaPrompt /> },
-  { id: "materiais", rotulo: "Materiais e kit", curto: "Logo, cores e fonte num clique", titulo: "O kit inteiro, com a regra de cada arquivo.", texto: "Logotipo, cores, fonte, ícones e fotografia num só lugar. Baixe o kit num clique, com a regra de uso junto.", href: "/materiais", link: "Materiais da marca", tela: <TelaMateriais /> },
-  { id: "entrega", rotulo: "Entrega por link", curto: "Para quem não tem conta", titulo: "Cada fornecedor com a versão atual.", texto: "Mande os materiais à gráfica com um link que expira, com limite de downloads. Convide pessoas por marca, sem pagar por cabeça.", href: "/materiais#entrega", link: "Entrega e acesso", tela: <TelaEntrega /> },
-  { id: "complementos", rotulo: "Complementos", curto: "O que o manual não diz", titulo: "O que o manual não diz, a agência escreve.", texto: "As perguntas sem resposta viram relatório. A agência escreve um complemento, alguém aprova, e o Vini passa a citar.", href: "/manual#complementos", link: "Complementos e lacunas", tela: <TelaComplementos /> },
+  { id: "manual", rotulo: "Manual da marca", curto: "O PDF do estúdio, com índice e busca", titulo: "O manual, exatamente como o estúdio diagramou.", texto: "Você sobe o PDF do manual e a equipe toda consulta a mesma versão no navegador, com índice, busca e zoom. Nada é remontado.", href: "/manual", link: "O manual em PDF", tela: <TelaManual /> },
+  { id: "consulta", rotulo: "Assistente de IA", curto: "Tira dúvidas citando a página do manual", titulo: "Pergunte, e o manual responde.", texto: "Um assistente de inteligência artificial lê o manual da marca e responde às dúvidas da equipe com a orientação e a página de onde ela veio. Quando o manual não trata do assunto, ele diz isso em vez de inventar.", href: "/vini", link: "Conheça o assistente", tela: <TelaConsulta /> },
+  { id: "analise", rotulo: "Revisão de peças", curto: "Confere a peça com as regras da marca", titulo: "Uma segunda leitura antes de enviar.", texto: "Envie a imagem de uma peça. O assistente compara com as cores e as regras do manual, marca o que encontrou e mostra a página de cada ponto. Quem aprova continua sendo a equipe.", href: "/vini", link: "Como a revisão funciona", tela: <TelaAnalise /> },
+  { id: "prompt", rotulo: "Prompts para IA de imagem", curto: "Sua ideia, com as regras da marca", titulo: "A sua ideia, já com as regras da marca.", texto: "Vai criar uma imagem com IA? Descreva a ideia, e o assistente monta o pedido (o prompt) com as cores, a luz e o que evitar segundo o manual, citando a página de cada linha.", href: "/vini", link: "Prompts alinhados à marca", tela: <TelaPrompt /> },
+  { id: "materiais", rotulo: "Logo, cores e fontes", curto: "Todos os arquivos da marca, num clique", titulo: "Todos os arquivos da marca, com a regra de cada um.", texto: "Logotipo, cores, fonte, ícones e fotografia num só lugar. A equipe baixa o kit inteiro num clique, e cada arquivo vem com a regra de uso.", href: "/materiais", link: "Materiais da marca", tela: <TelaMateriais /> },
+  { id: "entrega", rotulo: "Envio a fornecedores", curto: "Link com prazo, sem criar conta", titulo: "A gráfica recebe sempre a versão certa.", texto: "Mande os arquivos a gráficas e fornecedores por um link que expira, com limite de downloads, sem que eles precisem criar conta. Cada envio fica registrado.", href: "/materiais#entrega", link: "Envio e acesso", tela: <TelaEntrega /> },
+  { id: "complementos", rotulo: "Regras novas", curto: "O que o manual não diz, escrito e aprovado", titulo: "O que o manual não diz, a agência escreve.", texto: "Toda dúvida sem resposta no manual vira um aviso. A agência escreve a orientação que faltava, alguém aprova, e ela passa a valer para a equipe e para o assistente, sem refazer o PDF.", href: "/manual#complementos", link: "Regras além do manual", tela: <TelaComplementos /> },
 ];
 
 export function SecoesDaHome() {
@@ -40,7 +41,7 @@ export function SecoesDaHome() {
           <div className="hero-copy">
             <p className="eyebrow rise">Plataforma de gestão de marca · para agências e marcas</p>
             <Titulo como="h1" className="rise" partes={["Uma marca passa por muitas mãos. ", { em: "A ideia tem que passar por todas." }]} />
-            <p className="hero-lede rise-2"><strong>Menos tempo procurando, mais segurança para decidir e mais atenção para criar.</strong> O manual, os materiais e as orientações da marca num só lugar, com o Vini para ajudar durante o trabalho.</p>
+            <p className="hero-lede rise-2"><strong>Menos tempo procurando, mais segurança para decidir e mais atenção para criar.</strong> O manual, os arquivos e as orientações da marca num só lugar, com um assistente de IA que responde às dúvidas da equipe citando o manual.</p>
             <div className="actions rise-2">
               <button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button>
               <Link className="btn btn--ghost" href="/#plataforma">Ver a plataforma por dentro <span className="arrow" aria-hidden="true">→</span></Link>
@@ -48,7 +49,7 @@ export function SecoesDaHome() {
           </div>
           <nav className="hero-bar rise-2" aria-label="O que tem dentro do Brennimark">
             {RECURSOS.map((r) => (
-              <a key={r.id} href={`#recurso-${r.id}`}><b>{r.rotulo}</b><span>{r.curto}</span></a>
+              <a key={r.id} href={`#recurso-${r.id}`}><IconeDoRecurso id={r.id} /><b>{r.rotulo}</b><span>{r.curto}</span></a>
             ))}
           </nav>
         </section>
@@ -83,7 +84,7 @@ export function SecoesDaHome() {
                 <ul>
                   <li>O manual fiel, com índice e busca, para a equipe toda</li>
                   <li>O kit inteiro num clique, com a regra de cada arquivo</li>
-                  <li>O Vini responde com a página do manual</li>
+                  <li>Um assistente de IA responde com a página do manual</li>
                   <li>Um link com prazo que entrega sempre a versão atual</li>
                   <li>Uma segunda leitura da peça antes de enviar</li>
                 </ul>
@@ -97,9 +98,9 @@ export function SecoesDaHome() {
           <div className="wrap vini">
             <FichaDoVini />
             <div>
-              <p className="eyebrow">Conheça o assistente</p>
+              <p className="eyebrow">O assistente de IA do Brennimark</p>
               <Titulo className="title rise" partes={["Este é o Vini Max. ", { em: "Pode chamar de Vini." }]} />
-              <p className="intro">Um colega que entende de marca e está sempre por perto. Ele consulta o manual, os complementos aprovados e os materiais para ajudar você durante o trabalho. A decisão continua sendo sua.</p>
+              <p className="intro">O assistente que aparece no tour tem nome. Ele é um colega que entende de marca e está sempre por perto. Ele consulta o manual, os complementos aprovados e os materiais para ajudar você durante o trabalho. A decisão continua sendo sua.</p>
               <ul className="traits">
                 <li><i>01</i><div><b>Responde com fundamento.</b><span>Cita o manual ou o complemento, com a página.</span></div></li>
                 <li><i>02</i><div><b>Encontra o material.</b><span>Aponta o arquivo certo em Materiais da marca.</span></div></li>

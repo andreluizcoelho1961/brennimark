@@ -326,13 +326,13 @@ test("os blocos fundidos existem nas páginas de destino, com âncora", async ({
 test("a barra da abertura abre o tour na aba do recurso, e as abas trocam a tela", async ({ page }) => {
   await abrir(page, "/");
   await expect(page.locator(".hero-bar a")).toHaveCount(7);
-  await page.locator(".hero-bar a", { hasText: "Entrega por link" }).click();
+  await page.locator(".hero-bar a", { hasText: "Envio a fornecedores" }).click();
   await expect(page).toHaveURL(/#recurso-entrega$/);
-  await expect(page.getByRole("tab", { name: /Entrega por link/ })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: /Envio a fornecedores/ })).toHaveAttribute("aria-selected", "true");
   await expect(page.locator("#tour-tela-entrega")).toBeVisible();
   await expect(page.locator("#tour-tela-manual")).toBeHidden();
-  await page.getByRole("tab", { name: /Análise de peça/ }).click();
+  await page.getByRole("tab", { name: /Revisão de peças/ }).click();
   await expect(page.locator("#tour-tela-analise")).toBeVisible();
   await page.keyboard.press("ArrowDown");
-  await expect(page.getByRole("tab", { name: /Prompt com a marca/ })).toBeFocused();
+  await expect(page.getByRole("tab", { name: /Prompts para IA de imagem/ })).toBeFocused();
 });
