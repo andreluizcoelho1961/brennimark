@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import maosComPranchas from "../imagens/maos-com-pranchas.webp";
+import { BlocosDoStudio } from "./Studio";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 
@@ -34,7 +35,7 @@ export function ConteudoAgencias() {
       <section className="pg-sec">
       <div className="pg-wrap">
       <div className="sec-head"><p className="eyebrow">O que a agência ganha</p><Titulo className="h2" partes={["O que a sua equipe passa a ter."]} /></div>
-      <div className="related"><Link className="rel" href="/manual"><small>Plataforma</small><b>O manual em PDF</b><span>Fiel ao que o estúdio diagramou.</span><em>→</em></Link><Link className="rel" href="/materiais"><small>Plataforma</small><b>Materiais da marca</b><span>O kit inteiro num clique, com a regra junto.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/entrega"><small>Plataforma</small><b>Entrega e acesso</b><span>Link com prazo e acesso por marca.</span><em>→</em></Link><Link className="rel" href="/complementos"><small>Plataforma</small><b>Complementos e lacunas</b><span>O que o manual não diz, escrito e citado.</span><em>→</em></Link><Link className="rel" href="/studio"><small>Plataforma</small><b>Studio</b><span>Onde a agência publica e cuida da marca.</span><em>→</em></Link></div>
+      <div className="related"><Link className="rel" href="/manual"><small>Plataforma</small><b>O manual em PDF</b><span>Fiel ao que o estúdio diagramou.</span><em>→</em></Link><Link className="rel" href="/materiais"><small>Plataforma</small><b>Materiais da marca</b><span>O kit inteiro num clique, com a regra junto.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/materiais#entrega"><small>Plataforma</small><b>Entrega e acesso</b><span>Link com prazo e acesso por marca.</span><em>→</em></Link><Link className="rel" href="/manual#complementos"><small>Plataforma</small><b>Complementos e lacunas</b><span>O que o manual não diz, escrito e citado.</span><em>→</em></Link><Link className="rel" href="/agencias#studio"><small>Plataforma</small><b>Studio</b><span>Onde a agência publica e cuida da marca.</span><em>→</em></Link></div>
       </div>
       </section>
 
@@ -51,6 +52,8 @@ export function ConteudoAgencias() {
       <div><details open><summary>Quantas marcas cabem?</summary><p>Depende do plano: de 5 a cerca de 30, e sob consulta acima disso. Pessoas, ilimitadas.</p></details><details><summary>Posso cobrar do cliente?</summary><p>A assinatura é da agência. Como você inclui isso no seu serviço é decisão sua.</p></details><details><summary>Tem ajuda para começar?</summary><p>Sim. Nos planos maiores, a implantação é assistida pela nossa equipe.</p></details></div>
       </div>
       </section>
+
+      <BlocosDoStudio />
 
       <div className="marquee" aria-hidden="true"><div className="mq-track"><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span></div></div>
       <section className="pg-sec"><Losango classe="l4" velocidade={0.25} />

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
-import { EMPRESA, ENDERECO_COMPLETO } from "@/lib/site/empresa";
+import { EMPRESA } from "@/lib/site/empresa";
 import { paginaDoSite } from "@/lib/site/paginas";
 import { metadadosDoSite } from "./metadados";
 import { MolduraDoSite } from "./MolduraDoSite";
@@ -27,13 +27,13 @@ export function PaginaDoSite({ children }: { children: React.ReactNode }) {
 }
 
 /** Os links do rodapé das páginas, como no protótipo. */
-const RODAPE = [
-  { slug: "manifesto", rotulo: "Manifesto" },
-  { slug: "ajuda", rotulo: "Central de ajuda" },
-  { slug: "suporte", rotulo: "Suporte" },
-  { slug: "seguranca", rotulo: "Segurança" },
-  { slug: "termos", rotulo: "Termos" },
-  { slug: "privacidade", rotulo: "Privacidade" },
+const RODAPE: { href: string; rotulo: string }[] = [
+  { href: "/manifesto", rotulo: "Manifesto" },
+  { href: "/ajuda", rotulo: "Central de ajuda" },
+  { href: "/ajuda#suporte", rotulo: "Suporte" },
+  { href: "/seguranca", rotulo: "Segurança" },
+  { href: "/termos", rotulo: "Termos" },
+  { href: "/privacidade", rotulo: "Privacidade" },
 ];
 
 function RodapeDaPagina() {
@@ -45,15 +45,15 @@ function RodapeDaPagina() {
         </svg>
       </Link>
       <nav className="foot-links" aria-label="Institucional">
-        {RODAPE.map(({ slug, rotulo }) => (
-          <Link key={slug} href={`/${slug}`}>
+        {RODAPE.map(({ href, rotulo }) => (
+          <Link key={rotulo} href={href}>
             {rotulo}
           </Link>
         ))}
       </nav>
       <LinksDasFerramentas />
       <span className="foot-empresa" data-empresa>
-        © Brennimark · {EMPRESA.nome}, {EMPRESA.natureza} · CNPJ {EMPRESA.cnpj} · {ENDERECO_COMPLETO} · {EMPRESA.email}
+        © Brennimark · CNPJ {EMPRESA.cnpj} · Contato: <a href={`mailto:${EMPRESA.email}`}>{EMPRESA.email}</a>
       </span>
     </footer>
   );

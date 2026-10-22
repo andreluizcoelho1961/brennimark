@@ -19,12 +19,12 @@ const LIGAR_MOVIMENTO = `(function(){var h=document.documentElement;if(matchMedi
  * O que toda página do site tem em volta do conteúdo: os símbolos do logo, o
  * cabeçalho, o grão de filme, o selo de demonstração e o diálogo de contato.
  *
- * `pagina` distingue as páginas internas da home: a home é o trilho de
- * capítulos, em tela cheia; a página interna rola como documento.
+ * `pagina` distingue as páginas internas da home; as duas rolam na vertical.
+ * `home` liga o ajuste de seções da página inicial (`.home-v` no CSS).
  */
-export function MolduraDoSite({ pagina = false, children }: { pagina?: boolean; children: ReactNode }) {
+export function MolduraDoSite({ pagina = false, home = false, children }: { pagina?: boolean; home?: boolean; children: ReactNode }) {
   return (
-    <div className={`bm-site ${fonteDoSite.variable}${pagina ? " on-page" : ""}`}>
+    <div className={`bm-site ${fonteDoSite.variable}${pagina ? " on-page" : ""}${home ? " home-v" : ""}`}>
       <script dangerouslySetInnerHTML={{ __html: LIGAR_MOVIMENTO }} />
       <SimbolosDoSite />
       <Cabecalho />

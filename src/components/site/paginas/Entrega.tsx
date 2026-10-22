@@ -1,30 +1,16 @@
-import Link from "next/link";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 
-/** Entrega e acesso — `/entrega`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
-export function ConteudoEntrega() {
+/** Entrega e acesso: o que era a página `/entrega`, agora um bloco de outra página (22/10/2026). Texto do protótipo de 29/09/2026 (autoria do André). */
+export function BlocosDeEntrega() {
   return (
     <>
-      <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
-      <div className="pg-wrap pg-hero">
-      <div>
-      <p className="crumb"><a href="#" data-open-menu="m-plat">Plataforma</a> · Entrega e acesso</p>
-      <Titulo como="h1" className="pg-h1" partes={["Cada fornecedor com a versão atual da marca."]} />
-      <p className="pg-lead">Envie materiais a quem não tem conta com um link que expira, convide cada pessoa para as marcas em que trabalha e mantenha todos com a mesma referência.</p>
-      <div className="pg-actions"><button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button><Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link></div>
+      <section className="pg-sec" id="entrega"><Losango classe="l2" velocidade={0.2} />
+      <div className="pg-wrap sec-head">
+      <p className="eyebrow">Entrega e acesso</p>
+      <Titulo className="h2" partes={["Cada fornecedor com a versão atual da marca."]} />
+      <p className="body" style={{ maxWidth: "640px" }}>Envie materiais a quem não tem conta com um link que expira, convide cada pessoa para as marcas em que trabalha e mantenha todos com a mesma referência.</p>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="Formulário de link de entrega: destinatário, materiais, validade e limite de downloads"><div className="mk-bar"><b>Novo link de entrega</b></div><div className="mk-body form">
-      <label>Para<span className="inp">grafica@exemplo.com.br</span></label>
-      <label>Materiais<span className="inp chips"><em>Logotipo</em><em>Cores</em><em>Regras de uso</em></span></label>
-      <label>Válido por<span className="inp">7 dias · expira em 04/10/2026</span></label>
-      <label>Downloads<span className="inp">até 3</span></label>
-      <div className="form-foot"><span className="mono" style={{ fontSize: "9.5px", color: "var(--app-muted)" }}>brennimark.com/e/7Qk2…</span><span className="mk-btn">Criar e copiar o link</span></div></div></div></div>
-      </div>
-      </section>
-
-      <section className="pg-sec" style={{ paddingTop: "0", borderTop: "0" }}>
-      <div className="pg-wrap points"><div><i>01</i><b>Link com prazo</b><span>Para gráfica e fornecedor, sem criar conta.</span></div><div><i>02</i><b>Acesso por marca</b><span>Quem trabalha numa marca não vê as outras.</span></div><div><i>03</i><b>Histórico de envios</b><span>Qual versão cada pessoa ou link recebeu, e quando.</span></div><div><i>04</i><b>Pessoas ilimitadas</b><span>Convide a equipe inteira sem pagar por cabeça.</span></div></div>
       </section>
 
       <section className="pg-sec"><Losango classe="l3" velocidade={-0.18} />
@@ -33,12 +19,12 @@ export function ConteudoEntrega() {
       <div>
       <p className="eyebrow">Link de entrega</p>
       <Titulo className="h2" partes={["Para quem não tem conta, um link que expira."]} />
-      <p className="body">Escolha os materiais, o prazo e o número de downloads. O link para de funcionar sozinho, e cada uso fica registrado.</p>
-      <ul className="ticks"><li>Prazo e limite de downloads</li><li>Sem criar conta para o fornecedor</li><li>A fonte fica de fora: só membros da marca baixam</li></ul>
+      <p className="body">Escolha os materiais e o prazo. O link para de funcionar sozinho, e cada uso fica registrado.</p>
+      <ul className="ticks"><li>Prazo de validade</li><li>Sem criar conta para o fornecedor</li><li>A fonte fica de fora: só membros da marca baixam</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="O que o fornecedor recebe: a página do link com os materiais, o prazo e os downloads restantes"><div className="recv"><div className="recv-top"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div className="mk-body"><p className="recv-k">MATERIAIS DA MARCA BRENNIMARK</p><p className="recv-by">Enviados por Carolina Menezes · Estúdio Alvéolo</p>
+      <div className="frame"><div className="mk" role="img" aria-label="O que o fornecedor recebe: a página do link com os materiais, e o prazo"><div className="recv"><div className="recv-top"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div className="mk-body"><p className="recv-k">MATERIAIS DA MARCA BRENNIMARK</p><p className="recv-by">Enviados por Carolina Menezes · Estúdio Alvéolo</p>
       <div className="kit-row"><span className="ck">↓</span><b>Logotipo</b><em>SVG · PNG · PDF</em></div><div className="kit-row"><span className="ck">↓</span><b>Cores</b><em>ASE · PDF</em></div><div className="kit-row"><span className="ck">↓</span><b>Regras de uso</b><em>PDF</em></div>
-      <div className="kit-foot"><span>Válido até 04/10/2026 · 2 de 3 downloads restantes</span><span className="mk-btn">Baixar tudo</span></div></div></div></div></div>
+      <div className="kit-foot"><span>Válido até 04/10/2026</span><span className="mk-btn">Baixar tudo</span></div></div></div></div></div>
       </div>
 
       <div className="feat-row rev">
@@ -72,19 +58,6 @@ export function ConteudoEntrega() {
       </div>
       </section>
 
-      <section className="pg-sec">
-      <div className="pg-wrap">
-      <div className="sec-head"><p className="eyebrow">Como funciona</p><Titulo className="h2" partes={["Da agência ao fornecedor, sem perder o fio."]} /></div>
-      <div className="steps"><div className="stp"><b>Convide por marca</b><p>A equipe e os parceiros entram só nas marcas em que trabalham.</p><small>Studio</small></div><div className="stp"><b>Envie com prazo</b><p>Quem não tem conta recebe um link que expira.</p><small>Studio</small></div><div className="stp"><b>Mantenha atualizado</b><p>Quando a marca muda, todos passam a baixar a versão nova.</p><small>Studio</small></div></div>
-      </div>
-      </section>
-
-      <section className="pg-sec">
-      <figure className="pg-wrap big-quote">
-      <blockquote>Na troca de fornecedor, eu revogo o acesso dele numa marca e não mexo em mais nada.</blockquote>
-      <figcaption><b>Depoimento fictício</b> · texto de marcação do layout</figcaption>
-      </figure>
-      </section>
 
       <section className="pg-sec">
       <div className="pg-wrap faq">
@@ -93,20 +66,6 @@ export function ConteudoEntrega() {
       </div>
       </section>
 
-      <section className="pg-sec">
-      <div className="pg-wrap">
-      <p className="eyebrow">Veja também</p>
-      <div className="related"><Link className="rel" href="/materiais"><small>Plataforma</small><b>Materiais da marca</b><span>O kit inteiro num clique, com a regra junto.</span><em>→</em></Link><Link className="rel" href="/seguranca"><small>Plataforma</small><b>Segurança e privacidade</b><span>Acesso por marca, conversas privadas, dados seus.</span><em>→</em></Link><Link className="rel" href="/empresas"><small>Para quem</small><b>Empresas</b><span>Fornecedores e equipes com a mesma referência.</span><em>→</em></Link></div>
-      </div>
-      </section>
-
-      <div className="marquee" aria-hidden="true"><div className="mq-track"><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span></div></div>
-      <section className="pg-sec"><Losango classe="l4" velocidade={0.25} />
-      <div className="pg-wrap cta-band">
-      <Titulo partes={["Entregue a marca com a referência certa."]} />
-      <button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button>
-      </div>
-      </section>
     </>
   );
 }

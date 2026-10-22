@@ -51,9 +51,10 @@ test("só o prefixo exato do link público: a gestão dos links pede sessão", (
   assert.equal(caminhoPublico("/api/links"), false);
   assert.equal(caminhoPublico("/api/links/x/revogar"), false);
   assert.equal(caminhoPublico("/w/conta/links"), false);
-  // `/entrega` é a página do SITE que apresenta o recurso — casa exato, e só ela.
-  assert.equal(caminhoPublico("/entrega"), true);
-  assert.equal(caminhoPublico("/entrega/abc"), false);
+  // `/materiais` é a página do SITE que apresenta o recurso — casa exato, e só ela.
+  // (`/entrega` virou redirecionamento em 22/10/2026, resolvido antes do proxy.)
+  assert.equal(caminhoPublico("/materiais"), true);
+  assert.equal(caminhoPublico("/materiais/abc"), false);
 });
 
 test("o webhook do Stripe passa sem sessão — a autorização é a assinatura do aviso", () => {

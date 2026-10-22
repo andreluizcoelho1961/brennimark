@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BlocosDeComplementos } from "./Complementos";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 
@@ -89,10 +90,12 @@ export function ConteudoManual() {
       </div>
       </section>
 
+      <BlocosDeComplementos />
+
       <section className="pg-sec">
       <div className="pg-wrap">
       <p className="eyebrow">Veja também</p>
-      <div className="related"><Link className="rel" href="/materiais"><small>Plataforma</small><b>Materiais da marca</b><span>O kit inteiro num clique, com a regra junto.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/complementos"><small>Plataforma</small><b>Complementos e lacunas</b><span>O que o manual não diz, escrito e citado.</span><em>→</em></Link></div>
+      <div className="related"><Link className="rel" href="/materiais"><small>Plataforma</small><b>Materiais da marca</b><span>O kit inteiro num clique, com a regra junto.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/manual#complementos"><small>Plataforma</small><b>Complementos e lacunas</b><span>O que o manual não diz, escrito e citado.</span><em>→</em></Link></div>
       </div>
       </section>
 

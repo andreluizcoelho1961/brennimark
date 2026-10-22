@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import maosComPranchas from "../imagens/maos-com-pranchas.webp";
+import { BlocosDeEntrega } from "./Entrega";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 
@@ -172,7 +173,7 @@ export function ConteudoMateriais() {
       <div><p className="eyebrow">Perguntas</p><Titulo className="h2" partes={["Sobre os materiais."]} /></div>
       <div>
       <details open><summary>Quem pode baixar os arquivos?</summary><p>As pessoas convidadas para aquela marca. Uma agência com vinte marcas convida cada fornecedor só para a marca em que ele trabalha.</p></details>
-      <details><summary>E quem não tem conta, como a gráfica?</summary><p>Você envia um link de entrega com prazo, com logo, cores, fotos e regras de uso. Ele expira sozinho. A fonte não vai por link: ela é só para membros da marca. <Link className="more" style={{ margin: "0", fontSize: "inherit" }} href="/entrega">Entrega e acesso →</Link></p></details>
+      <details><summary>E quem não tem conta, como a gráfica?</summary><p>Você envia um link de entrega com prazo, com logo, cores, fotos e regras de uso. Ele expira sozinho. A fonte não vai por link: ela é só para membros da marca. <Link className="more" style={{ margin: "0", fontSize: "inherit" }} href="/materiais#entrega">Entrega e acesso →</Link></p></details>
       <details><summary>A fonte da marca fica pública?</summary><p>Não. Ela é servida só para download, a membros autenticados daquela marca, depois de a licença ser aceita no envio. Nunca vira endereço público.</p></details>
       <details><summary>Quais formatos posso subir?</summary><p>Os de uso comum em marca: SVG, PNG, JPG, PDF, EPS, AI, OTF, TTF, ASE e outros. O limite de tamanho por arquivo depende do plano.</p></details>
       <details><summary>O que acontece com o logo antigo?</summary><p>Fica marcado como descontinuado, com data. Continua consultável, mas não entra no kit e aparece depois do atual.</p></details>
@@ -180,11 +181,12 @@ export function ConteudoMateriais() {
       </div>
       </section>
 
+      <BlocosDeEntrega />
+
       <section className="pg-sec">
       <div className="pg-wrap">
       <p className="eyebrow">Veja também</p>
       <div className="related">
-      <Link className="rel" href="/entrega"><small>Plataforma</small><b>Entrega e acesso</b><span>Link com prazo e acesso por marca.</span><em>→</em></Link>
       <Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link>
       <Link className="rel" href="/manual"><small>Plataforma</small><b>O manual em PDF</b><span>Fiel ao que o estúdio diagramou.</span><em>→</em></Link>
       </div>

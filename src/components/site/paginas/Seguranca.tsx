@@ -63,7 +63,7 @@ export function ConteudoSeguranca() {
       <section className="pg-sec">
       <div className="pg-wrap">
       <p className="eyebrow">Veja também</p>
-      <div className="related"><Link className="rel" href="/entrega"><small>Plataforma</small><b>Entrega e acesso</b><span>Link com prazo e acesso por marca.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/empresas"><small>Para quem</small><b>Empresas</b><span>Fornecedores e equipes com a mesma referência.</span><em>→</em></Link></div>
+      <div className="related"><Link className="rel" href="/materiais#entrega"><small>Plataforma</small><b>Entrega e acesso</b><span>Link com prazo e acesso por marca.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/empresas"><small>Para quem</small><b>Empresas</b><span>Fornecedores e equipes com a mesma referência.</span><em>→</em></Link></div>
       </div>
       </section>
 
