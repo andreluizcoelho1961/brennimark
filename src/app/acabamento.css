@@ -384,3 +384,17 @@ a[class~="border"][class~="bg-platform-panel"]:not(.bm-site *, [data-brand-canva
 :root[data-tema="escuro"] [data-palco] {
   background: color-mix(in oklab, var(--color-platform-panel) 94%, white 6%);
 }
+
+/* ─── 6. O Vini em cima da janela ────────────────────────────────────────── */
+/* Andando, ele balança curto, como passo; parado, quem se mexe é o vídeo
+   (22/10/2026). O "reduzir movimento" do globals.css desliga o balanço. */
+@keyframes vini-passo {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-2deg); }
+  50% { transform: translateY(0) rotate(0deg); }
+  75% { transform: translateY(-3px) rotate(2deg); }
+}
+.vini-passo[data-andando] {
+  animation: vini-passo 520ms ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
