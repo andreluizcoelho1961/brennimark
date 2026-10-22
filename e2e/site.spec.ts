@@ -273,6 +273,10 @@ test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé,
   await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Assinatura mensal com renovação automática");
   await page.goto("/privacidade", { waitUntil: "commit" });
   await expect(page.locator("[data-empresa]")).toContainText("CNPJ 47.924.458/0001-09");
+  // Decisão do André (22/10/2026): o rodapé mostra só o nome fantasia, o CNPJ e o
+  // e-mail. Nome do titular e endereço residencial não aparecem nele.
+  await expect(page.locator("[data-empresa]")).not.toContainText("André");
+  await expect(page.locator("[data-empresa]")).not.toContainText("Rua ");
   const link = page.locator("[data-documento-legal] a", { hasText: "Dados tratados em nome do assinante" });
   await expect(link).toHaveAttribute("href", "/termos#dados-tratados-em-nome-do-assinante");
   await link.click();

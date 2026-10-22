@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
-import { EMPRESA, ENDERECO_COMPLETO } from "@/lib/site/empresa";
+import { EMPRESA } from "@/lib/site/empresa";
 import equipeNaMesa from "./imagens/equipe-na-mesa.jpg";
 import { IconeDoRecurso } from "./IconeDoRecurso";
 import { Losango } from "./Losango";
@@ -199,7 +199,7 @@ export function SecoesDaHome() {
               <Link className="lockup" href="/" aria-label="Brennimark, voltar ao início"><svg viewBox="0 0 750 170" role="img" aria-label="Brennimark"><use href="#bm-logo" /></svg></Link>
               <nav className="foot-links" aria-label="Institucional"><Link href="/manifesto">Manifesto</Link><Link href="/ajuda#suporte">Suporte</Link><Link href="/termos">Termos</Link><Link href="/privacidade">Privacidade</Link><Link href="/licenca-de-fontes">Licença de fontes</Link></nav>
               <LinksDasFerramentas />
-              <span className="foot-empresa" data-empresa>{EMPRESA.nome}, {EMPRESA.natureza} · CNPJ {EMPRESA.cnpj} · {ENDERECO_COMPLETO} · {EMPRESA.email}</span>
+              <span className="foot-empresa" data-empresa>© Brennimark · CNPJ {EMPRESA.cnpj} · Contato: <a href={`mailto:${EMPRESA.email}`}>{EMPRESA.email}</a></span>
             </footer>
           </div>
         </section>
