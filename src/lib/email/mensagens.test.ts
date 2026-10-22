@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDePedidoDeExportacao, mensagemDeRecuperacao } from "./mensagens";
+import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDeConfirmacaoDaLista, mensagemDeMarketing, mensagemDePedidoDeExportacao, mensagemDeRecuperacao } from "./mensagens";
 
 test("a recuperação leva o link, o prazo e o que fazer se não foi você", () => {
   const m = mensagemDeRecuperacao({ link: "https://x.test/l?a=1&b=2", validoPorMinutos: 60 });
@@ -61,4 +61,49 @@ test("o aviso de exportação à equipe: a conta, quem, quando e o prazo", () =>
   assert.match(m.texto, /pediu a exportação do conteúdo em 8 de outubro de 2026, por dona@agencia\.com/);
   assert.match(m.texto, /Prazo prometido nos Termos: 23 de outubro de 2026/);
   assert.ok(m.html.includes("Agência &lt;X&gt;"));
+});
+
+test("a confirmação da lista leva o botão, o aviso de que sem clique nada é enviado e o caminho de saída", () => {
+  const m = mensagemDeConfirmacaoDaLista({ link: "https://x.test/confirmar/abc?a=1&b=2", linkDeSair: "https://x.test/sair/abc" });
+  assert.equal(m.assunto, "Confirme o seu e-mail no Brennimark");
+  assert.match(m.texto, /Confirmar: https:\/\/x\.test\/confirmar\/abc\?a=1&b=2/);
+  assert.match(m.texto, /Sem a confirmação, não enviamos nada/);
+  assert.match(m.texto, /Se não foi você, ignore/);
+  assert.match(m.texto, /https:\/\/x\.test\/sair\/abc/);
+  assert.match(m.html, /href="https:\/\/x\.test\/confirmar\/abc\?a=1&amp;b=2"/);
+  assert.doesNotMatch(m.html + m.texto, /desconto|promoção|oferta/i, "mensagem de serviço, sem propaganda");
+});
+
+test("o marketing traz o texto, o botão e o rodapé legal completo, em texto e em HTML", () => {
+  const m = mensagemDeMarketing({
+    assunto: "Convite",
+    paragrafos: ["Olá, Ana.", "Um parágrafo com <b> & aspas."],
+    botao: { rotulo: "Pedir o convite", link: "https://x.test/fonts" },
+    quando: "21 de outubro de 2026",
+    linkDeSair: "https://x.test/sair/abc",
+    linkDaPolitica: "https://x.test/privacidade",
+    empresa: { nome: "Fulano de Tal", cnpj: "00.000.000/0001-00", endereco: "Rua A, 1, Porto Alegre/RS" },
+  });
+  assert.equal(m.assunto, "Convite");
+  for (const parte of m.texto.split("\n")) assert.ok(parte.length < 400);
+  for (const dito of ["Pedir o convite: https://x.test/fonts", "21 de outubro de 2026", "Fulano de Tal", "CNPJ 00.000.000/0001-00", "Rua A, 1, Porto Alegre/RS", "https://x.test/sair/abc", "https://x.test/privacidade"]) {
+    assert.ok(m.texto.includes(dito), `o texto puro deve dizer: ${dito}`);
+  }
+  assert.match(m.html, /href="https:\/\/x\.test\/sair\/abc"/);
+  assert.match(m.html, /href="https:\/\/x\.test\/privacidade"/);
+  assert.match(m.html, /href="https:\/\/x\.test\/fonts"/);
+  assert.match(m.html, /Fulano de Tal/);
+  // o conteúdo é escapado: nada do texto vira marcação
+  assert.match(m.html, /&lt;b&gt; &amp; aspas/);
+  assert.doesNotMatch(m.html, /<b>/);
+});
+
+test("o marketing sem botão não inventa link de ação, mas mantém a saída", () => {
+  const m = mensagemDeMarketing({
+    assunto: "Novidade", paragrafos: ["Texto."], quando: "hoje", linkDeSair: "https://x.test/sair/abc", linkDaPolitica: "https://x.test/privacidade",
+    empresa: { nome: "N", cnpj: "1", endereco: "E" },
+  });
+  assert.doesNotMatch(m.texto, /Pedir/);
+  assert.match(m.texto, /https:\/\/x\.test\/sair\/abc/);
+  assert.match(m.html, /Sair da lista ou apagar o meu cadastro/);
 });

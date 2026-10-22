@@ -322,3 +322,25 @@ p, blockquote, li {
   }
 }
 
+
+/*
+ * O texto da Central de ajuda dentro do painel "Como usar" das ferramentas.
+ * O preflight do Tailwind zera listas, tabelas e margens; aqui elas voltam,
+ * só para este trecho, com os tokens da plataforma.
+ */
+.prosa-da-ajuda { font-size: 14px; line-height: 1.6; color: var(--color-platform-text); }
+.prosa-da-ajuda h2 { margin: 1.6em 0 .5em; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.prosa-da-ajuda h2:first-child { margin-top: 0; }
+.prosa-da-ajuda h3 { margin: 1.2em 0 .4em; font-size: 14px; font-weight: 600; }
+.prosa-da-ajuda p { margin: .6em 0; }
+.prosa-da-ajuda ul, .prosa-da-ajuda ol { margin: .6em 0; padding-left: 1.3em; }
+.prosa-da-ajuda ul { list-style: disc; }
+.prosa-da-ajuda ol { list-style: decimal; }
+.prosa-da-ajuda li { margin: .25em 0; }
+.prosa-da-ajuda li > ul, .prosa-da-ajuda li > ol { margin: .2em 0; }
+.prosa-da-ajuda code { font-family: var(--font-mono, ui-monospace, monospace); font-size: .92em; background: var(--color-platform-panel-muted); padding: .05em .3em; border-radius: 3px; }
+.prosa-da-ajuda a { text-decoration: underline; text-underline-offset: 3px; }
+.prosa-da-ajuda blockquote { margin: .8em 0; padding: .1em .9em; border-left: 3px solid var(--color-platform-border); color: var(--color-platform-text-muted); }
+.prosa-da-ajuda table { width: 100%; margin: .8em 0; border-collapse: collapse; font-size: 13px; }
+.prosa-da-ajuda th, .prosa-da-ajuda td { border-bottom: 1px solid var(--color-platform-border); padding: .45em .5em; text-align: left; vertical-align: top; }
+.prosa-da-ajuda th { font-weight: 600; }

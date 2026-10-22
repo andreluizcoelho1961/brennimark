@@ -1,0 +1,38 @@
+import type { Metadata } from "next";
+import { AjudaDaFerramenta } from "@/components/ajuda/AjudaDaFerramenta";
+import { Cores } from "@/components/ferramentas/Cores";
+import { ConviteDaFerramenta } from "@/components/ferramentas/ConviteDaFerramenta";
+import { AbrirEmJanela } from "@/components/ferramentas/AbrirEmJanela";
+
+export const metadata: Metadata = {
+  title: "Brennimark Cores — que cor é essa?",
+  description: "Pegue uma cor de qualquer lugar da tela e saiba os códigos, o nome, o contraste e como ela aparece para quem não enxerga certas cores. Gratuito, no seu navegador.",
+  robots: { index: false, follow: false },
+};
+
+/**
+ * O Brennimark Cores gratuito (10/10/2026): o modo Medir, para todo mundo. A
+ * página é estática; tudo acontece no navegador de quem usa.
+ */
+export default function PaginaDoCores() {
+  return (
+    <>
+      <div className="relative border-b border-platform-border px-6 py-6">
+        <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">Brennimark Cores</p>
+        <h1 className="mt-2 text-[clamp(1.4rem,2.6vw,1.9rem)] font-semibold tracking-tight">Que cor é essa?</h1>
+        <p className="mt-2 max-w-[44rem] text-[15px] leading-relaxed text-platform-text-muted">
+          Pegue uma cor de qualquer lugar da tela e saiba os códigos, um nome em português, se dá para ler texto sobre ela e como ela aparece para quem não enxerga certas cores. Gratuito, com um cadastro rápido na hora de exportar. Nada sai do seu computador.
+        </p>
+        <div className="mt-4 flex flex-wrap items-center gap-2 sm:absolute sm:right-6 sm:top-5 sm:mt-0">
+          <AbrirEmJanela ferramenta="cores" />
+          <AjudaDaFerramenta ferramenta="cores" audiencia="site" />
+        </div>
+      </div>
+      <Cores />
+      <ConviteDaFerramenta
+        titulo="Com a marca do cliente, o Cores responde se aquela é a cor da marca."
+        itens={["Compara com a paleta aprovada no manual", "Diz qual cor da marca é a mais próxima", "Guarda os códigos oficiais, com a página do manual"]}
+      />
+    </>
+  );
+}

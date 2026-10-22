@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Protótipo — ferramentas em janela solta</title>
+<style>
+:root{--bg:#001621;--surface:#072631;--raised:#0b303c;--text:#f2f5f6;--muted:#b0c3ca;--line:rgba(176,195,202,.22);--brasa:#ff4103;
+--paper:#eef2f4;--panel:#fafcfd;--ink:#001621;--ink-muted:#465e68;--ink-line:rgba(0,22,33,.13)}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:15px/1.5 "Helvetica Neue",Helvetica,Arial,sans-serif}
+.mono{font-family:SFMono-Regular,Consolas,monospace}
+.proto{position:sticky;top:0;z-index:20;background:#000d14;border-bottom:1px solid var(--line)}
+.proto .in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.proto span{font:11px SFMono-Regular,Consolas,monospace;color:var(--muted);margin-right:8px}
+.proto button{background:none;border:1px solid var(--line);color:var(--text);padding:6px 12px;border-radius:999px;font:inherit;font-size:13px;cursor:pointer}
+.proto button[aria-pressed=true]{background:var(--brasa);border-color:var(--brasa);color:#fff}
+.view{display:none;max-width:1180px;margin:0 auto;padding:32px 16px 64px}.view.on{display:block}
+h1{font-size:clamp(26px,4vw,40px);line-height:1.1;letter-spacing:-.03em;margin-bottom:8px}
+.lede{color:var(--muted);max-width:64ch;margin-bottom:24px}
+.eyebrow{font:11px SFMono-Regular,Consolas,monospace;text-transform:uppercase;letter-spacing:.12em;color:var(--brasa);margin-bottom:10px}
+/* ferramenta (tema claro da plataforma) */
+.tool{background:var(--paper);color:var(--ink);border-radius:8px;overflow:hidden;border:1px solid var(--ink-line)}
+.tool .band{padding:16px 20px;border-bottom:1px solid var(--ink-line);display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.tool .band small{font:10px SFMono-Regular,Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-muted)}
+.tool .band h2{font-size:20px;letter-spacing:-.02em;margin-top:6px}
+.tool .band p{font-size:13px;color:var(--ink-muted);max-width:52ch;margin-top:4px}
+.acoes{display:flex;gap:8px;flex-wrap:wrap}
+.pill{font-size:13px;border:1px solid var(--ink-line);background:var(--panel);color:var(--ink);border-radius:999px;padding:6px 12px;display:inline-flex;gap:6px;align-items:center}
+.pill.dest{background:var(--ink);color:#fff;border-color:var(--ink)}
+.pill.novo{outline:2px solid var(--brasa);outline-offset:2px}
+.corpo{display:grid;grid-template-columns:220px 1fr;min-height:260px}
+.lado{border-right:1px solid var(--ink-line);padding:14px;font-size:13px;display:grid;gap:10px;align-content:start}
+.lado .c{background:var(--panel);border:1px solid var(--ink-line);border-radius:4px;padding:8px 10px}
+.lado .c small{display:block;font:9px SFMono-Regular,Consolas,monospace;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-muted)}
+.previa{display:grid;place-items:center;padding:16px}
+.folha{width:130px;height:170px;background:#fff;box-shadow:0 2px 12px rgba(0,22,33,.2);background-image:linear-gradient(90deg,rgba(255,65,3,.3) 1px,transparent 1px);background-size:calc(100%/6) 100%;position:relative}
+.folha:after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,22,33,.14) 1px,transparent 1px);background-size:100% 16px}
+.notas{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px}
+.nota{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;font-size:14px;color:var(--muted)}
+.nota b{display:block;color:var(--text);margin-bottom:4px}
+/* janela solta */
+.mesa{background:linear-gradient(135deg,#1c2630,#26323d);border-radius:10px;padding:28px;min-height:520px;position:relative;overflow:hidden;border:1px solid var(--line)}
+.ai{position:absolute;inset:18px;background:#323c46;border-radius:6px;border:1px solid #455461}
+.ai .bar{height:28px;background:#242d36;border-radius:6px 6px 0 0;padding:6px 12px;font:11px SFMono-Regular,Consolas,monospace;color:#9fb0bb}
+.ai .arte{position:absolute;left:30%;top:60px;width:240px;height:320px;background:#fff;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.ai .arte i{position:absolute;left:24px;top:30px;width:90px;height:50px;background:var(--brasa)}
+.ai .arte u{position:absolute;left:24px;top:100px;width:180px;height:8px;background:#001621;text-decoration:none}
+.jan{position:absolute;border-radius:8px;overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.5);background:var(--paper);color:var(--ink);border:1px solid #fff3}
+.jan .tit{background:#dde6ea;padding:7px 10px;font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--ink)}
+.jan .tit b{font-weight:600}
+.jan .tit .pin{font:10px SFMono-Regular,Consolas,monospace;background:var(--brasa);color:#fff;border-radius:3px;padding:2px 6px}
+.jan .tit .pin.off{background:#fff;color:var(--ink-muted);border:1px solid var(--ink-line)}
+.jan .in{padding:10px;font-size:12px;display:grid;gap:8px}
+.cor{display:flex;height:34px;border-radius:3px;overflow:hidden}.cor b{flex:1}
+.sw{display:flex;gap:6px}.sw i{width:26px;height:26px;border-radius:50%;display:block;border:1px solid var(--ink-line)}
+.legenda{margin-top:14px;font-size:13px;color:var(--muted)}
+/* tabela */
+table{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:11px SFMono-Regular,Consolas,monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+td.ok{color:#7fd6a0}td.nao{color:#ff8a7a}td.talvez{color:#e6c66b}
+.aviso{margin-top:16px;border:1px solid var(--brasa);border-radius:6px;padding:14px 16px;font-size:14px;color:var(--muted)}
+.aviso b{color:var(--text)}
+@media(max-width:820px){.notas{grid-template-columns:1fr}.corpo{grid-template-columns:1fr}.lado{border-right:0;border-bottom:1px solid var(--ink-line)}.mesa{min-height:620px}}
+</style>
+</head>
+<body>
+<div class="proto"><div class="in">
+ <span>PROTÓTIPO · layout, conteúdo de exemplo</span>
+ <button data-v="pagina" aria-pressed="true">1 · O botão na página</button>
+ <button data-v="janela" aria-pressed="false">2 · A janela solta</button>
+ <button data-v="mesa" aria-pressed="false">3 · Várias ao mesmo tempo</button>
+ <button data-v="onde" aria-pressed="false">4 · Onde funciona</button>
+</div></div>
+
+<!-- 1 -->
+<div class="view on" id="v-pagina">
+ <p class="eyebrow">Etapa 1 · o botão</p>
+ <h1>Cada ferramenta ganha “Abrir em janela”.</h1>
+ <p class="lede">O botão fica na faixa de título, ao lado de “Como usar”. Um clique abre a ferramenta numa janela própria, e a página original continua onde estava.</p>
+ <div class="tool">
+  <div class="band">
+   <div><small>Brennimark Grids</small><h2>O grid pronto para o InDesign, nos formatos mais usados</h2><p>Margens, medianiz, linha de base, sangria e área segura, num documento que abre pronto para diagramar.</p></div>
+   <div class="acoes"><span class="pill">Como usar</span><span class="pill dest novo">⧉ Abrir em janela</span></div>
+  </div>
+  <div class="corpo">
+   <div class="lado"><div class="c"><small>Passo 1</small>O formato · A4</div><div class="c"><small>Passo 2</small>Tipo de grid · Colunas</div><div class="c"><small>Passo 3</small>Baixar .idml</div></div>
+   <div class="previa"><div class="folha"></div></div>
+  </div>
+ </div>
+ <div class="notas">
+  <div class="nota"><b>Abre sem tirar você daqui</b>A aba do site continua aberta. Abrir de novo só traz a janela para a frente, em vez de abrir outra igual.</div>
+  <div class="nota"><b>Lembra onde você deixou</b>Tamanho e posição de cada ferramenta ficam guardados neste computador, para a próxima abertura.</div>
+  <div class="nota"><b>Também na plataforma</b>O mesmo botão aparece nas ferramentas do assinante, já ligadas à marca.</div>
+ </div>
+</div>
+
+<!-- 2 -->
+<div class="view" id="v-janela">
+ <p class="eyebrow">Etapas 1 e 2 · o modo janela</p>
+ <h1>Enxuta: sem o cabeçalho do site, com o espaço todo para a ferramenta.</h1>
+ <p class="lede">Na janela solta some o menu do site e o título grande. Sobra uma barra fina com o nome da ferramenta e dois botões.</p>
+ <div class="tool" style="max-width:820px;margin:0 auto;box-shadow:0 14px 40px rgba(0,0,0,.45)">
+  <div class="band" style="padding:8px 14px;align-items:center">
+   <div style="display:flex;gap:10px;align-items:center"><b style="font-size:13px">Brennimark Grids</b><small>A4 · colunas</small></div>
+   <div class="acoes"><span class="pill novo">📌 Fixar por cima</span><span class="pill">Voltar à aba do site</span></div>
+  </div>
+  <div class="corpo" style="min-height:340px;grid-template-columns:240px 1fr">
+   <div class="lado"><div class="c"><small>O formato</small>A4 — 210 × 297 mm</div><div class="c"><small>Tipo de grid</small>Manuscrito · <b>Colunas</b> · Modular</div><div class="c"><small>Colunas</small>12 &nbsp; Medianiz 4,23 mm</div><div class="c"><small>Baixar</small>.idml &nbsp; .pdf</div></div>
+   <div class="previa"><div class="folha" style="width:170px;height:225px"></div></div>
+  </div>
+ </div>
+ <div class="notas">
+  <div class="nota"><b>“Fixar por cima”</b>Deixa a janela sempre por cima de outros programas, como o Illustrator. Só aparece onde o navegador permite (Chrome, Edge, Firefox).</div>
+  <div class="nota"><b>“Voltar à aba do site”</b>Fecha a janela solta e devolve a ferramenta à página.</div>
+  <div class="nota"><b>Cadastro ao baixar</b>O formulário aparece dentro da própria janela, no mesmo molde de hoje, e só na primeira vez.</div>
+ </div>
+</div>
+
+<!-- 3 -->
+<div class="view" id="v-mesa">
+ <p class="eyebrow">O que você descreveu</p>
+ <h1>Três ferramentas abertas ao mesmo tempo, ao lado do Illustrator.</h1>
+ <p class="lede">Cada uma na sua janela, em qualquer tela. As fixadas por cima ficam sobre o programa de design.</p>
+ <div class="mesa">
+  <div class="ai"><div class="bar">Adobe Illustrator · exemplo</div><div class="arte"><i></i><u></u></div></div>
+  <div class="jan" style="left:5%;top:70px;width:250px"><div class="tit"><b>Cores</b><span class="pin">por cima</span></div><div class="in"><div class="cor"><b style="background:#ff4103"></b><b style="background:#001621"></b><b style="background:#eef2f4"></b></div><div class="sw"><i style="background:#ff4103"></i><i style="background:#001621"></i></div><span>#FF4103 · Laranja brasa</span></div></div>
+  <div class="jan" style="right:4%;top:40px;width:330px"><div class="tit"><b>Grids</b><span class="pin off">solta</span></div><div class="in"><div style="display:flex;gap:10px;align-items:center"><div class="folha" style="width:80px;height:104px"></div><span>A4 · 12 colunas<br>Baixar .idml</span></div></div></div>
+  <div class="jan" style="left:22%;bottom:34px;width:300px"><div class="tit"><b>Kit</b><span class="pin">por cima</span></div><div class="in"><span>Logo enviado · 38 arquivos prontos</span><div class="cor" style="height:22px"><b style="background:#d8e1e5"></b><b style="background:#b0c3ca"></b><b style="background:#8aa0aa"></b></div></div></div>
+ </div>
+ <p class="legenda">“por cima” = fixada sobre os outros programas. “solta” = janela comum: vai para trás quando você clica em outro programa.</p>
+ <div class="aviso"><b>Um limite que eu ainda preciso testar:</b> a documentação do navegador não diz se dá para ter <b>mais de uma</b> janela fixada por cima ao mesmo tempo. Se não der, a regra é: várias soltas, e uma fixada por cima de cada vez.</div>
+</div>
+
+<!-- 4 -->
+<div class="view" id="v-onde">
+ <p class="eyebrow">Compatibilidade</p>
+ <h1>O que cada navegador permite.</h1>
+ <p class="lede">O botão “Abrir em janela” funciona em todos. O “Fixar por cima” só aparece onde o navegador entrega o recurso.</p>
+ <table>
+  <tr><th>Recurso</th><th>Chrome</th><th>Edge</th><th>Firefox</th><th>Safari</th></tr>
+  <tr><td>Abrir em janela</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td></tr>
+  <tr><td>Várias janelas ao mesmo tempo</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td><td class="ok">✓</td></tr>
+  <tr><td>Fixar por cima de outros programas</td><td class="ok">✓ (116+)</td><td class="ok">✓ (116+)</td><td class="talvez">a confirmar (151)</td><td class="nao">não</td></tr>
+  <tr><td>Instalar como aplicativo (etapa 3)</td><td class="ok">✓</td><td class="ok">✓</td><td class="nao">não</td><td class="talvez">“Adicionar ao Dock”, a testar</td></tr>
+ </table>
+ <div class="aviso"><b>No Safari</b> o “Fixar por cima” não existe. Quem usa Safari fica com a janela solta, que continua útil em outra tela. Para ter “sempre por cima” em qualquer navegador, só um aplicativo nativo (como o Fonts). Isso fica para uma conversa à parte.</div>
+</div>
+
+<script>
+document.querySelectorAll('.proto button').forEach(b=>b.addEventListener('click',()=>{
+ document.querySelectorAll('.proto button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+ document.querySelectorAll('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+b.dataset.v));
+ scrollTo(0,0);
+}));
+</script>
+</body>
+</html>

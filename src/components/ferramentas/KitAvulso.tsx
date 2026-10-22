@@ -9,6 +9,7 @@ import {
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
+import { useCadastroParaBaixar } from "./CadastroParaBaixar";
 
 /** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
 const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
@@ -63,6 +64,7 @@ function numero(v: string): number {
 }
 
 export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
+  const { pedir, dialogo } = useCadastroParaBaixar("kit", { ativo: !fixo });
   const [logoEnviado, setLogo] = useState<Desenho | null>(null);
   const [verticalEnviado, setVertical] = useState<Desenho | null>(null);
   const [simboloEnviado, setSimbolo] = useState<Desenho | null>(null);
@@ -135,6 +137,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
 
   return (
     <div data-kit className="grid min-h-[calc(100dvh-var(--shell-topbar))] lg:grid-cols-[380px_1fr]">
+      {dialogo}
       {/* ─── Passos ─────────────────────────────────────────────────────── */}
       <aside className="flex flex-col gap-8 border-platform-border p-6 lg:border-r">
         <section className="flex flex-col gap-3">
@@ -232,12 +235,12 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
         <section className="flex flex-col gap-3">
           <p className={ROTULO}>Passo 3</p>
           <h2 className={PASSO}>Baixar</h2>
-          <Dica texto={dicaDe("kit-baixar-tudo")} lado="cima"><button type="button" data-kit-baixar-tudo disabled={!escolhas || Boolean(gerando)} onClick={() => baixar(GRUPOS_DO_KIT.map((g) => g.id))}
+          <Dica texto={dicaDe("kit-baixar-tudo")} lado="cima"><button type="button" data-kit-baixar-tudo disabled={!escolhas || Boolean(gerando)} onClick={() => pedir(() => baixar(GRUPOS_DO_KIT.map((g) => g.id)))}
             className="flex items-center justify-between rounded-[var(--radius-control)] bg-platform-signal px-4 py-3 text-sm font-semibold text-platform-bg disabled:opacity-40">
             <span>{gerando ? `Gerando… ${gerando.prontos} de ${gerando.total}` : "Baixar tudo (.zip)"}</span>
             {totalDeArquivos !== null && <span data-kit-total className="font-mono text-[11px] opacity-80">{totalDeArquivos} arquivos</span>}
           </button></Dica>
-          <Dica texto={dicaDe("kit-baixar-grupo")} lado="cima"><button type="button" data-kit-baixar-grupo disabled={!escolhas || Boolean(gerando)} onClick={() => baixar([aba])}
+          <Dica texto={dicaDe("kit-baixar-grupo")} lado="cima"><button type="button" data-kit-baixar-grupo disabled={!escolhas || Boolean(gerando)} onClick={() => pedir(() => baixar([aba]))}
             className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2.5 text-sm text-platform-text disabled:opacity-40">
             Só {GRUPOS_DO_KIT.find((g) => g.id === aba)!.nome.toLowerCase()}
           </button></Dica>

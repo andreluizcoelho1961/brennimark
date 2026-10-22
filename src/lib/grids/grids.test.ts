@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { strFromU8, unzipSync } from "fflate";
-import { FORMATOS, formatoPorId } from "./formatos";
+import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId } from "./formatos";
 import { PT_POR_MM, calcularGrid, escolhasPadrao, margensClassicas, recortar, type Escolhas } from "./calcular";
 import { arquivosDoIdml, montarIdml } from "./idml";
 import { montarPdf } from "./pdf";
@@ -23,6 +23,16 @@ test("a tabela aprovada: todo formato tem fonte, tamanho e unidade coerentes", (
     assert.ok(f.margensU || f.margensMm !== undefined);
   }
   assert.deepEqual([formatoPorId("linkedin-capa").largura, formatoPorId("linkedin-capa").altura], [1512, 256], "a medida nova do LinkedIn (13/10)");
+});
+
+test("a versão gratuita: 13 formatos que existem, com pelo menos um de cada grupo", () => {
+  assert.equal(FORMATOS_GRATIS.size, 13);
+  const existentes = new Set(FORMATOS.map((f) => f.id));
+  for (const id of FORMATOS_GRATIS) assert.ok(existentes.has(id), `${id} não existe na tabela`);
+  for (const g of GRUPOS) {
+    assert.ok(FORMATOS.some((f) => f.grupo === g.id && FORMATOS_GRATIS.has(f.id)), `o grupo ${g.id} ficaria vazio no gratuito`);
+  }
+  assert.ok(FORMATOS_GRATIS.has("a4"), "o A4 é o formato de abertura da ferramenta");
 });
 
 test("A4 em colunas: 12 colunas, medianiz de 1u (12 pt), margens 4u/5u/4u, linha de base de 12 pt", () => {

@@ -30,6 +30,7 @@ export const PAGINAS_DO_SITE: readonly PaginaDoSite[] = [
   { slug: "manual", titulo: "O manual em PDF", resumo: "Fiel ao que o estúdio diagramou, com índice e busca", grupo: "plataforma" },
   { slug: "materiais", titulo: "Materiais da marca", resumo: "O kit inteiro num clique, com a regra junto", grupo: "plataforma" },
   { slug: "vini", titulo: "Vini Max", resumo: "Consulta, revisão de peça e prompts alinhados à marca", grupo: "plataforma" },
+  { slug: "fonts", titulo: "Brennimark Fonts", resumo: "Gerenciador de fontes por marca, em beta", grupo: "plataforma" },
   { slug: "seguranca", titulo: "Segurança e privacidade", resumo: "Acesso por marca, conversas privadas, dados seus", grupo: "plataforma" },
   { slug: "agencias", titulo: "Agências e estúdios", resumo: "A marca entregue pronta para usar", grupo: "para-quem" },
   { slug: "empresas", titulo: "Empresas", resumo: "Fornecedores e equipes com a mesma referência", grupo: "para-quem" },
@@ -60,7 +61,7 @@ export const CAPITULOS_DA_HOME = [
   { id: "problema", titulo: "Antes e depois" },
   { id: "vini", titulo: "Vini Max" },
   { id: "publico", titulo: "Para quem" },
-  { id: "ferramentas", titulo: "Ferramentas gratuitas" },
+  { id: "ferramentas", titulo: "Ferramentas" },
   { id: "planos", titulo: "Planos" },
   { id: "demonstracao", titulo: "Demonstração" },
 ] as const;

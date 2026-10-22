@@ -23,6 +23,7 @@ test("o site passa sem sessão: a home e cada página pública", () => {
   assert.equal(caminhoPublico("/"), true);
   assert.equal(caminhoPublico("/vini"), true);
   assert.equal(caminhoPublico("/licenca-de-fontes"), true);
+  assert.equal(caminhoPublico("/fonts"), true);
 });
 
 test("o site casa pelo caminho exato: a home não abre o produto", () => {
@@ -105,4 +106,40 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/ferramentas/grids"), true);
   assert.equal(caminhoPublico("/ferramentas/gridsx"), false);
   assert.equal(caminhoPublico("/ferramentas/grids/qualquer"), false);
+  // O cadastro gratuito (17/10/2026): só o caminho exato.
+  assert.equal(caminhoPublico("/api/cadastro"), true);
+  assert.equal(caminhoPublico("/api/cadastros"), false);
+  assert.equal(caminhoPublico("/api/cadastro/qualquer"), false);
+  // A saída da lista (17/10/2026): a página por prefixo, a rota pelo caminho exato.
+  assert.equal(caminhoPublico("/sair/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
+  assert.equal(caminhoPublico("/sairx"), false);
+  assert.equal(caminhoPublico("/api/cadastro/saida"), true);
+  assert.equal(caminhoPublico("/api/cadastro/saidax"), false);
+  assert.equal(caminhoPublico("/api/cadastro/saida/qualquer"), false);
+  // A confirmação do e-mail (18/10/2026): o mesmo desenho.
+  assert.equal(caminhoPublico("/confirmar/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
+  assert.equal(caminhoPublico("/confirmarx"), false);
+  assert.equal(caminhoPublico("/api/cadastro/confirmar"), true);
+  assert.equal(caminhoPublico("/api/cadastro/confirmarx"), false);
+  assert.equal(caminhoPublico("/api/cadastro/confirmar/qualquer"), false);
+  // A saída em um clique (22/10/2026): o endereço do cabeçalho List-Unsubscribe.
+  assert.equal(caminhoPublico("/api/sair/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
+  assert.equal(caminhoPublico("/api/sairx"), false);
+  assert.equal(caminhoPublico("/api/sair"), false);
+  assert.equal(caminhoPublico("/api/console/email"), false);
+  // A ferramenta em janela solta (21/10/2026): só as três, pelo caminho exato.
+  for (const f of ["kit", "cores", "grids"]) assert.equal(caminhoPublico(`/ferramentas/janela/${f}`), true);
+  assert.equal(caminhoPublico("/ferramentas/janela"), false);
+  assert.equal(caminhoPublico("/ferramentas/janela/fonts"), false);
+  assert.equal(caminhoPublico("/ferramentas/janela/grids/x"), false);
+  assert.equal(caminhoPublico("/ferramentas/janela/gridsx"), false);
+});
+
+test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () => {
+  assert.equal(caminhoPublico("/ajuda"), true);
+  assert.equal(caminhoPublico("/ajuda/kit"), true);
+  assert.equal(caminhoPublico("/ajuda/categoria/materiais-da-marca"), true);
+  // vizinhos: nada que apenas comece com as mesmas letras
+  assert.equal(caminhoPublico("/ajudax"), false);
+  assert.equal(caminhoPublico("/ajuda-interna"), false);
 });

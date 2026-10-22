@@ -55,13 +55,45 @@
  * pelo caminho exato e pelo mesmo motivo — o grid é calculado e o IDML montado
  * no navegador; nenhum dado lido.
  *
+ * Os ARTIGOS DA CENTRAL DE AJUDA entraram em 17/10/2026: `/ajuda/<artigo>` e
+ * `/ajuda/categoria/<categoria>`, por PREFIXO (`/ajuda/`, com a barra) — a
+ * própria `/ajuda` já é do site, pelo caminho exato. São HTML gerado no
+ * build a partir de Markdown do repositório; só existem os endereços que o
+ * `generateStaticParams` conhece (`dynamicParams = false`), então o prefixo
+ * não abre nada além deles. `/ajudax` não casa.
+ *
+ * O CADASTRO GRATUITO entrou em 17/10/2026: `/api/cadastro`, pelo caminho
+ * exato. Quem baixa de uma ferramenta do site não tem conta. A rota não dá
+ * acesso a nada: só grava uma linha numa tabela fechada a qualquer sessão, com
+ * a chave de serviço, e responde igual exista o e-mail ou não.
+ *
+ * A SAÍDA DA LISTA entrou no mesmo dia: `/sair/` (a página do link de todo
+ * e-mail de marketing) e `/api/cadastro/saida`. Quem recebe o e-mail não tem
+ * conta. A página não lê nada, e a rota só obedece ao token que o banco conferiu.
+ *
+ * A SAÍDA EM UM CLIQUE entrou em 22/10/2026: `/api/sair/` (prefixo, o token vai no
+ * endereço). É o endereço do cabeçalho `List-Unsubscribe` de todo e-mail de
+ * marketing: o Gmail e o iCloud fazem um POST sem sessão. Só PARA de receber, e
+ * quem decide é o token que o banco conferiu. Fica fora de `/api/cadastro` para
+ * a regra de limite do Firewall não barrar o provedor de e-mail.
+ *
+ * A CONFIRMAÇÃO DO E-MAIL entrou em 18/10/2026: `/confirmar/` (a página do botão
+ * do e-mail) e `/api/cadastro/confirmar`. Mesmo desenho da saída: quem recebe o
+ * e-mail não tem conta, a página não lê nada, e a rota só obedece ao token que o
+ * banco conferiu.
+ *
+ * A FERRAMENTA EM JANELA SOLTA entrou em 21/10/2026: `/ferramentas/janela/kit`,
+ * `/ferramentas/janela/cores` e `/ferramentas/janela/grids`, cada um pelo caminho
+ * EXATO. É a mesma tela das páginas normais, sem o menu do site: estática, tudo
+ * no navegador, nenhum dado lido.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
-export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/"] as const;
+export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/", "/api/sair/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;

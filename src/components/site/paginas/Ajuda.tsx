@@ -1,23 +1,32 @@
 import Link from "next/link";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { BuscaDaAjuda } from "../ajuda/BuscaDaAjuda";
+import { CATEGORIAS, artigosDaCategoria, listarArtigos } from "@/lib/ajuda/artigos";
 
-/** Central de ajuda — `/ajuda`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
+/** Central de ajuda — `/ajuda`. Os cartões e a busca são reais desde 17/10/2026; o resto do texto é do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoAjuda() {
+  const indice = listarArtigos().map(({ slug, titulo, resumo, texto }) => ({ slug, titulo, resumo, texto }));
   return (
     <>
       <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
       <div className="pg-wrap" style={{ paddingTop: "72px" }}>
       <p className="crumb"><a href="#" data-open-menu="m-rec">Recursos</a> · Central de ajuda</p>
       <Titulo como="h1" className="pg-h1" partes={["Como podemos ajudar?"]} />
-      <div className="hsearch"><span>⌕</span><input type="search" placeholder="Busque por um assunto: link de entrega, fonte, Vini…" aria-label="Buscar na central de ajuda" /></div>
+      <BuscaDaAjuda indice={indice} />
       <div className="related" style={{ marginTop: "48px" }}>
-      <Link className="rel" href="/ajuda"><small>8 artigos</small><b>Primeiros passos</b><span>Criar a primeira marca e publicar o manual.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>11 artigos</small><b>O manual em PDF</b><span>Envio, índice, versões e download.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>14 artigos</small><b>Materiais da marca</b><span>Grupos, formatos, regras de uso e o kit.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>12 artigos</small><b>Vini Max</b><span>Perguntas, análise de peça, prompts e limites.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>9 artigos</small><b>Pessoas e acesso</b><span>Convites, papéis e acesso por marca.</span><em>→</em></Link>
-      <Link className="rel" href="/ajuda"><small>7 artigos</small><b>Assinatura</b><span>Planos, cobrança, exportação e encerramento.</span><em>→</em></Link>
+      {CATEGORIAS.map((c) => {
+        const artigos = artigosDaCategoria(c.slug);
+        if (artigos.length === 0) {
+          return (
+            <div key={c.slug} className="rel rel-em-breve" aria-disabled="true"><small>Em breve</small><b>{c.titulo}</b><span>{c.descricao}</span></div>
+          );
+        }
+        const href = artigos.length === 1 ? `/ajuda/${artigos[0].slug}` : `/ajuda/categoria/${c.slug}`;
+        return (
+          <Link key={c.slug} className="rel" href={href}><small>{artigos.length} {artigos.length === 1 ? "artigo" : "artigos"}</small><b>{c.titulo}</b><span>{c.descricao}</span><em>→</em></Link>
+        );
+      })}
       </div>
       </div>
       </section>
@@ -25,7 +34,7 @@ export function ConteudoAjuda() {
       <section className="pg-sec">
       <div className="pg-wrap faq">
       <div><p className="eyebrow">Mais lidos</p><Titulo className="h2" partes={["Perguntas frequentes."]} /></div>
-      <div><details open><summary>Como publico o primeiro manual?</summary><p>No Studio, crie a marca, envie o PDF, confira o índice e publique. Em poucos minutos a equipe já consulta.</p></details><details><summary>Como convido um fornecedor só para uma marca?</summary><p>Em Pessoas, convide pelo e-mail e escolha a marca e o papel. Ele não verá as outras.</p></details><details><summary>Como crio um link de entrega?</summary><p>Em Entregas, escolha os materiais, o prazo e o limite de downloads, e copie o link.</p></details><details><summary>O que acontece quando atinjo o limite do Vini?</summary><p>Você pode comprar uso adicional, sem trocar de plano.</p></details></div>
+      <div><details open><summary>Como publico o primeiro manual?</summary><p>Em <b>Importar manual</b>, escolha o PDF, confira a prévia e clique em <b>Criar a marca</b>. Depois, revise o que a IA leu e aprove. <Link href="/ajuda/primeiros-passos">Primeiros passos →</Link></p></details><details><summary>Como convido um fornecedor só para uma marca?</summary><p>Em <b>Pessoas</b>, escolha <b>Consulta</b> e marque só aquela marca. Ele não verá as outras. <Link href="/ajuda/pessoas-e-acesso">Pessoas e acesso →</Link></p></details><details><summary>Como crio um link de entrega?</summary><p>Em <b>Links de entrega</b>, escolha os materiais e o prazo, e copie o endereço, que aparece uma única vez. <Link href="/ajuda/links-de-entrega">Links de entrega →</Link></p></details><details><summary>O que acontece quando atinjo o limite do Vini?</summary><p>O Vini recusa novos pedidos até o limite renovar (0h UTC, 21h em Brasília). O resto da plataforma continua. <Link href="/ajuda/assinatura">Assinatura →</Link></p></details></div>
       </div>
       </section>
 

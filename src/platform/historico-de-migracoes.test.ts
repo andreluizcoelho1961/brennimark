@@ -57,6 +57,29 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `envios_de_email` saiu daqui em 21/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261021204259`; impressão digital igual
+  // à do local (19 itens: colunas, constraints, índice, RLS, privilégios de
+  // anon/authenticated e as 3 funções, com corpo e acesso), fora os privilégios
+  // padrão da `service_role` no hospedado.
+  // `licencas_do_fonts` saiu daqui em 21/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261021171123`; impressão digital igual
+  // à do local (48 itens: colunas, constraints, índices, RLS, privilégios de
+  // anon/authenticated e as 6 funções, com corpo e acesso), fora os privilégios
+  // padrão da `service_role` no hospedado.
+  // Tour de demonstração, fatia 1 (17/10/2026): NÃO aplicada ao banco hospedado.
+  // Sai daqui quando o André autorizar a aplicação e ela for carimbada.
+  "tour_de_demonstracao",
+  // `cadastros_confirmacao_por_email` saiu daqui em 18/10/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20261018144415`;
+  // impressão digital igual à do local (72 itens: colunas, constraints, índice,
+  // RLS, privilégios de anon/authenticated e as 4 funções, com corpo e acesso),
+  // fora os privilégios padrão da `service_role` no hospedado.
+  // `cadastros_gratuitos` saiu daqui em 17/10/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20261017193658`; impressão
+  // digital igual à do local (64 itens: colunas, constraints, índice, RLS,
+  // privilégios de anon/authenticated e as 3 funções, com corpo e acesso), fora
+  // os privilégios padrão da `service_role` no hospedado.
   // `varios_grids_por_marca` saiu daqui em 16/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261016133034`;
   // impressão digital igual à do local (81 itens: as duas tabelas, constraints,
