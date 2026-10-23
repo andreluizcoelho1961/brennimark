@@ -642,6 +642,20 @@ test("o Vini aparece em cima da janela aberta, e só nela", async ({ page }) => 
   await expect(boneco).toHaveCount(0);
 });
 
+test("nas janelas altas (prompt), o Vini continua inteiro na tela", async ({ page }) => {
+  // 22/10/2026: a janela alta ia quase até o topo, e o Vini, por cima dela,
+  // ficava cortado fora da tela. A altura agora reserva o lugar dele.
+  for (const altura of [900, 700]) {
+    await page.setViewportSize({ width: 1440, height: altura });
+    await page.goto(MARCA);
+    await page.getByRole("button", { name: "Pergunte ao Vini" }).click();
+    await page.getByRole("button", { name: "Gerar prompt com o DNA da marca" }).click();
+    await expect(page.locator("[data-vini-janela]")).toHaveAttribute("data-modo", "prompt");
+    const caixa = await page.locator("[data-vini-andando]").boundingBox();
+    expect(caixa!.y).toBeGreaterThanOrEqual(0);
+  }
+});
+
 test("com 'reduzir movimento', o Vini fica parado e o vídeo não carrega", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 1440, height: 900 });
