@@ -5,6 +5,7 @@ import telaManual from "./imagens/telas/manual.webp";
 import telaAssistente from "./imagens/telas/assistente.webp";
 import telaRevisao from "./imagens/telas/revisao.webp";
 import telaPrompt from "./imagens/telas/prompt.webp";
+import fotoDoPrompt from "./imagens/telas/prompt-resultado.webp";
 import telaMateriais from "./imagens/telas/materiais.webp";
 import telaLinksCriado from "./imagens/telas/links-criado.webp";
 import telaReceber from "./imagens/telas/receber.webp";
@@ -177,6 +178,14 @@ export function TelaPrompt() {
         { caixa: c(836, 492, 1066, 650), n: 3.4, rotulo: "As páginas de onde veio cada regra" },
         { caixa: c(836, 668, 1412, 738), n: 5.2, rotulo: "A sua ideia" },
       ]}
+      // O resultado (23/10/2026): a foto gerada com ESTE prompt, no Higgsfield, e
+      // não uma imagem qualquer. O prompt da captura é o que o Vini gerou.
+      lupa={
+        <figure className="resultado passo" style={passo(7.4)}>
+          <Image src={fotoDoPrompt} alt="Fotografia gerada por IA a partir do prompt: uma mesa de trabalho de estúdio à noite, mãos compondo tipos de metal, luz lateral fria e um único ponto de laranja" sizes="(max-width: 767px) 60vw, 26vw" />
+          <figcaption><b>A imagem gerada com este prompt</b>, fora do Brennimark. Você revisa e decide o que usar.</figcaption>
+        </figure>
+      }
     />
   );
 }

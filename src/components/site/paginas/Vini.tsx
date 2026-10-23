@@ -5,6 +5,8 @@ import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
 import telaRevisao from "../imagens/telas/revisao.webp";
+import telaPrompt from "../imagens/telas/prompt.webp";
+import fotoDoPrompt from "../imagens/telas/prompt-resultado.webp";
 
 /** Vini Max — `/vini`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoVini() {
@@ -69,13 +71,13 @@ export function ConteudoVini() {
       <p className="body">Você descreve o que quer criar. O Vini acrescenta cores, luz, enquadramento e o que evitar, com a página de cada linha. Você revisa e usa.</p>
       <ul className="ticks"><li>A ideia é sua; a marca vem junto</li><li>Rascunho fica fora do prompt, identificado</li><li>A fonte de cada linha</li></ul>
       </div>
-      <div><div className="dna-prompt">
-      <div className="dna-top"><span>PROMPT · SUA IDEIA + MANUAL DO BRENNIMARK</span><button type="button" className="copy" data-copy="#prompt-dna-2">Copiar</button></div>
-      <p className="ask"><b>O seu pedido</b>“Uma foto para o post de lançamento: alguém revisando o manual impresso numa mesa de estúdio.”</p>
-      <pre id="prompt-dna-2" className="prompt">{"Fotografia para o Brennimark, formato 4:5.\n"}<span className="k">{"Cena"}</span>{"  mesa de estúdio; mãos revisando as\n      pranchas impressas de um manual de marca.\n      Gente trabalhando, sem posar.     "}<span className="ref">{"p. 27"}</span>{"\n"}<span className="k">{"Quadro"}</span>{" de cima ou na altura da mesa, perto\n      do trabalho, espaço livre p/ título. "}<span className="ref">{"p. 28"}</span>{"\n"}<span className="k">{"Luz"}</span>{"   natural, lateral, de janela. Sombras\n      frias; calor só nas luzes.        "}<span className="ref">{"p. 27"}</span>{"\n"}<span className="k">{"Cor"}</span>{"   sombras em Noite Polar "}<span className="hex"><i style={{ background: "#001621" }}></i>{"#001621"}</span>{";\n      um único ponto de Brasa "}<span className="hex"><i style={{ background: "#ff4103" }}></i>{"#FF4103"}</span>{".  "}<span className="ref">{"p. 14"}</span>{"\n"}<span className="k">{"Evitar"}</span>{" filtro de cor, duotone, sombras\n      quentes, logo de marca real.      "}<span className="ref">{"p. 29"}</span></pre>
-      <p className="draft"><b>Fora do prompt · rascunho</b> Grão de filme leve, proposto para Linguagem fotográfica. Ainda não aprovado, por isso não entra no prompt da marca. <u>Explorar numa versão à parte, marcada como exploração</u></p>
-      <p className="dna-src">A ideia é sua; as orientações vêm do manual (edição de demonstração) · Cores, p. 14 · Linguagem fotográfica, p. 27–29</p>
-      </div></div>
+      <div className="prompt-par">
+      <Captura src={telaPrompt} alt="O assistente monta o prompt de uma foto para o post de lançamento, com as cores e a luz do manual, e lista as páginas do manual de onde veio cada regra" />
+      <figure className="resultado resultado--pagina">
+        <Image src={fotoDoPrompt} alt="Fotografia gerada por IA a partir do prompt: uma mesa de trabalho de estúdio à noite, mãos compondo tipos de metal, luz lateral fria e um único ponto de laranja" sizes="(max-width: 767px) 60vw, 22vw" />
+        <figcaption><b>A imagem gerada com este prompt</b>, fora do Brennimark. Você revisa e decide o que usar.</figcaption>
+      </figure>
+      </div>
       </div>
 
       <div className="feat-row rev">
