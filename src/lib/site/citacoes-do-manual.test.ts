@@ -56,7 +56,9 @@ test("o fólio e a contagem do manual são os da edição de demonstração", ()
   const folios = fontes.flatMap(({ arquivo, texto }) =>
     [...texto.matchAll(/<span>(\d+) \/ (\d+)<\/span>/g)].map((m) => ({ arquivo, total: Number(m[2]) })),
   );
-  assert.ok(folios.length >= 2, "o fólio do visualizador sumiu do site");
+  // Eram dois; a tela do manual no tour virou captura real (22/10/2026), com o
+  // fólio na própria imagem. Fica o da página Manual.
+  assert.ok(folios.length >= 1, "o fólio do visualizador sumiu do site");
   for (const f of folios) assert.equal(f.total, PAGINAS_DA_DEMONSTRACAO, `fólio em ${f.arquivo}`);
 
   for (const { arquivo, texto } of fontes) {

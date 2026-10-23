@@ -691,8 +691,10 @@ body:has(.bm-site.mnav-open){overflow:hidden}
 :where(html[data-site-movimento] .bm-site) :where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage):not(:where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage) *){transition:opacity .9s var(--ease) var(--d,0ms),transform 1.1s var(--ease) var(--d,0ms)}
 :where(html[data-site-movimento] .bm-site) :where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage):not(:where(.points>div,.feat-row>*,.stp,.rel,.sc,.big-quote,.faq details,.log-e,.pains>div,.two-apps>div,.s3,.mani-body>p,.cta-band>*,.hsearch,.quote,.plan,.step,.traits li,.ai-list li,.aud,.ficha div,.lives .st,.tags span,.pg-lead,.pg-actions,.crumb,.intro,.honest,.more,.fidelity,.chat,.dna-pair>*,.frame,.stage) *):not(.in){opacity:0;transform:translateY(70px)}
 
-/* títulos que surgem palavra por palavra */
-.bm-site .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em}
+/* títulos que surgem palavra por palavra. A folga à direita (compensada pela
+   margem negativa) é a do itálico: a ponta inclinada passa da largura da
+   palavra, e o overflow cortava "Veja como funciona." (22/10/2026). */
+.bm-site .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em;padding-right:.14em;margin-right:-.14em}
 .bm-site .w>span{display:inline-block}
 :where(html[data-site-movimento] .bm-site) .split .w>span{transform:translateY(110%) rotate(4deg);transform-origin:0 100%;transition:transform 1s var(--ease) calc(var(--i,0) * 45ms)}
 :where(html[data-site-movimento] .bm-site) .split.in .w>span{transform:none}
@@ -1018,3 +1020,69 @@ body:has(.home-v){overflow:auto}
 .bm-site .ajuda-artigo table{width:100%;margin:1.2em 0;border-collapse:collapse;font-size:15px}
 .bm-site .ajuda-artigo th,.bm-site .ajuda-artigo td{border-bottom:1px solid var(--line);padding:.6em .7em;text-align:left;vertical-align:top}
 .bm-site .ajuda-artigo th{font-weight:600}
+
+/* ---------- a demonstração animada do tour (22/10/2026) ----------
+ * O roteiro de cada tela vem de `passo(n)` em TelasDaHome.tsx (--p = n; um passo
+ * vale .8s, o mesmo PASSO_MS de TourDaPlataforma.tsx). O esconderijo inicial só
+ * existe com o movimento ligado (`html[data-site-movimento]`, ver MolduraDoSite):
+ * sem JavaScript ou com "reduzir movimento", tudo aparece pronto, e os pontos
+ * de "pensando" nem existem. A animação reinicia sozinha quando a aba volta a
+ * aparecer, porque o painel sai de `display:none`. */
+.bm-site .pensando{display:none}
+:where(html[data-site-movimento]) .bm-site .tour .passo{opacity:0}
+:where(html[data-site-movimento]) .bm-site .tour .pensando{display:inline-flex;gap:4px;align-items:center;height:0;overflow:hidden;opacity:0;padding:0 2px}
+.bm-site .pensando i{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.5;animation:bm-ponto 1s ease-in-out infinite}
+.bm-site .pensando i:nth-child(2){animation-delay:.15s}.bm-site .pensando i:nth-child(3){animation-delay:.3s}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .passo{animation:bm-passo .55s var(--ease) calc(var(--p) * .8s) forwards}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .passo.digita{animation:bm-digita 1.1s steps(30,end) calc(var(--p) * .8s) forwards}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .passo.revela{animation:bm-revela 2.2s steps(12,end) calc(var(--p) * .8s) forwards}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .pensando{animation:bm-pensando .9s linear calc(var(--p) * .8s) both}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .clique{animation:bm-clique .7s var(--ease) calc(var(--p) * .8s) both}
+@keyframes bm-passo{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes bm-digita{from{opacity:1;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+@keyframes bm-revela{from{opacity:1;clip-path:inset(0 0 100% 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+@keyframes bm-pensando{0%{opacity:0;height:0}12%,88%{opacity:1;height:18px}100%{opacity:0;height:0}}
+@keyframes bm-ponto{0%,100%{transform:translateY(0);opacity:.35}50%{transform:translateY(-3px);opacity:1}}
+@keyframes bm-clique{0%{transform:none;box-shadow:0 0 0 0 rgba(255,65,3,0)}35%{transform:scale(.94);box-shadow:0 0 0 6px rgba(255,65,3,.35)}100%{transform:none;box-shadow:0 0 0 12px rgba(255,65,3,0)}}
+
+/* os controles do tour: contador, anterior/próximo, pausar, e o progresso na aba */
+.bm-site .tour-stage{min-width:0;display:grid;gap:18px}
+.bm-site .tour-ctrl{display:flex;align-items:center;gap:6px;font:500 12px var(--mono);color:var(--muted)}
+.bm-site .tour-ctrl button{min-width:34px;height:34px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:none;color:var(--text);font:inherit;cursor:pointer;transition:border-color .2s,background .2s}
+.bm-site .tour-ctrl button:hover{border-color:var(--muted);background:var(--surface)}
+.bm-site .tour-cont{padding:0 8px;letter-spacing:.08em}
+.bm-site .tour-auto{margin-left:auto}
+.bm-site .tour-tab{position:relative}
+.bm-site .tour-prog{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--brasa);transform-origin:left;animation:bm-prog linear forwards}
+@keyframes bm-prog{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (prefers-reduced-motion:reduce){.bm-site .tour-prog{display:none}}
+
+/* o tour cabe numa tela: o texto do recurso vai na aba ativa, e a tela do produto sobe */
+.bm-site.home-v #plataforma{padding-top:clamp(48px,7vh,80px)}
+.bm-site .tour{margin-top:28px}
+.bm-site .tour-copy{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.bm-site .tour-copy h3{font-size:clamp(20px,1.7vw,26px)}
+.bm-site .tour-copy .more{white-space:nowrap}
+.bm-site .tour-tab[aria-selected="true"] span{color:var(--text);opacity:.82}
+.bm-site .tour-tela .app{min-height:360px}
+
+/* ---------- as telas reais do tour (22/10/2026) ----------
+ * A captura da plataforma e, por cima, os destaques em Brasa que acendem no
+ * roteiro (`passo`). A caixa fica em %, então acompanha a imagem em qualquer
+ * largura. O rótulo sai acima da caixa; no celular, some (a imagem é pequena
+ * demais para ler o rótulo e a tela ao mesmo tempo). */
+.bm-site .tela-real{padding:8px}
+.bm-site .tela-real-img{position:relative;border-radius:6px;overflow:hidden;line-height:0}
+.bm-site .tela-real-img img{width:100%;height:auto;display:block}
+.bm-site .tela-real .destaque{position:absolute;border:2px solid var(--brasa);border-radius:8px;box-shadow:0 0 0 4px rgba(255,65,3,.16);pointer-events:none}
+.bm-site .tela-real .destaque em{position:absolute;left:-2px;bottom:calc(100% + 4px);font:600 11px/1.2 var(--sans,inherit);font-style:normal;white-space:nowrap;color:#fff;background:var(--brasa);padding:4px 7px;border-radius:5px;letter-spacing:.01em}
+@media (max-width:767px){.bm-site .tela-real .destaque em{display:none}}
+.bm-site .tela-real .destaque[data-abaixo] em{bottom:auto;top:calc(100% + 4px)}
+.bm-site .tela-real .destaque[data-direita] em{left:auto;right:-2px}
+/* a câmera: aproxima a região que importa no passo dela */
+.bm-site .tela-camera{position:relative;transform-origin:0 0}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera{animation:bm-camera 1.4s var(--ease) calc(var(--p) * .8s) forwards}
+@keyframes bm-camera{from{transform:none}to{transform:var(--alvo)}}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque{border-width:calc(2px / var(--z,1));border-radius:calc(8px / var(--z,1));box-shadow:0 0 0 calc(4px / var(--z,1)) rgba(255,65,3,.16)}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque em{font-size:calc(11px / var(--z,1));padding:calc(4px / var(--z,1)) calc(7px / var(--z,1));border-radius:calc(5px / var(--z,1));bottom:calc(100% + 4px / var(--z,1))}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque[data-abaixo] em{bottom:auto;top:calc(100% + 4px / var(--z,1))}
