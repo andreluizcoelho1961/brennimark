@@ -58,6 +58,7 @@ export const CAMINHOS_DO_SITE: ReadonlySet<string> = new Set(["/", ...PAGINAS_DO
 export const CAPITULOS_DA_HOME = [
   { id: "inicio", titulo: "Início" },
   { id: "plataforma", titulo: "A plataforma por dentro" },
+  { id: "fonts", titulo: "Brennimark Fonts" },
   { id: "problema", titulo: "Antes e depois" },
   { id: "vini", titulo: "Vini Max" },
   { id: "publico", titulo: "Para quem" },

@@ -153,7 +153,7 @@ export function TelaAnalise() {
         <div className="lupa lupa-revisao passo" style={passo(6)} aria-hidden="true">
           <span className="selo-vermelho">Desalinhada</span>
           <p><b>Violação objetiva de margem:</b> o logotipo está praticamente encostado nas bordas inferior e esquerda, descumprindo a margem mínima de 2x{" "}
-            <Citacao titulo="O logotipo nas peças" rotulo="" selo="Rascunho" tom="rascunho" />.</p>
+            <Citacao titulo="O logotipo nas peças" rotulo="" selo="Pronto" tom="ok" />.</p>
         </div>
       }
     />
@@ -227,7 +227,7 @@ export function TelaComplementos() {
           <p>Sim, pode, desde que o logotipo continue legível sem esforço{" "}
             <Citacao rotulo="Complemento:" titulo="O logotipo sobre fotografia" selo="Pronto" tom="ok" />.</p>
           <p>O manual não cobre essa regra{" "}
-            <Citacao titulo="O logotipo nas peças" selo="Rascunho" tom="rascunho" />, mas há um complemento específico para isso.</p>
+            <Citacao titulo="O logotipo nas peças" selo="Pronto" tom="ok" />, mas há um complemento específico para isso.</p>
         </div>
       }
     />

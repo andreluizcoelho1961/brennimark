@@ -4,7 +4,9 @@ import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA } from "@/lib/site/empresa";
 import equipeNaMesa from "./imagens/equipe-na-mesa.jpg";
 import { IconeDoRecurso } from "./IconeDoRecurso";
+import { JanelaDoFonts } from "./JanelaDoFonts";
 import { Losango } from "./Losango";
+import { PedirConviteDoFonts } from "./PedirConviteDoFonts";
 import { FichaDoVini, TelaAnalise, TelaComplementos, TelaConsulta, TelaEntrega, TelaManual, TelaMateriais, TelaPrompt } from "./TelasDaHome";
 import { Titulo } from "./Titulo";
 import { TourDaPlataforma } from "./TourDaPlataforma";
@@ -53,6 +55,8 @@ export function SecoesDaHome() {
             {RECURSOS.map((r) => (
               <a key={r.id} href={`#recurso-${r.id}`}><IconeDoRecurso id={r.id} /><b>{r.rotulo}</b><span>{r.curto}</span></a>
             ))}
+            {/* O Fonts na capa (23/10/2026): destaque em Brasa, com a etiqueta do beta. */}
+            <Link className="hero-bar-fonts" href="/fonts"><em>Novo · beta</em><b>Brennimark Fonts</b><span>O app que liga as fontes de cada marca no seu computador</span></Link>
           </nav>
         </section>
 
@@ -63,6 +67,23 @@ export function SecoesDaHome() {
               <Titulo className="title rise" partes={["A marca inteira, no mesmo lugar. ", { em: "Veja como funciona." }]} />
             </div>
             <TourDaPlataforma abas={RECURSOS} />
+          </div>
+        </section>
+
+        <section className="panel" id="fonts" aria-label="Brennimark Fonts">
+          <Losango classe="l1" velocidade={-0.25} />
+          <div className="wrap fonts-home">
+            <div>
+              <p className="eyebrow">Novo · Brennimark Fonts</p>
+              <Titulo className="title rise" partes={["As fontes de cada marca, ", { em: "ligadas no seu computador." }]} />
+              <p className="intro">O app que ativa as fontes do kit da marca quando o trabalho começa e desativa quando acaba, sem fonte faltando e sem biblioteca bagunçada. Funciona sem internet, avisa conflito de nomes e vem incluso na assinatura.</p>
+              <p className="fx-beta"><b>Beta fechado, gratuito, por convite</b> · só os 50 primeiros · 90 dias · macOS e Windows</p>
+              <div className="actions">
+                <PedirConviteDoFonts rotulo="Pedir convite" />
+                <Link className="btn btn--ghost" href="/fonts">Conhecer o Fonts <span className="arrow" aria-hidden="true">→</span></Link>
+              </div>
+            </div>
+            <JanelaDoFonts />
           </div>
         </section>
 

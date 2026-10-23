@@ -327,6 +327,21 @@ test("/planos e /precos levam à seção de planos da home, e não a uma tela de
   }
 });
 
+test("o Fonts tem botão no menu, célula na capa e capítulo próprio na home", async ({ page }) => {
+  await abrir(page, "/");
+  // O botão do menu, com a etiqueta do beta, leva à página.
+  const botao = page.locator(".site-nav a.nav-fonts");
+  await expect(botao).toBeVisible();
+  await expect(botao).toContainText("Beta");
+  await expect(botao).toHaveAttribute("href", "/fonts");
+  // O capítulo da home: o pedido de convite e o link para a página.
+  const capitulo = page.locator("#fonts");
+  await expect(capitulo).toHaveCount(1);
+  await expect(capitulo).toContainText("Beta fechado, gratuito, por convite");
+  await expect(capitulo.getByRole("link", { name: /Conhecer o Fonts/ })).toHaveAttribute("href", "/fonts");
+  await expect(capitulo.locator('[aria-label^="Janela do Brennimark Fonts"]')).toHaveCount(1);
+});
+
 test("os blocos fundidos existem nas páginas de destino, com âncora", async ({ page }) => {
   for (const [rota, id] of [["/materiais", "entrega"], ["/manual", "complementos"], ["/agencias", "studio"], ["/ajuda", "suporte"], ["/ajuda", "novidades"]]) {
     await abrir(page, rota);
@@ -336,7 +351,9 @@ test("os blocos fundidos existem nas páginas de destino, com âncora", async ({
 
 test("a barra da abertura abre o tour na aba do recurso, e as abas trocam a tela", async ({ page }) => {
   await abrir(page, "/");
-  await expect(page.locator(".hero-bar a")).toHaveCount(7);
+  // Os sete recursos do tour, mais a célula do Brennimark Fonts (23/10/2026).
+  await expect(page.locator(".hero-bar a")).toHaveCount(8);
+  await expect(page.locator(".hero-bar a.hero-bar-fonts")).toHaveAttribute("href", "/fonts");
   await page.locator(".hero-bar a", { hasText: "Envio a fornecedores" }).click();
   await expect(page).toHaveURL(/#recurso-entrega$/);
   await expect(page.getByRole("tab", { name: /Envio a fornecedores/ })).toHaveAttribute("aria-selected", "true");
