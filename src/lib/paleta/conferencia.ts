@@ -66,10 +66,25 @@ function temHex(texto: string, hex: string): boolean {
 
 function temPms(texto: string, pms: string): boolean {
   const nucleo = pms.toUpperCase().replace(/^(PMS|PANTONE)\s*/, "").trim();
+  // "—", "-", "n/a": o manual declara que a cor NÃO tem Pantone (o Gelo é "papel
+  // branco"). Não há código para procurar, e exigi-lo marcava a cor como "conferir".
+  if (/^[-–—]/.test(nucleo) || /^N\/?A\b/.test(nucleo)) return true;
   const m = /^(\d+)\s*([A-Z]*)$/.exec(nucleo);
   if (!m) return texto.includes(nucleo);
   const sufixo = m[2] ? `\\s*${m[2]}` : "(?:\\s*[A-Z]{1,2})?";
-  return new RegExp(`(?:PMS|PANTONE)\\s*${m[1]}${sufixo}(?![\\dA-Z])`).test(texto);
+  if (new RegExp(`(?:PMS|PANTONE)\\s*${m[1]}${sufixo}(?![\\dA-Z])`).test(texto)) return true;
+  /*
+   * A tabela com o rótulo no CABEÇALHO (23/10/2026): "PANTONE · REF." numa
+   * linha e "172 C" na de baixo. A extração do PDF não cola o rótulo no número,
+   * e o Brennimark — o próprio manual de demonstração — marcava as cinco cores
+   * como "PMS não está na página". Se a página fala de Pantone/PMS em algum
+   * lugar, o código solto também vale, desde que seja inconfundível: com letra de
+   * acabamento ("172 C") ou com três dígitos ou mais — nunca um número pequeno
+   * sozinho, que casaria com um canal de RGB ou CMYK.
+   */
+  if (!/\b(?:PMS|PANTONE)\b/.test(texto)) return false;
+  if (!m[2] && m[1].length < 3) return false;
+  return new RegExp(`(?<![\\dA-Z#.,/-])${m[1]}${m[2] ? `\\s*${m[2]}` : "(?:\\s*[A-Z]{1,2})?"}(?![\\dA-Z.,/])`).test(texto);
 }
 
 /** Uma cor contra o texto da página dela. Pura. */

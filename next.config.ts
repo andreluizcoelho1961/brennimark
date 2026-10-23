@@ -57,7 +57,13 @@ const supabaseImagem = (() => {
 const nextConfig: NextConfig = {
   // Páginas do site que viraram bloco de outra (22/10/2026): 308, antes do proxy.
   async redirects() {
-    return PAGINAS_FUNDIDAS.map(({ de, para }) => ({ source: de, destination: para, permanent: true }));
+    return [
+      ...PAGINAS_FUNDIDAS.map(({ de, para }) => ({ source: de, destination: para, permanent: true })),
+      // Quem digita o endereço dos planos (ou dos preços) cai na seção, e não numa
+      // tela de login (23/10/2026, ensaio de venda): os planos moram na home.
+      { source: "/planos", destination: "/#planos", permanent: true },
+      { source: "/precos", destination: "/#planos", permanent: true },
+    ];
   },
   /*
    * Os artigos da Central de ajuda são lidos do disco (`src/content/ajuda`).
