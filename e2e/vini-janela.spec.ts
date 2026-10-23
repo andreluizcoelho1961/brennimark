@@ -208,8 +208,9 @@ test("conexão caída no meio: o aviso diz isso, e 'Perguntar de novo' está ao 
   expect(enviados).toHaveLength(2);
   const aoLado = page.locator("[data-vini-janela] [data-incompleta] [data-perguntar-de-novo]");
   await expect(aoLado).toHaveText("Perguntar de novo");
+  // "Perguntar de novo" também ganha a sua reconexão automática: mais dois pedidos.
   await aoLado.click();
-  await expect.poll(() => enviados.length).toBe(3);
+  await expect.poll(() => enviados.length).toBe(4);
   expect(enviados[2]).toMatchObject({ messages: [{ role: "user", content: "quais as cores da marca?" }] });
 });
 
