@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { idiomaDaSessao } from "../idioma-da-sessao";
 import { carregarWorkspaceContext, montarContexto, type WorkspaceContext } from "./context";
 import {
   resolverAlvo,
@@ -40,7 +41,7 @@ const SKIP_AUTH = process.env.BRENNIMARK_DEV_SKIP_AUTH === "true";
  * Todo consumidor da requisição — layout, navegação, página, canvas, rotas de
  * IA — chama esta função e recebe o mesmo objeto para o mesmo alvo.
  */
-export const resolveWorkspaceContext = cache(
+const resolverSemIdioma = cache(
   async (alvo?: Alvo): Promise<WorkspaceContext> => {
     if (SKIP_AUTH) {
       return carregarWorkspaceContext<BrennimarkAuthContext & { role: "owner" | "member" }>({
@@ -102,6 +103,14 @@ export const resolveWorkspaceContext = cache(
           decisao.marca.id,
         );
     }
+  },
+);
+
+/** O mesmo contexto, com o idioma DESTA pessoa no lugar do padrão do produto. */
+export const resolveWorkspaceContext = cache(
+  async (alvo?: Alvo): Promise<WorkspaceContext> => {
+    const [contexto, locale] = await Promise.all([resolverSemIdioma(alvo), idiomaDaSessao()]);
+    return { ...contexto, locale };
   },
 );
 

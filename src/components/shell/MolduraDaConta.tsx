@@ -1,6 +1,7 @@
 import { LocaleProvider } from "@/platform/locale-client";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "@/components/SignOutButton";
+import { SeletorDeIdioma } from "@/components/SeletorDeIdioma";
 import type { WorkspaceContext } from "@/lib/brennimark/context";
 import { AppShellV2 } from "./AppShellV2";
 import { colunaDaPlataforma } from "./coluna";
@@ -54,7 +55,7 @@ export async function MolduraDaConta({
         docs={[]}
         userEmail={data.user?.email ?? undefined}
         brandName={conta?.nome}
-        sessionControl={<SignOutButton />}
+        sessionControl={<><SeletorDeIdioma /><SignOutButton /></>}
       >
         {children}
       </AppShellV2>

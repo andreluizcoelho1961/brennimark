@@ -20,19 +20,11 @@ export type ProductLocale = (typeof PRODUCT_LOCALES)[number];
 /**
  * O padrão do produto enquanto ninguém escolheu.
  *
- * DÍVIDA, descrita como ela é: o que o patch 3 entregou foi o DESACOPLAMENTO
- * do manual — nenhum instrumento do produto decide microcópia por
- * `metadata.language`. Personalização por pessoa é outra coisa, e ainda exige
- * três mudanças além de uma coluna em `profiles`:
- *
- * 1. `resolveInterfaceLocale` precisa receber a preferência; hoje
- *    `WorkspaceContext` a chama sem argumento;
- * 2. os módulos que leem `PRODUCT_LOCALE` diretamente — rotas de API, DocPage,
- *    as mensagens de erro de IA — precisam passar a receber o locale, porque
- *    uma constante de módulo não varia por pessoa;
- * 3. a interface precisa de onde a pessoa escolher.
- *
- * Dizer "basta adicionar a coluna" seria falso.
+ * Quem escolhe por pessoa é `escolherIdioma` (cookie, depois `profiles.locale`,
+ * depois o navegador), entregue à interface por `resolveWorkspaceContext` e por
+ * `IdiomaDaSessao`. Módulos que ainda leem esta constante direto — rotas de
+ * API, DocPage, mensagens de erro de IA — seguem em português até a fatia que
+ * os migrar: uma constante de módulo não varia por pessoa.
  */
 export const PRODUCT_LOCALE: ProductLocale = "pt-BR";
 
@@ -85,4 +77,22 @@ export function localeDoNavegador(acceptLanguage: string | null | undefined): Pr
     if (lingua === "en") return "en";
   }
   return PRODUCT_LOCALE;
+}
+
+/**
+ * Quem manda no idioma, em ordem: a escolha neste navegador (cookie), a
+ * preferência guardada na pessoa (`profiles.locale`), o que o navegador pede.
+ *
+ * O cookie vem primeiro porque o botão grava os dois, e quem acabou de clicar
+ * não pode ver a tela voltar atrás por causa de outro aparelho. A preferência
+ * guardada cobre o aparelho novo, que ainda não tem cookie.
+ */
+export function escolherIdioma(fontes: {
+  cookie?: unknown;
+  perfil?: unknown;
+  acceptLanguage?: string | null;
+}): ProductLocale {
+  if (isProductLocale(fontes.cookie)) return fontes.cookie;
+  if (isProductLocale(fontes.perfil)) return fontes.perfil;
+  return localeDoNavegador(fontes.acceptLanguage);
 }

@@ -49,6 +49,12 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORTA}`,
     /*
+     * Quem usa o produto é brasileiro: sem escolha no botão, o idioma da interface
+     * segue o navegador (`escolherIdioma`), e o Playwright nasce em en-US. `idioma.spec.ts`
+     * troca isto por teste.
+     */
+    locale: "pt-BR",
+    /*
      * Quem já se cadastrou (cookie `bm_cadastro`): as ferramentas gratuitas
      * pedem o cadastro na primeira vez que a pessoa baixa, e os testes de
      * download não são sobre isso. `cadastro-ao-baixar.spec.ts` começa do zero.
