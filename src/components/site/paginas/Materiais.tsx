@@ -7,6 +7,7 @@ import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
 import telaItemLogotipo from "../imagens/telas/item-logotipo.webp";
 import telaMateriais from "../imagens/telas/materiais.webp";
+import telaBanco from "../imagens/telas/banco-de-imagens.webp";
 
 /** Materiais da marca — `/materiais`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoMateriais() {
@@ -89,18 +90,10 @@ export function ConteudoMateriais() {
       <div>
       <p className="eyebrow">Fotografia</p>
       <Titulo className="h2" partes={["O acervo de fotos, organizado."]} />
-      <p className="body">Pastas por assunto e pré-visualização de cada imagem. Baixe uma, várias ou a pasta inteira.</p>
-      <ul className="ticks"><li>Pastas criadas pela agência</li><li>Pré-visualização antes de baixar</li><li>Pasta inteira num pacote</li></ul>
+      <p className="body">Álbuns por assunto, com miniaturas e ampliação de cada imagem. Selecione uma, várias ou todas e baixe de uma vez.</p>
+      <ul className="ticks"><li>Álbuns criados pela agência</li><li>Ampliação antes de baixar</li><li>Várias fotos num pacote</li></ul>
       </div>
-      <div className="frame">
-      <div className="mk" role="img" aria-label="Álbum de fotografia com pastas e miniaturas">
-      <div className="mk-bar"><b>Fotografia</b><span className="mk-btn mk-btn--line a-direita">Baixar pasta</span></div>
-      <div className="mk-body">
-      <div className="album-bar"><span className="on">Mesa de trabalho</span><span>Equipe</span><span>Produto</span></div>
-      <div className="album"><div><Image src={maosComPranchas} alt="" sizes="(max-width: 767px) 50vw, 25vw" /></div><div className="ph1"></div><div className="ph2"></div><div className="ph3"></div><div className="ph4"></div><div className="ph1"></div></div>
-      </div>
-      </div>
-      </div>
+      <Captura src={telaBanco} alt="Banco de imagens da marca: miniaturas de um álbum com três fotos selecionadas e o botão Baixar 3 fotos (ZIP)" />
       </div>
 
       <div className="feat-row">
