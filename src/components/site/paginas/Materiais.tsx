@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import maosComPranchas from "../imagens/maos-com-pranchas.webp";
 import { BlocosDeEntrega } from "./Entrega";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
