@@ -22,7 +22,7 @@ export type Bloco =
   | { tipo: "paragrafo"; texto: string }
   | { tipo: "separador" };
 
-export type Enfase = { tipo: "texto" | "negrito" | "italico"; valor: string };
+export type Enfase = { tipo: "texto" | "negrito" | "italico" | "codigo"; valor: string };
 
 const TITULO = /^\s{0,3}(#{1,6})\s+(.+?)\s*#*\s*$/;
 const ITEM = /^\s{0,3}(?:([-*+])|(\d{1,3})[.)])\s+(.*)$/;
@@ -134,18 +134,24 @@ export function envolvidoEmEnfase(texto: string): { tipo: "italico" | "negrito";
 
 export function enfases(texto: string): Enfase[] {
   const saida: Enfase[] = [];
-  const padrao = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|(?<![*\w])\*(?=\S)((?:\*\*(?=\S)[^*]*?\S\*\*|[^*])*?\S)\*(?![*\w])|(?<![_\w])_(?=\S)([^_]*?\S)_(?![_\w])/g;
+  // O trecho entre crases ("`2x`") vem primeiro: o que está dentro não é lido como ênfase.
+  const padrao = /`([^`\n]+)`|\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|(?<![*\w])\*(?=\S)((?:\*\*(?=\S)[^*]*?\S\*\*|[^*])*?\S)\*(?![*\w])|(?<![_\w])_(?=\S)([^_]*?\S)_(?![_\w])/g;
   let cursor = 0;
   for (const m of texto.matchAll(padrao)) {
     const inicio = m.index ?? 0;
     if (inicio > cursor) saida.push({ tipo: "texto", valor: texto.slice(cursor, inicio) });
-    const negrito = m[1] ?? m[2];
+    if (m[1] !== undefined) {
+      saida.push({ tipo: "codigo", valor: m[1] });
+      cursor = inicio + m[0].length;
+      continue;
+    }
+    const negrito = m[2] ?? m[3];
     saida.push(negrito !== undefined
       ? { tipo: "negrito", valor: negrito }
       // Negrito DENTRO do itálico ("*Nota: status de **RASCUNHO**.*", ensaio de
       // 25/09/2026) deixava os asteriscos crus. O trecho inteiro fica itálico,
       // sem os marcadores de dentro.
-      : { tipo: "italico", valor: ((m[3] ?? m[4]) as string).replace(/\*\*(\S(?:[^*]*?\S)?)\*\*/g, "$1") });
+      : { tipo: "italico", valor: ((m[4] ?? m[5]) as string).replace(/\*\*(\S(?:[^*]*?\S)?)\*\*/g, "$1") });
     cursor = inicio + m[0].length;
   }
   if (cursor < texto.length) saida.push({ tipo: "texto", valor: texto.slice(cursor) });

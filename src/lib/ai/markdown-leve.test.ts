@@ -130,3 +130,21 @@ test("itálico e negrito que envolvem o parágrafo inteiro são reconhecidos —
   assert.equal(envolvidoEmEnfase("texto comum"), null);
   assert.equal(envolvidoEmEnfase("*aberto sem fechar"), null);
 });
+
+test("trecho entre crases vira código, sem as crases e sem ser lido como ênfase", () => {
+  // 23/10/2026: o Vini escreveu "margem mínima de `2x` até a borda", e as crases apareciam cruas.
+  assert.deepEqual(enfases("margem mínima de `2x` até a borda"), [
+    { tipo: "texto", valor: "margem mínima de " },
+    { tipo: "codigo", valor: "2x" },
+    { tipo: "texto", valor: " até a borda" },
+  ]);
+  // O que está dentro das crases não é ênfase.
+  assert.deepEqual(enfases("use `a*b*c` e **isto**"), [
+    { tipo: "texto", valor: "use " },
+    { tipo: "codigo", valor: "a*b*c" },
+    { tipo: "texto", valor: " e " },
+    { tipo: "negrito", valor: "isto" },
+  ]);
+  // Crase sem par fica como texto.
+  assert.deepEqual(enfases("uma crase ` solta"), [{ tipo: "texto", valor: "uma crase ` solta" }]);
+});

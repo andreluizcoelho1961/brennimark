@@ -48,6 +48,7 @@ export function RespostaDoVini({
           <Fragment key={`${chave}-${i}`}>
             {enfases(parte.value).map((e, j) =>
               e.tipo === "negrito" ? <strong key={j} className="font-semibold">{e.valor}</strong>
+              : e.tipo === "codigo" ? <code key={j} className="rounded-[3px] bg-platform-panel-muted px-1 font-mono text-[0.92em]">{e.valor}</code>
               : e.tipo === "italico" ? <em key={j}>{e.valor}</em>
               : <Fragment key={j}>{e.valor}</Fragment>)}
           </Fragment>
