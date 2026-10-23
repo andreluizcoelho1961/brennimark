@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento, recusaSemProcessar, tetoDeTokensDeEntrada } from "./execucao";
+import { BOILERPLATE_DO_PROMPT_DE_SISTEMA, decidirExecucao, executarComOrcamento, liquidacaoSemUsoMicros, recusaSemProcessar, tetoDeTokensDeEntrada } from "./execucao";
 import { custoDeReservaMicros, custoMicros, type ModelPricing } from "./catalogo";
 import { buildChatSystemPrompt, buildAnalysisSystemPrompt, type BrandPromptContext } from "./brand-context";
 import { LIMITES_DE_IA, type Trecho } from "./recuperacao";
@@ -1048,6 +1048,59 @@ test("fluxo que termina SEM motivo do provedor: o uso relatado é parcial, e val
   await drenarTudo(execucao.iterator);
   assert.equal(liquidacao(chamadas).p_settled_micros, RESERVED_MICROS);
   assert.deepEqual(liquidacao(chamadas).p_usage_snapshot, { unknown: true, fluxoSemFim: true });
+});
+
+test("fluxo sem fim COM os caracteres medidos: liquida por estimativa, abaixo do teto e nunca abaixo do real", async () => {
+  // 23/10/2026: a queda de conexão do Gemini custava o teto inteiro (US$ 0,34
+  // por resposta cortada, contra US$ 0,014 de conta real).
+  const PRICING_GEMINI: ModelPricing = {
+    inputPerMillionTokensUsd: 0.75, outputPerMillionTokensUsd: 3.75,
+    currency: "USD", source: "https://ai.google.dev/gemini-api/docs/pricing", asOf: "2026-09-18",
+  };
+  const TETO_DA_RESERVA = 339_873;
+  const { cliente, chamadas } = supabaseFalso({ data: null });
+  const execucao = await executarComOrcamento({
+    serviceClient: cliente, userId: USER_ID, executionId: "exec-1", pricing: PRICING_GEMINI, reservedMicros: TETO_DA_RESERVA,
+    maxOutputTokens: 2_000,
+    attempts: [ATTEMPT], firstChunkTimeoutMs: 1000,
+    dispatch: () => ({
+      textStream: geradorDeTexto(["Sim, pode, desde que ele", " **"]),
+      usage: Promise.resolve(usoFalso(0, 0)),
+      fim: Promise.resolve({ unificado: "other", bruto: undefined }),
+      caracteresDeEntrada: 50_000,
+    }),
+  });
+  await drenarTudo(execucao.iterator);
+  const feito = liquidacao(chamadas);
+  // 50 mil caracteres a 1 token cada (US$ 0,75/M) + 2.000 tokens de saída (US$ 3,75/M).
+  assert.equal(feito.p_settled_micros, 37_500 + 7_500);
+  assert.ok((feito.p_settled_micros as number) < TETO_DA_RESERVA);
+  // A conta real dessa chamada (17,5 mil tokens de entrada, 334 de saída) é ~14,4 mil:
+  // a estimativa não pode ficar abaixo dela.
+  assert.ok((feito.p_settled_micros as number) >= 14_398);
+  assert.deepEqual(feito.p_usage_snapshot, { unknown: true, fluxoSemFim: true, estimado: true });
+});
+
+test("a estimativa nunca passa do teto da reserva, e sem os caracteres nada muda", () => {
+  const pricing: ModelPricing = { inputPerMillionTokensUsd: 0.75, outputPerMillionTokensUsd: 3.75, currency: "USD", source: "x", asOf: "2026-09-18" };
+  // Entrada gigante: capada pela reserva.
+  assert.deepEqual(
+    liquidacaoSemUsoMicros({ pricing, reservedMicros: 10_000, caracteresDeEntrada: 5_000_000, maxOutputTokens: 2_000 }),
+    { micros: 10_000, estimado: true },
+  );
+  // Sem os caracteres, ou sem o teto de saída: o teto da reserva, como sempre.
+  assert.deepEqual(liquidacaoSemUsoMicros({ pricing, reservedMicros: 10_000, maxOutputTokens: 2_000 }), { micros: 10_000, estimado: false });
+  assert.deepEqual(liquidacaoSemUsoMicros({ pricing, reservedMicros: 10_000, caracteresDeEntrada: 1_000 }), { micros: 10_000, estimado: false });
+  // Valor inválido não vira estimativa.
+  for (const invalido of [Number.NaN, -1, 0, Number.POSITIVE_INFINITY]) {
+    assert.equal(liquidacaoSemUsoMicros({ pricing, reservedMicros: 10_000, caracteresDeEntrada: invalido, maxOutputTokens: 2_000 }).estimado, false);
+  }
+  // A imagem entra pelo teto: nunca é subestimada.
+  const comImagem = liquidacaoSemUsoMicros({ pricing, reservedMicros: 100_000, caracteresDeEntrada: 1_000, maxOutputTokens: 2_000, imagemTokens: 2_240 });
+  const semImagem = liquidacaoSemUsoMicros({ pricing, reservedMicros: 100_000, caracteresDeEntrada: 1_000, maxOutputTokens: 2_000 });
+  assert.ok(comImagem.micros > semImagem.micros);
+  // Nunca zero.
+  assert.ok(liquidacaoSemUsoMicros({ pricing: { ...pricing, inputPerMillionTokensUsd: 0, outputPerMillionTokensUsd: 0 }, reservedMicros: 10_000, caracteresDeEntrada: 10, maxOutputTokens: 10 }).micros >= 1);
 });
 
 test("fluxo que termina com motivo do provedor usa o uso REAL — inclusive 'other' com motivo bruto", async () => {

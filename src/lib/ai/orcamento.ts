@@ -29,6 +29,11 @@ export type SnapshotDeUso =
       unknown: true;
       /** O fluxo acabou SEM motivo de parada do provedor — o uso que ele relatou, se relatou, é parcial. */
       fluxoSemFim?: true;
+      /**
+       * `settledMicros` é uma ESTIMATIVA do que a chamada custou (entrada medida
+       * em caracteres, saída no teto), e não o teto da reserva (23/10/2026).
+       */
+      estimado?: true;
     };
 
 /**

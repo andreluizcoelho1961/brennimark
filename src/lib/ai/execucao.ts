@@ -185,6 +185,13 @@ function tetoDeTokensDeSaida(task: AITaskType): number {
   return task === "analyse-image" ? 2_500 : 2_000;
 }
 
+/** O teto de tokens de imagem que a reserva soma — a mesma conta, em UM lugar. */
+function tokensDeImagemDaReserva(pricing: ModelPricing, request: AIExecutionRequest): number | undefined {
+  return (request.image || request.imagensDePagina) && pricing.maxImageTokens !== undefined
+    ? pricing.maxImageTokens * ((request.image ? 1 : 0) + (request.imagensDePagina ?? 0))
+    : undefined;
+}
+
 /**
  * A checagem completa, ANTES de qualquer chamada de rede custar um centavo.
  *
@@ -254,9 +261,7 @@ export async function decidirExecucao(
   const reservedMicros = custoDeReservaMicros(pricing, {
     entrada: tetoDeTokensDeEntrada(request.task, request.role, caracteresDoManual(request.sources ?? [])),
     saida: maxOutputTokens,
-    imagem: (request.image || request.imagensDePagina) && pricing.maxImageTokens !== undefined
-      ? pricing.maxImageTokens * ((request.image ? 1 : 0) + (request.imagensDePagina ?? 0))
-      : undefined,
+    imagem: tokensDeImagemDaReserva(pricing, request),
   });
 
   const reserva = await reservarExecucao(serviceClient, userId, {
@@ -365,6 +370,55 @@ export interface ResultadoDoDespacho {
    * (28/09/2026). Opcional — quem não informa segue a regra anterior.
    */
   fim?: PromiseLike<{ unificado?: string; bruto?: string | undefined }>;
+  /**
+   * Quantos caracteres de TEXTO foram de fato ao provedor (prompt de sistema e
+   * mensagens), medidos por quem despacha (23/10/2026). Opcional. Só serve para
+   * a liquidação quando o uso real não chega — ver `liquidacaoSemUsoMicros`.
+   */
+  caracteresDeEntrada?: number;
+}
+
+/**
+ * Quantos tokens a estimativa assume por caractere de entrada.
+ *
+ * O português real fica em torno de 0,3 token por caractere; a reserva assume o
+ * pior caso do tokenizador, 4 (`BYTES_POR_CARACTERE_PIOR_CASO`), que é o que
+ * fazia uma resposta cortada custar 25 vezes a conta real. Um por caractere é
+ * 3 vezes o real: nunca abaixo do que a chamada de fato consumiu, sem cobrar o
+ * teto da reserva por uma falha que não foi da pessoa.
+ */
+export const TOKENS_POR_CARACTERE_NA_ESTIMATIVA = 1;
+
+/**
+ * Por quanto liquidar uma execução despachada cujo uso real NÃO chegou
+ * (queda de conexão no meio da resposta, uso que não veio a tempo).
+ *
+ * Até 22/10/2026 era sempre o teto da reserva. Em 23/10 o Gemini derrubou duas
+ * respostas seguidas e cada uma custou US$ 0,34 (a conta real: US$ 0,014) —
+ * 7% do orçamento diário da conta por resposta que NEM CHEGOU INTEIRA ao
+ * cliente. O comentário do próprio orçamento já dizia que a consolidação
+ * "ajusta para o custo real"; aqui ela ajusta por uma estimativa com folga:
+ * entrada medida em caracteres a `TOKENS_POR_CARACTERE_NA_ESTIMATIVA`, saída no
+ * teto (barata) e imagem no teto. Sem os caracteres, ou sem o teto de saída,
+ * nada muda: vale o teto da reserva. Nunca passa da reserva, nunca vira zero.
+ */
+export function liquidacaoSemUsoMicros(p: {
+  pricing: ModelPricing;
+  reservedMicros: number;
+  caracteresDeEntrada?: number;
+  maxOutputTokens?: number;
+  imagemTokens?: number;
+}): { micros: number; estimado: boolean } {
+  const { pricing, reservedMicros, caracteresDeEntrada, maxOutputTokens, imagemTokens } = p;
+  const medido = typeof caracteresDeEntrada === "number" && Number.isFinite(caracteresDeEntrada) && caracteresDeEntrada > 0;
+  const teto = typeof maxOutputTokens === "number" && Number.isFinite(maxOutputTokens) && maxOutputTokens > 0;
+  if (!medido || !teto) return { micros: reservedMicros, estimado: false };
+  const estimada = custoDeReservaMicros(pricing, {
+    entrada: Math.ceil(caracteresDeEntrada * TOKENS_POR_CARACTERE_NA_ESTIMATIVA),
+    saida: maxOutputTokens,
+    imagem: imagemTokens && imagemTokens > 0 ? imagemTokens : undefined,
+  });
+  return { micros: Math.max(1, Math.min(reservedMicros, estimada)), estimado: true };
 }
 
 /**
@@ -484,6 +538,9 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
     /** O mesmo valor que `decidirExecucao` reservou — o teto usado na
      *  liquidação conservadora quando o uso real não está disponível. */
     reservedMicros: number;
+    /** O teto de saída e de imagem desta execução — só para `liquidacaoSemUsoMicros`. */
+    maxOutputTokens?: number;
+    imagemTokens?: number;
     attempts: readonly TAttempt[];
     firstChunkTimeoutMs: number;
     /** Teto de espera pela promise de uso ao encerrar — ver `TIMEOUT_DE_USO_PADRAO_MS`. */
@@ -505,6 +562,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
   // é o que decide se uma falha depois disso ainda pode liberar
   // integralmente (não pode) ou precisa liquidar conservador (precisa).
   let attemptDespachado: TAttempt | null = null;
+  let caracteresDeEntrada: number | undefined;
 
   let encerrado = false;
 
@@ -519,9 +577,16 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
 
   /** A liquidação conservadora — nunca vira custo zero. */
   const consolidarConservador = async (fluxoSemFim = false) => {
-    const usageSnapshot: SnapshotDeUso = fluxoSemFim ? { unknown: true, fluxoSemFim: true } : { unknown: true };
+    const { micros, estimado } = liquidacaoSemUsoMicros({
+      pricing, reservedMicros, caracteresDeEntrada, maxOutputTokens: params.maxOutputTokens, imagemTokens: params.imagemTokens,
+    });
+    const usageSnapshot: SnapshotDeUso = {
+      unknown: true,
+      ...(fluxoSemFim ? { fluxoSemFim: true as const } : {}),
+      ...(estimado ? { estimado: true as const } : {}),
+    };
     await consolidarExecucao(serviceClient, userId, {
-      executionId, settledMicros: reservedMicros,
+      executionId, settledMicros: micros,
       provider: attemptDespachado?.config.provider ?? "desconhecido",
       model: attemptDespachado?.config.model ?? "desconhecido",
       usageSnapshot,
@@ -635,6 +700,7 @@ export async function executarComOrcamento<TAttempt extends { config: { provider
         // rede, e errar para o lado conservador é a escolha segura.
         attemptDespachado = attempt;
         const resultado = dispatch(attempt, signal);
+        caracteresDeEntrada = resultado.caracteresDeEntrada;
         usageCapturado = resultado.usage;
         fimCapturado = resultado.fim ?? null;
         return resultado.textStream;
@@ -820,6 +886,8 @@ export async function executarEmFila<TAttempt extends { config: { provider: stri
         executionId,
         pricing: custo.pricing,
         reservedMicros: custo.reservedMicros,
+        maxOutputTokens: custo.maxOutputTokens,
+        imagemTokens: tokensDeImagemDaReserva(custo.pricing, params.request),
         attempts: [attempt],
         firstChunkTimeoutMs: params.firstChunkTimeoutMs,
         usageTimeoutMs: params.usageTimeoutMs,

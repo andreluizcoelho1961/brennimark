@@ -35,6 +35,22 @@ export type MensagemDoVini = {
 export type FaseDaConversa = "idle" | "connecting" | "thinking" | "answering";
 
 /**
+ * A reconexão automática (23/10/2026, pedido do André: "não vamos deixar um
+ * problema para os nossos clientes").
+ *
+ * Em 23/10 o provedor da IA (Gemini) derrubou a conexão no meio de duas
+ * respostas seguidas; a pessoa via "Resposta incompleta" e tinha de clicar.
+ * Queda de conexão e erro do provedor são passageiros — na maioria das vezes a
+ * segunda tentativa, logo em seguida, responde inteira. Então a janela refaz a
+ * pergunta UMA vez sozinha, sem mostrar o pedaço que caiu. Só essas duas
+ * causas: "passou do tamanho" e "filtro de conteúdo" se repetiriam, e quem
+ * decide repetir esses é a pessoa. Se a segunda também cair, aparece o pedaço
+ * com o aviso e o botão, como sempre foi.
+ */
+const RECONEXOES_AUTOMATICAS = 1;
+const MOTIVOS_QUE_REPETEM = new Set(["conexao", "error"]);
+
+/**
  * `obterConversa` dá o identificador da conversa em curso (fatia 4d): a rota
  * guarda cada troca nela, na conta do autor. É função, e não valor, porque a
  * janela troca de conversa ao reabrir uma do histórico.
@@ -60,8 +76,8 @@ export function useConversaDaMarca(obterConversa?: () => string) {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  async function pedir(proximas: MensagemDoVini[]) {
-    if (ocupado) return;
+  async function pedir(proximas: MensagemDoVini[], reconexoes = 0) {
+    if (ocupado && reconexoes === 0) return;
     const controle = new AbortController();
     abortRef.current = controle;
     setMensagens(proximas);
@@ -104,6 +120,13 @@ export function useConversaDaMarca(obterConversa?: () => string) {
       }
       texto += decodificador.decode();
       const fim = separarFim(texto);
+      const caiu = (fim.interrompida !== null && MOTIVOS_QUE_REPETEM.has(fim.interrompida)) || !fim.texto.trim();
+      if (caiu && reconexoes < RECONEXOES_AUTOMATICAS) {
+        // O pedaço que caiu não fica à vista: a pergunta é refeita por baixo.
+        setMensagens(proximas);
+        await pedir(proximas, reconexoes + 1);
+        return;
+      }
       if (!fim.texto.trim()) {
         throw new Error(isEnglish ? "The assistant ended without producing an answer." : "O assistente encerrou sem produzir uma resposta.");
       }
@@ -115,6 +138,12 @@ export function useConversaDaMarca(obterConversa?: () => string) {
         setParaRepetir(proximas);
       }
     } catch (caught) {
+      // Falha de rede no meio (o fetch ou a leitura do fluxo lança TypeError):
+      // a mesma regra da queda de conexão — uma nova tentativa antes de incomodar.
+      if (!controle.signal.aborted && caught instanceof TypeError && reconexoes < RECONEXOES_AUTOMATICAS) {
+        await pedir(proximas, reconexoes + 1);
+        return;
+      }
       setParaRepetir(proximas);
       if (controle.signal.aborted) {
         setAviso(isEnglish ? "Response interrupted. You can try again whenever you like." : "Resposta interrompida. Você pode tentar de novo quando quiser.");
