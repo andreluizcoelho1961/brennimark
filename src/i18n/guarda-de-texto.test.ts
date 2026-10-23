@@ -1,0 +1,83 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import test from "node:test";
+
+/**
+ * Guarda contra texto em português escrito direto no código.
+ *
+ * Quando uma pasta ou arquivo é migrado para os catálogos de tradução
+ * (`src/i18n/mensagens/*.json`), ele entra em MIGRADAS e nunca mais pode ter
+ * frase em português no código — só chave. Sem isto, o texto volta numa
+ * refatoração qualquer, e o defeito só aparece para o primeiro cliente em
+ * inglês.
+ *
+ * A lista cresce a cada fatia migrada. Cobre o que já foi migrado, não é
+ * promessa sobre o que ainda não foi (mesma regra de `leak-guard.test.ts`).
+ *
+ * LIMITE CONHECIDO: o detector reconhece português por acento ou por palavras
+ * de ligação ("não", "para", "com"…). Uma palavra solta sem acento ("Salvar")
+ * passa. Ele pega frase, que é onde está quase todo o texto da interface; a
+ * revisão cobre o resto.
+ */
+const MIGRADAS: string[] = [
+  "src/i18n/request.ts",
+  "src/platform/locale-client.tsx",
+];
+
+const ACENTOS = /[áàâãéêíóôõúüç]/i;
+const LIGACAO = /\b(não|nao|para|com|uma|você|voce|seu|sua|ou|por|que|dos|das|nos|nas|ao|aos|está|esta|são|sao)\b/gi;
+
+/** O texto parece português? Acento, ou duas palavras de ligação, ou "não"/"você". */
+export function parecePortugues(texto: string): boolean {
+  if (ACENTOS.test(texto)) return true;
+  const achadas = texto.match(LIGACAO) ?? [];
+  if (achadas.some((p) => /^(não|nao|você|voce)$/i.test(p))) return true;
+  return achadas.length >= 2;
+}
+
+/** Tira comentários. Barras de URL ("https://") sobrevivem: `//` só vale após espaço. */
+function semComentarios(codigo: string): string {
+  return codigo.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "$1");
+}
+
+/** Cada trecho de texto do código: literais entre aspas e texto solto de JSX. */
+export function textosDoCodigo(codigo: string): string[] {
+  const limpo = semComentarios(codigo);
+  const literais = [...limpo.matchAll(/(["'`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((m) => m[2]);
+  const jsx = [...limpo.matchAll(/>([^<>{}\n]+)</g)].map((m) => m[1]);
+  return [...literais, ...jsx].map((t) => t.trim()).filter(Boolean);
+}
+
+export function frasesEmPortugues(codigo: string): string[] {
+  return textosDoCodigo(codigo).filter(parecePortugues);
+}
+
+test("o detector pega frase em português no JSX e em literal", () => {
+  assert.deepEqual(frasesEmPortugues(`<button>Salvar alterações</button>`), ["Salvar alterações"]);
+  assert.deepEqual(frasesEmPortugues(`const m = "Você não tem acesso";`), ["Você não tem acesso"]);
+  // O limite conhecido, registrado como prova: sem acento e com uma só palavra de ligação, passa.
+  assert.deepEqual(frasesEmPortugues("const m = `Erro ao salvar o arquivo`;"), []);
+  assert.deepEqual(frasesEmPortugues(`aviso("falha para conectar com o servidor")`), [
+    "falha para conectar com o servidor",
+  ]);
+});
+
+test("o detector deixa passar chave, endereço, comentário e código", () => {
+  assert.deepEqual(frasesEmPortugues(`t("comum.salvar")`), []);
+  assert.deepEqual(frasesEmPortugues(`fetch("https://exemplo.com/api")`), []);
+  assert.deepEqual(frasesEmPortugues(`// Não tem acesso\nconst a = 1; /* explicação com ação */`), []);
+  assert.deepEqual(frasesEmPortugues(`import { x } from "@/platform/locale";`), []);
+  assert.deepEqual(frasesEmPortugues(`const lista: Array<string> = [];`), []);
+});
+
+test("nenhum arquivo migrado tem texto em português no código", () => {
+  for (const arquivo of MIGRADAS) {
+    const codigo = readFileSync(path.join(process.cwd(), arquivo), "utf8");
+    assert.deepEqual(
+      frasesEmPortugues(codigo),
+      [],
+      `${arquivo} tem texto em português no código; mova para src/i18n/mensagens e use a chave`,
+    );
+  }
+});
