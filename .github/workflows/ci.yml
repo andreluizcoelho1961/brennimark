@@ -123,13 +123,29 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-ubuntu-24.04-${{ hashFiles('package-lock.json') }}
 
+      # A instalação baixa pacotes do sistema do espelho do Ubuntu, que às vezes
+      # fica lento (23/10/2026: 158 pacotes, até 70 s cada) e prendia o job até o
+      # limite de 45 min, duas vezes seguidas. Cada tentativa agora tem 12 min, e
+      # são até 3: instalação travada falha cedo e tenta de novo, em vez de
+      # esperar o limite do job. Reinstalar é seguro: o apt e o Playwright
+      # retomam do que já baixaram.
       - name: Navegadores do Playwright
         if: steps.cache-navegadores.outputs.cache-hit != 'true'
-        run: npx playwright install --with-deps chromium webkit firefox
+        run: |
+          for tentativa in 1 2 3; do
+            timeout 720 npx playwright install --with-deps chromium webkit firefox && exit 0
+            echo "Instalação travou ou falhou (tentativa $tentativa de 3)."
+          done
+          exit 1
 
       - name: Dependências dos navegadores
         if: steps.cache-navegadores.outputs.cache-hit == 'true'
-        run: npx playwright install-deps chromium webkit firefox
+        run: |
+          for tentativa in 1 2 3; do
+            timeout 720 npx playwright install-deps chromium webkit firefox && exit 0
+            echo "Instalação travou ou falhou (tentativa $tentativa de 3)."
+          done
+          exit 1
 
       # Sobe `next dev` com BRENNIMARK_DEV_SKIP_AUTH e nada mais: sem Supabase,
       # sem segredo, sem rede. Ver playwright.config.ts.
