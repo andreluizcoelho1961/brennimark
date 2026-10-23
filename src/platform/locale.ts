@@ -55,3 +55,34 @@ export function resolveInterfaceLocale(preferenciaDoUsuario?: unknown): ProductL
 export function inEnglish(locale: ProductLocale): boolean {
   return locale === "en";
 }
+
+/**
+ * Onde a escolha de idioma fica guardada no navegador. A preferência por
+ * pessoa (coluna em `profiles`) chega na fatia da plataforma; o cookie é o que
+ * vale para quem ainda não entrou e o que o servidor lê em cada pedido.
+ */
+export const COOKIE_DE_IDIOMA = "BRENNIMARK_IDIOMA";
+
+/**
+ * O idioma que o navegador pede (`Accept-Language`), reduzido aos que o produto
+ * tem. Vale só enquanto a pessoa não escolheu: escolha explícita ganha sempre.
+ * "pt", "pt-PT" e "pt-BR" viram `pt-BR`; "en", "en-US" e "en-GB" viram `en`.
+ */
+export function localeDoNavegador(acceptLanguage: string | null | undefined): ProductLocale {
+  if (!acceptLanguage) return PRODUCT_LOCALE;
+  const pedidos = acceptLanguage
+    .split(",")
+    .map((parte) => {
+      const [tag, ...params] = parte.trim().split(";");
+      const q = params.map((p) => p.trim()).find((p) => p.startsWith("q="));
+      const peso = q ? Number(q.slice(2)) : 1;
+      return { lingua: tag.trim().toLowerCase().split("-")[0], peso: Number.isNaN(peso) ? 0 : peso };
+    })
+    .filter((p) => p.peso > 0)
+    .sort((a, b) => b.peso - a.peso);
+  for (const { lingua } of pedidos) {
+    if (lingua === "pt") return "pt-BR";
+    if (lingua === "en") return "en";
+  }
+  return PRODUCT_LOCALE;
+}

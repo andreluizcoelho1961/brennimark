@@ -1,0 +1,13 @@
+{
+  "idioma": {
+    "rotulo": "Language",
+    "pt-BR": "Português",
+    "en": "English"
+  },
+  "comum": {
+    "salvar": "Save",
+    "cancelar": "Cancel",
+    "voltar": "Back",
+    "carregando": "Loading…"
+  }
+}
