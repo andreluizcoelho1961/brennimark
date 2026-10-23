@@ -36,6 +36,22 @@ async function comResposta(page: Page, corpo = RESPOSTA, enviados?: unknown[]) {
   });
 }
 
+/** Uma resposta diferente por pedido (a última se repete): para as quedas e as retomadas. */
+async function comRespostas(page: Page, corpos: string[], enviados?: unknown[]) {
+  let vez = 0;
+  await page.route("**/api/ai/chat**", async (rota) => {
+    enviados?.push(rota.request().postDataJSON());
+    const corpo = corpos[Math.min(vez, corpos.length - 1)];
+    vez++;
+    await rota.fulfill({
+      status: 200,
+      contentType: "text/plain; charset=utf-8",
+      headers: { "X-Brennimark-Paginas": encodeURIComponent(JSON.stringify({ "/docs/cores": 12 })) },
+      body: corpo,
+    });
+  });
+}
+
 async function perguntar(page: Page, texto: string) {
   await page.locator("[data-botao-do-vini]").click();
   const campo = page.getByRole("textbox", { name: "Pergunta para o Vini" });
@@ -188,11 +204,42 @@ test("conexão caída no meio: o aviso diz isso, e 'Perguntar de novo' está ao 
   await perguntar(page, "quais as cores da marca?");
 
   await expect(page.locator("[data-vini-aviso]")).toContainText("a conexão com a IA caiu no meio da resposta");
+  // A janela já refez a pergunta sozinha UMA vez (23/10/2026) antes de avisar.
+  expect(enviados).toHaveLength(2);
   const aoLado = page.locator("[data-vini-janela] [data-incompleta] [data-perguntar-de-novo]");
   await expect(aoLado).toHaveText("Perguntar de novo");
   await aoLado.click();
-  await expect.poll(() => enviados.length).toBe(2);
-  expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "quais as cores da marca?" }] });
+  await expect.poll(() => enviados.length).toBe(3);
+  expect(enviados[2]).toMatchObject({ messages: [{ role: "user", content: "quais as cores da marca?" }] });
+});
+
+test("a conexão cai uma vez: a janela refaz a pergunta sozinha e a pessoa só vê a resposta inteira", async ({ page }) => {
+  // 23/10/2026: o Gemini derrubou duas respostas seguidas no meio, e a pessoa
+  // tinha de clicar. Uma queda é passageira: a segunda tentativa, logo em
+  // seguida, costuma responder inteira.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comRespostas(page, ["O logo pode ir sobre foto, desde que⁣[[brennimark:incompleta:conexao]]", "O logo pode ir sobre foto, desde que a área seja uniforme."], enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "posso usar o logo sobre foto?");
+
+  const resposta = page.locator("[data-vini-janela] [data-resposta-do-vini]");
+  await expect(resposta).toContainText("desde que a área seja uniforme.");
+  await expect(page.locator("[data-incompleta]")).toHaveCount(0);
+  await expect(page.locator("[data-vini-aviso]")).toHaveCount(0);
+  expect(enviados).toHaveLength(2);
+  // A MESMA pergunta, sem o pedaço que caiu.
+  expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "posso usar o logo sobre foto?" }] });
+});
+
+test("só a queda de conexão e o erro do provedor se repetem sozinhos: o filtro de conteúdo, não", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comRespostas(page, ["Resposta cortada⁣[[brennimark:incompleta:length]]"], enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "pergunta longa?");
+  await expect(page.locator("[data-vini-aviso]")).toContainText("tamanho máximo");
+  expect(enviados).toHaveLength(1);
 });
 
 test("resposta inteira não ganha aviso nenhum", async ({ page }) => {

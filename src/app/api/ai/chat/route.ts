@@ -233,12 +233,14 @@ export async function POST(request: Request) {
       onAttemptFailure: registrarFalhaNaFila("chat", executionId),
       onReservaRecusada: registrarReservaRecusada("chat", executionId),
       dispatch: (attempt, abortSignal, tetoDeSaida) => {
+        const sistema = cabeNo(attempt)
+          ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha, complementos)
+          : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha, complementos);
+        const mensagensDaChamada = veNo(attempt) ? comPaginasVistas(messages, vistas, isEnglish) : messages;
         const result = streamText({
           model: getModel(attempt.config),
-          system: cabeNo(attempt)
-            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha, complementos)
-            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha, complementos),
-          messages: veNo(attempt) ? comPaginasVistas(messages, vistas, isEnglish) : messages,
+          system: sistema,
+          messages: mensagensDaChamada,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: CHAT_TIMEOUT_MS },
@@ -250,7 +252,11 @@ export async function POST(request: Request) {
         });
         // Guardado para o fim do fluxo: é o provedor dizendo POR QUE parou.
         fimDoProvedor = { unificado: result.finishReason, bruto: result.rawFinishReason };
-        return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result) };
+        // Os caracteres de texto que de fato foram ao provedor: se a resposta cair
+        // sem o uso real, a cobrança é por eles (`liquidacaoSemUsoMicros`), não pelo teto.
+        const caracteresDeEntrada = sistema.length + (mensagensDaChamada as { content?: unknown }[]).reduce(
+          (soma, m) => soma + (typeof m.content === "string" ? m.content.length : 0), 0);
+        return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result), caracteresDeEntrada };
       },
     });
 
