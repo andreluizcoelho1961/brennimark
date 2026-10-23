@@ -99,11 +99,13 @@ function TelaReal({ src, alt, destaques, foco, depois, lupa }: Quadro & { depois
 /** O trecho de uma resposta do assistente, como a plataforma o desenha. */
 function Citacao({ rotulo, titulo, selo, tom }: { rotulo?: string; titulo: string; selo: string; tom: "ok" | "rascunho" }) {
   return (
-    <a className="cita" aria-hidden="true" tabIndex={-1}>
+    // Um `span`, e não um `a`: é só o desenho da citação (na plataforma é um
+    // link), e um `<a>` sem destino quebra o teste que confere os links do tour.
+    <span className="cita" aria-hidden="true">
       {rotulo ? <span className="mut">{rotulo}</span> : null}
       <span>{titulo}</span>
       <b className={tom}>{selo}</b>
-    </a>
+    </span>
   );
 }
 
