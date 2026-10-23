@@ -1086,3 +1086,30 @@ body:has(.home-v){overflow:auto}
 .bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque{border-width:calc(2px / var(--z,1));border-radius:calc(8px / var(--z,1));box-shadow:0 0 0 calc(4px / var(--z,1)) rgba(255,65,3,.16)}
 .bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque em{font-size:calc(11px / var(--z,1));padding:calc(4px / var(--z,1)) calc(7px / var(--z,1));border-radius:calc(5px / var(--z,1));bottom:calc(100% + 4px / var(--z,1))}
 .bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque[data-abaixo] em{bottom:auto;top:calc(100% + 4px / var(--z,1))}
+
+/* ---------- a segunda captura e as lupas (23/10/2026) ----------
+ * `.troca`: a mesma tela noutro momento, que entra por cima em fade. Sem
+ * movimento (ou sem JS), ela já está lá, e é a imagem que fica à vista.
+ * `.lupa`: um detalhe REDESENHADO igual ao da plataforma — mesmas cores e
+ * pesos de letra (Inter Tight, Noite Polar, o verde de "pronto" e o âmbar de
+ * "rascunho" são os tokens da moldura), só que maior. A captura é de 1x, e
+ * ampliada borra; o detalhe redesenhado fica nítido. */
+.bm-site .tela-real-img{position:relative}
+.bm-site .tela-real-img>.tela-quieta,.bm-site .tela-real-img>.tela-camera{position:relative}
+.bm-site .troca{position:absolute;inset:0;overflow:hidden;background:#fafcfd}
+.bm-site .troca .tela-quieta,.bm-site .troca .tela-camera{position:absolute;inset:0}
+.bm-site .troca img{width:100%;height:100%;object-fit:cover}
+:where(html[data-site-movimento]) .bm-site .tour .troca{opacity:0}
+.bm-site .tour[data-tocando] .tour-panel:not([hidden]) .troca{animation:bm-troca .7s var(--ease) calc(var(--p) * .8s) forwards}
+@keyframes bm-troca{from{opacity:0}to{opacity:1}}
+.bm-site .lupa{position:absolute;left:2.4%;bottom:7%;width:60%;padding:clamp(12px,2.2vw,20px) clamp(14px,2.4vw,22px);background:#fafcfd;color:#001621;border-radius:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 .5px rgba(0,22,33,.1),0 4px 8px -2px rgba(0,22,33,.1),0 22px 44px -12px rgba(0,22,33,.45);font:400 clamp(11.5px,1.55vw,16.5px)/1.6 var(--fonte-interface),system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;text-align:left}
+.bm-site .lupa-revisao{width:52%}
+.bm-site .lupa p{margin:0}
+.bm-site .lupa p+p{margin-top:.7em}
+.bm-site .lupa .cita{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:.28em;margin:0 .14em;border-bottom:1px solid #d2dde2;font-weight:500;color:#001621;text-decoration:none}
+.bm-site .lupa .cita .mut{color:#465e68}
+.bm-site .lupa .cita b{font-size:.64em;font-weight:700;letter-spacing:.025em;text-transform:uppercase}
+.bm-site .lupa .cita b.ok{color:#39714c}
+.bm-site .lupa .cita b.rascunho{color:#8c5c0b}
+.bm-site .lupa .selo-vermelho{display:inline-block;margin-bottom:.7em;padding:.3em .7em;background:#a8453a;color:#fff;font-size:.68em;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
+@media (max-width:767px){.bm-site .lupa{position:static;width:auto;margin:10px 0 0;font-size:13px;box-shadow:0 0 0 1px #d2dde2}.bm-site .lupa-revisao{width:auto}}
