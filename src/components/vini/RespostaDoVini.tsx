@@ -3,7 +3,7 @@
 import { Fragment, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { parseBrandCitations } from "@/lib/ai/citations";
-import { blocosDeMarkdown, enfases } from "@/lib/ai/markdown-leve";
+import { blocosDeMarkdown, enfases, envolvidoEmEnfase } from "@/lib/ai/markdown-leve";
 import { destinoDaCitacao, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { useStatusLabels } from "@/platform/brand-vocabulary-client";
 import { useIsEnglish } from "@/platform/locale-client";
@@ -35,6 +35,13 @@ export function RespostaDoVini({
   const router = useRouter();
 
   function linha(texto: string, chave: string): ReactNode {
+    // "*Nota: … [Fonte: …] … .*": a ênfase que atravessa a citação vale para o parágrafo todo.
+    const envolvido = envolvidoEmEnfase(texto);
+    if (envolvido && parseBrandCitations(texto, rotulos).some((parte) => parte.type !== "text")) {
+      return envolvido.tipo === "italico"
+        ? <em key={chave}>{linha(envolvido.dentro, `${chave}e`)}</em>
+        : <strong key={chave} className="font-semibold">{linha(envolvido.dentro, `${chave}n`)}</strong>;
+    }
     return parseBrandCitations(texto, rotulos).map((parte, i) => {
       if (parte.type === "text") {
         return (

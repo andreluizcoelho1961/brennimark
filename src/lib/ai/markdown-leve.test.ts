@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocosDeMarkdown, enfases, semMatematica } from "./markdown-leve";
+import { blocosDeMarkdown, enfases, envolvidoEmEnfase, semMatematica } from "./markdown-leve";
 
 /**
  * O Markdown das respostas — o que o ensaio de 18/09 mostrou cru.
@@ -114,4 +114,19 @@ test("preço e outros cifrões não viram fórmula", () => {
 test("a resposta formatada não mostra o cifrão da fórmula", () => {
   const blocos = blocosDeMarkdown("* A medida $x$ vale um terço ($1/3$).");
   assert.deepEqual(blocos, [{ tipo: "lista", ordenada: false, itens: ["A medida x vale um terço (1/3)."] }]);
+});
+
+test("itálico e negrito que envolvem o parágrafo inteiro são reconhecidos — mesmo atravessando uma citação", () => {
+  const nota = "*Nota: o manual não traz essa diretriz [Fonte: O logotipo nas peças — PRONTO · /docs/o-logotipo-nas-pecas], mas ela vem de um complemento.*";
+  assert.deepEqual(envolvidoEmEnfase(nota), {
+    tipo: "italico",
+    dentro: "Nota: o manual não traz essa diretriz [Fonte: O logotipo nas peças — PRONTO · /docs/o-logotipo-nas-pecas], mas ela vem de um complemento.",
+  });
+  assert.deepEqual(envolvidoEmEnfase("**Atenção: veja [Fonte: A — PRONTO · /docs/a] antes.**"), { tipo: "negrito", dentro: "Atenção: veja [Fonte: A — PRONTO · /docs/a] antes." });
+  // O que NÃO é parágrafo envolvido: duas ênfases separadas, multiplicação, texto comum.
+  assert.equal(envolvidoEmEnfase("*um* e *dois*"), null);
+  assert.equal(envolvidoEmEnfase("**um** e **dois**"), null);
+  assert.equal(envolvidoEmEnfase("5 * 3 * 2"), null);
+  assert.equal(envolvidoEmEnfase("texto comum"), null);
+  assert.equal(envolvidoEmEnfase("*aberto sem fechar"), null);
 });
