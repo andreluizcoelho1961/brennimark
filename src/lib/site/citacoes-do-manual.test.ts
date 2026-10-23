@@ -38,7 +38,9 @@ test("toda página citada existe na edição de demonstração", () => {
       if (ultima > PAGINAS_DA_DEMONSTRACAO) fora.push(`${arquivo}: "${m[0]}"`);
     }
   }
-  assert.ok(citacoes > 10, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
+  // Eram mais de dez quando as telas eram desenhadas em código; agora são capturas
+  // reais (23/10/2026) e as citações moram dentro das imagens. Sobram as do texto.
+  assert.ok(citacoes >= 3, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
   assert.deepEqual(fora, [], "página além da edição de demonstração");
 });
 
@@ -48,17 +50,19 @@ test("toda página citada existe na edição de demonstração", () => {
 test("as citações usam a numeração da versão 0.3", () => {
   const tudo = fontes.map((f) => f.texto).join("\n");
   assert.doesNotMatch(tudo, /Manual, p\. 9\b|Área de proteção do símbolo · p\.|Cores, p\. 13|p\. 24–26|p\. 4–12/);
-  assert.match(tudo, /Manual, p\. 10\b/);
-  assert.match(tudo, /Paleta de cores primárias · p\. 14/);
+  // As citações "Manual, p. 10" e "Paleta de cores primárias · p. 14" moravam nas telas
+  // desenhadas; agora são capturas reais. O que ainda se escreve usa a numeração nova.
+  assert.match(tudo, /Área de proteção · p\. 10\b/);
+  assert.match(tudo, /Cores, p\. 14\b/);
 });
 
 test("o fólio e a contagem do manual são os da edição de demonstração", () => {
   const folios = fontes.flatMap(({ arquivo, texto }) =>
     [...texto.matchAll(/<span>(\d+) \/ (\d+)<\/span>/g)].map((m) => ({ arquivo, total: Number(m[2]) })),
   );
-  // Eram dois; a tela do manual no tour virou captura real (22/10/2026), com o
-  // fólio na própria imagem. Fica o da página Manual.
-  assert.ok(folios.length >= 1, "o fólio do visualizador sumiu do site");
+  // O visualizador do manual agora é captura real (22–23/10/2026), com o fólio
+  // dentro da própria imagem: não sobra fólio ESCRITO no código. Se um voltar,
+  // tem de ser da edição de demonstração (42 páginas).
   for (const f of folios) assert.equal(f.total, PAGINAS_DA_DEMONSTRACAO, `fólio em ${f.arquivo}`);
 
   for (const { arquivo, texto } of fontes) {

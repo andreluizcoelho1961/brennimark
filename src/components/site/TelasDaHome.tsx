@@ -6,7 +6,8 @@ import telaAssistente from "./imagens/telas/assistente.webp";
 import telaRevisao from "./imagens/telas/revisao.webp";
 import telaPrompt from "./imagens/telas/prompt.webp";
 import telaMateriais from "./imagens/telas/materiais.webp";
-import telaEnvio from "./imagens/telas/envio.webp";
+import telaLinksCriado from "./imagens/telas/links-criado.webp";
+import telaReceber from "./imagens/telas/receber.webp";
 import telaComplementos from "./imagens/telas/complementos.webp";
 import telaViniComplemento from "./imagens/telas/vini-complemento.webp";
 
@@ -25,6 +26,12 @@ import telaViniComplemento from "./imagens/telas/vini-complemento.webp";
  * captura for refeita, as caixas vêm junto. Sem movimento, tudo aparece pronto.
  */
 const passo = (n: number) => ({ "--p": n }) as CSSProperties;
+
+/**
+ * As caixas são escritas em pixels CSS do quadro de 1440 × 900; a captura tem o
+ * dobro (2880 × 1800, tirada com densidade 2 para ficar nítida). `c()` faz a conversão.
+ */
+const c = (x0: number, y0: number, x1: number, y1: number): Caixa => [x0 * 2, y0 * 2, x1 * 2, y1 * 2];
 
 /** Uma região da captura, em pixels da imagem: [x0, y0, x1, y1]. */
 type Caixa = readonly [number, number, number, number];
@@ -97,13 +104,14 @@ function TelaReal({ src, alt, destaques, foco, depois, lupa }: Quadro & { depois
 }
 
 /** O trecho de uma resposta do assistente, como a plataforma o desenha. */
-function Citacao({ rotulo, titulo, selo, tom }: { rotulo?: string; titulo: string; selo: string; tom: "ok" | "rascunho" }) {
+function Citacao({ rotulo, titulo, pagina, selo, tom }: { rotulo?: string; titulo: string; pagina?: number; selo: string; tom: "ok" | "rascunho" }) {
   return (
     // Um `span`, e não um `a`: é só o desenho da citação (na plataforma é um
     // link), e um `<a>` sem destino quebra o teste que confere os links do tour.
     <span className="cita" aria-hidden="true">
       {rotulo ? <span className="mut">{rotulo}</span> : null}
       <span>{titulo}</span>
+      {pagina ? <span className="mut">p. {pagina}</span> : null}
       <b className={tom}>{selo}</b>
     </span>
   );
@@ -113,12 +121,11 @@ export function TelaManual() {
   return (
     <TelaReal
       src={telaManual}
-      foco={{ caixa: [150, 0, 1300, 773], n: 0.4 }}
       alt="O manual do Brennimark aberto na plataforma, na página 14, a paleta de cores primárias, com índice e busca no topo"
       destaques={[
-        { caixa: [556, 10, 618, 44], n: 1, rotulo: "Índice" },
-        { caixa: [192, 70, 1272, 682], n: 2.5, rotulo: "O PDF do estúdio, página por página" },
-        { caixa: [154, 730, 472, 760], n: 4.5 },
+        { caixa: c(556, 8, 632, 48), n: 1, rotulo: "Índice e busca" },
+        { caixa: c(572, 136, 1262, 656), n: 2.5, rotulo: "O manual como o estúdio diagramou" },
+        { caixa: c(158, 848, 480, 884), n: 4.5, rotulo: "Página 14 de 42" },
       ]}
     />
   );
@@ -128,12 +135,12 @@ export function TelaConsulta() {
   return (
     <TelaReal
       src={telaAssistente}
-      foco={{ caixa: [880, 180, 1412, 490], n: 0.4 }}
       alt="A janela do assistente sobre o manual: a pergunta sobre a área de proteção do logo e a resposta citando a página 10"
+      foco={{ caixa: c(975, 185, 1435, 825), n: 0.4 }}
       destaques={[
-        { caixa: [978, 202, 1206, 252], n: 1, rotulo: "A pergunta" },
-        { caixa: [978, 288, 1402, 476], n: 2.8, rotulo: "A resposta, com a página do manual" },
-        { caixa: [984, 332, 1188, 360], n: 4.6 },
+        { caixa: c(996, 286, 1216, 316), n: 1, rotulo: "A pergunta" },
+        { caixa: c(996, 350, 1412, 618), n: 2.8, rotulo: "A resposta, com a página do manual" },
+        { caixa: c(1164, 428, 1360, 460), n: 4.6 },
       ]}
     />
   );
@@ -143,17 +150,17 @@ export function TelaAnalise() {
   return (
     <TelaReal
       src={telaRevisao}
-      alt="A revisão de um post: o assistente marca a peça como desalinhada, com o logotipo grande demais e encostado na borda, citando a página 12"
+      alt="A revisão de um post: o assistente marca a peça como desalinhada, com o logotipo grande demais e encostado na borda, citando as regras do manual"
       destaques={[
-        { caixa: [1018, 76, 1187, 202], n: 1, rotulo: "A peça enviada" },
-        { caixa: [824, 244, 928, 276], n: 2.6 },
-        { caixa: [838, 352, 1398, 502], n: 3.8, rotulo: "O que está fora da regra, e onde a regra está" },
+        { caixa: c(1018, 158, 1230, 276), n: 1, rotulo: "A peça enviada" },
+        { caixa: c(836, 314, 944, 348), n: 2.6 },
+        { caixa: c(836, 420, 1410, 576), n: 3.8, rotulo: "Cada achado, com a regra do manual" },
       ]}
       lupa={
         <div className="lupa lupa-revisao passo" style={passo(6)} aria-hidden="true">
           <span className="selo-vermelho">Desalinhada</span>
-          <p><b>Violação objetiva de margem:</b> o logotipo está praticamente encostado nas bordas inferior e esquerda, descumprindo a margem mínima de 2x{" "}
-            <Citacao titulo="O logotipo nas peças" rotulo="" selo="Pronto" tom="ok" />.</p>
+          <p>Margem até a borda: “Margem mínima até a borda 2x, duas vezes a altura da letra B. As medidas usam x, a altura da letra B do letreiro”{" "}
+            <Citacao titulo="O logotipo nas peças" pagina={12} selo="Pronto" tom="ok" />.</p>
         </div>
       }
     />
@@ -164,12 +171,11 @@ export function TelaPrompt() {
   return (
     <TelaReal
       src={telaPrompt}
-      foco={{ caixa: [810, 120, 1412, 560], n: 0.4 }}
-      alt="O assistente monta o prompt de uma foto para o post de lançamento, com as cores e a luz do manual"
+      alt="O assistente monta o prompt de uma foto para o post de lançamento, com as cores e a luz do manual, e lista as páginas do manual de onde veio cada regra"
       destaques={[
-        { caixa: [824, 486, 1396, 548], n: 1, rotulo: "A sua ideia" },
-        { caixa: [824, 138, 1382, 422], n: 2.8, rotulo: "O prompt, com as regras da marca" },
-        { caixa: [824, 428, 942, 468], n: 5 },
+        { caixa: c(836, 160, 1412, 436), n: 1.2, rotulo: "O prompt, com as regras da marca" },
+        { caixa: c(836, 492, 1066, 650), n: 3.4, rotulo: "As páginas de onde veio cada regra" },
+        { caixa: c(836, 668, 1412, 738), n: 5.2, rotulo: "A sua ideia" },
       ]}
     />
   );
@@ -179,10 +185,10 @@ export function TelaMateriais() {
   return (
     <TelaReal
       src={telaMateriais}
-      alt="Materiais da marca: as versões do logotipo e do símbolo do Brennimark, cada uma com o seu arquivo"
+      alt="Materiais da marca: as versões do logotipo e do símbolo do Brennimark, cada uma com a sua miniatura e o seu arquivo"
       destaques={[
-        { caixa: [156, 130, 1314, 202], n: 1, rotulo: "Cada versão do logo, num lugar só" },
-        { caixa: [156, 214, 1314, 604], n: 2.6 },
+        { caixa: c(164, 134, 262, 610), n: 1, rotulo: "A miniatura de cada arquivo" },
+        { caixa: c(560, 6, 858, 50), n: 2.8, rotulo: "Busca e filtro por tipo" },
       ]}
     />
   );
@@ -191,13 +197,23 @@ export function TelaMateriais() {
 export function TelaEntrega() {
   return (
     <TelaReal
-      src={telaEnvio}
-      foco={{ caixa: [170, 230, 1300, 570], n: 0.4 }}
+      src={telaLinksCriado}
       alt="Links de entrega: um link criado para uma gráfica, com prazo de sete dias, dois arquivos e o registro de downloads"
+      foco={{ caixa: c(190, 230, 1310, 620), n: 0.4 }}
       destaques={[
-        { caixa: [188, 243, 1280, 436], n: 1, rotulo: "O link, que aparece uma vez só" },
-        { caixa: [188, 496, 1282, 554], n: 3, rotulo: "Prazo, arquivos e downloads registrados" },
+        { caixa: c(200, 245, 1296, 442), n: 1, rotulo: "O link aparece uma vez só" },
+        { caixa: c(200, 500, 1296, 606), n: 3.2, rotulo: "Prazo, arquivos e downloads registrados" },
       ]}
+      depois={{
+        n: 5,
+        src: telaReceber,
+        alt: "A página que a gráfica recebe, sem criar conta: o nome de quem baixa, os arquivos escolhidos e a regra do manual, com as páginas",
+        foco: { caixa: c(268, 470, 1172, 895), n: 5.7 },
+        destaques: [
+          { caixa: c(268, 186, 1172, 352), n: 6.2, rotulo: "Quem baixa se identifica, e fica registrado" },
+          { caixa: c(268, 580, 1172, 892), n: 7.6, rotulo: "A regra do manual vem junto, com a página" },
+        ],
+      }}
     />
   );
 }
@@ -206,20 +222,19 @@ export function TelaComplementos() {
   return (
     <TelaReal
       src={telaComplementos}
-      foco={{ caixa: [320, 270, 1140, 699], n: 0.4 }}
+      foco={{ caixa: c(330, 270, 1160, 700), n: 0.4 }}
       alt="Complementos: uma regra nova sobre o logotipo sobre fotografia, já publicada, com os botões de editar, arquivar e ver o histórico"
       destaques={[
-        { caixa: [330, 288, 642, 324], n: 1, rotulo: "O que o manual não cobria" },
-        { caixa: [330, 350, 1124, 606], n: 2.4 },
-        { caixa: [330, 614, 550, 656], n: 3.8, rotulo: "Publicada: vale para a equipe" },
+        { caixa: c(348, 300, 1148, 332), n: 1, rotulo: "O que o manual não cobria" },
+        { caixa: c(348, 360, 1148, 616), n: 2.4 },
+        { caixa: c(348, 626, 572, 666), n: 3.8, rotulo: "Publicada: vale para a equipe" },
       ]}
       depois={{
         n: 5,
         src: telaViniComplemento,
         alt: "O assistente responde se o logotipo pode ficar sobre uma foto e cita a regra nova, marcada como pronta, ao lado da página do manual",
         destaques: [
-          { caixa: [984, 306, 1296, 340], n: 5.8, rotulo: "Cita a regra nova" },
-          { caixa: [984, 366, 1212, 398], n: 7 },
+          { caixa: c(996, 350, 1412, 450), n: 5.8, rotulo: "Cita a regra nova" },
         ],
       }}
       lupa={
@@ -227,7 +242,7 @@ export function TelaComplementos() {
           <p>Sim, pode, desde que o logotipo continue legível sem esforço{" "}
             <Citacao rotulo="Complemento:" titulo="O logotipo sobre fotografia" selo="Pronto" tom="ok" />.</p>
           <p>O manual não cobre essa regra{" "}
-            <Citacao titulo="O logotipo nas peças" selo="Pronto" tom="ok" />, mas há um complemento específico para isso.</p>
+            <Citacao titulo="O logotipo nas peças" pagina={12} selo="Pronto" tom="ok" />, mas há um complemento específico para isso.</p>
         </div>
       }
     />

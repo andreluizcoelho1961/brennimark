@@ -4,6 +4,9 @@ import maosComPranchas from "../imagens/maos-com-pranchas.webp";
 import { BlocosDeEntrega } from "./Entrega";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaItemLogotipo from "../imagens/telas/item-logotipo.webp";
+import telaMateriais from "../imagens/telas/materiais.webp";
 
 /** Materiais da marca — `/materiais`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoMateriais() {
@@ -20,19 +23,7 @@ export function ConteudoMateriais() {
       <Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link>
       </div>
       </div>
-      <div className="frame">
-      <div className="mk" role="img" aria-label="Tela de Materiais da marca: seis grupos de arquivos e o botão Baixar kit da marca">
-      <div className="mk-bar"><div className="seg"><span>Manual</span><span className="on">Materiais</span><span>Complementos</span></div><span className="mk-btn a-direita">Baixar kit da marca ↓</span></div>
-      <div className="mk-body tiles">
-      <div className="tile"><div className="tile-art dark logo"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><p>Logotipo <span>6 versões</span></p></div>
-      <div className="tile"><div className="tile-art"><svg className="sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg></div><p>Símbolo <span>4 versões</span></p></div>
-      <div className="tile"><div className="tile-art"><div className="swatches"><i style={{ background: "#ff4103" }}></i><i style={{ background: "#001621" }}></i><i style={{ background: "#072631" }}></i><i style={{ background: "#f2f5f6" }}></i></div></div><p>Cores <span>4 cores</span></p></div>
-      <div className="tile"><div className="tile-art"><span className="aa">Aa</span></div><p>Tipografia <span>2 famílias</span></p></div>
-      <div className="tile"><div className="tile-art"><div className="icons"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="2" width="5" height="5" /><rect x="9" y="2" width="5" height="5" /><rect x="2" y="9" width="5" height="5" /><rect x="9" y="9" width="5" height="5" /></svg><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="8" cy="8" r="5.5" /><path d="M8 5v3l2 1.5" /></svg><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 4h10M3 8h10M3 12h7" /></svg></div></div><p>Ícones <span>48 ícones</span></p></div>
-      <div className="tile"><div className="tile-art"><Image src={maosComPranchas} alt="" sizes="(max-width: 767px) 50vw, 25vw" /></div><p>Fotografia <span>3 pastas</span></p></div>
-      </div>
-      </div>
-      </div>
+      <Captura src={telaMateriais} alt="Materiais da marca: a lista dos arquivos do Brennimark, cada um com a sua miniatura" />
       </div>
       </section>
 
@@ -76,26 +67,7 @@ export function ConteudoMateriais() {
       <p className="body">Cada item tem as suas versões e, ao lado, a regra que vale para ele, com a página do manual. O fornecedor não precisa adivinhar, e ninguém precisa explicar de novo.</p>
       <ul className="ticks"><li>Versões para fundo claro e escuro</li><li>O que pode e o que não pode, lado a lado</li><li>A citação abre o manual na página</li></ul>
       </div>
-      <div className="frame">
-      <div className="mk" role="img" aria-label="Página do item Logotipo: três versões com formatos e a caixa de regra de uso">
-      <div className="mk-bar"><b>Logotipo</b><span className="mk-btn mk-btn--line a-direita">Baixar todas</span></div>
-      <div className="mk-body item">
-      <div className="vers">
-      <div className="ver"><div className="art" style={{ color: "#f2f5f6" }}><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div><b>Horizontal · fundo escuro</b><div className="fmts"><span>SVG</span><span>PNG</span><span>PDF</span></div></div></div>
-      <div className="ver"><div className="art light" style={{ color: "#001621" }}><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div><b>Horizontal · fundo claro</b><div className="fmts"><span>SVG</span><span>PNG</span><span>PDF</span></div></div></div>
-      <div className="ver"><div className="art"><svg className="sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg></div><div><b>Símbolo</b><div className="fmts"><span>SVG</span><span>PNG</span></div></div></div>
-      </div>
-      <div className="rule">
-      <small>REGRA DE USO</small>
-      <p className="do">✓ Área de proteção igual à altura do &quot;B&quot;, nos quatro lados.</p>
-      <p className="do">✓ Logotipo com pelo menos 120 px ou 30 mm de largura.</p>
-      <p className="dont">✕ Não distorcer a proporção nem rotacionar.</p>
-      <p className="dont">✕ Não usar outras cores nem contorno.</p>
-      <cite>Manual, p. 10, 11 e 13</cite>
-      </div>
-      </div>
-      </div>
-      </div>
+      <Captura src={telaItemLogotipo} alt="A página de um item: a prévia do arquivo, a regra de uso com as páginas do manual e o botão de baixar" />
       </div>
 
       <div className="feat-row">

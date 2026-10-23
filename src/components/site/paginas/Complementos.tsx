@@ -2,6 +2,8 @@ import Image from "next/image";
 import vini from "../imagens/vini.webp";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaComplementoEditor from "../imagens/telas/complemento-editor.webp";
 
 /** Complementos e lacunas: o que era a página `/complementos`, agora um bloco de outra página (22/10/2026). Texto do protótipo de 29/09/2026 (autoria do André). */
 export function BlocosDeComplementos() {
@@ -24,8 +26,7 @@ export function BlocosDeComplementos() {
       <p className="body">A agência escreve o complemento em texto simples, com títulos e listas. Ele passa por aprovação e aparece na aba Complementos, ao lado do PDF.</p>
       <ul className="ticks"><li>Editor com prévia</li><li>Rascunho, revisão e publicado</li><li>Histórico de cada versão</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="Editor de complemento: texto à esquerda e a prévia à direita, com status rascunho"><div className="mk-bar"><div className="seg"><span>Manual</span><span>Materiais</span><span className="on">Complementos</span></div><span className="mk-btn a-direita">Publicar</span></div>
-      <div className="md"><pre className="md-src">{"# Símbolo sobre fotografia\n\nUse o símbolo sobre foto só em\náreas **escuras e sem textura**.\n\n- versão branca, sem gradiente\n- área de proteção dobrada\n- nunca sobre rosto"}</pre><div className="md-out"><h5>Símbolo sobre fotografia</h5><p>Use o símbolo sobre foto só em áreas <b>escuras e sem textura</b>.</p><ul><li>versão branca, sem gradiente</li><li>área de proteção dobrada</li><li>nunca sobre rosto</li></ul><span className="st-chip">Rascunho · aguardando aprovação</span></div></div></div></div>
+      <Captura src={telaComplementoEditor} alt="O editor de complemento: o texto à esquerda e a prévia à direita" />
       </div>
 
       <div className="feat-row rev">

@@ -3,6 +3,8 @@ import Link from "next/link";
 import vini from "../imagens/vini.webp";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaRevisao from "../imagens/telas/revisao.webp";
 
 /** Vini Max — `/vini`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoVini() {
@@ -57,45 +59,7 @@ export function ConteudoVini() {
       <p className="body">Ele compara as cores com a paleta e marca na peça o que encontrou, com a página de cada orientação. O que ainda não consegue medir sozinho aparece como verificação manual, para você conferir.</p>
       <ul className="ticks"><li>Achados com a orientação e a página</li><li>Marcação sobre a peça</li><li>Sugestão de correção, para você decidir</li></ul>
       </div>
-      <div className="frame">
-      <div className="app" role="img" aria-label="Estudo da tela de análise: uma peça de exemplo à esquerda com um ponto marcado, e à direita a lista de verificações com um erro de cor e dois itens de verificação manual">
-      <div className="app-rail">
-      <svg className="sym" viewBox="0 0 178 162" aria-hidden="true"><use href="#bm-simbolo" /></svg>
-      <span className="rail-brand">B</span>
-      <span className="rail-i on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="2" width="5" height="5" /><rect x="9" y="2" width="5" height="5" /><rect x="2" y="9" width="5" height="5" /><rect x="9" y="9" width="5" height="5" /></svg></span>
-      <span className="rail-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6" cy="5.5" r="2.5" /><path d="M1.5 14c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4" /></svg></span>
-      <span className="rail-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 4h10M3 8h10M3 12h7" /></svg></span>
-      </div>
-      <div className="app-main">
-      <div className="app-bar">
-      <div className="seg"><span className="on">Manual</span><span>Materiais</span><span>Complementos</span></div>
-      <div className="bar-acts"><span>Índice ▾</span><span>Buscar</span></div>
-      </div>
-      <div className="an-stage">
-      <div className="an-ghost" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div className="an-win">
-      <div className="an-head"><Image src={vini} alt="" sizes="340px" /><span>VINI · ANÁLISE DE PEÇA</span><em>post_lancamento.png</em></div>
-      <div className="an-body">
-      <div className="post" aria-hidden="true">
-      <small>BRENNIMARK</small>
-      <b>Uma marca é forjada uma vez.</b>
-      <span className="post-bar"></span>
-      <svg className="post-sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg>
-      <span className="pin">1</span>
-      </div>
-      <ol className="checks">
-      <li className="fail"><span className="n">1</span><div><b>Cor fora da paleta</b><p>A faixa usa <code><i className="sw" style={{ background: "#ff7a2f" }}></i>#FF7A2F</code>. A cor mais próxima da paleta é Brasa <code><i className="sw" style={{ background: "#ff4103" }}></i>#FF4103</code>.</p><cite>Paleta de cores primárias · p. 14</cite></div><span className="v">Revisar</span></li>
-      <li className="ok"><span className="n">✓</span><div><b>Fundo Noite Polar</b><p><code>#001621</code>, dentro da paleta.</p></div><span className="v">Passa</span></li>
-      <li className="man"><span className="n">–</span><div><b>Área de proteção do símbolo</b><p>Verificação manual: depende do tamanho real da peça.</p><cite>Área de proteção · p. 10</cite></div><span className="v">Manual</span></li>
-      <li className="man"><span className="n">–</span><div><b>Tipografia</b><p>Verificação manual nesta versão.</p></div><span className="v">Manual</span></li>
-      </ol>
-      </div>
-      <div className="an-foot"><span className="an-stamp">REVISÃO NECESSÁRIA · 1 ACHADO</span><span className="an-btn">Gerar o prompt de correção</span></div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
+      <Captura src={telaRevisao} alt="A revisão de uma peça: o assistente marca o que está fora das regras do manual, com a página de cada regra" />
       </div>
 
       <div className="feat-row">
