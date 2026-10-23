@@ -318,3 +318,74 @@ test("sem administrar a conta, o atalho de link de entrega não aparece", async 
   await page.locator("[data-escolher-arquivos]").click();
   await expect(page.locator("[data-criar-link-com-selecionados]")).toHaveCount(0);
 });
+
+// ─── Banco de imagens (23/10/2026) ───────────────────────────────────────────
+
+const ITENS_COM_BANCO = [
+  ...ITENS,
+  { id: "item-album", tipo: "foto", nome: "Estúdio", descricao: "", ordem: 3, regra: [] },
+];
+const FOTOS = ["a", "b", "c"].map((n) => ({
+  ...base, id: `f-${n}`, itemId: "item-album", label: `foto-${n}`, file_name: `foto-${n}.jpg`, mime_type: "image/jpeg", eixos: semEixo, miniatura: PNG,
+}));
+
+async function comBanco(page: Page, aoBaixar?: (corpo: Record<string, unknown>) => void) {
+  await page.route("**/api/assets", (rota) =>
+    rota.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ itens: ITENS_COM_BANCO, assets: [...ASSETS, ...FOTOS], manual: null }) }));
+  await page.route("**/api/assets/kit", async (rota) => {
+    const corpo = rota.request().postDataJSON() as Record<string, unknown>;
+    aoBaixar?.(corpo);
+    const ids = corpo.ids as string[];
+    await rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+      nome: "estudio.zip", arquivos: ids.map((id) => ({ url: `https://kit.test/${id}`, caminho: `estudio/${id}.jpg` })),
+    }) });
+  });
+  await page.route("https://kit.test/**", (rota) =>
+    rota.fulfill({ status: 200, contentType: "application/octet-stream", headers: { "Access-Control-Allow-Origin": "*" }, body: "foto" }));
+}
+
+test("fotos saem da lista de Materiais e viram um cartão do Banco de imagens", async ({ page }) => {
+  await comBanco(page);
+  await page.goto("/dev/materiais");
+  await expect(page.locator("[data-prancha-contagem]")).toHaveText(/M · 03 itens/);
+  await expect(page.locator("[data-item-do-catalogo='item-album']")).toHaveCount(0);
+  const cartao = page.locator("[data-cartao-banco-de-imagens]");
+  await expect(cartao).toContainText("1 álbum · 3 fotos");
+  await cartao.click();
+  await expect(page).toHaveURL(/\/dev\/materiais\/banco-de-imagens$/);
+});
+
+test("o banco mostra álbuns, amplia a foto e baixa várias em ZIP", async ({ page }) => {
+  let pedido: Record<string, unknown> | undefined;
+  await comBanco(page, (c) => { pedido = c; });
+  await page.goto("/dev/materiais/banco-de-imagens");
+  await expect(page.locator("[data-banco-contagem]")).toHaveText(/1 álbum · 3 fotos/);
+  await page.locator("[data-album-do-banco='item-album']").click();
+  await expect(page.locator("[data-fotos-do-album] li")).toHaveCount(3);
+
+  await page.locator("[data-foto-do-album='f-b']").click();
+  const ampliada = page.locator("[data-foto-ampliada]");
+  await expect(ampliada).toContainText("foto-b · 2/3");
+  await page.keyboard.press("ArrowRight");
+  await expect(ampliada).toContainText("foto-c · 3/3");
+  await page.keyboard.press("Escape");
+  await expect(ampliada).toHaveCount(0);
+
+  await page.getByLabel("Selecionar foto-a").check();
+  await page.getByLabel("Selecionar foto-c").check();
+  const baixada = page.waitForEvent("download");
+  await page.locator("[data-baixar-fotos]").click();
+  expect((await baixada).suggestedFilename()).toBe("estudio.zip");
+  expect(pedido).toEqual({ itemId: "item-album", ids: ["f-a", "f-c"] });
+});
+
+test("quem não administra não vê criar álbum nem enviar fotos", async ({ page }) => {
+  await comBanco(page);
+  await page.goto("/dev/materiais/banco-de-imagens");
+  await expect(page.locator("[data-criar-album]")).toHaveCount(0);
+  await page.locator("[data-album-do-banco='item-album']").click();
+  await expect(page.locator("[data-enviar-fotos]")).toHaveCount(0);
+  await page.goto("/dev/materiais/banco-de-imagens?gerencia=1");
+  await expect(page.locator("[data-criar-album]")).toBeVisible();
+});

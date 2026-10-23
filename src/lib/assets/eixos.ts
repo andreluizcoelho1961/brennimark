@@ -53,6 +53,10 @@ export const EIXOS_POR_TIPO: Record<TipoDeItem, Record<Eixo, Exigencia>> = {
  */
 export const TIPOS_SEM_UPLOAD: Partial<Record<TipoDeItem, "exige-termo">> = { fonte: "exige-termo" };
 
+/** Foto e ilustração moram no Banco de imagens, e não na lista de Materiais. */
+export const TIPOS_DO_BANCO: readonly TipoDeItem[] = ["foto", "ilustracao"];
+export const ehDoBanco = (tipo: string) => (TIPOS_DO_BANCO as readonly string[]).includes(tipo);
+
 export function ehTipoDeItem(valor: unknown): valor is TipoDeItem {
   return typeof valor === "string" && (TIPOS_DE_ITEM as readonly string[]).includes(valor);
 }
