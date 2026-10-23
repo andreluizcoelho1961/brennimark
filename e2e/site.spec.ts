@@ -319,6 +319,14 @@ test("as páginas fundidas redirecionam para o bloco certo", async ({ request })
   }
 });
 
+test("/planos e /precos levam à seção de planos da home, e não a uma tela de login", async ({ request }) => {
+  for (const de of ["/planos", "/precos"]) {
+    const r = await request.get(de, { maxRedirects: 0 });
+    expect(r.status(), de).toBe(308);
+    expect(r.headers()["location"], de).toBe("/#planos");
+  }
+});
+
 test("os blocos fundidos existem nas páginas de destino, com âncora", async ({ page }) => {
   for (const [rota, id] of [["/materiais", "entrega"], ["/manual", "complementos"], ["/agencias", "studio"], ["/ajuda", "suporte"], ["/ajuda", "novidades"]]) {
     await abrir(page, rota);

@@ -229,7 +229,11 @@ export function PessoasEAcesso() {
         ) : (
           <fieldset className="md:col-span-2">
             <legend className={rotulo}>{isEnglish ? "Brands" : "Marcas"}</legend>
-            {marcas.length === 0
+            {/* Enquanto a lista não chega, "ainda não tem marcas" seria falso: a conta
+                tem, e a demonstração mostrava o aviso errado por alguns segundos. */}
+            {carregando
+              ? <p className="text-sm text-platform-text-muted">{isEnglish ? "Loading…" : "Carregando…"}</p>
+              : marcas.length === 0
               ? <p className="text-sm text-platform-text-muted">{isEnglish ? "This account has no brands yet." : "Esta conta ainda não tem marcas."}</p>
               : <div className="flex flex-wrap gap-3">
                   {marcas.map((marca) => (

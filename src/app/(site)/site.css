@@ -1086,3 +1086,11 @@ body:has(.home-v){overflow:auto}
 .bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque{border-width:calc(2px / var(--z,1));border-radius:calc(8px / var(--z,1));box-shadow:0 0 0 calc(4px / var(--z,1)) rgba(255,65,3,.16)}
 .bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque em{font-size:calc(11px / var(--z,1));padding:calc(4px / var(--z,1)) calc(7px / var(--z,1));border-radius:calc(5px / var(--z,1));bottom:calc(100% + 4px / var(--z,1))}
 .bm-site .tour[data-tocando] .tour-panel:not([hidden]) .tela-camera .destaque[data-abaixo] em{bottom:auto;top:calc(100% + 4px / var(--z,1))}
+
+/* o selo no celular (23/10/2026): a 112 px ele cobria o texto da abertura. Menor, no canto, sem o anel de letras (que, girando, ninguém lê a 56 px). */
+@media (max-width:767px){
+  .bm-site .stamp-cta{width:56px;height:56px;right:14px;bottom:calc(var(--foot) + 14px + env(safe-area-inset-bottom,0px))}
+  .bm-site.on-page .stamp-cta{bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .bm-site .stamp-ring{display:none}
+  .bm-site .stamp-sym{width:26px;height:24px}
+}
