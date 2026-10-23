@@ -29,6 +29,29 @@ const ITEM = /^\s{0,3}(?:([-*+])|(\d{1,3})[.)])\s+(.*)$/;
 /** `---`, `***`, `___` (com ou sem espaços): a linha separadora do Markdown. */
 const SEPARADOR = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 
+/**
+ * A matemática em LaTeX que o modelo às vezes escreve ("$x$", "$1/3$"), lida
+ * como texto comum.
+ *
+ * No ensaio de 23/10/2026 o Vini respondeu "a medida $x$ é igual à altura da
+ * letra B" e "um terço ($1/3$) da altura": o cifrão aparecia cru, no meio de uma
+ * resposta de marca. Esta tela não desenha fórmulas, e o conteúdo é medida
+ * simples; então os cifrões saem e fica o que estava dentro.
+ *
+ * Só o que é inconfundível: `$` colado no texto de dentro (nunca "$ 5 e US$"), e
+ * sem letra ou dígito colados por fora — "R$5 e R$10" e "US$5" não são fórmula.
+ */
+export function semMatematica(texto: string): string {
+  return texto.replace(/(?<![A-Za-z0-9$])\$(?!\s)([^$\n]{1,40}?)(?<!\s)\$(?![A-Za-z0-9$])/g, (_todo, dentro: string) =>
+    dentro
+      .replace(/\\frac\{([^{}]*)\}\{([^{}]*)\}/g, "$1/$2")
+      .replace(/\\text\{([^{}]*)\}/g, "$1")
+      .replace(/\\times/g, "×")
+      .replace(/\\cdot/g, "·")
+      .replace(/\\%/g, "%"),
+  );
+}
+
 export function blocosDeMarkdown(texto: string): Bloco[] {
   const blocos: Bloco[] = [];
   let paragrafo: string[] = [];
@@ -43,7 +66,7 @@ export function blocosDeMarkdown(texto: string): Bloco[] {
     lista = null;
   };
 
-  for (const linha of texto.replace(/\r\n?/g, "\n").split("\n")) {
+  for (const linha of semMatematica(texto).replace(/\r\n?/g, "\n").split("\n")) {
     if (linha.trim() === "") {
       fecharParagrafo();
       fecharLista();
