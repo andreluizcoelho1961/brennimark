@@ -255,6 +255,17 @@ test("o itálico que atravessa uma citação não deixa asterisco cru na tela", 
   await expect(resposta.locator("em [data-citacao]")).toHaveCount(1);
 });
 
+test("trecho entre crases vira código na tela, sem as crases cruas", async ({ page }) => {
+  // 23/10/2026: "margem mínima de `2x` até a borda" aparecia com as crases.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comResposta(page, "A margem mínima é de `2x` até a borda.");
+  await page.goto(MARCA);
+  await perguntar(page, "margem?");
+  const resposta = page.locator("[data-vini-janela] [data-resposta-do-vini]");
+  await expect(resposta.locator("code")).toHaveText("2x");
+  await expect(resposta).not.toContainText("`");
+});
+
 test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await comResposta(page);
