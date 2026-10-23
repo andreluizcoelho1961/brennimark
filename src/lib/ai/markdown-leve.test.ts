@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocosDeMarkdown, enfases } from "./markdown-leve";
+import { blocosDeMarkdown, enfases, semMatematica } from "./markdown-leve";
 
 /**
  * O Markdown das respostas — o que o ensaio de 18/09 mostrou cru.
@@ -95,4 +95,23 @@ test("--- vira separador, e não texto cru (ensaio de 26/09/2026)", () => {
 
 test("dois traços não são separador: continuam texto", () => {
   assert.deepEqual(blocosDeMarkdown("--"), [{ tipo: "paragrafo", texto: "--" }]);
+});
+
+test("LaTeX simples sai sem os cifrões — foi o que o Vini escreveu em 23/10/2026", () => {
+  assert.equal(semMatematica("a medida $x$ é igual à altura da letra B"), "a medida x é igual à altura da letra B");
+  assert.equal(semMatematica("um terço ($1/3$) da altura"), "um terço (1/3) da altura");
+  assert.equal(semMatematica("$\\frac{1}{3}$ da altura e $2 \\times x$ de margem"), "1/3 da altura e 2 × x de margem");
+  assert.equal(semMatematica("proporção de $25\\%$ da largura"), "proporção de 25% da largura");
+  assert.equal(semMatematica("$\\text{altura do B}$"), "altura do B");
+});
+
+test("preço e outros cifrões não viram fórmula", () => {
+  for (const texto of ["custa R$ 5,00 e US$ 10 por mês", "de R$5 a R$10", "só US$5", "um $ solto", "5$ e 6$"]) {
+    assert.equal(semMatematica(texto), texto);
+  }
+});
+
+test("a resposta formatada não mostra o cifrão da fórmula", () => {
+  const blocos = blocosDeMarkdown("* A medida $x$ vale um terço ($1/3$).");
+  assert.deepEqual(blocos, [{ tipo: "lista", ordenada: false, itens: ["A medida x vale um terço (1/3)."] }]);
 });
