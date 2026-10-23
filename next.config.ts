@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from "next-intl/plugin";
 import { PAGINAS_FUNDIDAS } from "./src/lib/site/paginas";
 
 /**
@@ -90,4 +91,6 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const comIdiomas = createNextIntlPlugin("./src/i18n/request.ts");
+
+export default comIdiomas(nextConfig);
