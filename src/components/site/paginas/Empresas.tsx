@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaRegistros from "../imagens/telas/registros.webp";
 
 /** Empresas — `/empresas`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoEmpresas() {
@@ -14,12 +16,7 @@ export function ConteudoEmpresas() {
       <p className="pg-lead">Materiais atualizados, orientação acessível e menos dúvidas repetidas. O acesso por marca e o link com prazo sustentam isso sem burocracia.</p>
       <div className="pg-actions"><button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button><Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link></div>
       </div>
-      <div className="frame"><div className="mk" role="img" data-dup="1" aria-label="Tabela de registros: quem baixou qual material e quando"><div className="mk-bar"><b>Registros</b><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Brennimark · setembro</span></div><div className="mk-body"><table className="tbl"><thead><tr><th>Quem</th><th>O quê</th><th>Quando</th></tr></thead><tbody>
-      <tr><td>Gráfica Pontal <em>link</em></td><td>Kit da marca</td><td>27/09 · 16:42</td></tr>
-      <tr><td>Rafael B.</td><td>Logotipo · SVG</td><td>27/09 · 11:05</td></tr>
-      <tr><td>Carolina M.</td><td>Fonte · Inter</td><td>26/09 · 18:20</td></tr>
-      <tr><td>Fornecedor Via <em>link</em></td><td>Fotografia · pasta</td><td>25/09 · 09:13</td></tr>
-      <tr><td>Juliana L.</td><td>Manual · PDF</td><td>24/09 · 14:57</td></tr></tbody></table></div></div></div>
+      <Captura src={telaRegistros} alt="Os registros: quem baixou qual material, quando e em qual marca" />
       </div>
       </section>
 

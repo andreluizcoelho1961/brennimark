@@ -1121,3 +1121,29 @@ body:has(.home-v){overflow:auto}
 .bm-site .lupa .cita b.rascunho{color:#8c5c0b}
 .bm-site .lupa .selo-vermelho{display:inline-block;margin-bottom:.7em;padding:.3em .7em;background:#a8453a;color:#fff;font-size:.68em;font-weight:700;letter-spacing:.03em;text-transform:uppercase}
 @media (max-width:767px){.bm-site .lupa{position:static;width:auto;margin:10px 0 0;font-size:13px;box-shadow:0 0 0 1px #d2dde2}.bm-site .lupa-revisao{width:auto}}
+
+/* ---------- o Brennimark Fonts em destaque (23/10/2026) ----------
+ * Pedido do André: o Fonts é o app mais importante do pacote e estava
+ * escondido. Menu com botão próprio e etiqueta, uma célula em Brasa na barra da
+ * capa e um capítulo próprio na home. */
+.bm-site .nav-fonts{display:inline-flex;align-items:center;gap:7px}
+.bm-site .nav-tag{padding:2px 6px;border-radius:999px;background:var(--brasa);color:var(--bg);font:700 9.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;line-height:1.3}
+@media (min-width:1181px){.bm-site .hero-bar{grid-template-columns:repeat(8,minmax(0,1fr))}}
+.bm-site .hero-bar a.hero-bar-fonts{position:relative;background:linear-gradient(180deg,rgba(255,65,3,.16),rgba(255,65,3,.05));border-left:1px solid var(--brasa);box-shadow:inset 0 1px 0 var(--brasa)}
+.bm-site .hero-bar a.hero-bar-fonts:hover{background:linear-gradient(180deg,rgba(255,65,3,.26),rgba(255,65,3,.1))}
+.bm-site .hero-bar a.hero-bar-fonts em{align-self:flex-start;margin-bottom:6px;padding:3px 7px;border-radius:999px;background:var(--brasa);color:var(--bg);font:700 9.5px var(--mono);font-style:normal;letter-spacing:.08em;text-transform:uppercase}
+.bm-site .fonts-home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(28px,5vw,72px);align-items:center}
+.bm-site .fonts-home .fx-beta{margin:18px 0 22px}
+.bm-site .fonts-home .actions{display:flex;flex-wrap:wrap;gap:12px}
+@media (max-width:1023px){.bm-site .fonts-home{grid-template-columns:1fr}}
+@media (max-width:767px){.bm-site .hero-bar a.hero-bar-fonts{grid-column:1 / -1;border-left:0}}
+
+/* o resultado do prompt (23/10/2026): a imagem gerada com o prompt que o Vini montou, ao lado dele */
+.bm-site .resultado{position:absolute;left:2.4%;top:9%;width:33%;margin:0;padding:8px;background:#fafcfd;color:#001621;border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 0 0 .5px rgba(0,22,33,.1),0 4px 8px -2px rgba(0,22,33,.1),0 22px 44px -12px rgba(0,22,33,.5);line-height:1.4;text-align:left}
+.bm-site .resultado img{display:block;width:100%;height:auto;aspect-ratio:4 / 5;object-fit:cover;border-radius:10px}
+.bm-site .resultado figcaption{padding:8px 4px 2px;font:400 clamp(10.5px,1.1vw,12.5px)/1.4 var(--fonte-interface),system-ui,sans-serif;color:#465e68}
+.bm-site .resultado figcaption b{color:#001621;font-weight:600}
+@media (max-width:767px){.bm-site .resultado{position:static;width:auto;margin:10px 0 0;box-shadow:0 0 0 1px #d2dde2}}
+.bm-site .prompt-par{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:14px;align-items:end}
+.bm-site .resultado--pagina{position:static;width:auto}
+@media (max-width:767px){.bm-site .prompt-par{grid-template-columns:1fr}}

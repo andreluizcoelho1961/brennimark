@@ -2,6 +2,9 @@ import Link from "next/link";
 import { BlocosDeComplementos } from "./Complementos";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaManualBusca from "../imagens/telas/manual-busca.webp";
+import telaManualIndice from "../imagens/telas/manual-indice.webp";
 
 /** O manual em PDF — `/manual`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoManual() {
@@ -15,11 +18,7 @@ export function ConteudoManual() {
       <p className="pg-lead">Suba o PDF e a equipe passa a consultar com índice, miniaturas e busca. As páginas aparecem como foram diagramadas: nada é redesenhado.</p>
       <div className="pg-actions"><button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button><Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link></div>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="O manual aberto: miniaturas à esquerda, a página ao centro e o índice aberto"><div className="mk-bar"><div className="seg"><span className="on">Manual</span><span>Materiais</span><span>Complementos</span></div><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Índice ▾ · Buscar · Zoom ▾</span></div>
-      <div className="viewer"><div className="thumbs"><i></i><i className="on"></i><i></i><i></i><i></i></div>
-      <div className="vpage"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>BRENNIMARK · MANUAL DA MARCA</small><b>01</b><strong>Área de proteção</strong><i></i><i></i><i></i></div><div className="pdf-right"><div className="clear"><svg className="sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg></div></div></div>
-      <div className="toc"><small>ÍNDICE</small><p className="on">01 Marca</p><p>02 Cores</p><p>03 Tipografia</p><p>04 Elementos gráficos</p><p>05 Fotografia</p><p>06 Vini Max</p><p>07 Tom de voz</p></div></div></div>
-      <div className="app-folio"><span>10 / 42</span><span>Área de proteção</span><span>ajustado à largura</span></div></div></div>
+      <Captura src={telaManualIndice} alt="O manual aberto na plataforma, com o índice por capítulos aberto e a página do manual ao lado" />
       </div>
       </section>
 
@@ -63,8 +62,7 @@ export function ConteudoManual() {
       <p className="body">A busca percorre o texto de todas as páginas e mostra o trecho com a palavra, para você ir direto ao ponto.</p>
       <ul className="ticks"><li>Busca no texto de todas as páginas</li><li>Trecho com a palavra marcada</li><li>Clique e o manual abre na página</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="Busca por laranja com três resultados e as páginas"><div className="mk-bar"><span className="sbox">⌕ Brasa</span><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>3 resultados</span></div>
-      <div className="mk-body res"><p><b>p. 14 · Paleta de cores primárias</b>…um laranja parecido não é o <mark>Brasa</mark>. #FF4103…</p><p><b>p. 14 · Paleta de cores primárias</b>…o <mark>Brasa</mark> é muito saturado e fica perto do limite do CMYK.</p><p><b>p. 27 · Linguagem fotográfica</b>…a Noite Polar nas sombras, a <mark>Brasa</mark> num único ponto.</p></div></div></div>
+      <Captura src={telaManualBusca} alt="A busca no manual: a palavra procurada fica marcada na página do manual" />
       </div>
       </div>
       </section>

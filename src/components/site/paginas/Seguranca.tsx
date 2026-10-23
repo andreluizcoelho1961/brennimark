@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaPessoas from "../imagens/telas/pessoas.webp";
 
 /** Segurança e privacidade — `/seguranca`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoSeguranca() {
@@ -34,11 +36,7 @@ export function ConteudoSeguranca() {
       <p className="body">O que aparece na tela depende do papel da pessoa; o que ela pode ler é decidido no banco de dados, regra por regra. Uma tela esquecida não abre porta nenhuma.</p>
       <ul className="ticks"><li>Regras de acesso em cada tabela</li><li>Testes que provam que A não lê B</li><li>Revisão a cada mudança</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" data-dup="1" aria-label="Tabela de acesso: cada pessoa com o seu papel em cada marca"><div className="mk-bar"><b>Pessoas</b><span className="mk-btn a-direita">Convidar</span></div><div className="mk-body"><table className="tbl mtx"><thead><tr><th>Pessoa</th><th>Brennimark</th><th>Café Aurora</th><th>Vinícola Serra</th></tr></thead><tbody>
-      <tr><td>Carolina M.</td><td><b className="g">Gere</b></td><td><b className="g">Gere</b></td><td><b className="g">Gere</b></td></tr>
-      <tr><td>Rafael B.</td><td><b className="c">Consulta</b></td><td><b className="c">Consulta</b></td><td>—</td></tr>
-      <tr><td>Gráfica Pontal</td><td>—</td><td><b className="c">Consulta</b></td><td>—</td></tr>
-      <tr><td>Estúdio Foto Sul</td><td>—</td><td>—</td><td><b className="c">Consulta</b></td></tr></tbody></table></div></div></div>
+      <Captura src={telaPessoas} alt="Pessoas e acesso: cada pessoa com o seu nível e as marcas que alcança" />
       </div>
 
       <div className="feat-row rev">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EMPRESA } from "@/lib/site/empresa";
+import { JanelaDoFonts } from "../JanelaDoFonts";
 import { Losango } from "../Losango";
 import { PedirConviteDoFonts } from "../PedirConviteDoFonts";
 import { Titulo } from "../Titulo";
@@ -108,11 +109,7 @@ export function ConteudoFonts() {
       <p className="fx-beta"><b>Beta fechado, gratuito, por convite</b> · só os 50 primeiros · 90 dias · macOS e Windows · Linux em preparação</p>
       <div className="pg-actions"><PedirConviteDoFonts rotulo="Pedir acesso ao beta" /><a className="btn btn--ghost" href={AVISAR_LANCAMENTO}>Avisar-me do lançamento <span className="arrow" aria-hidden="true">→</span></a></div>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="Janela do Brennimark Fonts: famílias de uma marca, com um kit pronto para ativar e um conflito de nomes avisado"><div className="mk-bar"><b>Brennimark Fonts</b><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Beta</span></div><div className="mk-body fx-demo">
-      <div><b>Kit · Marca Exemplo</b><span>3 famílias · 11 estilos</span><em>Ativar kit</em></div>
-      <div><b>Serifada Display</b><span>5 estilos · ativa</span><em>Desativar</em></div>
-      <div><b>Sans Texto</b><span>6 estilos · inativa</span><em>Ativar</em></div>
-      <div className="fx-aviso"><b>Conflito de nome</b><span>Outra Sans Texto já está ativa</span><em>Ver diferença</em></div></div></div></div>
+      <JanelaDoFonts />
       </div>
       </section>
 

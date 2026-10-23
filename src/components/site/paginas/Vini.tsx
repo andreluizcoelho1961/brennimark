@@ -3,6 +3,10 @@ import Link from "next/link";
 import vini from "../imagens/vini.webp";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaRevisao from "../imagens/telas/revisao.webp";
+import telaPrompt from "../imagens/telas/prompt.webp";
+import fotoDoPrompt from "../imagens/telas/prompt-resultado.webp";
 
 /** Vini Max — `/vini`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export function ConteudoVini() {
@@ -57,45 +61,7 @@ export function ConteudoVini() {
       <p className="body">Ele compara as cores com a paleta e marca na peça o que encontrou, com a página de cada orientação. O que ainda não consegue medir sozinho aparece como verificação manual, para você conferir.</p>
       <ul className="ticks"><li>Achados com a orientação e a página</li><li>Marcação sobre a peça</li><li>Sugestão de correção, para você decidir</li></ul>
       </div>
-      <div className="frame">
-      <div className="app" role="img" aria-label="Estudo da tela de análise: uma peça de exemplo à esquerda com um ponto marcado, e à direita a lista de verificações com um erro de cor e dois itens de verificação manual">
-      <div className="app-rail">
-      <svg className="sym" viewBox="0 0 178 162" aria-hidden="true"><use href="#bm-simbolo" /></svg>
-      <span className="rail-brand">B</span>
-      <span className="rail-i on"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="2" y="2" width="5" height="5" /><rect x="9" y="2" width="5" height="5" /><rect x="2" y="9" width="5" height="5" /><rect x="9" y="9" width="5" height="5" /></svg></span>
-      <span className="rail-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6" cy="5.5" r="2.5" /><path d="M1.5 14c.6-2.6 2.3-4 4.5-4s3.9 1.4 4.5 4" /></svg></span>
-      <span className="rail-i"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M3 4h10M3 8h10M3 12h7" /></svg></span>
-      </div>
-      <div className="app-main">
-      <div className="app-bar">
-      <div className="seg"><span className="on">Manual</span><span>Materiais</span><span>Complementos</span></div>
-      <div className="bar-acts"><span>Índice ▾</span><span>Buscar</span></div>
-      </div>
-      <div className="an-stage">
-      <div className="an-ghost" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div className="an-win">
-      <div className="an-head"><Image src={vini} alt="" sizes="340px" /><span>VINI · ANÁLISE DE PEÇA</span><em>post_lancamento.png</em></div>
-      <div className="an-body">
-      <div className="post" aria-hidden="true">
-      <small>BRENNIMARK</small>
-      <b>Uma marca é forjada uma vez.</b>
-      <span className="post-bar"></span>
-      <svg className="post-sym" viewBox="0 0 178 162"><use href="#bm-simbolo" /></svg>
-      <span className="pin">1</span>
-      </div>
-      <ol className="checks">
-      <li className="fail"><span className="n">1</span><div><b>Cor fora da paleta</b><p>A faixa usa <code><i className="sw" style={{ background: "#ff7a2f" }}></i>#FF7A2F</code>. A cor mais próxima da paleta é Brasa <code><i className="sw" style={{ background: "#ff4103" }}></i>#FF4103</code>.</p><cite>Paleta de cores primárias · p. 14</cite></div><span className="v">Revisar</span></li>
-      <li className="ok"><span className="n">✓</span><div><b>Fundo Noite Polar</b><p><code>#001621</code>, dentro da paleta.</p></div><span className="v">Passa</span></li>
-      <li className="man"><span className="n">–</span><div><b>Área de proteção do símbolo</b><p>Verificação manual: depende do tamanho real da peça.</p><cite>Área de proteção · p. 10</cite></div><span className="v">Manual</span></li>
-      <li className="man"><span className="n">–</span><div><b>Tipografia</b><p>Verificação manual nesta versão.</p></div><span className="v">Manual</span></li>
-      </ol>
-      </div>
-      <div className="an-foot"><span className="an-stamp">REVISÃO NECESSÁRIA · 1 ACHADO</span><span className="an-btn">Gerar o prompt de correção</span></div>
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
+      <Captura src={telaRevisao} alt="A revisão de uma peça: o assistente marca o que está fora das regras do manual, com a página de cada regra" />
       </div>
 
       <div className="feat-row">
@@ -105,13 +71,13 @@ export function ConteudoVini() {
       <p className="body">Você descreve o que quer criar. O Vini acrescenta cores, luz, enquadramento e o que evitar, com a página de cada linha. Você revisa e usa.</p>
       <ul className="ticks"><li>A ideia é sua; a marca vem junto</li><li>Rascunho fica fora do prompt, identificado</li><li>A fonte de cada linha</li></ul>
       </div>
-      <div><div className="dna-prompt">
-      <div className="dna-top"><span>PROMPT · SUA IDEIA + MANUAL DO BRENNIMARK</span><button type="button" className="copy" data-copy="#prompt-dna-2">Copiar</button></div>
-      <p className="ask"><b>O seu pedido</b>“Uma foto para o post de lançamento: alguém revisando o manual impresso numa mesa de estúdio.”</p>
-      <pre id="prompt-dna-2" className="prompt">{"Fotografia para o Brennimark, formato 4:5.\n"}<span className="k">{"Cena"}</span>{"  mesa de estúdio; mãos revisando as\n      pranchas impressas de um manual de marca.\n      Gente trabalhando, sem posar.     "}<span className="ref">{"p. 27"}</span>{"\n"}<span className="k">{"Quadro"}</span>{" de cima ou na altura da mesa, perto\n      do trabalho, espaço livre p/ título. "}<span className="ref">{"p. 28"}</span>{"\n"}<span className="k">{"Luz"}</span>{"   natural, lateral, de janela. Sombras\n      frias; calor só nas luzes.        "}<span className="ref">{"p. 27"}</span>{"\n"}<span className="k">{"Cor"}</span>{"   sombras em Noite Polar "}<span className="hex"><i style={{ background: "#001621" }}></i>{"#001621"}</span>{";\n      um único ponto de Brasa "}<span className="hex"><i style={{ background: "#ff4103" }}></i>{"#FF4103"}</span>{".  "}<span className="ref">{"p. 14"}</span>{"\n"}<span className="k">{"Evitar"}</span>{" filtro de cor, duotone, sombras\n      quentes, logo de marca real.      "}<span className="ref">{"p. 29"}</span></pre>
-      <p className="draft"><b>Fora do prompt · rascunho</b> Grão de filme leve, proposto para Linguagem fotográfica. Ainda não aprovado, por isso não entra no prompt da marca. <u>Explorar numa versão à parte, marcada como exploração</u></p>
-      <p className="dna-src">A ideia é sua; as orientações vêm do manual (edição de demonstração) · Cores, p. 14 · Linguagem fotográfica, p. 27–29</p>
-      </div></div>
+      <div className="prompt-par">
+      <Captura src={telaPrompt} alt="O assistente monta o prompt de uma foto para o post de lançamento, com as cores e a luz do manual, e lista as páginas do manual de onde veio cada regra" />
+      <figure className="resultado resultado--pagina">
+        <Image src={fotoDoPrompt} alt="Fotografia gerada por IA a partir do prompt: uma mesa de trabalho de estúdio à noite, mãos compondo tipos de metal, luz lateral fria e um único ponto de laranja" sizes="(max-width: 767px) 60vw, 22vw" />
+        <figcaption><b>A imagem gerada com este prompt</b>, fora do Brennimark. Você revisa e decide o que usar.</figcaption>
+      </figure>
+      </div>
       </div>
 
       <div className="feat-row rev">

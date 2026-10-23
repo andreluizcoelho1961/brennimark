@@ -47,6 +47,10 @@ export function Cabecalho() {
         <nav className="site-nav" aria-label="Navegação principal">
           <ItemDoMenu {...MENUS[0]} />
           <ItemDoMenu {...MENUS[1]} />
+          {/* O Fonts tem botão próprio (23/10/2026): é o app mais importante do pacote, e ficava só no fim da home. */}
+          <Link className="nav-link nav-fonts" href="/fonts">
+            Fonts <span className="nav-tag">Beta</span>
+          </Link>
           <Link className="nav-link" href="/#ferramentas" data-go="ferramentas">
             Ferramentas
           </Link>
@@ -93,6 +97,11 @@ function MenuDoCelular() {
       <p className="mnav-k">Recursos</p>
       {lista("recursos")}
       <ul>
+        <li>
+          <Link href="/fonts">
+            Brennimark Fonts · beta
+          </Link>
+        </li>
         <li>
           <Link href="/#ferramentas" data-go="ferramentas">
             Ferramentas gratuitas

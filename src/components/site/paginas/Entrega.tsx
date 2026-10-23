@@ -1,5 +1,9 @@
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { Captura } from "../Captura";
+import telaPessoas from "../imagens/telas/pessoas.webp";
+import telaReceber from "../imagens/telas/receber.webp";
+import telaRegistros from "../imagens/telas/registros.webp";
 
 /** Entrega e acesso: o que era a página `/entrega`, agora um bloco de outra página (22/10/2026). Texto do protótipo de 29/09/2026 (autoria do André). */
 export function BlocosDeEntrega() {
@@ -22,9 +26,7 @@ export function BlocosDeEntrega() {
       <p className="body">Escolha os materiais e o prazo. O link para de funcionar sozinho, e cada uso fica registrado.</p>
       <ul className="ticks"><li>Prazo de validade</li><li>Sem criar conta para o fornecedor</li><li>A fonte fica de fora: só membros da marca baixam</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="O que o fornecedor recebe: a página do link com os materiais, e o prazo"><div className="recv"><div className="recv-top"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><div className="mk-body"><p className="recv-k">MATERIAIS DA MARCA BRENNIMARK</p><p className="recv-by">Enviados por Carolina Menezes · Estúdio Alvéolo</p>
-      <div className="kit-row"><span className="ck">↓</span><b>Logotipo</b><em>SVG · PNG · PDF</em></div><div className="kit-row"><span className="ck">↓</span><b>Cores</b><em>ASE · PDF</em></div><div className="kit-row"><span className="ck">↓</span><b>Regras de uso</b><em>PDF</em></div>
-      <div className="kit-foot"><span>Válido até 04/10/2026</span><span className="mk-btn">Baixar tudo</span></div></div></div></div></div>
+      <Captura src={telaReceber} alt="A página que a gráfica recebe, sem criar conta: o nome de quem baixa, os arquivos escolhidos e a regra do manual com as páginas" />
       </div>
 
       <div className="feat-row rev">
@@ -34,12 +36,7 @@ export function BlocosDeEntrega() {
       <p className="body">Envios e downloads ficam no mesmo histórico. Quando alguém pergunta &quot;a gráfica recebeu o logo novo?&quot;, a resposta está ali. O registro mostra acesso e download; não mostra como a marca foi aplicada numa peça.</p>
       <ul className="ticks"><li>Downloads e envios num só lugar</li><li>Filtro por marca, pessoa e período</li><li>Exportável</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="Tabela de registros: quem baixou qual material e quando"><div className="mk-bar"><b>Registros</b><span className="a-direita mono" style={{ fontSize: "10px", color: "var(--app-muted)" }}>Brennimark · setembro</span></div><div className="mk-body"><table className="tbl"><thead><tr><th>Quem</th><th>O quê</th><th>Quando</th></tr></thead><tbody>
-      <tr><td>Gráfica Pontal <em>link</em></td><td>Kit da marca</td><td>27/09 · 16:42</td></tr>
-      <tr><td>Rafael B.</td><td>Logotipo · SVG</td><td>27/09 · 11:05</td></tr>
-      <tr><td>Carolina M.</td><td>Fonte · Inter</td><td>26/09 · 18:20</td></tr>
-      <tr><td>Fornecedor Via <em>link</em></td><td>Fotografia · pasta</td><td>25/09 · 09:13</td></tr>
-      <tr><td>Juliana L.</td><td>Manual · PDF</td><td>24/09 · 14:57</td></tr></tbody></table></div></div></div>
+      <Captura src={telaRegistros} alt="Os registros: quem baixou qual material, quando e em qual marca" />
       </div>
 
       <div className="feat-row">
@@ -49,11 +46,7 @@ export function BlocosDeEntrega() {
       <p className="body">Uma agência com vinte marcas convida o fotógrafo só para a marca do ensaio. Dois papéis simples: quem gere e quem consulta.</p>
       <ul className="ticks"><li>Quem gere publica e aprova</li><li>Quem consulta lê, baixa e pergunta</li><li>Mude o papel quando quiser</li></ul>
       </div>
-      <div className="frame"><div className="mk" role="img" aria-label="Tabela de acesso: cada pessoa com o seu papel em cada marca"><div className="mk-bar"><b>Pessoas</b><span className="mk-btn a-direita">Convidar</span></div><div className="mk-body"><table className="tbl mtx"><thead><tr><th>Pessoa</th><th>Brennimark</th><th>Café Aurora</th><th>Vinícola Serra</th></tr></thead><tbody>
-      <tr><td>Carolina M.</td><td><b className="g">Gere</b></td><td><b className="g">Gere</b></td><td><b className="g">Gere</b></td></tr>
-      <tr><td>Rafael B.</td><td><b className="c">Consulta</b></td><td><b className="c">Consulta</b></td><td>—</td></tr>
-      <tr><td>Gráfica Pontal</td><td>—</td><td><b className="c">Consulta</b></td><td>—</td></tr>
-      <tr><td>Estúdio Foto Sul</td><td>—</td><td>—</td><td><b className="c">Consulta</b></td></tr></tbody></table></div></div></div>
+      <Captura src={telaPessoas} alt="Pessoas e acesso: cada pessoa com o seu nível e as marcas que alcança" />
       </div>
       </div>
       </section>
