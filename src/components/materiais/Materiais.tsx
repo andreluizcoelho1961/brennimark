@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { useEncaixeDaBarra, useTelaLarga } from "@/components/documento-fonte/MolduraDoManual";
-import { formatoDoArquivo, rotulo, TIPOS_DE_ITEM, type TipoDeItem } from "@/lib/assets/eixos";
+import { ehDoBanco, formatoDoArquivo, rotulo, TIPOS_DE_ITEM, type TipoDeItem } from "@/lib/assets/eixos";
 import { lerPaginasDigitadas, type CitacaoDaRegra } from "@/lib/assets/regra";
 import { FalhaDoKit, montarZip, salvarArquivo } from "@/lib/assets/zip-no-navegador";
 
@@ -154,7 +154,11 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
     return mapa;
   }, [variantes]);
 
-  const visiveis = itens.filter((item) =>
+  // Fotos e ilustrações moram no Banco de imagens (um cartão no topo), não na lista.
+  const albuns = itens.filter((i) => ehDoBanco(i.tipo));
+  const fotosDoBanco = albuns.reduce((n, a) => n + (emUsoPorItem.get(a.id)?.length ?? 0), 0);
+  const capaDoBanco = albuns.flatMap((a) => emUsoPorItem.get(a.id) ?? []).find((v) => v.miniatura);
+  const visiveis = itens.filter((item) => !ehDoBanco(item.tipo) &&
     (!tipo || item.tipo === tipo) && (!busca.trim() || item.nome.toLocaleLowerCase().includes(busca.trim().toLocaleLowerCase())));
 
   const acoes = (
@@ -185,7 +189,7 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
       <header className="flex items-baseline justify-between gap-4 border-b border-platform-border pb-[var(--space-shell-3)]">
         <h1 className="font-display text-[13px] font-bold uppercase tracking-[0.12em]">{t("Materiais da marca", "Brand materials")}</h1>
         <span className="font-mono text-[12px] tabular-nums text-platform-text-muted" data-prancha-contagem>
-          M · {String(itens.length).padStart(2, "0")} {t(itens.length === 1 ? "item" : "itens", itens.length === 1 ? "item" : "items")}
+          M · {String(itens.length - albuns.length).padStart(2, "0")} {t(itens.length - albuns.length === 1 ? "item" : "itens", itens.length - albuns.length === 1 ? "item" : "items")}
         </span>
       </header>
 
@@ -197,6 +201,20 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
             ? t("Esta marca ainda não tem materiais. Crie o primeiro item e envie os arquivos logo abaixo.", "This brand has no materials yet. Create the first item and upload its files below.")
             : t("Esta marca ainda não tem materiais publicados.", "This brand has no published materials yet.")}
         </p>
+      )}
+
+      {!carregando && !erro && albuns.length > 0 && (
+        <Link href={`${raiz ?? `${base(alvo)}/biblioteca`}/banco-de-imagens`} data-cartao-banco-de-imagens
+          className="mt-[var(--space-shell-3)] flex items-center gap-[var(--space-shell-4)] border-b border-platform-border py-[var(--space-shell-3)] hover:bg-platform-panel focus-visible:outline-2 focus-visible:outline-platform-focus">
+          <Previa t={t} variante={capaDoBanco} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[14px] font-semibold">{t("Banco de imagens", "Image bank")}</span>
+            <span className="block text-[12px] text-platform-text-muted">{t("Fotos e ilustrações, em álbuns", "Photos and illustrations, in albums")}</span>
+          </span>
+          <span className="font-mono text-[12px] tabular-nums text-platform-text-muted">
+            {albuns.length} {t(albuns.length === 1 ? "álbum" : "álbuns", albuns.length === 1 ? "album" : "albums")} · {fotosDoBanco} {t("fotos", "photos")}
+          </span>
+        </Link>
       )}
 
       <ul className="divide-y divide-platform-border">
@@ -220,7 +238,7 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
           );
         })}
       </ul>
-      {!carregando && itens.length > 0 && visiveis.length === 0 && (
+      {!carregando && itens.length > albuns.length && visiveis.length === 0 && (
         <p className="py-[var(--space-shell-4)] text-[13px] text-platform-text-muted">{t("Nenhum item com esse filtro.", "No item matches this filter.")}</p>
       )}
     </section>
