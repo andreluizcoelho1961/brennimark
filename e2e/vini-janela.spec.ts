@@ -243,6 +243,18 @@ test("só a queda de conexão e o erro do provedor se repetem sozinhos: o filtro
   expect(enviados).toHaveLength(1);
 });
 
+test("o itálico que atravessa uma citação não deixa asterisco cru na tela", async ({ page }) => {
+  // 23/10/2026: "*Nota: … [Fonte: …] … .*" aparecia com os asteriscos à mostra.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comResposta(page, "Sim, pode.\n\n*Nota: o manual não traz essa diretriz [Fonte: Cores — UNDER REVIEW · /docs/cores], mas ela vem de um complemento.*");
+  await page.goto(MARCA);
+  await perguntar(page, "posso?");
+  const resposta = page.locator("[data-vini-janela] [data-resposta-do-vini]");
+  await expect(resposta).toContainText("mas ela vem de um complemento.");
+  await expect(resposta).not.toContainText("*");
+  await expect(resposta.locator("em [data-citacao]")).toHaveCount(1);
+});
+
 test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await comResposta(page);

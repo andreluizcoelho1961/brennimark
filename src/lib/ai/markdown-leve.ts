@@ -113,6 +113,25 @@ export function blocosDeMarkdown(texto: string): Bloco[] {
  * Negrito e itálico dentro de uma linha. Marcador sem par fica como texto —
  * `5 * 3` não vira itálico, e um `**` perdido não engole o resto da frase.
  */
+/**
+ * O parágrafo inteiro envolvido por uma ênfase que ATRAVESSA uma citação.
+ *
+ * Em 23/10/2026 o Vini escreveu "*Nota: o manual não traz essa diretriz [Fonte: …
+ * — PRONTO · /docs/…], mas ela foi estabelecida em complemento.*": o itálico abre
+ * antes da citação e fecha depois. A citação vira um chip e parte o texto em
+ * pedaços, e cada pedaço fica com um asterisco sem par — que aparecia cru na
+ * tela. Aqui se reconhece o caso (a linha começa e termina com o mesmo marcador),
+ * e quem desenha aplica a ênfase ao parágrafo todo.
+ */
+export function envolvidoEmEnfase(texto: string): { tipo: "italico" | "negrito"; dentro: string } | null {
+  const limpo = texto.trim();
+  const negrito = /^\*\*(?=\S)([\s\S]*\S)\*\*$/.exec(limpo);
+  if (negrito && !/\*\*/.test(negrito[1])) return { tipo: "negrito", dentro: negrito[1] };
+  const italico = /^\*(?![*\s])([\s\S]*[^*\s])\*$/.exec(limpo);
+  if (italico && !/(^|[^*])\*([^*]|$)/.test(italico[1])) return { tipo: "italico", dentro: italico[1] };
+  return null;
+}
+
 export function enfases(texto: string): Enfase[] {
   const saida: Enfase[] = [];
   const padrao = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|(?<![*\w])\*(?=\S)((?:\*\*(?=\S)[^*]*?\S\*\*|[^*])*?\S)\*(?![*\w])|(?<![_\w])_(?=\S)([^_]*?\S)_(?![_\w])/g;
