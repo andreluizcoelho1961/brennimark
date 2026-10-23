@@ -1,5 +1,5 @@
 import Image, { type StaticImageData } from "next/image";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import vini from "./imagens/vini.webp";
 import telaManual from "./imagens/telas/manual.webp";
 import telaAssistente from "./imagens/telas/assistente.webp";
@@ -8,6 +8,7 @@ import telaPrompt from "./imagens/telas/prompt.webp";
 import telaMateriais from "./imagens/telas/materiais.webp";
 import telaEnvio from "./imagens/telas/envio.webp";
 import telaComplementos from "./imagens/telas/complementos.webp";
+import telaViniComplemento from "./imagens/telas/vini-complemento.webp";
 
 /**
  * As telas do tour da home (22/10/2026): capturas REAIS da plataforma, feitas
@@ -47,30 +48,64 @@ function camera(foco: Foco | undefined, w: number, h: number): CSSProperties | u
   return { ...passo(foco.n), "--z": z, "--alvo": `translate(${tx}%, ${ty}%) scale(${z})` } as CSSProperties;
 }
 
-function TelaReal({ src, alt, destaques, foco }: { src: StaticImageData; alt: string; destaques: Destaque[]; foco?: Foco }) {
+type Quadro = { src: StaticImageData; alt: string; destaques: Destaque[]; foco?: Foco };
+
+function Camada({ src, alt, destaques, foco }: Quadro) {
   const pct = (v: number, total: number) => `${(v / total) * 100}%`;
   return (
+    <div className={foco ? "tela-camera" : "tela-quieta"} style={camera(foco, src.width, src.height)}>
+      <Image src={src} alt={alt} sizes="(max-width: 1023px) 100vw, 60vw" />
+      {destaques.map(({ caixa: [x0, y0, x1, y1], n, rotulo }) => (
+        <span
+          key={`${x0}-${y0}`}
+          className="destaque passo"
+          aria-hidden="true"
+          // O rótulo vai por baixo quando a caixa encosta no topo, e alinha
+          // pela direita quando ela está na metade direita da tela.
+          data-abaixo={y0 / src.height < 0.08 ? "" : undefined}
+          data-direita={x0 / src.width > 0.5 ? "" : undefined}
+          style={{ ...passo(n), left: pct(x0, src.width), top: pct(y0, src.height), width: pct(x1 - x0, src.width), height: pct(y1 - y0, src.height) }}
+        >
+          {rotulo ? <em>{rotulo}</em> : null}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Uma tela real, com destaques e câmera. `depois` é uma segunda captura que
+ * entra por cima, em fade, no passo `n` — a mesma tela noutro momento (a regra
+ * publicada e, em seguida, o assistente citando a regra). `lupa` é um detalhe
+ * REDESENHADO, fiel ao da plataforma (mesmos textos, cores e tamanhos de
+ * letra), ampliado para ler no tamanho em que o site mostra a tela.
+ */
+function TelaReal({ src, alt, destaques, foco, depois, lupa }: Quadro & { depois?: Quadro & { n: number }; lupa?: ReactNode }) {
+  return (
     <div className="frame tela-real">
-      <div className="tela-real-img">
-        <div className={foco ? "tela-camera" : undefined} style={camera(foco, src.width, src.height)}>
-          <Image src={src} alt={alt} sizes="(max-width: 1023px) 100vw, 60vw" />
-          {destaques.map(({ caixa: [x0, y0, x1, y1], n, rotulo }) => (
-            <span
-              key={`${x0}-${y0}`}
-              className="destaque passo"
-              aria-hidden="true"
-              // O rótulo vai por baixo quando a caixa encosta no topo, e alinha
-              // pela direita quando ela está na metade direita da tela.
-              data-abaixo={y0 / src.height < 0.08 ? "" : undefined}
-              data-direita={x0 / src.width > 0.5 ? "" : undefined}
-              style={{ ...passo(n), left: pct(x0, src.width), top: pct(y0, src.height), width: pct(x1 - x0, src.width), height: pct(y1 - y0, src.height) }}
-            >
-              {rotulo ? <em>{rotulo}</em> : null}
-            </span>
-          ))}
-        </div>
+      <div className="tela-real-img" style={{ aspectRatio: `${src.width} / ${src.height}` }}>
+        <Camada src={src} alt={alt} destaques={destaques} foco={foco} />
+        {depois ? (
+          <div className="troca" style={passo(depois.n)}>
+            <Camada src={depois.src} alt={depois.alt} destaques={depois.destaques} foco={depois.foco} />
+          </div>
+        ) : null}
+        {lupa}
       </div>
     </div>
+  );
+}
+
+/** O trecho de uma resposta do assistente, como a plataforma o desenha. */
+function Citacao({ rotulo, titulo, selo, tom }: { rotulo?: string; titulo: string; selo: string; tom: "ok" | "rascunho" }) {
+  return (
+    // Um `span`, e não um `a`: é só o desenho da citação (na plataforma é um
+    // link), e um `<a>` sem destino quebra o teste que confere os links do tour.
+    <span className="cita" aria-hidden="true">
+      {rotulo ? <span className="mut">{rotulo}</span> : null}
+      <span>{titulo}</span>
+      <b className={tom}>{selo}</b>
+    </span>
   );
 }
 
@@ -108,13 +143,19 @@ export function TelaAnalise() {
   return (
     <TelaReal
       src={telaRevisao}
-      foco={{ caixa: [810, 60, 1412, 520], n: 0.4 }}
       alt="A revisão de um post: o assistente marca a peça como desalinhada, com o logotipo grande demais e encostado na borda, citando a página 12"
       destaques={[
         { caixa: [1018, 76, 1187, 202], n: 1, rotulo: "A peça enviada" },
         { caixa: [824, 244, 928, 276], n: 2.6 },
         { caixa: [838, 352, 1398, 502], n: 3.8, rotulo: "O que está fora da regra, e onde a regra está" },
       ]}
+      lupa={
+        <div className="lupa lupa-revisao passo" style={passo(6)} aria-hidden="true">
+          <span className="selo-vermelho">Desalinhada</span>
+          <p><b>Violação objetiva de margem:</b> o logotipo está praticamente encostado nas bordas inferior e esquerda, descumprindo a margem mínima de 2x{" "}
+            <Citacao titulo="O logotipo nas peças" rotulo="" selo="Rascunho" tom="rascunho" />.</p>
+        </div>
+      }
     />
   );
 }
@@ -165,13 +206,30 @@ export function TelaComplementos() {
   return (
     <TelaReal
       src={telaComplementos}
-      foco={{ caixa: [320, 280, 1140, 700], n: 0.4 }}
-      alt="Complementos: uma regra nova sobre o logotipo sobre fotografia, escrita em rascunho e à espera de aprovação"
+      foco={{ caixa: [320, 270, 1140, 699], n: 0.4 }}
+      alt="Complementos: uma regra nova sobre o logotipo sobre fotografia, já publicada, com os botões de editar, arquivar e ver o histórico"
       destaques={[
-        { caixa: [332, 292, 838, 324], n: 1, rotulo: "O que o manual não cobria" },
-        { caixa: [332, 334, 1122, 664], n: 2.6 },
-        { caixa: [400, 676, 494, 700], n: 4.4, rotulo: "Vale depois de aprovada" },
+        { caixa: [330, 288, 642, 324], n: 1, rotulo: "O que o manual não cobria" },
+        { caixa: [330, 350, 1124, 606], n: 2.4 },
+        { caixa: [330, 614, 550, 656], n: 3.8, rotulo: "Publicada: vale para a equipe" },
       ]}
+      depois={{
+        n: 5,
+        src: telaViniComplemento,
+        alt: "O assistente responde se o logotipo pode ficar sobre uma foto e cita a regra nova, marcada como pronta, ao lado da página do manual",
+        destaques: [
+          { caixa: [984, 306, 1296, 340], n: 5.8, rotulo: "Cita a regra nova" },
+          { caixa: [984, 366, 1212, 398], n: 7 },
+        ],
+      }}
+      lupa={
+        <div className="lupa lupa-vini passo" style={passo(7.6)} aria-hidden="true">
+          <p>Sim, pode, desde que o logotipo continue legível sem esforço{" "}
+            <Citacao rotulo="Complemento:" titulo="O logotipo sobre fotografia" selo="Pronto" tom="ok" />.</p>
+          <p>O manual não cobre essa regra{" "}
+            <Citacao titulo="O logotipo nas peças" selo="Rascunho" tom="rascunho" />, mas há um complemento específico para isso.</p>
+        </div>
+      }
     />
   );
 }
