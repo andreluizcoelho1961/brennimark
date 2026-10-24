@@ -240,19 +240,19 @@ export function SecoesDaHome() {
                 <h3>Básico</h3><p className="plan-for">Para quem cuida de poucas marcas.</p>
                 <div className="price">A definir<span>valor da assinatura</span></div>
                 <dl><div><dt>Marcas</dt><dd className="hi">até 5</dd></div><div><dt>Pessoas</dt><dd>ilimitadas</dd></div><div><dt>Armazenamento</dt><dd>a definir</dd></div><div><dt>Uso do Vini</dt><dd>limite do plano</dd></div><div><dt>Implantação assistida</dt><dd>—</dd></div></dl>
-                <a className="btn" href="/assinar?plano=basico" data-assinar="basico">Assinar</a>
+                <Link className="btn" href="/assinar?plano=basico" prefetch={false} data-assinar="basico">Assinar</Link>
               </article>
               <article className="plan">
                 <h3>Médio</h3><p className="plan-for">Para estúdios com carteira em crescimento.</p>
                 <div className="price">A definir<span>valor da assinatura</span></div>
                 <dl><div><dt>Marcas</dt><dd className="hi">10 ou 15</dd></div><div><dt>Pessoas</dt><dd>ilimitadas</dd></div><div><dt>Armazenamento</dt><dd>a definir</dd></div><div><dt>Uso do Vini</dt><dd>limite do plano</dd></div><div><dt>Implantação assistida</dt><dd>a definir</dd></div></dl>
-                <a className="btn" href="/assinar?plano=medio" data-assinar="medio">Assinar</a>
+                <Link className="btn" href="/assinar?plano=medio" prefetch={false} data-assinar="medio">Assinar</Link>
               </article>
               <article className="plan feat">
                 <h3>Premium</h3><p className="plan-for">Para agências com muitas marcas.</p>
                 <div className="price">A definir<span>valor da assinatura</span></div>
                 <dl><div><dt>Marcas</dt><dd className="hi">cerca de 30</dd></div><div><dt>Pessoas</dt><dd>ilimitadas</dd></div><div><dt>Armazenamento</dt><dd>a definir</dd></div><div><dt>Uso do Vini</dt><dd>limite do plano</dd></div><div><dt>Implantação assistida</dt><dd>incluída</dd></div></dl>
-                <a className="btn" href="/assinar?plano=premium" data-assinar="premium">Assinar</a>
+                <Link className="btn" href="/assinar?plano=premium" prefetch={false} data-assinar="premium">Assinar</Link>
               </article>
               <article className="plan">
                 <h3>Corporativo</h3><p className="plan-for">Para empresas e grupos com necessidades próprias.</p>

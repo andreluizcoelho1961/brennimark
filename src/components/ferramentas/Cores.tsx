@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DALTONISMOS, compararComAMarca, contraste, fraseDaComparacao, hexParaRgb, lerCodigo, nomeDaCor, paletaEmAse, paletaEmCss, paletaEmJson,
@@ -337,7 +338,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
         ) : (
           <div className="flex flex-col gap-2 opacity-70">
             <p className="text-[15px] text-platform-text">No Brennimark, o Cores diz se essa é a cor da sua marca — e mostra o código e o Pantone que o manual declara.</p>
-            <a href="/assinar" className="w-fit text-[13px] text-platform-text-muted underline">Conhecer os planos</a>
+            <Link href="/assinar" prefetch={false} className="w-fit text-[13px] text-platform-text-muted underline">Conhecer os planos</Link>
           </div>
         )}
       </section>

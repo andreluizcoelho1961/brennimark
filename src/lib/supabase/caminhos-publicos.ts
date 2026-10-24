@@ -97,9 +97,52 @@ import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/", "/api/sair/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar", "/api/idioma"]);
+/** As ferramentas gratuitas do site: páginas estáticas, no idioma do endereço. */
+export const FERRAMENTAS_DO_SITE = ["/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids"] as const;
+
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", ...FERRAMENTAS_DO_SITE, "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar", "/api/idioma"]);
+
+/**
+ * O endereço é do SITE público — o que mora em `app/[lang]`?
+ *
+ * A home, as páginas do menu, as ferramentas gratuitas e os artigos da
+ * Central de ajuda (prefixo `/ajuda/`, a própria `/ajuda` já é página do menu).
+ * Só estes ganham o idioma no endereço; login, contas, manual e API seguem o
+ * idioma da pessoa.
+ */
+export function ehDoSite(pathname: string): boolean {
+  return CAMINHOS_DO_SITE.has(pathname)
+    || (FERRAMENTAS_DO_SITE as readonly string[]).includes(pathname)
+    || pathname.startsWith("/ajuda/");
+}
+
+/**
+ * O que o `proxy` faz com o idioma do site (fatia 5, 24/10/2026).
+ *
+ * - Sem prefixo e do site: REESCREVE para `/pt-BR/...`. É por dentro: o
+ *   endereço que a pessoa vê e compartilha continua `/vini`.
+ * - `/pt-BR/...` direto: REDIRECIONA (308) para o endereço sem prefixo. Duas
+ *   URLs para a mesma página dividiriam links e buscador.
+ * - `/en/...`: segue como veio; o idioma já está no endereço.
+ * - O resto (plataforma, API): intocado.
+ */
+export type DecisaoDeIdioma =
+  | { tipo: "nenhuma" }
+  | { tipo: "reescrever"; para: string }
+  | { tipo: "redirecionar"; para: string };
+
+export function decisaoDeIdiomaDoSite(pathname: string): DecisaoDeIdioma {
+  if (pathname === "/pt-BR" || pathname.startsWith("/pt-BR/")) {
+    return { tipo: "redirecionar", para: pathname.slice("/pt-BR".length) || "/" };
+  }
+  if (pathname === "/en" || pathname.startsWith("/en/")) return { tipo: "nenhuma" };
+  if (ehDoSite(pathname)) return { tipo: "reescrever", para: pathname === "/" ? "/pt-BR" : `/pt-BR${pathname}` };
+  return { tipo: "nenhuma" };
+}
 
 export function caminhoPublico(pathname: string): boolean {
+  // O site em outro idioma (`/en`, `/en/...`): é o mesmo site, só que traduzido.
+  if (pathname === "/en" || pathname.startsWith("/en/")) return true;
   if (CAMINHOS_DO_SITE.has(pathname)) return true;
   if (CAMINHOS_PUBLICOS_EXATOS.has(pathname)) return true;
   return CAMINHOS_PUBLICOS.some((prefixo) => pathname.startsWith(prefixo));

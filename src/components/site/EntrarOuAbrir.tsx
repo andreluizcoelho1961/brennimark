@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
 import { DESTINO_PADRAO } from "@/platform/destino-de-retorno";
 
@@ -35,9 +36,9 @@ export function EntrarOuAbrir({ className, rotulo = "Entrar" }: { className: str
       Abrir a plataforma
     </a>
   ) : (
-    <a className={className} href="/login" data-porta="entrar">
+    <Link className={className} href="/login" prefetch={false} data-porta="entrar">
       {rotulo}
-    </a>
+    </Link>
   );
 }
 

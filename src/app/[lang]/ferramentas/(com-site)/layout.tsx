@@ -1,5 +1,4 @@
 import type { CSSProperties, ReactNode } from "react";
-import "@/app/(site)/site.css";
 import { TopoDoSiteNasFerramentas } from "@/components/site/TopoDoSiteNasFerramentas";
 
 /**
@@ -8,8 +7,8 @@ import { TopoDoSiteNasFerramentas } from "@/components/site/TopoDoSiteNasFerrame
  * (especificação do Kit, §6) e usam a moldura da plataforma (`--platform-*`)
  * para o conteúdo: são instrumento, e é assim que o assinante as vê lá dentro.
  *
- * O estilo do site (`site.css`) é carregado aqui porque as ferramentas ficam FORA
- * do grupo `(site)`, que é quem o importa. Todas as regras dele são presas a
+ * O estilo do site (`site.css`) chega pelo layout de `[lang]` (fatia 5, 24/10/2026:
+ * as ferramentas passaram a morar dentro dele). Todas as regras dele são presas a
  * `.bm-site`, e só o bloco do topo leva essa classe.
  *
  * O TOPO é o do site (21/10/2026, pedido do André): a pessoa que chega por um

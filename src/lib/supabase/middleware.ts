@@ -1,20 +1,38 @@
 import { DESTINO_PADRAO, destinoDeRetorno } from "@/platform/destino-de-retorno";
 import { CAMINHO_DA_TROCA, desvioDaSenhaProvisoria } from "@/lib/acesso/senha-provisoria";
-import { caminhoPublico } from "@/lib/supabase/caminhos-publicos";
+import { caminhoPublico, decisaoDeIdiomaDoSite } from "@/lib/supabase/caminhos-publicos";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { COOKIE_DO_ACESSO, ipDoPedido, marcaDoAcesso, precisaRegistrar } from "@/lib/conformidade/registro-de-acesso";
 import { createServiceClient } from "@/lib/supabase/service";
 
 export async function updateSession(request: NextRequest, evento?: NextFetchEvent) {
+  // O idioma do site vem do endereço (fatia 5): `/pt-BR/...` direto volta ao
+  // endereço sem prefixo, e o português sem prefixo é reescrito por dentro.
+  const idioma = decisaoDeIdiomaDoSite(request.nextUrl.pathname);
+  if (idioma.tipo === "redirecionar") {
+    const url = request.nextUrl.clone();
+    url.pathname = idioma.para;
+    return NextResponse.redirect(url, 308);
+  }
+  // Resposta que segue adiante: reescrita para o site em português, ou a de sempre.
+  // Todo lugar que cria resposta passa por aqui, para a reescrita nunca se perder
+  // quando a sessão renova os cookies.
+  const seguir = () => {
+    if (idioma.tipo !== "reescrever") return NextResponse.next({ request });
+    const url = request.nextUrl.clone();
+    url.pathname = idioma.para;
+    return NextResponse.rewrite(url, { request });
+  };
+
   // Local-review escape hatch — set in .env.local only, never in
   // Vercel env vars. Lets you look at the app without going through
   // Supabase auth. Does nothing unless explicitly set to "true".
   if (process.env.BRENNIMARK_DEV_SKIP_AUTH === "true") {
-    return NextResponse.next({ request });
+    return seguir();
   }
 
-  let response = NextResponse.next({ request });
+  let response = seguir();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,7 +44,7 @@ export async function updateSession(request: NextRequest, evento?: NextFetchEven
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = seguir();
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

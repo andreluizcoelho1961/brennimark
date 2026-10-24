@@ -25,7 +25,7 @@ const MIGRADAS: string[] = [
   "src/platform/locale-client.tsx",
   "src/components/shell/TelaInicial.tsx",
   "src/components/shell/EmptyBrandState.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/not-found.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/not-found.tsx",
   "src/components/acesso/PedidoDeNovaSenha.tsx",
   "src/components/acesso/NovaSenha.tsx",
   "src/components/ajuda/AjudaDaMoldura.tsx",

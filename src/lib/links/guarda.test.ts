@@ -10,7 +10,7 @@ import test from "node:test";
  * chamada, em outro lugar, seria um caminho de entrega que ninguém revisou.
  */
 const PERMITIDOS = [
-  "src/app/receber/[codigo]/page.tsx",
+  "src/app/(plataforma)/receber/[codigo]/page.tsx",
   "src/app/api/receber/[codigo]/baixar/route.ts",
 ];
 
