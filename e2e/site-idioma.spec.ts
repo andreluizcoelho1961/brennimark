@@ -2,9 +2,9 @@ import { expect, test } from "@playwright/test";
 
 /**
  * O site em dois idiomas (fatia 5, 24/10/2026). O idioma mora no endereço:
- * `/vini` é português, `/en/...` é inglês, e o `proxy` faz a ponte. Só o
- * Manifesto está traduzido por enquanto; as outras páginas levam à versão em
- * português com um aviso, e é isso que estes testes travam.
+ * `/vini` é português, `/en/...` é inglês, e o `proxy` faz a ponte. Páginas ainda
+ * sem tradução levam à versão em português com um aviso, e é isso que estes
+ * testes travam.
  */
 test("o Manifesto em inglês: texto, lang, menu e rodapé no idioma, e o botão volta ao português", async ({ page }) => {
   await page.goto("/en/manifesto");
@@ -43,10 +43,20 @@ test("página sem tradução leva à equivalente em português, com o aviso nos 
   await expect(aviso).toHaveCount(0);
 });
 
-test("a home em inglês ainda não existe: volta à home em português, com aviso", async ({ page }) => {
+test("a home em inglês: texto, tour e links no idioma, e o botão volta à home em português", async ({ page }) => {
   await page.goto("/en");
-  await expect(page).toHaveURL(/\/\?idioma=indisponivel$/);
-  await expect(page.locator("[data-aviso-de-idioma]")).toBeVisible();
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("A brand passes through many hands");
+  // O tour (componente de cliente) e a barra da abertura falam inglês, e os links são os traduzidos.
+  await expect(page.getByRole("tablist", { name: "Platform features" })).toBeVisible();
+  await expect(page.locator('a[href="/en/vini"]').first()).toBeAttached();
+  await expect(page.locator('a[href="/en/materials#entrega"]').first()).toBeAttached();
+  // O rodapé da home usa o catálogo do rodapé.
+  await expect(page.locator('footer.site-foot a[href="/en/font-license"]')).toHaveText("Font license");
+  const botao = page.locator("[data-seletor-de-idioma-do-site]").first();
+  await expect(botao).toHaveText("PT");
+  await expect(botao).toHaveAttribute("href", "/");
 });
 
 test("os redirecionamentos do idioma: status e destino, uma URL por página", async ({ request }) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { IconeDoRecurso } from "./IconeDoRecurso";
 
@@ -48,6 +49,7 @@ function duracaoDoRoteiro(painel: HTMLElement | null): number {
 const doisDigitos = (n: number) => String(n).padStart(2, "0");
 
 export function TourDaPlataforma({ abas }: { abas: AbaDoTour[] }) {
+  const t = useTranslations("site.homeTour");
   const [atual, setAtual] = useState(0);
   const [tocando, setTocando] = useState(false);
   const [automatico, setAutomatico] = useState(true);
@@ -115,7 +117,7 @@ export function TourDaPlataforma({ abas }: { abas: AbaDoTour[] }) {
 
   return (
     <div className="tour" ref={raiz} data-tocando={tocando ? "" : undefined} data-automatico={automatico ? "" : undefined}>
-      <div className="tour-tabs" role="tablist" aria-label="Recursos da plataforma" aria-orientation="vertical" onKeyDown={teclas}>
+      <div className="tour-tabs" role="tablist" aria-label={t("recursos")} aria-orientation="vertical" onKeyDown={teclas}>
         {abas.map((a, i) => (
           <button
             key={a.id}
@@ -140,11 +142,11 @@ export function TourDaPlataforma({ abas }: { abas: AbaDoTour[] }) {
       </div>
       <div className="tour-stage">
         <div className="tour-ctrl">
-          <button type="button" onClick={() => escolher(atual - 1)} aria-label="Recurso anterior">←</button>
+          <button type="button" onClick={() => escolher(atual - 1)} aria-label={t("anterior")}>←</button>
           <span className="tour-cont" aria-live="polite">{doisDigitos(atual + 1)} / {doisDigitos(abas.length)}</span>
-          <button type="button" onClick={() => escolher(atual + 1)} aria-label="Próximo recurso">→</button>
+          <button type="button" onClick={() => escolher(atual + 1)} aria-label={t("proximo")}>→</button>
           <button type="button" className="tour-auto" aria-pressed={automatico} onClick={() => setAutomatico((v) => !v)}>
-            {automatico ? "Pausar a demonstração" : "Tocar a demonstração"}
+            {automatico ? t("pausar") : t("tocar")}
           </button>
         </div>
         {abas.map((a, i) => (
