@@ -8,6 +8,7 @@ import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { shellSections } from "@/components/shell/navigation";
 import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { SignOutButton } from "@/components/SignOutButton";
+import { SeletorDeIdioma } from "@/components/SeletorDeIdioma";
 
 /**
  * A moldura real do produto.
@@ -88,7 +89,7 @@ export default async function DocsLayout({
           brandDescriptor={brand?.brand.descriptor}
           brandLanguage={brand?.metadata.language}
           statusLabels={brand?.statusLabels}
-          sessionControl={<SignOutButton />}
+          sessionControl={<><SeletorDeIdioma /><SignOutButton /></>}
         >
           {children}
         </AppShellV2>

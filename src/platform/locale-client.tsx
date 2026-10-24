@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { PRODUCT_LOCALE, type ProductLocale } from "./locale";
 
 /**
@@ -23,6 +23,11 @@ export function LocaleProvider({
   locale: ProductLocale;
   children: React.ReactNode;
 }) {
+  // O layout raiz é estático (fixo em pt-BR) para não tornar dinâmico o site público;
+  // dentro da plataforma o `lang` do documento acompanha o idioma da interface.
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
   return <LocaleContext.Provider value={locale}>{children}</LocaleContext.Provider>;
 }
 

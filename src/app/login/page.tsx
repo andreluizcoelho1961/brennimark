@@ -6,6 +6,7 @@ import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
+import { SeletorDeIdioma } from "@/components/SeletorDeIdioma";
 import { destinoDeRetorno } from "@/platform/destino-de-retorno";
 
 /*
@@ -139,6 +140,10 @@ function LoginForm() {
             ? "Access is granted by your team's administrator. There is no public sign-up."
             : "O acesso é liberado pelo administrador da sua equipe. Não há cadastro público."}
         </p>
+
+        <div className="mt-4">
+          <SeletorDeIdioma />
+        </div>
     </div>
   );
 }

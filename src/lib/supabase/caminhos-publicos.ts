@@ -87,13 +87,17 @@
  * EXATO. É a mesma tela das páginas normais, sem o menu do site: estática, tudo
  * no navegador, nenhum dado lido.
  *
+ * O BOTÃO DE IDIOMA entrou em 23/10/2026: `/api/idioma`, pelo caminho EXATO. A tela de
+ * login também o tem, e quem está no login não tem sessão. A rota só grava o
+ * cookie de idioma (e, havendo sessão, o perfil da PRÓPRIA pessoa, pela RLS).
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/", "/api/sair/"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", "/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids", "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar", "/api/idioma"]);
 
 export function caminhoPublico(pathname: string): boolean {
   if (CAMINHOS_DO_SITE.has(pathname)) return true;

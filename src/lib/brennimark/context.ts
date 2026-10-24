@@ -133,10 +133,8 @@ export function montarContexto({
     userEmail: auth?.email || undefined,
     // Slug vazio redirecionaria para /docs/ e produziria laço.
     defaultDocSlug: slug ? slug : null,
-    // Sem argumento, de propósito e por enquanto: não existe preferência de
-    // idioma guardada em lugar nenhum. Quando existir, ela entra AQUI — e
-    // vários módulos que hoje leem PRODUCT_LOCALE direto terão de passar a
-    // receber este valor. Ver a dívida descrita em platform/locale.ts.
+    // O padrão do produto. Quem escolhe o idioma da PESSOA é `resolveWorkspaceContext`
+    // (workspace-context.ts), que sobrescreve este campo com `escolherIdioma`.
     locale: resolveInterfaceLocale(),
   };
 }
