@@ -5,16 +5,14 @@ import { contextoDoHistorico } from "@/lib/analysis/server";
 import { nomeSeguro } from "@/lib/storage/caminhos";
 import { ANALYSIS_EVIDENCE_BUCKET, ANALYSIS_RUN_SELECT, conferirEvidencia, type AnalysisRow } from "@/lib/analysis/history";
 import { sanitizeStructuredAnalysis } from "@/lib/ai/analysis-result";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish, localeDeFormato } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 export const runtime = "nodejs";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
-const locale = isEnglish ? "en-US" : "pt-BR";
-
 const PAGE = { width: 595.28, height: 841.89, margin: 48 };
 
 function pdfColor(hex: string) {
@@ -80,6 +78,7 @@ function drawHeader(
   pageNumber: number,
   paleta: Paleta,
   nomeDaMarca: string,
+  isEnglish: boolean,
 ) {
   page.drawRectangle({ x: 0, y: PAGE.height - 94, width: PAGE.width, height: 94, color: paleta.tinta });
   page.drawRectangle({ x: PAGE.margin, y: PAGE.height - 44, width: 55, height: 5, color: paleta.destaque });
@@ -91,6 +90,8 @@ function drawHeader(
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const locale = localeDeFormato(isEnglish);
   const portao = await contextoDoHistorico(request);
   if (!portao.ok) return portao.resposta;
   const { context } = portao;
@@ -118,14 +119,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   let pageNumber = 1;
   let page = pdf.addPage([PAGE.width, PAGE.height]);
-  drawHeader(page, bold, pageNumber, paleta, marca.brand.name);
+  drawHeader(page, bold, pageNumber, paleta, marca.brand.name, isEnglish);
   let y = PAGE.height - 132;
   const contentWidth = PAGE.width - PAGE.margin * 2;
 
   const newPage = () => {
     pageNumber += 1;
     page = pdf.addPage([PAGE.width, PAGE.height]);
-    drawHeader(page, bold, pageNumber, paleta, marca.brand.name);
+    drawHeader(page, bold, pageNumber, paleta, marca.brand.name, isEnglish);
     y = PAGE.height - 126;
   };
 

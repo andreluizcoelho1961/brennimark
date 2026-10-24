@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { colunaDaPlataforma } from "@/components/shell/coluna";
@@ -23,6 +24,7 @@ export default async function BancadaDaMoldura({
 }: {
   searchParams: Promise<{ papel?: string; marcas?: string }>;
 }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   const { papel, marcas } = await searchParams;
   const administra = papel !== "consulta";
@@ -35,7 +37,7 @@ export default async function BancadaDaMoldura({
 
   return (
     <ProvedorDeTraducao>
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <AppShellV2
         coluna={colunaDaPlataforma({ contaSlug: "dev", administraConta: administra })}
         segmentado={{}}

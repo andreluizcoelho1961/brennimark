@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { autenticacaoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { rotuloDaPessoa } from "@/lib/acesso/conta-removida";
 import {
@@ -8,7 +9,6 @@ import {
   type Filtros, type LinhaDeAcao, type LinhaDeAcesso, type LinhaDeDownload,
 } from "@/lib/registros/registros";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * Registros da CONTA — downloads, acessos e ações (28/09/2026).
@@ -47,7 +47,7 @@ async function nomesDasMarcas(supabase: SupabaseClient, workspaceId: string): Pr
   return new Map((data ?? []).map((b: { id: string; name: string }) => [b.id, b.name]));
 }
 
-async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>) {
+async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>, isEnglish: boolean) {
   let materiais = supabase.from("brand_asset_downloads")
     .select("id, brand_id, pessoa_email, asset_label, file_name, created_at")
     .eq("workspace_id", workspaceId);
@@ -91,7 +91,7 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
   return mesclarPorData([deMateriais, doManual, deLinks]);
 }
 
-async function acessos(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>) {
+async function acessos(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>, isEnglish: boolean) {
   let q = supabase.from("brand_access_log")
     .select("id, brand_id, pessoa_email, autor_email, acao, capacidades_antes, capacidades_depois, created_at")
     .eq("workspace_id", workspaceId);
@@ -109,7 +109,7 @@ async function acessos(supabase: SupabaseClient, workspaceId: string, f: Filtros
   }));
 }
 
-async function acoes(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>) {
+async function acoes(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>, isEnglish: boolean) {
   let q = supabase.from("brand_document_versions")
     // Só o título do retrato: o documento inteiro não é assunto do registro.
     .select("id, brand_id, slug, action, actor_label, created_at, titulo:snapshot->>title")
@@ -126,6 +126,7 @@ async function acoes(supabase: SupabaseClient, workspaceId: string, f: Filtros, 
 }
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await autenticacaoDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { supabase, workspaceId } = resolvido.contexto;
@@ -138,10 +139,10 @@ export async function GET(request: Request) {
 
   const marcas = await nomesDasMarcas(supabase, workspaceId);
   const linhas = filtros.aba === "acessos"
-    ? await acessos(supabase, workspaceId, filtros, marcas)
+    ? await acessos(supabase, workspaceId, filtros, marcas, isEnglish)
     : filtros.aba === "acoes"
-      ? await acoes(supabase, workspaceId, filtros, marcas)
-      : await downloads(supabase, workspaceId, filtros, marcas);
+      ? await acoes(supabase, workspaceId, filtros, marcas, isEnglish)
+      : await downloads(supabase, workspaceId, filtros, marcas, isEnglish);
 
   if (linhas === null) {
     return NextResponse.json(

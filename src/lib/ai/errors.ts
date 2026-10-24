@@ -1,7 +1,5 @@
 import { APICallError } from "ai";
-import { PRODUCT_LOCALE, inEnglish } from "../../platform/locale";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 export type AIErrorCode =
   | "invalid_key"
@@ -41,7 +39,7 @@ export type AIErrorCode =
  * `classifyAIError` continua reconhecendo o erro nomeado `SemProvedorDeIA`,
  * caso algum caminho futuro prefira lançar — mas o caminho direto é este.
  */
-export function semProvedorConfigurado(): { code: "no_provider"; message: string } {
+export function semProvedorConfigurado(isEnglish: boolean): { code: "no_provider"; message: string } {
   return {
     code: "no_provider",
     // A IA é da plataforma (29/09/2026): nenhuma conta configura provedor, e
@@ -67,7 +65,7 @@ const SOBRECARGA = /high demand|overloaded|over capacity|temporarily unavailable
 /** Groq: "Request too large for model … tokens per minute" (HTTP 413), 23/09/2026. */
 const GRANDE_DEMAIS = /request too large|tokens per minute/i;
 
-function sobrecarga(): { code: "overloaded"; message: string } {
+function sobrecarga(isEnglish: boolean): { code: "overloaded"; message: string } {
   return {
     code: "overloaded",
     message: isEnglish
@@ -78,10 +76,11 @@ function sobrecarga(): { code: "overloaded"; message: string } {
 
 export function classifyAIError(
   error: unknown,
+  isEnglish: boolean,
 ): { code: AIErrorCode; message: string; detalheTecnico?: string } {
   if (APICallError.isInstance(error)) {
     if (error.statusCode === 503 || error.statusCode === 529 || SOBRECARGA.test(error.message)) {
-      return { ...sobrecarga(), detalheTecnico: error.message };
+      return { ...sobrecarga(isEnglish), detalheTecnico: error.message };
     }
     if (error.statusCode === 413 || GRANDE_DEMAIS.test(error.message)) {
       return {
@@ -108,17 +107,17 @@ export function classifyAIError(
     if (error.statusCode === 404) {
       return { code: "model_unavailable", message: isEnglish ? "Model unavailable for this provider/key." : "Modelo indisponível para esse provedor/chave." };
     }
-    return { code: "unknown", message: mensagemGenerica(), detalheTecnico: error.message };
+    return { code: "unknown", message: mensagemGenerica(isEnglish), detalheTecnico: error.message };
   }
 
   if (error instanceof Error) {
     // Provedor ausente é um estado do PRODUTO, não uma falha técnica: quem
     // consulta precisa saber a quem pedir, e não qual variável falta.
     if (error.name === "SemProvedorDeIA") {
-      return { ...semProvedorConfigurado(), detalheTecnico: error.message };
+      return { ...semProvedorConfigurado(isEnglish), detalheTecnico: error.message };
     }
     if (SOBRECARGA.test(error.message)) {
-      return { ...sobrecarga(), detalheTecnico: error.message };
+      return { ...sobrecarga(isEnglish), detalheTecnico: error.message };
     }
     if (error.name === "TimeoutError" || /aborted due to timeout|timed?\s*out|não iniciou a resposta|didn.t start responding/i.test(error.message)) {
       return {
@@ -130,13 +129,13 @@ export function classifyAIError(
           : "A IA demorou demais para começar a responder. Tente de novo daqui a pouco; o provedor pode estar sobrecarregado.",
       };
     }
-    return { code: "unknown", message: mensagemGenerica(), detalheTecnico: error.message };
+    return { code: "unknown", message: mensagemGenerica(isEnglish), detalheTecnico: error.message };
   }
 
-  return { code: "unknown", message: mensagemGenerica() };
+  return { code: "unknown", message: mensagemGenerica(isEnglish) };
 }
 
-function mensagemGenerica(): string {
+function mensagemGenerica(isEnglish: boolean): string {
   return isEnglish
     ? "Couldn't talk to the AI provider. Try again in a moment."
     : "Não foi possível falar com o provedor de IA. Tente de novo em instantes.";

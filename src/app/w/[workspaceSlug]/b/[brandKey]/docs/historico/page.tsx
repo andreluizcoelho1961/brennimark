@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { localeDeFormato } from "@/platform/locale";
 import { useEffect, useMemo, useState } from "react";
 import type { AnalysisRun, AnalysisVerdict } from "@/lib/analysis/history";
 import { useIsEnglish } from "@/platform/locale-client";
@@ -36,7 +37,7 @@ export default function AnalysisHistoryPage() {
   const base = `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs`;
   const isEnglish = useIsEnglish();
   const VERDICT_LABELS = VERDICT_LABELS_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
-  const locale = isEnglish ? "en-US" : "pt-BR";
+  const locale = localeDeFormato(isEnglish);
   const [runs, setRuns] = useState<AnalysisRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { Registros } from "@/components/registros/Registros";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -11,9 +12,10 @@ export const metadata = { robots: { index: false, follow: false } };
  * provado no banco (as políticas de cada tabela de registro).
  */
 export default async function BancadaDeRegistros() {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main className="min-h-dvh bg-platform-bg p-8">
         <Registros marcas={[
           { id: "d87b93f3-81d8-49f1-a8ef-9371ba05464c", nome: "Marca Um" },

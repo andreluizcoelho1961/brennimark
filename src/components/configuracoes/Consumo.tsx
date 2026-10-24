@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { milhares, tamanho, type Consumo as Dados, type Teto } from "@/lib/configuracoes/consumo";
@@ -62,9 +63,9 @@ export function Consumo() {
   }
 
   const nomeDoMes = (m: string) =>
-    new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${m}-15T12:00:00Z`));
+    new Intl.DateTimeFormat(localeDeFormato(isEnglish), { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${m}-15T12:00:00Z`));
   const diaCurto = (d: string) =>
-    new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
+    new Intl.DateTimeFormat(localeDeFormato(isEnglish), { day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${d}T12:00:00Z`));
 
   return (
     <div data-consumo className="space-y-10">

@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { COLUNAS_DA_PALETA, deLinha } from "@/lib/paleta/paleta";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const MAXIMO_POR_PEDIDO = 200;
 
 /**
@@ -15,6 +15,7 @@ const MAXIMO_POR_PEDIDO = 200;
  * marca (a função responde igual para cor alheia e cor inexistente).
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;

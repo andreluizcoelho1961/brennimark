@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { liberarDownload } from "@/lib/assets/download";
 import { createServiceClient } from "@/lib/supabase/service";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * O download de um asset — registrado antes de o endereço ser EMITIDO.
@@ -26,6 +26,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
 const VALIDADE_DO_ENDERECO_S = 60;
 
 export async function GET(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const { id } = await ctx.params;
 
   const resolvido = await marcaDaRota(request);

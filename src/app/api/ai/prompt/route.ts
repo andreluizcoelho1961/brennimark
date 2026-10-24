@@ -17,7 +17,8 @@ import {
   CABECALHO_DE_REGRAS, MAX_CARACTERES_DA_DESCRICAO, consultaDoPrompt, ehTipoDePrompt, regrasDosTrechos, regrasPermitidas,
   resumoDasRegras, separarRegras, sistemaDoCopiloto,
 } from "@/lib/ai/copiloto";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 /**
  * O copiloto de criação — fatia 4c (ADR-0004 §3.1 e §3.2).
@@ -40,8 +41,6 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
  * gera prompt (ADR-0004 §3.6), onde o assistente foi contratado. O consumo vai
  * ao razão como operação `prompt` — por marca e por operação (§3.4).
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
-const t = (pt: string, en: string) => (isEnglish ? en : pt);
 const PROMPT_TIMEOUT_MS = 60_000;
 /**
  * A espera pela PRIMEIRA palavra do prompt: no mínimo 45 s.
@@ -57,6 +56,8 @@ const ESPERA_MINIMA_DO_PROMPT_MS = 45_000;
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (pt: string, en: string) => (isEnglish ? en : pt);
   const corpo = await request.json().catch(() => null);
   const etapa = corpo?.etapa === "gerar" ? "gerar" : corpo?.etapa === "regras" ? "regras" : null;
   const descricao = typeof corpo?.descricao === "string" ? corpo.descricao.trim() : "";
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
 
     const routing = await resolveChatRouting(portao.auth.workspaceId);
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish);
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     // A fila inteira; a decisão abaixo é da primeira (ver `executarEmFila`).
@@ -228,7 +229,7 @@ export async function POST(request: Request) {
     return resposta;
   } catch (error) {
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "prompt", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { rotuloDaPessoa } from "@/lib/acesso/conta-removida";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
@@ -161,7 +162,7 @@ export function PessoasEAcesso() {
   }
 
   function quando(iso: string) {
-    return new Date(iso).toLocaleString(isEnglish ? "en-GB" : "pt-BR", {
+    return new Date(iso).toLocaleString(localeDeFormato(isEnglish), {
       day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
     });
   }

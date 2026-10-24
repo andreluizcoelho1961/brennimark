@@ -210,7 +210,7 @@ export function Registros({ marcas }: { marcas: Marca[] }) {
                     <tbody>
                       {linhas.map((l) => (
                         <tr key={l.id} data-linha-de-registro className="border-b border-platform-border align-top">
-                          <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-platform-text-muted">{quandoCurto(l.quando)}</td>
+                          <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-platform-text-muted">{quandoCurto(l.quando, new Date(), isEnglish)}</td>
                           <td className="py-2 pr-4 text-platform-text">{l.marca}</td>
                           {consulta.aba === "downloads" && "tipo" in l && <>
                             <td className="py-2 pr-4 text-platform-text">{l.pessoa}</td>

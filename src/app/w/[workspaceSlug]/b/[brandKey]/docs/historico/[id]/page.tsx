@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { localeDeFormato } from "@/platform/locale";
 import { use, useEffect, useState } from "react";
 import { FeedbackPanel } from "@/components/analysis/FeedbackPanel";
 import type { AnalysisRun, AnalysisVerdict } from "@/lib/analysis/history";
@@ -44,7 +45,7 @@ export default function AnalysisHistoryDetailPage({ params }: { params: Promise<
   const base = `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs`;
   const isEnglish = useIsEnglish();
   const EXPECTED = EXPECTED_POR_IDIOMA[isEnglish ? "en" : "pt-BR"];
-  const locale = isEnglish ? "en-US" : "pt-BR";
+  const locale = localeDeFormato(isEnglish);
   const { id } = use(params);
   const [run, setRun] = useState<AnalysisRun | null>(null);
   const [loading, setLoading] = useState(true);

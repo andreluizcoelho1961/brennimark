@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import type { PedidoDeExportacao } from "@/lib/cobranca/exportacao";
@@ -115,7 +116,7 @@ export function Exportacao() {
     else setErro(corpo.message ?? t("Couldn't send the request.", "Não foi possível enviar o pedido."));
   }
 
-  const data = (iso: string) => new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { dateStyle: "long" }).format(new Date(iso));
+  const data = (iso: string) => new Intl.DateTimeFormat(localeDeFormato(isEnglish), { dateStyle: "long" }).format(new Date(iso));
   const aberto = pedido && !pedido.entregueEm;
   const ocupado = andamento.fase === "preparando" || andamento.fase === "baixando";
 

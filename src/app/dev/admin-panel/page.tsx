@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { AdminPanel } from "@/components/admin/AdminPanel";
 import { LocaleProvider } from "@/platform/locale-client";
-import { PRODUCT_LOCALE } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import type { DocPageEntry } from "@/content/docs";
 import type { BrennimarkTheme } from "@/brennimark/types";
 import type { CorConferida } from "@/lib/paleta/conferencia";
@@ -66,6 +66,7 @@ export default async function AdminPanelLab({
 }: {
   searchParams: Promise<{ estado?: string; papel?: string }>;
 }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
 
   const { estado, papel } = await searchParams;
@@ -88,7 +89,7 @@ export default async function AdminPanelLab({
     : [];
 
   return (
-    <LocaleProvider locale={PRODUCT_LOCALE}>
+    <LocaleProvider locale={idioma}>
       <AdminPanel initialDocs={docs} deletedPages={excluidas} groups={["Sistema"]} theme={TEMA_FIXO} marca={MARCA_FIXA} paleta={paleta} tipografia={tipografia} />
     </LocaleProvider>
   );

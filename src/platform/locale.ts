@@ -96,3 +96,15 @@ export function escolherIdioma(fontes: {
   if (isProductLocale(fontes.perfil)) return fontes.perfil;
   return localeDoNavegador(fontes.acceptLanguage);
 }
+
+/**
+ * O idioma de FORMATAÇÃO de datas e números para a interface.
+ *
+ * Um ponto só decide, porque as telas escolhiam sozinhas e discordavam: umas
+ * usavam "en-GB" (dia antes do mês) e outras "en-US" (mês antes do dia) para o
+ * mesmo inglês. O produto vende em dólar para quem usa inglês, então o inglês
+ * é o americano.
+ */
+export function localeDeFormato(ingles: boolean): "pt-BR" | "en-US" {
+  return ingles ? "en-US" : "pt-BR";
+}

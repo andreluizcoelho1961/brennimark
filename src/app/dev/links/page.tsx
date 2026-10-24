@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { LinksDeEntrega } from "@/components/links/LinksDeEntrega";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -11,10 +12,11 @@ export const metadata = { robots: { index: false, follow: false } };
  * cria está provado no banco (`scripts/prova-links-de-entrega.sh`).
  */
 export default async function BancadaDeLinks({ searchParams }: { searchParams: Promise<{ marca?: string; arquivos?: string }> }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   const busca = await searchParams;
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main className="min-h-dvh bg-platform-bg p-8">
         <LinksDeEntrega
           marcas={[{ id: "m1", nome: "Marca Um", chave: "marca-um" }, { id: "m2", nome: "Marca Dois", chave: "marca-dois" }]}

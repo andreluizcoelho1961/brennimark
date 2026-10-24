@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 /**
  * As conversas da pessoa, nesta marca — fatia 4d.
@@ -9,9 +10,9 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
  * consulta roda com a sessão da pessoa. O filtro por marca aqui é de
  * apresentação (a janela é de uma marca), não de segurança.
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const portao = await portaoDeIA(request, "chat");
   if (!portao.ok) return portao.resposta;
 

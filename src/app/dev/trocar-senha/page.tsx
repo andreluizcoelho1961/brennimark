@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { TrocaDeSenha } from "@/components/pessoas/TrocaDeSenha";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -15,11 +16,12 @@ export const metadata = { robots: { index: false, follow: false } };
 export default async function BancadaDaTrocaDeSenha({
   searchParams,
 }: { searchParams: Promise<{ vencida?: string; link?: string }> }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   const { vencida, link } = await searchParams;
   const validaAte = vencida ? "2026-09-15T12:00:00.000Z" : "2099-09-21T12:00:00.000Z";
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main className="flex min-h-dvh items-center justify-center bg-platform-bg p-8">
         <TrocaDeSenha email="grafica@fornecedor.test" validaAte={validaAte} vencida={Boolean(vencida)} porLink={Boolean(link)} />
       </main>

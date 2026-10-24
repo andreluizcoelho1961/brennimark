@@ -16,13 +16,12 @@ import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import {
   MAXIMO_DE_PAGINAS_DA_TIPOGRAFIA, instrucoesDaTipografia, lerPaginasPedidas, lerTipografia, lerTipografiaDaIA, paginasDaTipografia,
 } from "@/lib/tipografia/tipografia";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const TEMPO_DA_LEITURA_MS = 90_000;
 export const maxDuration = 120;
 
-const t = (en: string, pt: string) => (isEnglish ? en : pt);
 const recusa = (status: number, error: string, message: string) => NextResponse.json({ error, message }, { status });
 
 /**
@@ -44,6 +43,8 @@ const recusa = (status: number, error: string, message: string) => NextResponse.
  * continua valendo nos dois casos.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (en: string, pt: string) => (isEnglish ? en : pt);
   const portao = await portaoDeIA(request, "chat");
   if (!portao.ok) return portao.resposta;
   const { auth } = portao;
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
   try {
     const routing = await resolveChatRouting(workspaceId);
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish);
       return recusa(503, code, message);
     }
     const attempts = routing.attempts.filter((a) => modeloVePaginas(capacidadesDe(a.config.provider, a.config.model)));
@@ -220,7 +221,7 @@ export async function POST(request: Request) {
   } catch (error) {
     await devolver?.();
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "tipografia", code, detalheTecnico, executionId }));
     return recusa(502, code, message);
   }

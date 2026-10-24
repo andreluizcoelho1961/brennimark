@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { citarPaginas, lerManualDaMarca } from "@/lib/assets/regra-do-manual";
@@ -14,9 +15,9 @@ const VALIDADE_DA_MINIATURA_S = 600;
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   // 409 com as opções quando há mais de uma conta: antes isso virava 401, que
   // é falso — a sessão está válida, falta dizer qual conta.

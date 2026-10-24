@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, caminhoDeMiniatura } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
@@ -11,7 +12,6 @@ import { caminhosADescartar, lerEnvio, tamanhoDoContentRange } from "@/lib/asset
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 /**
  * A miniatura: PNG pequeno, gerado no navegador de quem envia (fatia 5). Não é
  * obrigatória — EPS e AI sem compatibilidade PDF não geram —, e falhar em
@@ -54,6 +54,7 @@ async function ownerContext(request: Request) {
  * o arquivo e recusa.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;
@@ -174,6 +175,7 @@ export async function POST(request: Request) {
  * entre apagar de propósito e apagar sem querer.
  */
 export async function DELETE(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;
@@ -226,6 +228,7 @@ export async function DELETE(request: Request) {
  * mesma coisa, que é como um acervo vira uma pasta bagunçada.
  */
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;

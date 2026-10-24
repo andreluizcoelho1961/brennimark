@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import type { DocPageEntry, DocStatus } from "@/content/docs";
 import { useIsEnglish } from "@/platform/locale-client";
 import { historyActionLabel } from "@/lib/brennimark/history-action";
@@ -34,7 +35,7 @@ export function VersionHistory({ slug, onRecovered }: { slug: string; onRecovere
   // O formato de data segue o idioma da interface. Antes seguia o do manual:
   // um manual em inglês fazia a auditoria mostrar datas em formato americano
   // para uma equipe brasileira.
-  const DATE_FORMAT = new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { dateStyle: "short", timeStyle: "short" });
+  const DATE_FORMAT = new Intl.DateTimeFormat(localeDeFormato(isEnglish), { dateStyle: "short", timeStyle: "short" });
   const [versions, setVersions] = useState<Version[]>([]);
   const [pageDeleted, setPageDeleted] = useState(false);
   const [loading, setLoading] = useState(true);
