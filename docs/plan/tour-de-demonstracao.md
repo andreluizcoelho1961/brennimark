@@ -95,9 +95,9 @@ Achado novo: cada visitante geraria 2 eventos para sempre no registro de acesso 
 migration põe uma guarda no gatilho: login anônimo não gera evento. A prova confere que acesso de
 pessoa real continua registrado (C9, C10).
 
-**Para a fatia 2 (não resolvido aqui):** o login anônimo não tem perfil, e criar o perfil dispara a
-abertura de uma conta pessoal (`handle_new_profile`). A fatia 2 precisa decidir como o visitante passa
-pelo onboarding sem ganhar conta própria.
+**Correção (20/10):** o parágrafo anterior afirmava que criar o perfil do visitante abriria uma conta
+pessoal. Está errado desde 17/09/2026: `handle_new_profile` deixou de criar conta (a conta nasce da
+assinatura) e só colhe concessões pendentes do e-mail. Ver a fatia 2, §11.
 
 ## 10. Decisões que dependem de André
 
@@ -106,3 +106,96 @@ pelo onboarding sem ganhar conta própria.
    IP + teto global. Recomendação: com Turnstile.
 3. Os números: 10 perguntas, 24 h, teto diário da conta Demonstração.
 4. Qual manual: o do Brennimark (recomendado) ou o da ACME.
+
+## 11. Fatia 2 — a entrada (desenho de 20/10/2026, nada construído)
+
+### 11.1 O fluxo, de ponta a ponta
+
+1. `/demonstracao` (caminho **exato** em `caminhos-publicos.ts`): texto do tour, aviso de privacidade,
+   o widget do Turnstile e o botão "Entrar no tour".
+2. No navegador: `supabase.auth.signInAnonymously()`. O login anônimo nasce **sem vínculo nenhum** e,
+   sozinho, não enxerga nada.
+3. `POST /api/demonstracao/entrar` com o token do Turnstile. O servidor: lê a sessão e exige que ela
+   seja anônima (`user.is_anonymous`); confere o token na Cloudflare (`siteverify`, com o IP do
+   pedido); chama `demonstracao_entrar` com a chave de serviço; devolve o destino e a validade.
+4. O navegador vai ao destino (`/w/<conta>/b/<marca>/docs`). O destino sai do banco, nunca do cliente.
+
+**Por que o Turnstile guarda o VÍNCULO e não a criação do login.** O Supabase tem captcha embutido,
+mas ele vale para o projeto inteiro: ligá-lo exigiria token também no login por senha e na recuperação
+de senha, e quebraria a tela de entrada dos assinantes. Do jeito proposto, quem pula o captcha ganha um
+login anônimo vazio (inofensivo) e nunca o acesso ao manual nem ao Vini. O limite do Supabase
+(30 logins anônimos por hora por IP) continua valendo, porque quem chama é o navegador do visitante.
+
+### 11.2 O perfil e o onboarding: resolvido sem código novo no onboarding
+
+`/docs` manda para `/onboarding` quem não tem perfil com nome. Como `handle_new_profile` já não cria
+conta, **a entrada cria o perfil do visitante** (`full_name = 'Visitante'`, e-mail sintético
+`visitante-<8 hex>@visitante.invalid`, domínio reservado pela RFC 2606 que nunca entrega nada, o mesmo
+recurso da conta removida). Com perfil, vínculo de conta e uma única marca, o resolvedor redireciona
+direto ao manual. O onboarding não é tocado.
+
+### 11.3 O que a fatia 2 muda no banco (uma migration nova)
+
+- `demonstracao_entrar` passa a criar o perfil e a devolver `(expira_em, conta_slug, marca_key)`.
+  Como o tipo de retorno muda, é `drop function` + `create function`, com o mesmo `revoke`/`grant`.
+- `demonstracao_orfaos()` (só `service_role`): logins anônimos com mais de 2 h e sem linha em
+  `demonstracao_visitantes` — o rastro de quem fez o login e não passou pelo captcha.
+- A prova da fatia 1 cresce: perfil criado e idempotente, destino devolvido, órfãos listados.
+
+### 11.4 A limpeza (cron)
+
+`/api/manutencao/demonstracao`, no padrão das três rotinas existentes (segredo do Cron, 401 antes de
+qualquer cliente; decisão em `src/lib/demonstracao/limpeza.ts` com portas injetadas e testada sem
+banco). Apaga, via API de administração, os vencidos e os órfãos, no máximo 200 por rodada, e **confere
+`is_anonymous` de novo** antes de cada `deleteUser`. Falha parcial é 500, para o log do Cron ficar
+vermelho. O `cascade` e o gatilho de 24/09 levam vínculos, perfil e conversas; o razão de IA fica.
+
+Limite assumido: uma limpeza **diária** deixa o visitante lendo o manual até 24 h depois de vencer
+(conteúdo nosso, público por decisão). O Vini para na hora, porque o contador confere a validade
+(fatia 3). Rodar de hora em hora exige o plano Pro da Vercel.
+
+### 11.5 A superfície nova: o papel `authenticated` agora alcança desconhecidos
+
+Ligar o login anônimo significa que **qualquer pessoa na internet, com a chave pública do projeto,
+consegue um JWT de `authenticated`**. Toda policy `to authenticated` e toda função executável por esse
+papel passa a ser alcançável por estranhos. Medição preliminar no banco local: as únicas policies de
+leitura sem vínculo são `planos` ("Os planos são públicos") e uma de Storage amarrada a `analysis_runs`;
+as funções `SECURITY DEFINER` chamáveis conferem papel, equipe ou capacidade por dentro.
+
+Isto vira **prova**, não impressão: `scripts/prova-do-visitante-sem-vinculo.sql` enumera todas as
+tabelas e funções do `public` e do Storage e, como login anônimo sem nenhum vínculo, exige zero linhas
+ou recusa em todas, com `planos` como única exceção declarada. Depois, revisão do
+`brennimark-security-reviewer` sobre a migration e as rotas.
+
+### 11.6 Dados e privacidade
+
+O `proxy` grava o IP de todo login em `registros_de_acesso` (Marco Civil, 6 meses); com o visitante
+apagado, a linha fica com `user_id` nulo. A página `/demonstracao` e a Política de Privacidade passam a
+dizer: perguntas guardadas até 24 h; endereço IP por 6 meses, por lei.
+
+### 11.7 Fora do código: o que depende de você
+
+1. **Cloudflare Turnstile:** criar o widget (gratuito) e pôr na Vercel `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+   e `BRENNIMARK_TURNSTILE_SECRET`. Em desenvolvimento uso as chaves de teste públicas da Cloudflare.
+2. **Supabase de produção:** ligar *Anonymous sign-ins*. No local, `enable_anonymous_sign_ins = true`
+   em `supabase/config.toml` (entra na fatia). Nada disso é ligado sem sua autorização nominal.
+3. **A marca do tour:** importar o manual numa conta "Demonstração" e então preencher
+   `private.demonstracao_config`. Até lá o tour fica desligado e a entrada recusa.
+
+### 11.8 Divisão em PRs
+
+- **2a — banco:** migration (item 11.3) + prova da fatia 1 estendida + `prova-do-visitante-sem-vinculo`.
+- **2b — servidor:** `lib/demonstracao` (Turnstile, entrada, limpeza), as duas rotas, `vercel.json`,
+  `config.toml`, testes de unidade.
+- **2c — tela:** `/demonstracao`, aviso de privacidade, estados de erro (tour desligado, captcha
+  falhou, muitas tentativas).
+
+Reversibilidade: 2a e 2b são baratas de desfazer (função e rotas novas). Ligar o login anônimo em
+produção é configuração, reversível, mas **enquanto estiver ligada a superfície do 11.5 está exposta**;
+por isso é o último passo, depois da prova verde.
+
+### 11.9 Decisões que travam o desenho
+
+1. Turnstile guarda o vínculo (11.1), e não o login. Aprova?
+2. Limpeza diária (sem custo) ou de hora em hora (exige Vercel Pro)?
+3. O nome que o visitante ganha: "Visitante". Serve?
