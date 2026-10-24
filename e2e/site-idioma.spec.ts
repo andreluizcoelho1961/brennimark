@@ -158,3 +158,30 @@ test("Termos e Privacidade em português seguem iguais, com a mesma versão", as
   await page.goto("/privacidade");
   await expect(page.locator('.legal a[href="/termos#dados-tratados-em-nome-do-assinante"]')).toHaveCount(1);
 });
+
+test("O Fonts em inglês: recursos, comparação com o FontBase, perguntas e o pedido de acesso", async ({ page }) => {
+  await page.goto("/en/fonts");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("The font manager built for people who work with brands.");
+  await expect(page.locator(".fx-beta")).toContainText("Closed beta, free, by invitation");
+  // Os 12 recursos, as 12 linhas da comparação (mais o cabeçalho) e as 8 perguntas.
+  await expect(page.locator(".fx-grid li")).toHaveCount(12);
+  await expect(page.locator('.fx-tab [role="row"]')).toHaveCount(13);
+  await expect(page.locator('.fx-tab [role="columnheader"]').nth(1)).toHaveText("Brennimark Fonts (beta)");
+  await expect(page.locator('.fx-tab [data-melhor]')).toHaveCount(8);
+  await expect(page.locator(".faq details")).toHaveCount(8);
+  // O aviso de lançamento leva o assunto em inglês, e a janela desenhada também fala inglês.
+  await expect(page.getByRole("link", { name: /Notify me of the launch/ })).toHaveAttribute("href", /subject=Please%20notify%20me%20of%20the%20Brennimark%20Fonts%20launch/);
+  await expect(page.locator(".fx-demo")).toContainText("Name conflict");
+  await expect(page.locator('a.rel[href="/en/font-license"]')).toContainText("Company");
+  await expect(page.locator('a.rel[href="/en/agencies"]')).toContainText("Who it's for");
+  await expect(page.getByRole("button", { name: /Request beta access/ })).toBeVisible();
+});
+
+test("O Fonts em português segue igual: recursos, comparação e perguntas", async ({ page }) => {
+  await page.goto("/fonts");
+  await expect(page.locator(".fx-grid li")).toHaveCount(12);
+  await expect(page.locator('.fx-tab [data-melhor]')).toHaveCount(8);
+  await expect(page.locator(".fx-demo")).toContainText("Conflito de nome");
+  await expect(page.getByRole("link", { name: /Avisar-me do lançamento/ })).toHaveAttribute("href", /subject=Avisem-me/);
+});
