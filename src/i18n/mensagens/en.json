@@ -72,5 +72,122 @@
     "semTitulo": "This brand doesn't have an original manual yet",
     "semTexto": "The original manual is the PDF uploaded at import. Brands created before this screen may not have the file attached — importing again fixes it, and nothing that already exists is deleted.",
     "importar": "Import a manual"
+  },
+  "site": {
+    "chrome": {
+      "inicio": "Brennimark, home",
+      "navPrincipal": "Main navigation",
+      "plataforma": "Platform",
+      "aPlataforma": "The platform",
+      "paraQuem": "Who it's for",
+      "recursos": "Resources",
+      "fonts": "Fonts",
+      "beta": "Beta",
+      "ferramentas": "Tools",
+      "planos": "Plans",
+      "menu": "Menu",
+      "agendar": "Book a demo",
+      "agendarUma": "Book a demo",
+      "fontsBeta": "Brennimark Fonts · beta",
+      "ferramentasGratuitas": "Free tools",
+      "carimboAria": "Book a demo",
+      "carimboAnel": "BOOK A DEMO ✦ FORGED WITH CARE ✦",
+      "dialogoFechar": "Close",
+      "dialogoTitulo": "Let us show you Brennimark at work.",
+      "dialogoTexto": "Write to the sales team. We'll set up a demo with you, in person at your agency or by video.",
+      "dialogoEndereco": "‹sales email to be defined›",
+      "dialogoPrototipo": "Prototype: the contact address doesn't exist yet.",
+      "entrar": "Sign in",
+      "abrirPlataforma": "Open the platform"
+    },
+    "rodape": {
+      "manifesto": "Manifesto",
+      "ajuda": "Help center",
+      "suporte": "Support",
+      "seguranca": "Security",
+      "termos": "Terms",
+      "privacidade": "Privacy",
+      "institucional": "Company",
+      "voltarInicio": "Brennimark, back to home",
+      "empresa": "© Brennimark · CNPJ {cnpj} · Contact: <mail></mail>",
+      "ferramentasAria": "Free tools",
+      "kit": "Kit: every logo size",
+      "cores": "Colors: what color is this?",
+      "grids": "Grids: the grid ready for InDesign"
+    },
+    "idioma": {
+      "aria": "Language",
+      "paraIngles": "English",
+      "paraPortugues": "Português",
+      "avisoIngles": "This page isn't available in English yet. You are seeing the Portuguese version.",
+      "avisoPortugues": "Esta página ainda não está disponível em inglês. Você está vendo a versão em português.",
+      "fechar": "Dismiss"
+    },
+    "paginas": {
+      "manual": {
+        "titulo": "The manual as a PDF",
+        "resumo": "Faithful to what the studio laid out, with index and search"
+      },
+      "materiais": {
+        "titulo": "Brand materials",
+        "resumo": "The whole kit in one click, with the rule attached"
+      },
+      "vini": {
+        "titulo": "Vini Max",
+        "resumo": "Answers, piece review and prompts aligned with the brand"
+      },
+      "fonts": {
+        "titulo": "Brennimark Fonts",
+        "resumo": "A font manager per brand, in beta"
+      },
+      "seguranca": {
+        "titulo": "Security and privacy",
+        "resumo": "Access by brand, private conversations, your data"
+      },
+      "agencias": {
+        "titulo": "Agencies and studios",
+        "resumo": "The brand delivered ready to use"
+      },
+      "empresas": {
+        "titulo": "Companies",
+        "resumo": "Suppliers and teams with the same reference"
+      },
+      "ajuda": {
+        "titulo": "Help center",
+        "resumo": "Guides and frequently asked questions"
+      },
+      "manifesto": {
+        "titulo": "Manifesto",
+        "resumo": "Why Brennimark exists"
+      },
+      "termos": {
+        "titulo": "Terms of use",
+        "resumo": "The conditions for using the platform"
+      },
+      "privacidade": {
+        "titulo": "Privacy",
+        "resumo": "How data is handled"
+      },
+      "licenca-de-fontes": {
+        "titulo": "Font license",
+        "resumo": "The brand font and its license"
+      }
+    },
+    "manifesto": {
+      "crumb": "Manifesto",
+      "titulo": "A brand is forged with care. And it has to stay alive in every piece of work.",
+      "lead": "<em>Brennimark</em>, in Icelandic, is the fire brand: the sign burned in with iron that said who something belonged to. The English word <em>brand</em> comes from the same idea of burning.",
+      "p1": "It has been more than forty years of design and art direction. In almost all of them, the same difficulty came back: the deadline running, the manual in a long PDF, the files scattered across folders and the answer that took too long to arrive.",
+      "pull1": "Brennimark is the help I always wanted to have.",
+      "p2": "A brand is born from the careful work of the people who create it: the drawing of the symbol, the weight of each letter, the exact color, the space around it. Then it goes on to many hands: the agency, the supplier, the printer, whoever has just joined the team. Each one carries the idea forward.",
+      "p3": "Brennimark brings together the manual as the studio designed it, the up-to-date materials and the guidance the brand gains over time. Vini helps find the answer, with the source, so that time goes back to what matters: thinking, researching and creating.",
+      "p4": "A living brand is not a rigid brand. It evolves, gains new guidance and sometimes reinvents itself, and everyone needs to follow the current version.",
+      "p5": "We respect the authorship of those who created it and the decision of those who apply it. We don't invent rules, and we say clearly when there is no safe answer.",
+      "pull2": "Forged with care. Alive in every piece of work.",
+      "marqueeA": "Forged with care",
+      "marqueeB": "Alive in every piece of work",
+      "cta": "Keep your brand alive.",
+      "ctaBotao": "Book a demo"
+    }
   }
 }

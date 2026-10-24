@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA } from "@/lib/site/empresa";
 import { paginaDoSite } from "@/lib/site/paginas";
+import { caminhoDoSite, type IdiomaDoSite } from "@/lib/site/idiomas";
+import { idiomaDoSiteAtual } from "@/lib/site/idioma-atual";
 import { metadadosDoSite } from "./metadados";
 import { MolduraDoSite } from "./MolduraDoSite";
 
@@ -15,7 +18,22 @@ export function metadadosDaPagina(slug: string): Metadata {
   return metadadosDoSite({ titulo: `${titulo} · Brennimark`, descricao: resumo });
 }
 
-export function PaginaDoSite({ children }: { children: React.ReactNode }) {
+/**
+ * Os metadados de uma página que tem mais de um idioma: título e descrição do
+ * catálogo, `og:locale` do idioma e os endereços equivalentes (`hreflang`), que
+ * valem quando o site sair de trás do `noindex`.
+ */
+export async function metadadosDaPaginaNoIdioma(slug: string, idioma: IdiomaDoSite): Promise<Metadata> {
+  const t = await getTranslations({ locale: idioma, namespace: "site.paginas" });
+  return metadadosDoSite({
+    titulo: `${t(`${slug}.titulo`)} · Brennimark`,
+    descricao: t(`${slug}.resumo`),
+    idioma,
+    caminhoPt: `/${slug}`,
+  });
+}
+
+export async function PaginaDoSite({ children }: { children: React.ReactNode }) {
   return (
     <MolduraDoSite pagina>
       <article className="page on">
@@ -26,34 +44,39 @@ export function PaginaDoSite({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Os links do rodapé das páginas, como no protótipo. */
-const RODAPE: { href: string; rotulo: string }[] = [
-  { href: "/manifesto", rotulo: "Manifesto" },
-  { href: "/ajuda", rotulo: "Central de ajuda" },
-  { href: "/ajuda#suporte", rotulo: "Suporte" },
-  { href: "/seguranca", rotulo: "Segurança" },
-  { href: "/termos", rotulo: "Termos" },
-  { href: "/privacidade", rotulo: "Privacidade" },
+/** Os links do rodapé das páginas, como no protótipo. `chave` é a do catálogo (`site.rodape`). */
+const RODAPE: { href: string; chave: "manifesto" | "ajuda" | "suporte" | "seguranca" | "termos" | "privacidade" }[] = [
+  { href: "/manifesto", chave: "manifesto" },
+  { href: "/ajuda", chave: "ajuda" },
+  { href: "/ajuda#suporte", chave: "suporte" },
+  { href: "/seguranca", chave: "seguranca" },
+  { href: "/termos", chave: "termos" },
+  { href: "/privacidade", chave: "privacidade" },
 ];
 
-function RodapeDaPagina() {
+async function RodapeDaPagina() {
+  const idioma = await idiomaDoSiteAtual();
+  const t = await getTranslations("site.rodape");
   return (
     <footer className="site-foot pg-foot">
-      <Link className="lockup" href="/" aria-label="Brennimark, voltar ao início">
+      <Link className="lockup" href={caminhoDoSite(idioma, "/")} aria-label={t("voltarInicio")}>
         <svg viewBox="0 0 750 170" role="img" aria-label="Brennimark">
           <use href="#bm-logo" />
         </svg>
       </Link>
-      <nav className="foot-links" aria-label="Institucional">
-        {RODAPE.map(({ href, rotulo }) => (
-          <Link key={rotulo} href={href}>
-            {rotulo}
+      <nav className="foot-links" aria-label={t("institucional")}>
+        {RODAPE.map(({ href, chave }) => (
+          <Link key={chave} href={caminhoDoSite(idioma, href)}>
+            {t(chave)}
           </Link>
         ))}
       </nav>
       <LinksDasFerramentas />
       <span className="foot-empresa" data-empresa>
-        © Brennimark · CNPJ {EMPRESA.cnpj} · Contato: <a href={`mailto:${EMPRESA.email}`}>{EMPRESA.email}</a>
+        {t.rich("empresa", {
+          cnpj: EMPRESA.cnpj,
+          mail: () => <a href={`mailto:${EMPRESA.email}`}>{EMPRESA.email}</a>,
+        })}
       </span>
     </footer>
   );

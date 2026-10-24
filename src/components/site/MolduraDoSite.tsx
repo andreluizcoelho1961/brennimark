@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { getTranslations } from "next-intl/server";
 import { Cabecalho } from "./Cabecalho";
 import { ComportamentoDoSite } from "./ComportamentoDoSite";
 import { fonteDoSite } from "./fonte";
 import { SimbolosDoSite } from "./Simbolos";
+import { AvisoDeIdioma } from "./AvisoDeIdioma";
 
 /**
  * Liga o movimento ANTES da primeira pintura, para os blocos já nascerem no
@@ -22,21 +24,23 @@ const LIGAR_MOVIMENTO = `(function(){var h=document.documentElement;if(matchMedi
  * `pagina` distingue as páginas internas da home; as duas rolam na vertical.
  * `home` liga o ajuste de seções da página inicial (`.home-v` no CSS).
  */
-export function MolduraDoSite({ pagina = false, home = false, children }: { pagina?: boolean; home?: boolean; children: ReactNode }) {
+export async function MolduraDoSite({ pagina = false, home = false, children }: { pagina?: boolean; home?: boolean; children: ReactNode }) {
+  const t = await getTranslations("site.chrome");
   return (
     <div className={`bm-site ${fonteDoSite.variable}${pagina ? " on-page" : ""}${home ? " home-v" : ""}`}>
       <script dangerouslySetInnerHTML={{ __html: LIGAR_MOVIMENTO }} />
       <SimbolosDoSite />
       <Cabecalho />
+      <AvisoDeIdioma />
       <div className="grain" aria-hidden="true" />
-      <button className="stamp-cta" type="button" data-open="dlg-demo" aria-label="Agendar uma demonstração">
+      <button className="stamp-cta" type="button" data-open="dlg-demo" aria-label={t("carimboAria")}>
         <svg className="stamp-ring" viewBox="0 0 120 120" aria-hidden="true">
           <defs>
             <path id="stamp-c" d="M60,60 m-45,0 a45,45 0 1,1 90,0 a45,45 0 1,1 -90,0" />
           </defs>
           <text>
             <textPath href="#stamp-c" textLength="280" lengthAdjust="spacing">
-              AGENDAR DEMONSTRAÇÃO ✦ FORJADA COM CUIDADO ✦{" "}
+              {t("carimboAnel")}{" "}
             </textPath>
           </text>
         </svg>
@@ -56,16 +60,17 @@ export function MolduraDoSite({ pagina = false, home = false, children }: { pagi
  * ferramentas gratuitas o terem também: o cabeçalho do site vai ao topo delas,
  * e o botão dele precisa de onde abrir.
  */
-export function DialogoDeDemonstracao() {
+export async function DialogoDeDemonstracao() {
+  const t = await getTranslations("site.chrome");
   return (
     <dialog id="dlg-demo" aria-labelledby="dlg-demo-t">
-      <button className="dlg-close" type="button" data-close aria-label="Fechar">
+      <button className="dlg-close" type="button" data-close aria-label={t("dialogoFechar")}>
         ×
       </button>
-      <h2 id="dlg-demo-t">Vamos mostrar o Brennimark funcionando.</h2>
-      <p>Escreva para a equipe comercial. Marcamos com você uma demonstração presencial, na sua agência, ou por vídeo.</p>
-      <span className="addr">‹e-mail comercial a definir›</span>
-      <p>Protótipo: o endereço de contato ainda não existe.</p>
+      <h2 id="dlg-demo-t">{t("dialogoTitulo")}</h2>
+      <p>{t("dialogoTexto")}</p>
+      <span className="addr">{t("dialogoEndereco")}</span>
+      <p>{t("dialogoPrototipo")}</p>
     </dialog>
   );
 }

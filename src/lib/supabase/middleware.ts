@@ -13,7 +13,8 @@ export async function updateSession(request: NextRequest, evento?: NextFetchEven
   if (idioma.tipo === "redirecionar") {
     const url = request.nextUrl.clone();
     url.pathname = idioma.para;
-    return NextResponse.redirect(url, 308);
+    if (idioma.aviso) url.searchParams.set("idioma", "indisponivel");
+    return NextResponse.redirect(url, idioma.permanente ? 308 : 307);
   }
   // Resposta que segue adiante: reescrita para o site em português, ou a de sempre.
   // Todo lugar que cria resposta passa por aqui, para a reescrita nunca se perder

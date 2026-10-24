@@ -94,6 +94,7 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CAMINHOS_DO_SITE } from "../site/paginas";
+import { caminhoDoSite, caminhoPtDeOutroIdioma, paginaTraduzida } from "../site/idiomas";
 
 export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/", "/receber/", "/api/receber/", "/ajuda/", "/sair/", "/confirmar/", "/api/sair/"] as const;
 
@@ -123,19 +124,37 @@ export function ehDoSite(pathname: string): boolean {
  *   endereço que a pessoa vê e compartilha continua `/vini`.
  * - `/pt-BR/...` direto: REDIRECIONA (308) para o endereço sem prefixo. Duas
  *   URLs para a mesma página dividiriam links e buscador.
- * - `/en/...`: segue como veio; o idioma já está no endereço.
+ * - `/en/...` com endereço traduzido (`/en/agencies`): REESCREVE para a pasta
+ *   (`/en/agencias`), que existe uma só, em português.
+ * - `/en/agencias` (pasta em português com prefixo): REDIRECIONA (308) para o
+ *   endereço traduzido (`/en/agencies`).
+ * - Página que ainda não tem versão no idioma: REDIRECIONA (307, é provisório)
+ *   para a equivalente em português, com um aviso (`?idioma=indisponivel`) que
+ *   a página lê para dizer o porquê. Nada de 404 nem de texto misturado.
  * - O resto (plataforma, API): intocado.
  */
 export type DecisaoDeIdioma =
   | { tipo: "nenhuma" }
   | { tipo: "reescrever"; para: string }
-  | { tipo: "redirecionar"; para: string };
+  | { tipo: "redirecionar"; para: string; permanente: boolean; aviso: boolean };
 
 export function decisaoDeIdiomaDoSite(pathname: string): DecisaoDeIdioma {
   if (pathname === "/pt-BR" || pathname.startsWith("/pt-BR/")) {
-    return { tipo: "redirecionar", para: pathname.slice("/pt-BR".length) || "/" };
+    return { tipo: "redirecionar", para: pathname.slice("/pt-BR".length) || "/", permanente: true, aviso: false };
   }
-  if (pathname === "/en" || pathname.startsWith("/en/")) return { tipo: "nenhuma" };
+  if (pathname === "/en" || pathname.startsWith("/en/")) {
+    const resto = pathname.slice("/en".length) || "/";
+    const pt = caminhoPtDeOutroIdioma("en", resto);
+    if (pt === null) {
+      // `/en/agencias`: pasta em português com prefixo. Vale como a traduzida.
+      if (resto !== "/" && ehDoSite(resto)) return { tipo: "redirecionar", para: caminhoDoSite("en", resto), permanente: true, aviso: false };
+      return { tipo: "nenhuma" };
+    }
+    if (!ehDoSite(pt)) return { tipo: "nenhuma" };
+    if (!paginaTraduzida("en", pt)) return { tipo: "redirecionar", para: pt, permanente: false, aviso: true };
+    const pasta = pt === "/" ? "/en" : `/en${pt}`;
+    return pasta === pathname ? { tipo: "nenhuma" } : { tipo: "reescrever", para: pasta };
+  }
   if (ehDoSite(pathname)) return { tipo: "reescrever", para: pathname === "/" ? "/pt-BR" : `/pt-BR${pathname}` };
   return { tipo: "nenhuma" };
 }
