@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { artigoPorSlug, listarArtigos } from "@/lib/ajuda/artigos";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { renderizarArtigo } from "@/lib/ajuda/markdown";
+import { inEnglish } from "@/platform/locale";
 
 /**
  * A ajuda da moldura (17/10/2026): o painel Ajuda lê os artigos por aqui.
@@ -17,12 +19,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const slug = new URL(request.url).searchParams.get("slug");
+  // O painel fala o idioma da PESSOA (cookie, perfil ou navegador), como o resto da plataforma.
+  const idioma = await idiomaDaSessao();
   if (!slug) {
     return NextResponse.json({
-      artigos: listarArtigos().map(({ slug: s, titulo, resumo, categoria }) => ({ slug: s, titulo, resumo, categoria })),
+      artigos: listarArtigos(idioma).map(({ slug: s, titulo, resumo, categoria }) => ({ slug: s, titulo, resumo, categoria })),
     });
   }
-  const artigo = artigoPorSlug(slug);
-  if (!artigo) return NextResponse.json({ message: "Artigo não encontrado." }, { status: 404 });
-  return NextResponse.json({ slug: artigo.slug, titulo: artigo.titulo, html: renderizarArtigo(artigo.corpo, "marca") });
+  const artigo = artigoPorSlug(slug, idioma);
+  if (!artigo) return NextResponse.json({ message: inEnglish(idioma) ? "Article not found." : "Artigo não encontrado." }, { status: 404 });
+  return NextResponse.json({ slug: artigo.slug, titulo: artigo.titulo, html: renderizarArtigo(artigo.corpo, "marca", idioma) });
 }
