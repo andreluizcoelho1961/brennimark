@@ -108,3 +108,11 @@ test("a recusa do servidor aparece e a marca continua", async ({ page }) => {
   await expect(secao.getByRole("alert")).toHaveText("Não foi possível excluir a marca.");
   await expect(page).toHaveURL(/\/dev\/admin-panel/);
 });
+
+test("apagar a marca avisa o que acontece com os links de entrega e com os registros", async ({ page }) => {
+  await page.goto("/dev/admin-panel");
+  const secao = page.getByRole("region", { name: "Apagar marca" });
+  const aviso = secao.locator("[data-aviso-do-que-fica]");
+  await expect(aviso).toContainText("links de entrega desta marca deixam de funcionar");
+  await expect(aviso).toContainText("continuam guardados, mas deixam de aparecer em Registros");
+});
