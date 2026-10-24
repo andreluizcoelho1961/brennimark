@@ -1,7 +1,8 @@
 import { ConteudoAgencias } from "@/components/site/paginas/Agencias";
-import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
+import { metadadosDoIdioma, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosDaPagina("agencias");
+/** Esta página existe em português e em inglês: o título e a prévia de link seguem o idioma do endereço. */
+export const generateMetadata = metadadosDoIdioma("agencias");
 
 export default function Pagina() {
   return (

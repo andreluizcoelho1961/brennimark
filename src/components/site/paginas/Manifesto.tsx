@@ -1,6 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
+import { BotaoDemonstracao, FaixaDaMarca, Trilha } from "../comum";
 
 /**
  * Manifesto — `/manifesto` e `/en/manifesto`. Texto do protótipo de 29/09/2026,
@@ -10,14 +11,11 @@ import { Titulo } from "../Titulo";
 export async function ConteudoManifesto() {
   const t = await getTranslations("site.manifesto");
   const em = (trecho: React.ReactNode) => <em>{trecho}</em>;
-  const marquee = (
-    <span>{t("marqueeA")} <i>✦</i> {t("marqueeB")} <i>✦</i> </span>
-  );
   return (
     <>
       <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
       <div className="pg-wrap mani">
-      <p className="crumb"><a href="#" data-open-menu="m-rec">{(await getTranslations("site.chrome"))("recursos")}</a> · {t("crumb")}</p>
+      <Trilha menu="m-rec" grupo="recursos" pagina={t("crumb")} />
       <Titulo como="h1" className="pg-h1" partes={[t("titulo")]} />
       <p className="mani-lead">{t.rich("lead", { em })}</p>
       <div className="mani-body">
@@ -32,11 +30,11 @@ export async function ConteudoManifesto() {
       </div>
       </section>
 
-      <div className="marquee" aria-hidden="true"><div className="mq-track">{marquee}{marquee}{marquee}{marquee}</div></div>
+      <FaixaDaMarca />
       <section className="pg-sec"><Losango classe="l4" velocidade={0.25} />
       <div className="pg-wrap cta-band">
       <Titulo partes={[t("cta")]} />
-      <button className="btn" type="button" data-open="dlg-demo">{t("ctaBotao")} <span className="arrow" aria-hidden="true">↗</span></button>
+      <BotaoDemonstracao />
       </div>
       </section>
     </>

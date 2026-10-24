@@ -184,10 +184,152 @@
       "p4": "A living brand is not a rigid brand. It evolves, gains new guidance and sometimes reinvents itself, and everyone needs to follow the current version.",
       "p5": "We respect the authorship of those who created it and the decision of those who apply it. We don't invent rules, and we say clearly when there is no safe answer.",
       "pull2": "Forged with care. Alive in every piece of work.",
-      "marqueeA": "Forged with care",
-      "marqueeB": "Alive in every piece of work",
       "cta": "Keep your brand alive.",
       "ctaBotao": "Book a demo"
+    },
+    "comum": {
+      "marqueeA": "Forged with care",
+      "marqueeB": "Alive in every piece of work",
+      "verPlanos": "See the plans",
+      "plataforma": "Platform",
+      "depoimentoFicticio": "Fictional testimonial",
+      "depoimentoNota": "layout placeholder text",
+      "perguntas": "Questions",
+      "antesDepois": "Before and after",
+      "paraQuem": "Who it's for",
+      "recursos": "Resources"
+    },
+    "agencias": {
+      "titulo": "The brands in your portfolio, ready for the team's everyday work.",
+      "lead": "It works for the brand the studio has just created and for one that arrived finished from somewhere else. The manual stays as it was designed, and starts helping the people who work with it every day.",
+      "imagemAlt": "Hands leafing through pages of a brand manual on a table",
+      "p1t": "Organize several brands",
+      "p1": "The whole portfolio in one place, each brand with its own manual and its own materials.",
+      "p2t": "Bring newcomers on board",
+      "p2": "Freelancers and new colleagues find the guidance without depending on whoever remembers.",
+      "p3t": "Guide suppliers",
+      "p3": "Printers, production houses and photographers get the current version, and the rule with it.",
+      "p4t": "Keep the brand as a service",
+      "p4": "The gaps the team finds become work to take up with the client.",
+      "fimTitulo": "The end of \"which orange is the right one?\".",
+      "d1a": "The PDF goes out by email and disappears",
+      "d1b": "The manual stays online, with its own link",
+      "d2a": "Every new supplier, an hour of explaining",
+      "d2b": "The invitation explains itself",
+      "d3a": "\"Can you send me the logo in high-res?\"",
+      "d3b": "The whole kit in one click",
+      "d4a": "The font nobody has",
+      "d4b": "The font comes along, with its license",
+      "d5a": "The doubt shows up the day before delivery",
+      "d5b": "Vini helps review it beforehand",
+      "ganhaEyebrow": "What the agency gains",
+      "ganhaTitulo": "What your team gets.",
+      "citacao": "We hand over the brand and it keeps on working. The manual is no longer a file nobody opens.",
+      "faqTitulo": "For agencies.",
+      "q1": "How many brands fit?",
+      "a1": "It depends on the plan: from 5 to about 30, and on request above that. People, unlimited.",
+      "q2": "Can I charge the client for it?",
+      "a2": "The subscription belongs to the agency. How you include this in your service is up to you.",
+      "q3": "Is there help getting started?",
+      "a3": "Yes. On the larger plans, our team assists with the setup.",
+      "cta": "Show your next client the brand at work."
+    },
+    "studio": {
+      "titulo": "Studio is where the agency looks after all its brands.",
+      "corpo": "Publish manuals, organize materials, write supplements, invite people and follow everything, brand by brand, in one place.",
+      "portasEyebrow": "Two doors",
+      "portasTitulo": "Studio for those who manage. Book for those who consult.",
+      "portasCorpo": "The same brand, two experiences. Whoever only needs to use the brand never runs into editing tools.",
+      "studioQuem": "For those who manage",
+      "studioTexto": "Publishes the manual, organizes the materials, writes supplements, invites people and follows the records.",
+      "bookQuem": "For those who consult",
+      "bookTexto": "Reads the manual, downloads the materials and asks Vini. Without a single button that isn't meant for them.",
+      "statusEyebrow": "Clear status",
+      "statusTitulo": "What is approved, what is a draft, and who decides.",
+      "statusCorpo": "Every item has a status: draft, in review or published. Adding an image or a text doesn't change the status; only the approval of whoever manages the brand does. The team and Vini use what is published.",
+      "t1": "Status visible on every item",
+      "t2": "Approval before publishing",
+      "t3": "Vini only cites what is published",
+      "rascunho": "Draft",
+      "rascunhoTexto": "The agency assembles, uploads and writes.",
+      "revisao": "In review",
+      "revisaoTexto": "Someone checks before publishing.",
+      "publicado": "Published",
+      "publicadoTexto": "The team sees it, and Vini starts citing it.",
+      "faqTitulo": "About Studio.",
+      "q1": "Who gets into Studio?",
+      "a1": "Whoever subscribes and the people they give the role of managing a brand.",
+      "q2": "Can several people administer?",
+      "a2": "Yes, each with their own access. No shared passwords.",
+      "q3": "Does the agency's client see Studio?",
+      "a3": "Only if the agency wants them to administer the brand too. To consult, they use Book."
+    },
+    "empresas": {
+      "titulo": "Agencies, suppliers and teams with the same reference.",
+      "lead": "Up-to-date materials, accessible guidance and fewer repeated questions. Access by brand and the time-limited link make this work without bureaucracy.",
+      "imagemAlt": "The records: who downloaded which material, when and in which brand",
+      "fimTitulo": "The brand stops depending on whoever remembers where the file is.",
+      "d1a": "Each agency with its own version of the logo",
+      "d1b": "One current version, and the old ones marked",
+      "d2a": "A supplier who left with access to everything",
+      "d2b": "Access by brand, revoked in one click",
+      "d3a": "Each supplier with a different file",
+      "d3b": "Everyone downloads the current version",
+      "d4a": "Manual kept with the former agency",
+      "d4b": "The brand stays with the company",
+      "d5a": "Training every new person",
+      "d5b": "Vini answers with the page",
+      "ganhaEyebrow": "What the company gains",
+      "ganhaTitulo": "Consistency without bureaucracy.",
+      "citacao": "Sending the kit to the printer with a link that expires changed our late afternoons. And they always get the current version.",
+      "faqTitulo": "For companies.",
+      "q1": "Our agency already uses Brennimark. How does it work?",
+      "a1": "The agency manages the brand in Studio and invites your team to consult. If you prefer, the subscription can be the company's.",
+      "q2": "We have several brands and units.",
+      "a2": "The Corporate plan is made for that, with a tailored proposal.",
+      "q3": "Can we change agencies?",
+      "a3": "Yes. The brand stays with you, and the previous agency's access is revoked.",
+      "cta": "Talk to the team about the Corporate plan."
+    },
+    "licencaDeFontes": {
+      "titulo": "The brand font and its license.",
+      "lead": "Document in progress. It will describe the term the subscriber accepts before hosting the brand font.",
+      "resumoEyebrow": "In short",
+      "resumoTitulo": "What this document covers.",
+      "q1": "Who answers for the license",
+      "a1": "The subscriber, who declares holding the font license for the people of that brand.",
+      "q2": "How the font is served",
+      "a2": "For download only, to authenticated members of that brand. Never as a public address, webfont or delivery link.",
+      "q3": "Record of acceptance",
+      "a3": "Each font upload records who accepted and when.",
+      "q4": "Withdrawal",
+      "a4": "If a foundry asks, the font is withdrawn and the subscriber is notified."
+    },
+    "relacionados": {
+      "entrega": {
+        "titulo": "Delivery and access",
+        "resumo": "Time-limited link and access by brand."
+      },
+      "complementos": {
+        "titulo": "Supplements and gaps",
+        "resumo": "What the manual doesn't say, written down and cited."
+      },
+      "studio": {
+        "titulo": "Studio",
+        "resumo": "Where the agency publishes and looks after the brand."
+      },
+      "manual": {
+        "resumo": "Faithful to what the studio laid out."
+      },
+      "materiais": {
+        "resumo": "The whole kit in one click, with the rule attached."
+      },
+      "vini": {
+        "resumo": "Answers, piece review and prompts aligned with the brand."
+      },
+      "seguranca": {
+        "resumo": "Access by brand, private conversations, your data."
+      }
     }
   }
 }

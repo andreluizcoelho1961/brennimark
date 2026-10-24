@@ -1,13 +1,8 @@
-import type { Metadata } from "next";
 import { ConteudoManifesto } from "@/components/site/paginas/Manifesto";
-import { metadadosDaPaginaNoIdioma, PaginaDoSite } from "@/components/site/PaginaDoSite";
-import { idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
+import { metadadosDoIdioma, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-/** O Manifesto existe em português e em inglês: o título e a prévia de link seguem o idioma do endereço. */
-export async function generateMetadata({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> {
-  const { lang } = await params;
-  return metadadosDaPaginaNoIdioma("manifesto", idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE);
-}
+/** Esta página existe em português e em inglês: o título e a prévia de link seguem o idioma do endereço. */
+export const generateMetadata = metadadosDoIdioma("manifesto");
 
 export default function Pagina() {
   return (

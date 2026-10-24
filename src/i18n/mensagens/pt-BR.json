@@ -184,10 +184,152 @@
       "p4": "Uma marca viva não é uma marca rígida. Ela evolui, ganha orientações novas e às vezes se reinventa, e todos precisam acompanhar a versão atual.",
       "p5": "Respeitamos a autoria de quem criou e a decisão de quem aplica. Não inventamos regra, e dizemos com clareza quando não há uma resposta segura.",
       "pull2": "Forjada com cuidado. Viva em cada trabalho.",
-      "marqueeA": "Forjada com cuidado",
-      "marqueeB": "Viva em cada trabalho",
       "cta": "Mantenha a sua marca viva.",
       "ctaBotao": "Agendar uma demonstração"
+    },
+    "comum": {
+      "marqueeA": "Forjada com cuidado",
+      "marqueeB": "Viva em cada trabalho",
+      "verPlanos": "Ver os planos",
+      "plataforma": "Plataforma",
+      "depoimentoFicticio": "Depoimento fictício",
+      "depoimentoNota": "texto de marcação do layout",
+      "perguntas": "Perguntas",
+      "antesDepois": "Antes e depois",
+      "paraQuem": "Para quem",
+      "recursos": "Recursos"
+    },
+    "agencias": {
+      "titulo": "As marcas da sua carteira, prontas para o dia a dia da equipe.",
+      "lead": "Vale para a marca que o estúdio acabou de criar e para a que chegou pronta de outro lugar. O manual continua como foi desenhado, e passa a ajudar quem trabalha com ele todos os dias.",
+      "imagemAlt": "Mãos folheando pranchas de um manual de marca sobre a mesa",
+      "p1t": "Organizar várias marcas",
+      "p1": "A carteira inteira num lugar, cada marca com o seu manual e os seus materiais.",
+      "p2t": "Integrar quem chega",
+      "p2": "Freelancers e colaboradores novos encontram a orientação sem depender de quem lembra.",
+      "p3t": "Orientar fornecedores",
+      "p3": "Gráfica, produtora e fotógrafo recebem a versão atual e a regra junto.",
+      "p4t": "Manter a marca como serviço",
+      "p4": "As lacunas que a equipe encontra viram pauta de trabalho com o cliente.",
+      "fimTitulo": "O fim do \"qual é o laranja certo?\".",
+      "d1a": "O PDF vai por e-mail e some",
+      "d1b": "O manual fica no ar, com link próprio",
+      "d2a": "Cada fornecedor novo, uma hora explicando",
+      "d2b": "O convite explica sozinho",
+      "d3a": "\"Me manda o logo em alta?\"",
+      "d3b": "O kit inteiro num clique",
+      "d4a": "A fonte que ninguém tem",
+      "d4b": "A fonte vem junto, com a licença",
+      "d5a": "A dúvida aparece na véspera da entrega",
+      "d5b": "O Vini ajuda a revisar antes",
+      "ganhaEyebrow": "O que a agência ganha",
+      "ganhaTitulo": "O que a sua equipe passa a ter.",
+      "citacao": "Entregamos a marca e ela continua trabalhando. O manual deixou de ser um arquivo que ninguém abre.",
+      "faqTitulo": "Para agências.",
+      "q1": "Quantas marcas cabem?",
+      "a1": "Depende do plano: de 5 a cerca de 30, e sob consulta acima disso. Pessoas, ilimitadas.",
+      "q2": "Posso cobrar do cliente?",
+      "a2": "A assinatura é da agência. Como você inclui isso no seu serviço é decisão sua.",
+      "q3": "Tem ajuda para começar?",
+      "a3": "Sim. Nos planos maiores, a implantação é assistida pela nossa equipe.",
+      "cta": "Mostre ao seu próximo cliente a marca funcionando."
+    },
+    "studio": {
+      "titulo": "O Studio é onde a agência cuida de todas as marcas.",
+      "corpo": "Publique manuais, organize materiais, escreva complementos, convide pessoas e acompanhe tudo, marca por marca, num só lugar.",
+      "portasEyebrow": "Duas portas",
+      "portasTitulo": "O Studio para quem gere. O Book para quem consulta.",
+      "portasCorpo": "A mesma marca, duas experiências. Quem só precisa usar a marca não esbarra em ferramenta de edição.",
+      "studioQuem": "Para quem gere",
+      "studioTexto": "Publica o manual, organiza os materiais, escreve complementos, convida pessoas e acompanha os registros.",
+      "bookQuem": "Para quem consulta",
+      "bookTexto": "Lê o manual, baixa os materiais e pergunta ao Vini. Sem nenhum botão que não seja para ele.",
+      "statusEyebrow": "Status claro",
+      "statusTitulo": "O que está aprovado, o que é rascunho e quem decide.",
+      "statusCorpo": "Cada item tem um status: rascunho, em revisão ou publicado. Acrescentar uma imagem ou um texto não muda o status; só a aprovação de quem gere a marca muda. A equipe e o Vini usam o que está publicado.",
+      "t1": "Status visível em cada item",
+      "t2": "Aprovação antes de publicar",
+      "t3": "O Vini só cita o publicado",
+      "rascunho": "Rascunho",
+      "rascunhoTexto": "A agência monta, sobe e escreve.",
+      "revisao": "Em revisão",
+      "revisaoTexto": "Alguém confere antes de publicar.",
+      "publicado": "Publicado",
+      "publicadoTexto": "A equipe vê, e o Vini passa a citar.",
+      "faqTitulo": "Sobre o Studio.",
+      "q1": "Quem entra no Studio?",
+      "a1": "Quem assina e as pessoas a quem ele dá o papel de gerir uma marca.",
+      "q2": "Várias pessoas podem administrar?",
+      "a2": "Sim, cada uma com o seu próprio acesso. Nada de senha compartilhada.",
+      "q3": "O cliente da agência vê o Studio?",
+      "a3": "Só se a agência quiser que ele também administre a marca. Para consultar, ele usa o Book."
+    },
+    "empresas": {
+      "titulo": "Agências, fornecedores e equipes com a mesma referência.",
+      "lead": "Materiais atualizados, orientação acessível e menos dúvidas repetidas. O acesso por marca e o link com prazo sustentam isso sem burocracia.",
+      "imagemAlt": "Os registros: quem baixou qual material, quando e em qual marca",
+      "fimTitulo": "A marca deixa de depender de quem lembra onde está o arquivo.",
+      "d1a": "Cada agência com uma versão do logo",
+      "d1b": "Uma versão atual, e as antigas marcadas",
+      "d2a": "Fornecedor que saiu com acesso a tudo",
+      "d2b": "Acesso por marca, revogado num clique",
+      "d3a": "Cada fornecedor com um arquivo diferente",
+      "d3b": "Todos baixam a versão atual",
+      "d4a": "Manual guardado com a agência antiga",
+      "d4b": "A marca fica com a empresa",
+      "d5a": "Treinar cada pessoa nova",
+      "d5b": "O Vini responde com a página",
+      "ganhaEyebrow": "O que a empresa ganha",
+      "ganhaTitulo": "Consistência sem burocracia.",
+      "citacao": "Mandar o kit para a gráfica com link que expira mudou nosso fim de tarde. E ela sempre recebe a versão atual.",
+      "faqTitulo": "Para empresas.",
+      "q1": "Nossa agência já usa o Brennimark. Como funciona?",
+      "a1": "A agência gere a marca no Studio e convida a sua equipe para consultar. Se preferirem, a assinatura pode ser da empresa.",
+      "q2": "Temos várias marcas e unidades.",
+      "a2": "O plano Corporativo é feito para isso, com proposta sob medida.",
+      "q3": "Podemos trocar de agência?",
+      "a3": "Sim. A marca continua com vocês, e o acesso da agência anterior é revogado.",
+      "cta": "Converse com a equipe sobre o plano Corporativo."
+    },
+    "licencaDeFontes": {
+      "titulo": "A fonte da marca e a licença dela.",
+      "lead": "Documento em elaboração. Ele vai descrever o termo que o assinante aceita antes de hospedar a fonte da marca.",
+      "resumoEyebrow": "Em resumo",
+      "resumoTitulo": "O que este documento cobre.",
+      "q1": "Quem responde pela licença",
+      "a1": "O assinante, que declara ter a licença da fonte para as pessoas daquela marca.",
+      "q2": "Como a fonte é servida",
+      "a2": "Só para download, a membros autenticados daquela marca. Nunca como endereço público, webfont ou link de entrega.",
+      "q3": "Registro do aceite",
+      "a3": "Cada envio de fonte registra quem aceitou e quando.",
+      "q4": "Retirada",
+      "a4": "Se uma fundição pedir, a fonte é retirada, e o assinante é avisado."
+    },
+    "relacionados": {
+      "entrega": {
+        "titulo": "Entrega e acesso",
+        "resumo": "Link com prazo e acesso por marca."
+      },
+      "complementos": {
+        "titulo": "Complementos e lacunas",
+        "resumo": "O que o manual não diz, escrito e citado."
+      },
+      "studio": {
+        "titulo": "Studio",
+        "resumo": "Onde a agência publica e cuida da marca."
+      },
+      "manual": {
+        "resumo": "Fiel ao que o estúdio diagramou."
+      },
+      "materiais": {
+        "resumo": "O kit inteiro num clique, com a regra junto."
+      },
+      "vini": {
+        "resumo": "Consulta, revisão de peça e prompts alinhados à marca."
+      },
+      "seguranca": {
+        "resumo": "Acesso por marca, conversas privadas, dados seus."
+      }
     }
   }
 }
