@@ -149,7 +149,7 @@ test("a V2 não veste a marca nem ramifica por instância", () => {
  * nenhum teste teria reclamado se eu tivesse esquecido a trava.
  */
 function bancadas(): string[] {
-  return listarArquivos("src/app/dev").filter(
+  return listarArquivos("src/app/(plataforma)/dev").filter(
     (arquivo) => arquivo.endsWith("page.tsx") || arquivo.endsWith("route.ts"),
   );
 }
@@ -219,7 +219,7 @@ test("as rotas de histórico exigem a utilidade contratada", () => {
  * conta nova (o gatilho `handle_new_profile` cria conta para todo perfil novo).
  */
 test("a tela de entrada não oferece cadastro", () => {
-  const login = lerCodigo("src/app/login/page.tsx");
+  const login = lerCodigo("src/app/(plataforma)/login/page.tsx");
   assert.doesNotMatch(login, /auth\.signUp\(/, "a tela de entrada voltou a criar conta");
   assert.doesNotMatch(login, /Criar conta|Create account/, "a tela de entrada voltou a oferecer cadastro");
   assert.match(login, /administrador|administrator/, "a tela precisa dizer a quem pedir acesso");
@@ -298,10 +298,10 @@ const CAMINHO_DA_MARCA = [
   "src/components/shell/WorkspaceIdentity.tsx",
   "src/lib/brennimark/context.ts",
   "src/lib/brennimark/workspace-context.ts",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
-  "src/app/layout.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
+  "src/app/(plataforma)/layout.tsx",
 ];
 
 test("o caminho da marca ativa não importa a instância global", () => {
@@ -324,7 +324,7 @@ test("nenhum código decide comportamento por hasBrand", () => {
 });
 
 test("os metadados da aplicação são do produto, não do manual", () => {
-  const codigo = lerCodigo("src/app/layout.tsx");
+  const codigo = lerCodigo("src/app/(plataforma)/layout.tsx");
   assert.match(codigo, /platformIdentity/, "o título da aba precisa vir da plataforma");
   assert.doesNotMatch(
     codigo,
@@ -339,7 +339,7 @@ test("os metadados da aplicação são do produto, não do manual", () => {
  * substituem, porque casar uma string prova ausência de chamada, não correção.
  */
 test("o layout de /docs não autentica por conta própria", () => {
-  const codigo = lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx");
+  const codigo = lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx");
   assert.doesNotMatch(
     codigo,
     /getBrennimarkAuthContext/,
@@ -382,7 +382,7 @@ test("nenhum papel é presumido quando não há sessão", () => {
 const ESCRITA = [
   "src/app/api/admin/content/route.ts",
   "src/app/api/admin/content/history/route.ts",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx",
 ];
 
 test("a escrita não consulta o registro em código", () => {
@@ -407,7 +407,7 @@ test("a escrita não se identifica por instance_key", () => {
 
 test("a administração não veste a marca por instância global", () => {
   assert.doesNotMatch(
-    lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"),
+    lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"),
     /brennimarkInstance/,
     "as seções válidas são as da marca resolvida",
   );
@@ -443,7 +443,7 @@ test("a recuperação grava os blocos de volta", () => {
 
 test("a administração oferece as páginas excluídas", () => {
   // Recuperação que existe na API e não na tela não existe para ninguém.
-  assert.match(lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"), /getDeletedPages/);
+  assert.match(lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"), /getDeletedPages/);
   assert.match(lerCodigo("src/components/admin/AdminPanel.tsx"), /deletedPages/);
 });
 
@@ -454,8 +454,8 @@ test("as rotas de laboratório continuam fechadas em produção", () => {
     ...bancadas(),
     // A rota que falha de propósito para exercitar a fronteira de erro. Aberta
     // em produção, ela seria um jeito de derrubar a tela de qualquer marca.
-    // Ela NÃO vive em `src/app/dev`, então continua nomeada aqui.
-    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/dev-falha/page.tsx",
+    // Ela NÃO vive em `src/app/(plataforma)/dev`, então continua nomeada aqui.
+    "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/dev-falha/page.tsx",
   ]) {
     const codigo = lerCodigo(rota);
     assert.match(codigo, /NODE_ENV === "production"/, `${rota} não verifica o ambiente`);
@@ -487,12 +487,12 @@ const FALAM_A_LINGUA_DO_PRODUTO = [
   "src/components/vini/PainelDoPrompt.tsx",
   "src/components/vini/ListaDeConversas.tsx",
   "src/components/analysis/FeedbackPanel.tsx",
-  "src/app/layout.tsx",
-  "src/app/login/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/analise/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/historico/page.tsx",
-  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/biblioteca/page.tsx",
+  "src/app/(plataforma)/layout.tsx",
+  "src/app/(plataforma)/login/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/analise/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/chat/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/historico/page.tsx",
+  "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/biblioteca/page.tsx",
   "src/app/api/admin/content/route.ts",
   "src/app/api/ai/chat/route.ts",
   "src/lib/ai/errors.ts",
@@ -610,7 +610,7 @@ test("as fixtures de marcas opostas continuam sendo linhas de banco", () => {
   // Uma fixture que monta o objeto final testaria o componente e não o
   // caminho — foi assim que o adaptador do prompt descartou statusLabels com
   // o CI verde. Elas precisam atravessar parseBrandRow.
-  assert.match(lerCodigo("src/app/dev/marcas/page.tsx"), /parseBrandRow/);
+  assert.match(lerCodigo("src/app/(plataforma)/dev/marcas/page.tsx"), /parseBrandRow/);
   const fixtures = lerCodigo("src/platform/fixtures/marcas-opostas.ts");
   assert.match(fixtures, /status_labels/, "as fixtures usam os nomes de coluna do banco");
 });
@@ -638,7 +638,7 @@ test("o resto da aplicação fica inerte com um modal aberto", () => {
 
 test("a moldura declara viewport-fit cover", () => {
   // Sem isso todo env(safe-area-inset-*) do repositório vale zero.
-  assert.match(lerCodigo("src/app/layout.tsx"), /viewportFit: "cover"/);
+  assert.match(lerCodigo("src/app/(plataforma)/layout.tsx"), /viewportFit: "cover"/);
 });
 
 /**
@@ -725,11 +725,11 @@ test("não existe uma segunda navegação de documentos", () => {
   const componentes = readdirSync(path.join(raiz, "src/components/docs"));
   assert.ok(!componentes.includes("DocsNav.tsx"), "a V1 voltou ao repositório");
   assert.doesNotMatch(
-    lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"),
+    lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"),
     /DocsNav/,
     "o layout real voltou a montar a V1",
   );
-  assert.match(lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"), /AppShellV2/);
+  assert.match(lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"), /AppShellV2/);
 });
 
 /**
@@ -772,7 +772,7 @@ test("as funcionalidades chegam por parâmetro", () => {
 
 test("o layout real passa as funcionalidades da marca resolvida", () => {
   assert.match(
-    lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"),
+    lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx"),
     /utilityLinks: brand\?\.navigation\.utilityLinks/,
     "sem isto a navegação real volta a ficar sem a seção Inteligência",
   );
@@ -785,7 +785,7 @@ test("o layout real passa as funcionalidades da marca resolvida", () => {
 test("o importador não usa chave privilegiada", () => {
   for (const arquivo of [
     "src/components/import/BrandImporter.tsx",
-    "src/app/w/[workspaceSlug]/importar/page.tsx",
+    "src/app/(plataforma)/w/[workspaceSlug]/importar/page.tsx",
   ]) {
     const codigo = lerCodigo(arquivo);
     assert.doesNotMatch(
@@ -815,7 +815,7 @@ test("a importação é publicada por RPC, não por escrita solta", () => {
 
 test("a rota de importação exige quem administra", () => {
   assert.match(
-    lerCodigo("src/app/w/[workspaceSlug]/importar/page.tsx"),
+    lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/importar/page.tsx"),
     /capabilities\.includes\("administrar"\)/,
   );
 });
@@ -921,7 +921,7 @@ test("a exclusão de marca é idempotente e sempre drena", () => {
 });
 
 test("a administração drena a fila ao abrir", () => {
-  assert.match(lerCodigo("src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"), /drenarFilaDeExclusao/);
+  assert.match(lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx"), /drenarFilaDeExclusao/);
 });
 
 test("a fila fecha por observação, não pela resposta do Storage", () => {
@@ -1008,7 +1008,7 @@ test("sessão sem conta é distinguida de visitante", () => {
 });
 
 test("o cadastro fala a língua da interface", () => {
-  const cadastro = lerCodigo("src/app/onboarding/page.tsx");
+  const cadastro = lerCodigo("src/app/(plataforma)/onboarding/page.tsx");
   // Cada rótulo precisa passar pela escolha de idioma. O texto em inglês DENTRO
   // do ternário é legítimo — o que não pode é rótulo solto no JSX.
   for (const rotulo of ["Falta um passo", "Diga quem você é", "Entrou como", "Nome"]) {
@@ -1130,10 +1130,10 @@ test("rotas de servidor não importam constantes de módulos de cliente", () => 
   }
 
   const servidores = [
-    "src/app/dev/importar/page.tsx",
-    "src/app/w/[workspaceSlug]/importar/page.tsx",
-    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx",
-    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
+    "src/app/(plataforma)/dev/importar/page.tsx",
+    "src/app/(plataforma)/w/[workspaceSlug]/importar/page.tsx",
+    "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/page.tsx",
+    "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/layout.tsx",
   ];
 
   for (const arquivo of servidores) {
@@ -1216,7 +1216,7 @@ test("a regra de seleção não conhece Supabase, React nem ambiente", () => {
  */
 test("as telas da marca não usam endereços absolutos de /docs", () => {
   const arquivos = [
-    ...listarArquivos("src/app/w"),
+    ...listarArquivos("src/app/(plataforma)/w"),
     ...listarArquivos("src/components"),
   ].filter((caminho) => /\.tsx?$/.test(caminho) && !caminho.includes(".test."));
 
@@ -1483,14 +1483,14 @@ test("a matriz de permissão não conhece Supabase nem rede", () => {
  * é o botão de voltar do navegador.
  */
 const SUPERFICIES_COM_FRONTEIRA = [
-  ["contexto de marca", "src/app/w/[workspaceSlug]/b/[brandKey]/error.tsx"],
-  ["manual", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/error.tsx"],
-  ["documento", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/error.tsx"],
-  ["chat", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/error.tsx"],
-  ["análise", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/analise/error.tsx"],
-  ["administração", "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/error.tsx"],
-  ["importação", "src/app/w/[workspaceSlug]/importar/error.tsx"],
-  ["aplicação", "src/app/error.tsx"],
+  ["contexto de marca", "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/error.tsx"],
+  ["manual", "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/error.tsx"],
+  ["documento", "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/[...slug]/error.tsx"],
+  ["chat", "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/chat/error.tsx"],
+  ["análise", "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/analise/error.tsx"],
+  ["administração", "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/error.tsx"],
+  ["importação", "src/app/(plataforma)/w/[workspaceSlug]/importar/error.tsx"],
+  ["aplicação", "src/app/(plataforma)/error.tsx"],
 ] as const;
 
 test("cada superfície crítica tem a sua fronteira de erro", () => {
@@ -1520,10 +1520,10 @@ test("a copy da falha é do produto, e diz o que NÃO aconteceu", () => {
   // "Nenhuma alteração foi salva" é a frase que importa numa tela de edição:
   // a dúvida sobre o que ficou gravado pela metade custa mais que a falha.
   const escrita: Record<string, RegExp> = {
-    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/admin/error.tsx": /Nenhuma alteração foi salva/,
-    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/chat/error.tsx": /Nenhuma pergunta foi enviada/,
-    "src/app/w/[workspaceSlug]/b/[brandKey]/docs/analise/error.tsx": /Nenhuma peça foi enviada/,
-    "src/app/w/[workspaceSlug]/importar/error.tsx": /Nenhuma marca foi criada/,
+    "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/admin/error.tsx": /Nenhuma alteração foi salva/,
+    "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/chat/error.tsx": /Nenhuma pergunta foi enviada/,
+    "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/analise/error.tsx": /Nenhuma peça foi enviada/,
+    "src/app/(plataforma)/w/[workspaceSlug]/importar/error.tsx": /Nenhuma marca foi criada/,
   };
   for (const [arquivo, frase] of Object.entries(escrita)) {
     assert.match(lerCodigo(arquivo), frase, `${arquivo}: falta dizer o que não aconteceu`);
@@ -1679,8 +1679,8 @@ test("o codinome legado não sobra em nome que roda", () => {
  * levantou este P0.
  */
 test("laboratório e rota real montam o mesmo importador", () => {
-  const lab = lerCodigo("src/app/dev/importar/page.tsx");
-  const real = lerCodigo("src/app/w/[workspaceSlug]/importar/page.tsx");
+  const lab = lerCodigo("src/app/(plataforma)/dev/importar/page.tsx");
+  const real = lerCodigo("src/app/(plataforma)/w/[workspaceSlug]/importar/page.tsx");
 
   for (const [nome, codigo] of [["laboratório", lab], ["rota real", real]] as const) {
     assert.match(codigo, /<BrandImporter\b/, `${nome} não monta o BrandImporter`);

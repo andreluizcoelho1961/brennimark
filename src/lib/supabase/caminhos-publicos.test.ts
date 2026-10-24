@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { caminhoPublico } from "./caminhos-publicos";
+import { caminhoPublico, decisaoDeIdiomaDoSite, ehDoSite } from "./caminhos-publicos";
 
 test("login e retorno da autenticação continuam abertos", () => {
   assert.equal(caminhoPublico("/login"), true);
@@ -142,4 +142,33 @@ test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () 
   // vizinhos: nada que apenas comece com as mesmas letras
   assert.equal(caminhoPublico("/ajudax"), false);
   assert.equal(caminhoPublico("/ajuda-interna"), false);
+});
+
+test("o idioma do site: sem prefixo reescreve por dentro, /pt-BR volta, /en segue", () => {
+  assert.deepEqual(decisaoDeIdiomaDoSite("/"), { tipo: "reescrever", para: "/pt-BR" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/vini"), { tipo: "reescrever", para: "/pt-BR/vini" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/ferramentas/kit"), { tipo: "reescrever", para: "/pt-BR/ferramentas/kit" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/ajuda/primeiros-passos"), { tipo: "reescrever", para: "/pt-BR/ajuda/primeiros-passos" });
+  // Duas URLs para a mesma página dividiriam links e buscador.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR"), { tipo: "redirecionar", para: "/" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR/vini"), { tipo: "redirecionar", para: "/vini" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/vini"), { tipo: "nenhuma" });
+});
+
+test("a plataforma e a API nunca são reescritas para o site", () => {
+  for (const p of ["/login", "/docs", "/w/conta/b/marca/docs", "/api/idioma", "/assinar", "/esqueci-senha", "/receber/abc", "/dev/marcas", "/console"]) {
+    assert.deepEqual(decisaoDeIdiomaDoSite(p), { tipo: "nenhuma" }, p);
+    assert.equal(ehDoSite(p), false, p);
+  }
+  // Prefixos parecidos não enganam: `/envia` não é `/en`, `/pt-BRx` não é `/pt-BR`.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/envia"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BRx"), { tipo: "nenhuma" });
+});
+
+test("o site em inglês passa sem sessão, e a lookalike não", () => {
+  assert.equal(caminhoPublico("/en"), true);
+  assert.equal(caminhoPublico("/en/vini"), true);
+  assert.equal(caminhoPublico("/envia"), false);
+  assert.equal(caminhoPublico("/entrar"), false);
 });
