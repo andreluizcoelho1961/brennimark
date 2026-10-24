@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./site.css";
 import { RaizDoDocumento } from "@/components/RaizDoDocumento";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { IDIOMAS_DO_SITE } from "@/lib/site/idiomas";
 
 /**
@@ -35,5 +36,9 @@ export default async function LayoutDoSite({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  return <RaizDoDocumento lang={lang}>{children}</RaizDoDocumento>;
+  return (
+    <RaizDoDocumento lang={lang}>
+      <ProvedorDeTraducao>{children}</ProvedorDeTraducao>
+    </RaizDoDocumento>
+  );
 }

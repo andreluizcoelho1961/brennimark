@@ -1,5 +1,6 @@
 import { getRequestConfig } from "next-intl/server";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { idiomaDoEndereco } from "@/lib/site/idioma-atual";
 
 /**
  * De onde o next-intl sabe o idioma de CADA pedido, e qual catálogo carregar.
@@ -16,7 +17,9 @@ import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
  * tornaria dinâmico o site público inteiro, que hoje é servido pronto.
  */
 export default getRequestConfig(async () => {
-  const locale = await idiomaDaSessao();
+  // No site o idioma é o do ENDEREÇO (`/en/...`) e a página segue estática; fora dele,
+  // o da sessão. Ler cookie dentro do site tornaria dinâmica cada página.
+  const locale = (await idiomaDoEndereco()) ?? (await idiomaDaSessao());
   return {
     locale,
     messages: (await import(`./mensagens/${locale}.json`)).default,

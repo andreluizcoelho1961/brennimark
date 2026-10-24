@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { caminhoDoSite, paginaTraduzida, type IdiomaDoSite } from "@/lib/site/idiomas";
 
 /**
  * Os metadados de uma página do site: título da aba, descrição e a prévia de
@@ -25,14 +26,31 @@ const BASE = process.env.VERCEL_PROJECT_PRODUCTION_URL
   ? new URL(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
   : new URL(`http://localhost:${process.env.PORT ?? 3000}`);
 
-export function metadadosDoSite({ titulo, descricao }: { titulo: string; descricao: string }): Metadata {
+const LOCALE_OG: Record<IdiomaDoSite, string> = { "pt-BR": "pt_BR", en: "en_US" };
+
+/**
+ * `idioma` e `caminhoPt` só entram nas páginas que existem em mais de um idioma:
+ * trazem o `og:locale` certo e os endereços equivalentes (`hreflang`), que o
+ * buscador usa para mostrar a versão certa a cada pessoa quando o site sair de
+ * trás do `noindex`. Página só em português segue sem eles.
+ */
+export function metadadosDoSite({
+  titulo, descricao, idioma = "pt-BR", caminhoPt,
+}: { titulo: string; descricao: string; idioma?: IdiomaDoSite; caminhoPt?: string }): Metadata {
   const imagem = { url: PREVIA.endereco, width: PREVIA.largura, height: PREVIA.altura, alt: "Brennimark · Plataforma de gestão de marca" };
+  const alternates: Metadata["alternates"] = caminhoPt && paginaTraduzida("en", caminhoPt)
+    ? {
+        canonical: caminhoDoSite(idioma, caminhoPt),
+        languages: { "pt-BR": caminhoPt, en: caminhoDoSite("en", caminhoPt), "x-default": caminhoPt },
+      }
+    : undefined;
   return {
     metadataBase: BASE,
     title: titulo,
     description: descricao,
+    ...(alternates ? { alternates } : {}),
     robots: { index: false, follow: false },
-    openGraph: { title: titulo, description: descricao, siteName: "Brennimark", locale: "pt_BR", type: "website", images: [imagem] },
+    openGraph: { title: titulo, description: descricao, siteName: "Brennimark", locale: LOCALE_OG[idioma], type: "website", images: [imagem] },
     twitter: { card: "summary_large_image", title: titulo, description: descricao, images: [imagem] },
   };
 }

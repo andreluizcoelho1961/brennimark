@@ -150,10 +150,23 @@ test("o idioma do site: sem prefixo reescreve por dentro, /pt-BR volta, /en segu
   assert.deepEqual(decisaoDeIdiomaDoSite("/ferramentas/kit"), { tipo: "reescrever", para: "/pt-BR/ferramentas/kit" });
   assert.deepEqual(decisaoDeIdiomaDoSite("/ajuda/primeiros-passos"), { tipo: "reescrever", para: "/pt-BR/ajuda/primeiros-passos" });
   // Duas URLs para a mesma página dividiriam links e buscador.
-  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR"), { tipo: "redirecionar", para: "/" });
-  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR/vini"), { tipo: "redirecionar", para: "/vini" });
-  assert.deepEqual(decisaoDeIdiomaDoSite("/en"), { tipo: "nenhuma" });
-  assert.deepEqual(decisaoDeIdiomaDoSite("/en/vini"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR"), { tipo: "redirecionar", para: "/", permanente: true, aviso: false });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR/vini"), { tipo: "redirecionar", para: "/vini", permanente: true, aviso: false });
+});
+
+test("o site em inglês: endereço traduzido reescreve, pasta em português redireciona, sem tradução volta ao português", () => {
+  // Traduzida (só o Manifesto, por enquanto): a pasta é a mesma, o endereço também.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/manifesto"), { tipo: "nenhuma" });
+  // Ainda sem tradução: vai à equivalente em português, com aviso, e é provisório (307).
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/agencies"), { tipo: "redirecionar", para: "/agencias", permanente: false, aviso: true });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en"), { tipo: "redirecionar", para: "/", permanente: false, aviso: true });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/window/kit"), { tipo: "redirecionar", para: "/ferramentas/janela/kit", permanente: false, aviso: true });
+  // Pasta em português com prefixo: vira o endereço traduzido (uma URL por página).
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/agencias"), { tipo: "redirecionar", para: "/en/agencies", permanente: true, aviso: false });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/ajuda"), { tipo: "redirecionar", para: "/en/help", permanente: true, aviso: false });
+  // O que não existe no site segue para o 404.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/nao-existe"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/login"), { tipo: "nenhuma" });
 });
 
 test("a plataforma e a API nunca são reescritas para o site", () => {

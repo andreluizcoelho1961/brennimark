@@ -72,5 +72,122 @@
     "semTitulo": "Esta marca ainda não tem manual original",
     "semTexto": "O manual original é o PDF enviado na importação. Marcas criadas antes desta tela podem não ter o arquivo associado — importar de novo resolve, e nada do que já existe é apagado.",
     "importar": "Importar um manual"
+  },
+  "site": {
+    "chrome": {
+      "inicio": "Brennimark, início",
+      "navPrincipal": "Navegação principal",
+      "plataforma": "Plataforma",
+      "aPlataforma": "A plataforma",
+      "paraQuem": "Para quem",
+      "recursos": "Recursos",
+      "fonts": "Fonts",
+      "beta": "Beta",
+      "ferramentas": "Ferramentas",
+      "planos": "Planos",
+      "menu": "Menu",
+      "agendar": "Agendar demonstração",
+      "agendarUma": "Agendar uma demonstração",
+      "fontsBeta": "Brennimark Fonts · beta",
+      "ferramentasGratuitas": "Ferramentas gratuitas",
+      "carimboAria": "Agendar uma demonstração",
+      "carimboAnel": "AGENDAR DEMONSTRAÇÃO ✦ FORJADA COM CUIDADO ✦",
+      "dialogoFechar": "Fechar",
+      "dialogoTitulo": "Vamos mostrar o Brennimark funcionando.",
+      "dialogoTexto": "Escreva para a equipe comercial. Marcamos com você uma demonstração presencial, na sua agência, ou por vídeo.",
+      "dialogoEndereco": "‹e-mail comercial a definir›",
+      "dialogoPrototipo": "Protótipo: o endereço de contato ainda não existe.",
+      "entrar": "Entrar",
+      "abrirPlataforma": "Abrir a plataforma"
+    },
+    "rodape": {
+      "manifesto": "Manifesto",
+      "ajuda": "Central de ajuda",
+      "suporte": "Suporte",
+      "seguranca": "Segurança",
+      "termos": "Termos",
+      "privacidade": "Privacidade",
+      "institucional": "Institucional",
+      "voltarInicio": "Brennimark, voltar ao início",
+      "empresa": "© Brennimark · CNPJ {cnpj} · Contato: <mail></mail>",
+      "ferramentasAria": "Ferramentas gratuitas",
+      "kit": "Kit: todos os tamanhos do logo",
+      "cores": "Cores: que cor é essa?",
+      "grids": "Grids: o grid pronto para o InDesign"
+    },
+    "idioma": {
+      "aria": "Idioma",
+      "paraIngles": "English",
+      "paraPortugues": "Português",
+      "avisoIngles": "This page isn't available in English yet. You are seeing the Portuguese version.",
+      "avisoPortugues": "Esta página ainda não está disponível em inglês. Você está vendo a versão em português.",
+      "fechar": "Fechar aviso"
+    },
+    "paginas": {
+      "manual": {
+        "titulo": "O manual em PDF",
+        "resumo": "Fiel ao que o estúdio diagramou, com índice e busca"
+      },
+      "materiais": {
+        "titulo": "Materiais da marca",
+        "resumo": "O kit inteiro num clique, com a regra junto"
+      },
+      "vini": {
+        "titulo": "Vini Max",
+        "resumo": "Consulta, revisão de peça e prompts alinhados à marca"
+      },
+      "fonts": {
+        "titulo": "Brennimark Fonts",
+        "resumo": "Gerenciador de fontes por marca, em beta"
+      },
+      "seguranca": {
+        "titulo": "Segurança e privacidade",
+        "resumo": "Acesso por marca, conversas privadas, dados seus"
+      },
+      "agencias": {
+        "titulo": "Agências e estúdios",
+        "resumo": "A marca entregue pronta para usar"
+      },
+      "empresas": {
+        "titulo": "Empresas",
+        "resumo": "Fornecedores e equipes com a mesma referência"
+      },
+      "ajuda": {
+        "titulo": "Central de ajuda",
+        "resumo": "Guias e perguntas frequentes"
+      },
+      "manifesto": {
+        "titulo": "Manifesto",
+        "resumo": "Por que a Brennimark existe"
+      },
+      "termos": {
+        "titulo": "Termos de uso",
+        "resumo": "As condições de uso da plataforma"
+      },
+      "privacidade": {
+        "titulo": "Privacidade",
+        "resumo": "Como os dados são tratados"
+      },
+      "licenca-de-fontes": {
+        "titulo": "Licença de fontes",
+        "resumo": "A fonte da marca e a licença dela"
+      }
+    },
+    "manifesto": {
+      "crumb": "Manifesto",
+      "titulo": "Uma marca é forjada com cuidado. E precisa continuar viva em cada trabalho.",
+      "lead": "<em>Brennimark</em>, em islandês, é a marca de fogo: o sinal gravado a ferro que dizia de quem era aquilo. A palavra inglesa <em>brand</em> vem da mesma ideia de queimar.",
+      "p1": "Foram mais de quarenta anos de design e direção de arte. Em quase todos, a mesma dificuldade voltava: o prazo correndo, o manual num PDF extenso, os arquivos espalhados em pastas e a resposta que demorava a chegar.",
+      "pull1": "A Brennimark é a ajuda que eu sempre quis ter.",
+      "p2": "Uma marca nasce do trabalho cuidadoso de quem a cria: o desenho do símbolo, o peso de cada letra, a cor exata, o espaço ao redor. Depois, ela segue para muitas mãos: a agência, o fornecedor, a gráfica, quem acabou de chegar à equipe. Cada uma leva a ideia adiante.",
+      "p3": "A Brennimark reúne o manual como o estúdio o desenhou, os materiais atualizados e as orientações que a marca ganha com o tempo. O Vini ajuda a encontrar a resposta, com a fonte, para que o tempo volte para o que importa: pensar, pesquisar e criar.",
+      "p4": "Uma marca viva não é uma marca rígida. Ela evolui, ganha orientações novas e às vezes se reinventa, e todos precisam acompanhar a versão atual.",
+      "p5": "Respeitamos a autoria de quem criou e a decisão de quem aplica. Não inventamos regra, e dizemos com clareza quando não há uma resposta segura.",
+      "pull2": "Forjada com cuidado. Viva em cada trabalho.",
+      "marqueeA": "Forjada com cuidado",
+      "marqueeB": "Viva em cada trabalho",
+      "cta": "Mantenha a sua marca viva.",
+      "ctaBotao": "Agendar uma demonstração"
+    }
   }
 }
