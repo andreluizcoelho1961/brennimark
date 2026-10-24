@@ -163,7 +163,8 @@ test("o site em inglês: endereço traduzido reescreve, pasta em português redi
   // Ainda sem tradução: vai à equivalente em português, com aviso, e é provisório (307).
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/security"), { tipo: "reescrever", para: "/en/seguranca" });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/materials"), { tipo: "reescrever", para: "/en/materiais" });
-  assert.deepEqual(decisaoDeIdiomaDoSite("/en/terms"), { tipo: "redirecionar", para: "/termos", permanente: false, aviso: true });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/terms"), { tipo: "reescrever", para: "/en/termos" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/help"), { tipo: "redirecionar", para: "/ajuda", permanente: false, aviso: true });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en"), { tipo: "redirecionar", para: "/", permanente: false, aviso: true });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/window/kit"), { tipo: "redirecionar", para: "/ferramentas/janela/kit", permanente: false, aviso: true });
   // Pasta em português com prefixo: vira o endereço traduzido (uma URL por página).

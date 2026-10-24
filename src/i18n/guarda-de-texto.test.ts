@@ -49,6 +49,9 @@ const MIGRADAS: string[] = [
   "src/components/site/paginas/Entrega.tsx",
   "src/components/site/paginas/Vini.tsx",
   "src/components/site/paginas/Seguranca.tsx",
+  "src/components/site/paginas/Termos.tsx",
+  "src/components/site/paginas/Privacidade.tsx",
+  "src/components/site/DocumentoLegal.tsx",
 ];
 
 const ACENTOS = /[áàâãéêíóôõúüç]/i;

@@ -661,6 +661,11 @@
       "cada_plano_tem_um_limite": "Each plan has a Vini usage limit, and extra usage can be bought separately.",
       "a_peca_que_eu_envio": "Who keeps the piece I upload?",
       "com_a_marca_so_quem": "The brand does. Only people with access to that brand see the analysis."
+    },
+    "legal": {
+      "termosTitulo": "Terms of use.",
+      "privacidadeTitulo": "Privacy policy.",
+      "vigencia": "In force since {data} · version {versao}"
     }
   }
 }
