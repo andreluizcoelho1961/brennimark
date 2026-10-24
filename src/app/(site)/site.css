@@ -1158,3 +1158,13 @@ body:has(.home-v){overflow:auto}
   .bm-site .site-foot a,.bm-site .foot-links a{display:inline-flex;align-items:center;min-height:40px}
   .bm-site a.more{display:inline-flex;align-items:center;min-height:40px}
 }
+
+/* Captura ampliável (24/10/2026). */
+.bm-site .tela-real-abrir{display:block;width:100%;padding:0;border:0;background:none;color:inherit;cursor:zoom-in;font:inherit;text-align:inherit}
+.bm-site .tela-real-lupa{position:absolute;right:10px;bottom:10px;padding:6px 10px;border-radius:999px;font:600 11px/1 var(--sans,inherit);letter-spacing:.04em;color:#fff;background:rgba(0,22,33,.78);backdrop-filter:blur(4px);pointer-events:none;opacity:.92}
+@media (hover:hover){.bm-site .tela-real-lupa{opacity:0;transition:opacity .2s}.bm-site .tela-real-abrir:hover .tela-real-lupa,.bm-site .tela-real-abrir:focus-visible .tela-real-lupa{opacity:1}}
+.bm-site .tela-real-abrir:focus-visible{outline:2px solid var(--brasa);outline-offset:2px}
+.bm-site .visor{position:fixed;inset:0;z-index:200;background:rgba(0,12,18,.94);display:flex;flex-direction:column}
+.bm-site .visor-fechar{align-self:flex-end;margin:12px 14px;min-height:44px;padding:0 18px;border:1px solid rgba(255,255,255,.4);border-radius:999px;background:rgba(0,22,33,.9);color:#fff;font:600 14px/1 var(--sans,inherit);cursor:pointer}
+.bm-site .visor-rolagem{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 0 24px}
+.bm-site .visor-img{display:block;max-width:none;margin:0 auto}
