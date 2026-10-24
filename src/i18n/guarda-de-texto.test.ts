@@ -23,6 +23,9 @@ import test from "node:test";
 const MIGRADAS: string[] = [
   "src/i18n/request.ts",
   "src/platform/locale-client.tsx",
+  "src/components/shell/TelaInicial.tsx",
+  "src/components/shell/EmptyBrandState.tsx",
+  "src/app/w/[workspaceSlug]/b/[brandKey]/docs/not-found.tsx",
 ];
 
 const ACENTOS = /[áàâãéêíóôõúüç]/i;

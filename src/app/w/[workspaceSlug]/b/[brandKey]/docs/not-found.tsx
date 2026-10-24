@@ -1,3 +1,5 @@
+import { getTranslations } from "next-intl/server";
+
 /**
  * Página que não existe nesta marca.
  *
@@ -10,18 +12,18 @@
  * em OUTRA marca da mesma conta, e dizer "não existe" seria falso. O que é
  * verdade é que ela não está neste manual.
  */
-export default function PaginaNaoEncontrada() {
+export default async function PaginaNaoEncontrada() {
+  const t = await getTranslations("paginaNaoEncontrada");
   return (
     <div className="flex min-h-[60vh] flex-col justify-center">
       <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-platform-text-muted">
         404
       </p>
       <h1 className="mt-[var(--space-shell-3)] text-[clamp(1.25rem,2.5vw,1.75rem)] font-semibold tracking-tight text-platform-text">
-        Esta página não está neste manual
+        {t("titulo")}
       </h1>
       <p className="mt-[var(--space-shell-3)] max-w-[42ch] text-[15px] leading-relaxed text-platform-text-muted">
-        O endereço pode estar desatualizado, ou a página pode pertencer a outra
-        marca da conta. A navegação ao lado mostra o que existe aqui.
+        {t("texto")}
       </p>
     </div>
   );
