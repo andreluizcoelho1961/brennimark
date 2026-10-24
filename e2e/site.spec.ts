@@ -398,3 +398,33 @@ test.describe("movimento reduzido, no tour", () => {
     await expect(page.locator(".tour-cont")).toHaveText("01 / 07");
   });
 });
+
+test("a captura da plataforma abre ampliada, rola, e fecha por Esc, pelo botão e pelo fundo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await abrir(page, "/materiais");
+  const captura = page.locator(".tela-real-abrir").first();
+  await captura.scrollIntoViewIfNeeded();
+  await captura.click();
+  const visor = page.locator(".bm-site .visor");
+  await expect(visor).toBeVisible();
+  // No celular o desenho é bem mais largo que a janela: é isso que o torna legível, rolando de lado.
+  const larguras = await visor.locator(".visor-img").evaluate((i) => ({ imagem: i.getBoundingClientRect().width, janela: window.innerWidth }));
+  expect(larguras.imagem).toBeGreaterThanOrEqual(1100);
+  expect(larguras.imagem).toBeGreaterThan(larguras.janela);
+  await expect(visor.getByRole("button", { name: "Fechar" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(visor).toHaveCount(0);
+  await expect(captura).toBeFocused();
+
+  await captura.click();
+  await visor.getByRole("button", { name: "Fechar" }).click();
+  await expect(visor).toHaveCount(0);
+
+  await captura.click();
+  // A imagem não fecha ao toque (quem explora toca nela); o espaço vazio embaixo dela, sim.
+  await visor.locator(".visor-img").click();
+  await expect(visor).toBeVisible();
+  await visor.click({ position: { x: 5, y: 838 } });
+  await expect(visor).toHaveCount(0);
+});
