@@ -136,6 +136,14 @@ export function ApagarMarca({ id, nome }: { id: string; nome: string }) {
           ? "Deletes the manual, the materials, the assistant conversations and every file of this brand, for everyone. It cannot be undone."
           : "Apaga o manual, os materiais, as conversas com o Vini e todos os arquivos desta marca, para todo mundo. Não tem volta."}
       </p>
+      {/* Conferido no banco em 24/10/2026: `links_de_entrega` cai em cascata; os registros de download e de acesso
+          (`brand_asset_downloads`, `downloads_do_manual`, `brand_access_log`) não têm chave para a marca e ficam
+          guardados, mas a política de leitura depende da marca e ninguém mais os alcança. */}
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-platform-text-muted" data-aviso-do-que-fica>
+        {isEnglish
+          ? "Delivery links for this brand stop working. The download and access records already made stay stored, but they no longer appear in Records."
+          : "Os links de entrega desta marca deixam de funcionar. Os registros de download e de acesso já feitos continuam guardados, mas deixam de aparecer em Registros."}
+      </p>
       {!aberto ? (
         <button
           type="button"
