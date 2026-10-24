@@ -1147,3 +1147,14 @@ body:has(.home-v){overflow:auto}
 .bm-site .prompt-par{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,1fr);gap:14px;align-items:end}
 .bm-site .resultado--pagina{position:static;width:auto}
 @media (max-width:767px){.bm-site .prompt-par{grid-template-columns:1fr}}
+
+/* Revisão de celular (24/10/2026). */
+@media (max-width:767px){
+  /* A seção "stack" zerava a margem do texto para o layout em duas colunas; em uma coluna o título colava nele. */
+  .bm-site .feat-row.stack>:first-child .body{margin-top:18px}
+}
+/* Links do rodapé e das chamadas, em toque: alvo de pelo menos 40 px (antes 19 a 27 px). */
+@media (hover:none) and (pointer:coarse){
+  .bm-site .site-foot a,.bm-site .foot-links a{display:inline-flex;align-items:center;min-height:40px}
+  .bm-site a.more{display:inline-flex;align-items:center;min-height:40px}
+}
