@@ -70,3 +70,21 @@ test("o estado sem marca fala o idioma escolhido, nos dois sentidos", async ({ b
   await expect(outra.getByRole("heading", { name: "Nenhuma marca por aqui ainda" })).toBeVisible();
   await portugues.close();
 });
+
+test("o Esqueci a senha fala o idioma escolhido, nos dois sentidos", async ({ browser }) => {
+  const ingles = await browser.newContext({ locale: "pt-BR" });
+  await ingles.addCookies([{ name: "BRENNIMARK_IDIOMA", value: "en", domain: "localhost", path: "/" }]);
+  const pagina = await ingles.newPage();
+  await pagina.goto("/esqueci-senha");
+  await expect(pagina.getByRole("heading", { name: "Forgot your password" })).toBeVisible();
+  await expect(pagina.getByRole("button", { name: "Send the link" })).toBeVisible();
+  await expect(pagina.getByText("Esqueci a senha")).toHaveCount(0);
+  await ingles.close();
+
+  const portugues = await browser.newContext({ locale: "en-US" });
+  await portugues.addCookies([{ name: "BRENNIMARK_IDIOMA", value: "pt-BR", domain: "localhost", path: "/" }]);
+  const outra = await portugues.newPage();
+  await outra.goto("/esqueci-senha");
+  await expect(outra.getByRole("heading", { name: "Esqueci a senha" })).toBeVisible();
+  await portugues.close();
+});

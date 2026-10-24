@@ -41,5 +41,36 @@
   "paginaNaoEncontrada": {
     "titulo": "Esta página não está neste manual",
     "texto": "O endereço pode estar desatualizado, ou a página pode pertencer a outra marca da conta. A navegação ao lado mostra o que existe aqui."
+  },
+  "recuperacao": {
+    "pedidoTitulo": "Esqueci a senha",
+    "pedidoTexto": "Digite o e-mail com que você entra no Brennimark. Mandamos um link para criar uma nova senha.",
+    "pedidoEmail": "E-mail",
+    "pedidoPlaceholder": "voce@empresa.com",
+    "pedidoEnviar": "Enviar o link",
+    "pedidoErro": "Não foi possível pedir agora. Tente de novo.",
+    "lembrou": "Lembrou?",
+    "entrar": "Entrar",
+    "novaTituloVencido": "Este link não vale mais",
+    "novaTituloCriar": "Crie uma nova senha",
+    "novaPara": "Para <b>{email}</b>",
+    "novaLinkVencido": "O link serve uma vez e vale por uma hora. <a>Peça outro</a>.",
+    "novaRotulo": "Nova senha",
+    "novaRepita": "Repita a nova senha",
+    "novaMinimo": "Ao menos 12 caracteres.",
+    "novaSalvar": "Salvar e entrar",
+    "erroCurta": "A senha precisa de ao menos 12 caracteres.",
+    "erroLonga": "A senha passou do tamanho máximo.",
+    "erroDiferentes": "As duas senhas não são iguais.",
+    "erroTrocar": "Não foi possível trocar a senha. Tente de novo."
+  },
+  "ajudaDaMoldura": {
+    "erroAbrir": "Não foi possível abrir a ajuda agora.",
+    "semArtigo": "Não há um artigo para esta tela. Escolha um assunto:"
+  },
+  "manualOriginal": {
+    "semTitulo": "Esta marca ainda não tem manual original",
+    "semTexto": "O manual original é o PDF enviado na importação. Marcas criadas antes desta tela podem não ter o arquivo associado — importar de novo resolve, e nada do que já existe é apagado.",
+    "importar": "Importar um manual"
   }
 }

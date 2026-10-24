@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { colunaDaPlataforma } from "@/components/shell/coluna";
 import { TelaInicial } from "@/components/shell/TelaInicial";
@@ -33,6 +34,7 @@ export default async function BancadaDaMoldura({
   ];
 
   return (
+    <ProvedorDeTraducao>
     <LocaleProvider locale="pt-BR">
       <AppShellV2
         coluna={colunaDaPlataforma({ contaSlug: "dev", administraConta: administra })}
@@ -47,5 +49,6 @@ export default async function BancadaDaMoldura({
           : <TelaInicial opcoes={pares} novaMarca={administra ? "/w/dev/importar" : undefined} />}
       </AppShellV2>
     </LocaleProvider>
+</ProvedorDeTraducao>
   );
 }

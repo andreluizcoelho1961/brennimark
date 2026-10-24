@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { getBrennimarkAuthContext } from "@/lib/brennimark/server";
 import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { VisualizadorDePdf } from "@/components/documento-fonte/VisualizadorDePdf";
@@ -79,19 +80,18 @@ export default async function ManualOriginal({
   const registro = documento ? await lerEstadoDoRegistro(auth.supabase, documento.id) : null;
 
   if (!documento) {
+    const t = await getTranslations("manualOriginal");
     return (
       <div className="mx-auto max-w-[560px] p-[var(--space-shell-5)] text-platform-text">
-        <h1 className="text-[18px] font-semibold">Esta marca ainda não tem manual original</h1>
+        <h1 className="text-[18px] font-semibold">{t("semTitulo")}</h1>
         <p className="mt-[var(--space-shell-3)] text-[14px] text-platform-text-muted">
-          O manual original é o PDF enviado na importação. Marcas criadas antes
-          desta tela podem não ter o arquivo associado — importar de novo
-          resolve, e nada do que já existe é apagado.
+          {t("semTexto")}
         </p>
         <Link
           href={`/w/${alvo.workspaceSlug}/importar`}
           className="mt-[var(--space-shell-4)] inline-block rounded border border-platform-border px-3 py-2 text-[13px]"
         >
-          Importar um manual
+          {t("importar")}
         </Link>
       </div>
     );
