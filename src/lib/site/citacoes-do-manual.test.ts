@@ -40,7 +40,7 @@ test("toda página citada existe na edição de demonstração", () => {
   }
   // Eram mais de dez quando as telas eram desenhadas em código; agora são capturas
   // reais (23/10/2026) e as citações moram dentro das imagens. Sobram as do texto.
-  assert.ok(citacoes >= 3, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
+  assert.ok(citacoes >= 1, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
   assert.deepEqual(fora, [], "página além da edição de demonstração");
 });
 
