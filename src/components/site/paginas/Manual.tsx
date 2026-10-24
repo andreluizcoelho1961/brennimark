@@ -1,90 +1,90 @@
-import Link from "next/link";
 import { BlocosDeComplementos } from "./Complementos";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
 import telaManualBusca from "../imagens/telas/manual-busca.webp";
 import telaManualIndice from "../imagens/telas/manual-indice.webp";
+import { getTranslations } from "next-intl/server";
+import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** O manual em PDF — `/manual`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
-export function ConteudoManual() {
+export async function ConteudoManual() {
+  const t = await getTranslations("site.manual");
+  const c = await getTranslations("site.comum");
+  const paginas = await getTranslations("site.paginas");
+  const rel = await getTranslations("site.relacionados");
   return (
     <>
       <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
       <div className="pg-wrap pg-hero">
       <div>
-      <p className="crumb"><a href="#" data-open-menu="m-plat">Plataforma</a> · O manual em PDF</p>
-      <Titulo como="h1" className="pg-h1" partes={["O manual que o estúdio desenhou, publicado para a equipe."]} />
-      <p className="pg-lead">Suba o PDF e a equipe passa a consultar com índice, miniaturas e busca. As páginas aparecem como foram diagramadas: nada é redesenhado.</p>
-      <div className="pg-actions"><button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button><Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link></div>
+      <Trilha menu="m-plat" grupo="plataforma" pagina={paginas("manual.titulo")} />
+      <Titulo como="h1" className="pg-h1" partes={[t("o_manual_que_o_estudio")]} />
+      <p className="pg-lead">{t("suba_o_pdf_e_a")}</p>
+      <div className="pg-actions"><BotaoDemonstracao /><LinkVerPlanos /></div>
       </div>
-      <Captura src={telaManualIndice} alt="O manual aberto na plataforma, com o índice por capítulos aberto e a página do manual ao lado" />
+      <Captura src={telaManualIndice} alt={t("o_manual_aberto_na_plataforma")} />
       </div>
       </section>
 
       <section className="pg-sec" style={{ paddingTop: "0", borderTop: "0" }}>
-      <div className="pg-wrap points"><div><i>01</i><b>Publicação simples</b><span>Envie o PDF, confira o índice proposto e publique.</span></div><div><i>02</i><b>Fiel ao original</b><span>Nenhuma página é redesenhada ou reinterpretada.</span></div><div><i>03</i><b>Índice e busca</b><span>Encontre a regra pelo capítulo ou por uma palavra.</span></div><div><i>04</i><b>Os formatos de manual</b><span>Retrato, paisagem e 16:9, com ou sem sumário. Sem sumário, o Brennimark propõe um índice para você conferir.</span></div></div>
+      <div className="pg-wrap points"><div><i>01</i><b>{t("publicacao_simples")}</b><span>{t("envie_o_pdf_confira_o")}</span></div><div><i>02</i><b>{t("fiel_ao_original")}</b><span>{t("nenhuma_pagina_e_redesenhada_ou")}</span></div><div><i>03</i><b>{t("indice_e_busca")}</b><span>{t("encontre_a_regra_pelo_capitulo")}</span></div><div><i>04</i><b>{t("os_formatos_de_manual")}</b><span>{t("retrato_paisagem_e_16_9")}</span></div></div>
       </section>
 
       <section className="pg-sec"><Losango classe="l3" velocidade={-0.18} />
       <div className="pg-wrap">
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Publicação</p>
-      <Titulo className="h2" partes={["Do PDF à equipe, sem reconstruir o manual."]} />
-      <p className="body">Nada de reconstruir o manual numa ferramenta nova. O Brennimark lê o arquivo que você já tem e ele fica pronto para consultar, para o Vini e para os materiais.</p>
-      <ul className="ticks"><li>Sem reconstruir página por página</li><li>O Vini passa a consultar o manual publicado</li><li>Nova versão substitui a anterior com um envio</li></ul>
+      <p className="eyebrow">{t("publicacao")}</p>
+      <Titulo className="h2" partes={[t("do_pdf_a_equipe_sem")]} />
+      <p className="body">{t("nada_de_reconstruir_o_manual")}</p>
+      <ul className="ticks"><li>{t("sem_reconstruir_pagina_por_pagina")}</li><li>{t("o_vini_passa_a_consultar")}</li><li>{t("nova_versao_substitui_a_anterior")}</li></ul>
       </div>
-      <div className="frame"><div className="kit" role="img" aria-label="Publicação do manual em quatro etapas concluídas">
-      <h4>Publicando: Manual da marca Brennimark.pdf</h4>
-      <div className="kit-row"><span className="ck">✓</span><b>PDF enviado</b><em>42 páginas</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Texto das páginas lido</b><em>concluído</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Índice conferido por você</b><em>8 capítulos</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Publicado para a equipe</b><em>12 pessoas</em></div>
+      <div className="frame"><div className="kit" role="img" aria-label={t("publicacao_do_manual_em_quatro")}>
+      <h4>{t("publicando_manual_da_marca_brennimark")}</h4>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("pdf_enviado")}</b><em>{t("42_paginas")}</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("texto_das_paginas_lido")}</b><em>{t("concluido")}</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("indice_conferido_por_voce")}</b><em>{t("8_capitulos")}</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("publicado_para_a_equipe")}</b><em>{t("12_pessoas")}</em></div>
       <div className="prog"><i style={{ width: "100%" }}></i></div>
-      <div className="kit-foot"><span>Pronto. O tempo de leitura varia com o tamanho do arquivo.</span><span className="mk-btn">Abrir o manual</span></div></div></div>
+      <div className="kit-foot"><span>{t("pronto_o_tempo_de_leitura")}</span><span className="mk-btn">{t("abrir_o_manual")}</span></div></div></div>
       </div>
 
       <div className="feat-row rev">
       <div>
-      <p className="eyebrow">Fidelidade</p>
-      <Titulo className="h2" partes={["O que o estúdio diagramou é o que a equipe vê."]} />
-      <p className="body">Tipografia, grid, cor e respiro chegam intactos. O manual é o trabalho de um estúdio, e o Brennimark não mexe nele.</p>
+      <p className="eyebrow">{t("fidelidade")}</p>
+      <Titulo className="h2" partes={[t("o_que_o_estudio_diagramou")]} />
+      <p className="body">{t("tipografia_grid_cor_e_respiro")}</p>
 
       </div>
-      <div className="cmp"><figure><div className="mini"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>MANUAL</small><b>05</b><strong>Cores</strong><i></i><i></i><i></i></div><div className="pdf-right sw4"><i style={{ background: "#ff4103" }}></i><i style={{ background: "#001621" }}></i><i style={{ background: "#072631" }}></i><i style={{ background: "#f2f5f6" }}></i></div></div></div><figcaption>O PDF que o estúdio diagramou</figcaption></figure><span className="eq">=</span><figure><div className="mini"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>MANUAL</small><b>05</b><strong>Cores</strong><i></i><i></i><i></i></div><div className="pdf-right sw4"><i style={{ background: "#ff4103" }}></i><i style={{ background: "#001621" }}></i><i style={{ background: "#072631" }}></i><i style={{ background: "#f2f5f6" }}></i></div></div></div><figcaption>O mesmo PDF, no Brennimark</figcaption></figure></div>
+      <div className="cmp"><figure><div className="mini"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>MANUAL</small><b>05</b><strong>{t("cores")}</strong><i></i><i></i><i></i></div><div className="pdf-right sw4"><i style={{ background: "#ff4103" }}></i><i style={{ background: "#001621" }}></i><i style={{ background: "#072631" }}></i><i style={{ background: "#f2f5f6" }}></i></div></div></div><figcaption>{t("o_pdf_que_o_estudio")}</figcaption></figure><span className="eq">=</span><figure><div className="mini"><div className="pdf" style={{ maxWidth: "none" }}><div className="pdf-left"><small>MANUAL</small><b>05</b><strong>{t("cores")}</strong><i></i><i></i><i></i></div><div className="pdf-right sw4"><i style={{ background: "#ff4103" }}></i><i style={{ background: "#001621" }}></i><i style={{ background: "#072631" }}></i><i style={{ background: "#f2f5f6" }}></i></div></div></div><figcaption>{t("o_mesmo_pdf_no_brennimark")}</figcaption></figure></div>
       </div>
 
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Busca</p>
-      <Titulo className="h2" partes={["Uma palavra e o manual inteiro responde."]} />
-      <p className="body">A busca percorre o texto de todas as páginas e mostra o trecho com a palavra, para você ir direto ao ponto.</p>
-      <ul className="ticks"><li>Busca no texto de todas as páginas</li><li>Trecho com a palavra marcada</li><li>Clique e o manual abre na página</li></ul>
+      <p className="eyebrow">{t("busca")}</p>
+      <Titulo className="h2" partes={[t("uma_palavra_e_o_manual")]} />
+      <p className="body">{t("a_busca_percorre_o_texto")}</p>
+      <ul className="ticks"><li>{t("busca_no_texto_de_todas")}</li><li>{t("trecho_com_a_palavra_marcada")}</li><li>{t("clique_e_o_manual_abre")}</li></ul>
       </div>
-      <Captura src={telaManualBusca} alt="A busca no manual: a palavra procurada fica marcada na página do manual" />
+      <Captura src={telaManualBusca} alt={t("a_busca_no_manual_a")} />
       </div>
       </div>
       </section>
 
       <section className="pg-sec">
       <div className="pg-wrap">
-      <div className="sec-head"><p className="eyebrow">Como funciona</p><Titulo className="h2" partes={["Três passos, e o manual está trabalhando."]} /></div>
-      <div className="steps"><div className="stp"><b>Envie o PDF</b><p>O mesmo arquivo que o estúdio entregou ao cliente.</p><small>Studio</small></div><div className="stp"><b>Confira e publique</b><p>Veja o índice, ajuste um título se precisar e publique.</p><small>Studio</small></div><div className="stp"><b>A equipe consulta</b><p>No Book, com índice, busca, materiais e o Vini.</p><small>Book</small></div></div>
+      <div className="sec-head"><p className="eyebrow">{c("comoFunciona")}</p><Titulo className="h2" partes={[t("tres_passos_e_o_manual")]} /></div>
+      <div className="steps"><div className="stp"><b>{t("envie_o_pdf")}</b><p>{t("o_mesmo_arquivo_que_o")}</p><small>Studio</small></div><div className="stp"><b>{t("confira_e_publique")}</b><p>{t("veja_o_indice_ajuste_um")}</p><small>Studio</small></div><div className="stp"><b>{t("a_equipe_consulta")}</b><p>{t("no_book_com_indice_busca")}</p><small>{t("book")}</small></div></div>
       </div>
       </section>
 
-      <section className="pg-sec">
-      <figure className="pg-wrap big-quote">
-      <blockquote>O manual ficou igualzinho ao que a gente diagramou. Isso, para um estúdio, é inegociável.</blockquote>
-      <figcaption><b>Depoimento fictício</b> · texto de marcação do layout</figcaption>
-      </figure>
-      </section>
+      <CitacaoFicticia>{t("o_manual_ficou_igualzinho_ao")}</CitacaoFicticia>
 
       <section className="pg-sec">
       <div className="pg-wrap faq">
-      <div><p className="eyebrow">Perguntas</p><Titulo className="h2" partes={["Sobre o manual."]} /></div>
-      <div><details open><summary>Preciso refazer o manual em outra ferramenta?</summary><p>Não. Você sobe o PDF que já existe, e ele é a superfície de leitura.</p></details><details><summary>E se o PDF não tiver sumário?</summary><p>O Brennimark monta um índice a partir dos títulos das páginas, e você pode ajustar no Studio.</p></details><details><summary>Posso publicar uma versão nova?</summary><p>Sim. A nova substitui a anterior para a equipe, e o histórico fica registrado.</p></details><details><summary>Os leitores podem baixar o PDF?</summary><p>Sim, se quem gere a marca permitir. O download fica registrado.</p></details></div>
+      <div><p className="eyebrow">{c("perguntas")}</p><Titulo className="h2" partes={[t("sobre_o_manual")]} /></div>
+      <div><details open><summary>{t("preciso_refazer_o_manual_em")}</summary><p>{t("nao_voce_sobe_o_pdf")}</p></details><details><summary>{t("e_se_o_pdf_nao")}</summary><p>{t("o_brennimark_monta_um_indice")}</p></details><details><summary>{t("posso_publicar_uma_versao_nova")}</summary><p>{t("sim_a_nova_substitui_a")}</p></details><details><summary>{t("os_leitores_podem_baixar_o")}</summary><p>{t("sim_se_quem_gere_a")}</p></details></div>
       </div>
       </section>
 
@@ -92,16 +92,16 @@ export function ConteudoManual() {
 
       <section className="pg-sec">
       <div className="pg-wrap">
-      <p className="eyebrow">Veja também</p>
-      <div className="related"><Link className="rel" href="/materiais"><small>Plataforma</small><b>Materiais da marca</b><span>O kit inteiro num clique, com a regra junto.</span><em>→</em></Link><Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link><Link className="rel" href="/manual#complementos"><small>Plataforma</small><b>Complementos e lacunas</b><span>O que o manual não diz, escrito e citado.</span><em>→</em></Link></div>
+      <p className="eyebrow">{c("vejaTambem")}</p>
+      <div className="related"><CartaoRelacionado href="/materiais" titulo={paginas("materiais.titulo")} resumo={rel("materiais.resumo")} /><CartaoRelacionado href="/vini" titulo={paginas("vini.titulo")} resumo={rel("vini.resumo")} /><CartaoRelacionado href="/manual#complementos" titulo={rel("complementos.titulo")} resumo={rel("complementos.resumo")} /></div>
       </div>
       </section>
 
-      <div className="marquee" aria-hidden="true"><div className="mq-track"><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span></div></div>
+      <FaixaDaMarca />
       <section className="pg-sec"><Losango classe="l4" velocidade={0.25} />
       <div className="pg-wrap cta-band">
-      <Titulo partes={["Leve o seu manual para perto da equipe."]} />
-      <button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button>
+      <Titulo partes={[t("leve_o_seu_manual_para")]} />
+      <BotaoDemonstracao />
       </div>
       </section>
     </>

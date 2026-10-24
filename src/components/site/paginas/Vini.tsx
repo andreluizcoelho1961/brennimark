@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import vini from "../imagens/vini.webp";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
@@ -7,48 +6,54 @@ import { Captura } from "../Captura";
 import telaRevisao from "../imagens/telas/revisao.webp";
 import telaPrompt from "../imagens/telas/prompt.webp";
 import fotoDoPrompt from "../imagens/telas/prompt-resultado.webp";
+import { getTranslations } from "next-intl/server";
+import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** Vini Max — `/vini`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
-export function ConteudoVini() {
+export async function ConteudoVini() {
+  const t = await getTranslations("site.vini");
+  const c = await getTranslations("site.comum");
+  const paginas = await getTranslations("site.paginas");
+  const rel = await getTranslations("site.relacionados");
   return (
     <>
       <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
       <div className="pg-wrap pg-hero">
       <div>
-      <p className="crumb"><a href="#" data-open-menu="m-plat">Plataforma</a> · Vini Max</p>
-      <Titulo como="h1" className="pg-h1" partes={["O Vini Max ajuda você a trabalhar com a marca."]} />
-      <p className="pg-lead">Ele responde com fundamento, encontra o material certo, aponta quando duas orientações não batem e reconhece quando não há resposta segura. Consulta o manual, os complementos aprovados e os materiais da marca.</p>
-      <div className="pg-actions"><button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button><Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link></div>
+      <Trilha menu="m-plat" grupo="plataforma" pagina={paginas("vini.titulo")} />
+      <Titulo como="h1" className="pg-h1" partes={[t("o_vini_max_ajuda_voce")]} />
+      <p className="pg-lead">{t("ele_responde_com_fundamento_encontra")}</p>
+      <div className="pg-actions"><BotaoDemonstracao /><LinkVerPlanos /></div>
       </div>
-      <div className="vini-hero"><Image src={vini} alt="Vini Max, o assistente do Brennimark, de óculos redondos e gola alta preta, com um livro na mão" sizes="340px" /><div className="vh-tags"><span>Consultar</span><span>Analisar</span><span>Preparar</span></div></div>
+      <div className="vini-hero"><Image src={vini} alt={t("vini_max_o_assistente_do")} sizes="340px" /><div className="vh-tags"><span>{t("consultar")}</span><span>{t("analisar")}</span><span>{t("preparar")}</span></div></div>
       </div>
       </section>
 
       <section className="pg-sec" style={{ paddingTop: "0", borderTop: "0" }}>
-      <div className="pg-wrap points"><div><i>01</i><b>Responde com fundamento</b><span>A orientação com a fonte e a página. A citação abre o manual lá.</span></div><div><i>02</i><b>Encontra o material</b><span>Aponta o arquivo certo em Materiais da marca.</span></div><div><i>03</i><b>Aponta divergências</b><span>Quando duas orientações documentadas não batem, mostra as duas.</span></div><div><i>04</i><b>Reconhece o limite</b><span>Sem resposta segura, diz e sugere com quem confirmar.</span></div></div>
+      <div className="pg-wrap points"><div><i>01</i><b>{t("responde_com_fundamento")}</b><span>{t("a_orientacao_com_a_fonte")}</span></div><div><i>02</i><b>{t("encontra_o_material")}</b><span>{t("aponta_o_arquivo_certo_em")}</span></div><div><i>03</i><b>{t("aponta_divergencias")}</b><span>{t("quando_duas_orientacoes_documentadas_nao")}</span></div><div><i>04</i><b>{t("reconhece_o_limite")}</b><span>{t("sem_resposta_segura_diz_e")}</span></div></div>
       </section>
 
       <section className="pg-sec"><Losango classe="l3" velocidade={-0.18} />
       <div className="pg-wrap">
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Consultar</p>
-      <Titulo className="h2" partes={["Pergunte como perguntaria a um colega que conhece a marca."]} />
-      <p className="body">A orientação, com a página. Um clique na citação leva o manual até ela, sem fechar a conversa. O que é rascunho aparece identificado.</p>
-      <ul className="ticks"><li>A orientação, não só &quot;veja a página&quot;</li><li>A citação abre o manual</li><li>Rascunho sempre identificado</li></ul>
+      <p className="eyebrow">{t("consultar")}</p>
+      <Titulo className="h2" partes={[t("pergunte_como_perguntaria_a_um")]} />
+      <p className="body">{t("a_orientacao_com_a_pagina")}</p>
+      <ul className="ticks"><li>{t("a_orientacao_nao_so_veja")}</li><li>{t("a_citacao_abre_o_manual")}</li><li>{t("rascunho_sempre_identificado")}</li></ul>
       </div>
       <div className="chat">
       <div className="chat-win">
-      <div className="chat-head"><Image src={vini} alt="" sizes="340px" /><div><b>Vini Max</b><br /><span>Manual do Brennimark</span></div></div>
+      <div className="chat-head"><Image src={vini} alt="" sizes="340px" /><div><b>Vini Max</b><br /><span>{t("manual_do_brennimark")}</span></div></div>
       <div className="turn">
-      <p className="q">Qual é a área de proteção do símbolo?</p>
-      <p className="a">É x nos quatro lados. No símbolo sozinho, x equivale a um terço da altura dele. Nenhum texto ou imagem entra nesse espaço.</p>
-      <span className="src">Fonte: Manual do Brennimark · Área de proteção · p. 10</span>
+      <p className="q">{t("qual_e_a_area_de")}</p>
+      <p className="a">{t("e_x_nos_quatro_lados")}</p>
+      <span className="src">{t("fonte_manual_do_brennimark_area")}</span>
       </div>
       <div className="turn">
-      <p className="q">Posso colocar o logo em cima de uma foto?</p>
-      <p className="a">Sim, desde que a foto dê leitura sem esforço: a área atrás do logo deve ser limpa, sem rostos, produtos ou áreas poluídas. O manual não traz essa regra no corpo principal; ela vem de um complemento aprovado.</p>
-      <span className="src">Fonte: Complemento &quot;O logotipo sobre fotografia&quot; · Pronto</span>
+      <p className="q">{t("posso_colocar_o_logo_em")}</p>
+      <p className="a">{t("sim_desde_que_a_foto")}</p>
+      <span className="src">{t("fonte_complemento_o_logotipo_sobre")}</span>
       </div>
       </div>
       </div>
@@ -56,78 +61,73 @@ export function ConteudoVini() {
 
       <div className="feat-row stack">
       <div>
-      <p className="eyebrow">Analisar</p>
-      <Titulo className="h2" partes={["Solte a peça. Ele faz uma segunda leitura."]} />
-      <p className="body">Ele compara as cores com a paleta e marca na peça o que encontrou, com a página de cada orientação. O que ainda não consegue medir sozinho aparece como verificação manual, para você conferir.</p>
-      <ul className="ticks"><li>Achados com a orientação e a página</li><li>Marcação sobre a peça</li><li>Sugestão de correção, para você decidir</li></ul>
+      <p className="eyebrow">{t("analisar")}</p>
+      <Titulo className="h2" partes={[t("solte_a_peca_ele_faz")]} />
+      <p className="body">{t("ele_compara_as_cores_com")}</p>
+      <ul className="ticks"><li>{t("achados_com_a_orientacao_e")}</li><li>{t("marcacao_sobre_a_peca")}</li><li>{t("sugestao_de_correcao_para_voce")}</li></ul>
       </div>
-      <Captura src={telaRevisao} alt="A revisão de uma peça: o assistente marca o que está fora das regras do manual, com a página de cada regra" />
+      <Captura src={telaRevisao} alt={t("a_revisao_de_uma_peca")} />
       </div>
 
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Preparar</p>
-      <Titulo className="h2" partes={["A sua ideia, com a marca no prompt."]} />
-      <p className="body">Você descreve o que quer criar. O Vini acrescenta cores, luz, enquadramento e o que evitar, com a página de cada linha. Você revisa e usa.</p>
-      <ul className="ticks"><li>A ideia é sua; a marca vem junto</li><li>Rascunho fica fora do prompt, identificado</li><li>A fonte de cada linha</li></ul>
+      <p className="eyebrow">{t("preparar")}</p>
+      <Titulo className="h2" partes={[t("a_sua_ideia_com_a")]} />
+      <p className="body">{t("voce_descreve_o_que_quer")}</p>
+      <ul className="ticks"><li>{t("a_ideia_e_sua_a")}</li><li>{t("rascunho_fica_fora_do_prompt")}</li><li>{t("a_fonte_de_cada_linha")}</li></ul>
       </div>
       <div className="prompt-par">
-      <Captura src={telaPrompt} alt="O assistente monta o prompt de uma foto para o post de lançamento, com as cores e a luz do manual, e lista as páginas do manual de onde veio cada regra" />
+      <Captura src={telaPrompt} alt={t("o_assistente_monta_o_prompt")} />
       <figure className="resultado resultado--pagina">
-        <Image src={fotoDoPrompt} alt="Fotografia gerada por IA a partir do prompt: uma mesa de trabalho de estúdio à noite, mãos compondo tipos de metal, luz lateral fria e um único ponto de laranja" sizes="(max-width: 767px) 60vw, 22vw" />
-        <figcaption><b>A imagem gerada com este prompt</b>, fora do Brennimark. Você revisa e decide o que usar.</figcaption>
+        <Image src={fotoDoPrompt} alt={t("fotografia_gerada_por_ia_a")} sizes="(max-width: 767px) 60vw, 22vw" />
+        <figcaption><b>{t("a_imagem_gerada_com_este")}</b>{t("fora_do_brennimark_voce_revisa")}</figcaption>
       </figure>
       </div>
       </div>
 
       <div className="feat-row rev">
       <div>
-      <p className="eyebrow">Onde ele vive</p>
-      <Titulo className="h2" partes={["No canto de cada tela da marca."]} />
-      <p className="body">Chama quando precisar, e ele sai da frente quando você volta ao trabalho. Três tamanhos, um para cada momento.</p>
+      <p className="eyebrow">{t("onde_ele_vive")}</p>
+      <Titulo className="h2" partes={[t("no_canto_de_cada_tela")]} />
+      <p className="body">{t("chama_quando_precisar_e_ele")}</p>
 
       </div>
-      <div className="states3"><div className="s3"><div className="s3-art s3-a"><Image src={vini} alt="" sizes="340px" /></div><b>Recolhido</b><span>Só ele, no canto. Não cobre o manual.</span></div><div className="s3"><div className="s3-art s3-b"><i></i><i></i><i></i></div><b>Conversa</b><span>Uma janela para perguntar e ler.</span></div><div className="s3"><div className="s3-art s3-c"><i></i><i></i></div><b>Análise</b><span>A peça e os achados, lado a lado.</span></div></div>
+      <div className="states3"><div className="s3"><div className="s3-art s3-a"><Image src={vini} alt="" sizes="340px" /></div><b>{t("recolhido")}</b><span>{t("so_ele_no_canto_nao")}</span></div><div className="s3"><div className="s3-art s3-b"><i></i><i></i><i></i></div><b>{t("conversa")}</b><span>{t("uma_janela_para_perguntar_e")}</span></div><div className="s3"><div className="s3-art s3-c"><i></i><i></i></div><b>{t("analise")}</b><span>{t("a_peca_e_os_achados")}</span></div></div>
       </div>
 
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Privacidade</p>
-      <Titulo className="h2" partes={["Ninguém lê a sua conversa."]} />
-      <p className="body">A conversa com o Vini é de quem perguntou. Para melhorar o produto, usamos números agregados, sem identificar ninguém.</p>
+      <p className="eyebrow">{t("privacidade")}</p>
+      <Titulo className="h2" partes={[t("ninguem_le_a_sua_conversa")]} />
+      <p className="body">{t("a_conversa_com_o_vini")}</p>
 
       </div>
-      <div className="font-card"><p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="3" y="7" width="10" height="7" rx="1.5" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" /></svg><span><b>Suas conversas são suas.</b> Ninguém lê a conversa de outra pessoa: nem o dono da conta, nem a equipe do Brennimark. Usamos só estatísticas, sem identificar quem perguntou.</span></p><p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M4 1.5h5.5l3 3v10H4Z" /><path d="M9.5 1.5v3h3" /></svg><span><b>Cada pessoa apaga as suas</b> quando quiser. Fica só o registro de uso, sem o conteúdo.</span></p><p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2Z" /></svg><span><b>Conteúdo só com o seu gesto:</b> &quot;enviar esta conversa ao suporte&quot;.</span></p></div>
+      <div className="font-card"><p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><rect x="3" y="7" width="10" height="7" rx="1.5" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" /></svg><span><b>{t("suas_conversas_sao_suas")}</b>{" "}{t("ninguem_le_a_conversa_de")}</span></p><p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M4 1.5h5.5l3 3v10H4Z" /><path d="M9.5 1.5v3h3" /></svg><span><b>{t("cada_pessoa_apaga_as_suas")}</b>{" "}{t("quando_quiser_fica_so_o")}</span></p><p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3"><path d="M2.5 3.5h11v7h-6l-3 2.5v-2.5h-2Z" /></svg><span><b>{t("conteudo_so_com_o_seu")}</b>{" "}{t("enviar_esta_conversa_ao_suporte")}</span></p></div>
       </div>
       </div>
       </section>
 
-      <section className="pg-sec">
-      <figure className="pg-wrap big-quote">
-      <blockquote>Quando o cliente pergunta, eu abro a página do manual junto com ele. A conversa fica na ideia, não no arquivo.</blockquote>
-      <figcaption><b>Depoimento fictício</b> · texto de marcação do layout</figcaption>
-      </figure>
-      </section>
+      <CitacaoFicticia>{t("quando_o_cliente_pergunta_eu")}</CitacaoFicticia>
 
       <section className="pg-sec">
       <div className="pg-wrap faq">
-      <div><p className="eyebrow">Perguntas</p><Titulo className="h2" partes={["Sobre o Vini."]} /></div>
-      <div><details open><summary>O Vini inventa regra quando não sabe?</summary><p>Não. Quando o manual não trata do assunto, ele diz que não há diretriz documentada e mostra onde procurou.</p></details><details><summary>Ele aprova peças?</summary><p>Não. Ele aponta o que encontrou e a regra correspondente. A aprovação é da equipe.</p></details><details><summary>Quanto posso usar?</summary><p>Cada plano tem um limite de uso do Vini, e o excedente pode ser comprado à parte.</p></details><details><summary>A peça que eu envio fica com quem?</summary><p>Com a marca. Só quem tem acesso àquela marca vê a análise.</p></details></div>
+      <div><p className="eyebrow">{c("perguntas")}</p><Titulo className="h2" partes={[t("sobre_o_vini")]} /></div>
+      <div><details open><summary>{t("o_vini_inventa_regra_quando")}</summary><p>{t("nao_quando_o_manual_nao")}</p></details><details><summary>{t("ele_aprova_pecas")}</summary><p>{t("nao_ele_aponta_o_que")}</p></details><details><summary>{t("quanto_posso_usar")}</summary><p>{t("cada_plano_tem_um_limite")}</p></details><details><summary>{t("a_peca_que_eu_envio")}</summary><p>{t("com_a_marca_so_quem")}</p></details></div>
       </div>
       </section>
 
       <section className="pg-sec">
       <div className="pg-wrap">
-      <p className="eyebrow">Veja também</p>
-      <div className="related"><Link className="rel" href="/manual"><small>Plataforma</small><b>O manual em PDF</b><span>Fiel ao que o estúdio diagramou.</span><em>→</em></Link><Link className="rel" href="/manual#complementos"><small>Plataforma</small><b>Complementos e lacunas</b><span>O que o manual não diz, escrito e citado.</span><em>→</em></Link><Link className="rel" href="/seguranca"><small>Plataforma</small><b>Segurança e privacidade</b><span>Acesso por marca, conversas privadas, dados seus.</span><em>→</em></Link></div>
+      <p className="eyebrow">{c("vejaTambem")}</p>
+      <div className="related"><CartaoRelacionado href="/manual" titulo={paginas("manual.titulo")} resumo={rel("manual.resumo")} /><CartaoRelacionado href="/manual#complementos" titulo={rel("complementos.titulo")} resumo={rel("complementos.resumo")} /><CartaoRelacionado href="/seguranca" titulo={paginas("seguranca.titulo")} resumo={rel("seguranca.resumo")} /></div>
       </div>
       </section>
 
-      <div className="marquee" aria-hidden="true"><div className="mq-track"><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span></div></div>
+      <FaixaDaMarca />
       <section className="pg-sec"><Losango classe="l4" velocidade={0.25} />
       <div className="pg-wrap cta-band">
-      <Titulo partes={["Traga o Vini para perto da sua equipe."]} />
-      <button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button>
+      <Titulo partes={[t("traga_o_vini_para_perto")]} />
+      <BotaoDemonstracao />
       </div>
       </section>
     </>

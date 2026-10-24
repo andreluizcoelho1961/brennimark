@@ -4,16 +4,19 @@ import { Captura } from "../Captura";
 import telaPessoas from "../imagens/telas/pessoas.webp";
 import telaReceber from "../imagens/telas/receber.webp";
 import telaRegistros from "../imagens/telas/registros.webp";
+import { getTranslations } from "next-intl/server";
 
 /** Entrega e acesso: o que era a página `/entrega`, agora um bloco de outra página (22/10/2026). Texto do protótipo de 29/09/2026 (autoria do André). */
-export function BlocosDeEntrega() {
+export async function BlocosDeEntrega() {
+  const t = await getTranslations("site.entrega");
+  const c = await getTranslations("site.comum");
   return (
     <>
       <section className="pg-sec" id="entrega"><Losango classe="l2" velocidade={0.2} />
       <div className="pg-wrap sec-head">
-      <p className="eyebrow">Entrega e acesso</p>
-      <Titulo className="h2" partes={["Cada fornecedor com a versão atual da marca."]} />
-      <p className="body" style={{ maxWidth: "640px" }}>Envie materiais a quem não tem conta com um link que expira, convide cada pessoa para as marcas em que trabalha e mantenha todos com a mesma referência.</p>
+      <p className="eyebrow">{t("entrega_e_acesso")}</p>
+      <Titulo className="h2" partes={[t("cada_fornecedor_com_a_versao")]} />
+      <p className="body" style={{ maxWidth: "640px" }}>{t("envie_materiais_a_quem_nao")}</p>
       </div>
       </section>
 
@@ -21,32 +24,32 @@ export function BlocosDeEntrega() {
       <div className="pg-wrap">
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Link de entrega</p>
-      <Titulo className="h2" partes={["Para quem não tem conta, um link que expira."]} />
-      <p className="body">Escolha os materiais e o prazo. O link para de funcionar sozinho, e cada uso fica registrado.</p>
-      <ul className="ticks"><li>Prazo de validade</li><li>Sem criar conta para o fornecedor</li><li>A fonte fica de fora: só membros da marca baixam</li></ul>
+      <p className="eyebrow">{t("link_de_entrega")}</p>
+      <Titulo className="h2" partes={[t("para_quem_nao_tem_conta")]} />
+      <p className="body">{t("escolha_os_materiais_e_o")}</p>
+      <ul className="ticks"><li>{t("prazo_de_validade")}</li><li>{t("sem_criar_conta_para_o")}</li><li>{t("a_fonte_fica_de_fora")}</li></ul>
       </div>
-      <Captura src={telaReceber} alt="A página que a gráfica recebe, sem criar conta: o nome de quem baixa, os arquivos escolhidos e a regra do manual com as páginas" />
+      <Captura src={telaReceber} alt={t("a_pagina_que_a_grafica")} />
       </div>
 
       <div className="feat-row rev">
       <div>
-      <p className="eyebrow">Registros</p>
-      <Titulo className="h2" partes={["Qual versão cada um recebeu."]} />
-      <p className="body">Envios e downloads ficam no mesmo histórico. Quando alguém pergunta &quot;a gráfica recebeu o logo novo?&quot;, a resposta está ali. O registro mostra acesso e download; não mostra como a marca foi aplicada numa peça.</p>
-      <ul className="ticks"><li>Downloads e envios num só lugar</li><li>Filtro por marca, pessoa e período</li><li>Exportável</li></ul>
+      <p className="eyebrow">{t("registros")}</p>
+      <Titulo className="h2" partes={[t("qual_versao_cada_um_recebeu")]} />
+      <p className="body">{t("envios_e_downloads_ficam_no")}</p>
+      <ul className="ticks"><li>{t("downloads_e_envios_num_so")}</li><li>{t("filtro_por_marca_pessoa_e")}</li><li>{t("exportavel")}</li></ul>
       </div>
-      <Captura src={telaRegistros} alt="Os registros: quem baixou qual material, quando e em qual marca" />
+      <Captura src={telaRegistros} alt={t("os_registros_quem_baixou_qual")} />
       </div>
 
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Acesso por marca</p>
-      <Titulo className="h2" partes={["Cada pessoa vê só a marca em que trabalha."]} />
-      <p className="body">Uma agência com vinte marcas convida o fotógrafo só para a marca do ensaio. Dois papéis simples: quem gere e quem consulta.</p>
-      <ul className="ticks"><li>Quem gere publica e aprova</li><li>Quem consulta lê, baixa e pergunta</li><li>Mude o papel quando quiser</li></ul>
+      <p className="eyebrow">{t("acesso_por_marca")}</p>
+      <Titulo className="h2" partes={[t("cada_pessoa_ve_so_a")]} />
+      <p className="body">{t("uma_agencia_com_vinte_marcas")}</p>
+      <ul className="ticks"><li>{t("quem_gere_publica_e_aprova")}</li><li>{t("quem_consulta_le_baixa_e")}</li><li>{t("mude_o_papel_quando_quiser")}</li></ul>
       </div>
-      <Captura src={telaPessoas} alt="Pessoas e acesso: cada pessoa com o seu nível e as marcas que alcança" />
+      <Captura src={telaPessoas} alt={t("pessoas_e_acesso_cada_pessoa")} />
       </div>
       </div>
       </section>
@@ -54,8 +57,8 @@ export function BlocosDeEntrega() {
 
       <section className="pg-sec">
       <div className="pg-wrap faq">
-      <div><p className="eyebrow">Perguntas</p><Titulo className="h2" partes={["Sobre entrega e acesso."]} /></div>
-      <div><details open><summary>O fornecedor precisa criar conta?</summary><p>Não, se você usar o link de entrega. Para quem trabalha na marca todo dia, vale o convite.</p></details><details><summary>Posso cancelar um link antes do prazo?</summary><p>Sim, a qualquer momento. Ele para de funcionar na hora.</p></details><details><summary>Quantas pessoas posso convidar?</summary><p>Ilimitadas, em todos os planos.</p></details><details><summary>Quem vê os registros?</summary><p>Quem gere a marca.</p></details></div>
+      <div><p className="eyebrow">{c("perguntas")}</p><Titulo className="h2" partes={[t("sobre_entrega_e_acesso")]} /></div>
+      <div><details open><summary>{t("o_fornecedor_precisa_criar_conta")}</summary><p>{t("nao_se_voce_usar_o")}</p></details><details><summary>{t("posso_cancelar_um_link_antes")}</summary><p>{t("sim_a_qualquer_momento_ele")}</p></details><details><summary>{t("quantas_pessoas_posso_convidar")}</summary><p>{t("ilimitadas_em_todos_os_planos")}</p></details><details><summary>{t("quem_ve_os_registros")}</summary><p>{t("quem_gere_a_marca")}</p></details></div>
       </div>
       </section>
 

@@ -99,6 +99,9 @@ export default defineConfig({
     },
   ],
 
+  // Compila as páginas do site em fila antes dos testes (ver o comentário do arquivo).
+  globalSetup: "./e2e/aquecer-o-servidor.ts",
+
   webServer: {
     command: `npm run dev -- --port ${PORTA}`,
     url: `http://localhost:${PORTA}/docs`,

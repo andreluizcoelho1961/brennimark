@@ -39,12 +39,12 @@ export async function Trilha({ menu, grupo, pagina }: { menu: "m-para" | "m-rec"
  * Um cartão de "páginas relacionadas". `href` é o endereço em português
  * (`/manual#complementos`); o idioma da página decide o endereço de verdade.
  */
-export async function CartaoRelacionado({ href, titulo, resumo }: { href: string; titulo: ReactNode; resumo: ReactNode }) {
+export async function CartaoRelacionado({ href, titulo, resumo, grupo = "plataforma" }: { href: string; titulo: ReactNode; resumo: ReactNode; grupo?: "plataforma" | "paraQuem" }) {
   const idioma = await idiomaDoSiteAtual();
   const t = await getTranslations("site.comum");
   return (
     <Link className="rel" href={caminhoDoSite(idioma, href)}>
-      <small>{t("plataforma")}</small><b>{titulo}</b><span>{resumo}</span><em>→</em>
+      <small>{t(grupo)}</small><b>{titulo}</b><span>{resumo}</span><em>→</em>
     </Link>
   );
 }

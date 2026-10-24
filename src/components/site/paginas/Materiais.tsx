@@ -6,32 +6,42 @@ import { Captura } from "../Captura";
 import telaItemLogotipo from "../imagens/telas/item-logotipo.webp";
 import telaMateriais from "../imagens/telas/materiais.webp";
 import telaBanco from "../imagens/telas/banco-de-imagens.webp";
+import { getTranslations } from "next-intl/server";
+import { caminhoDoSite } from "@/lib/site/idiomas";
+import { idiomaDoSiteAtual } from "@/lib/site/idioma-atual";
+import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** Materiais da marca — `/materiais`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
-export function ConteudoMateriais() {
+export async function ConteudoMateriais() {
+  const idioma = await idiomaDoSiteAtual();
+  const rota = (caminhoPt: string) => caminhoDoSite(idioma, caminhoPt);
+  const t = await getTranslations("site.materiais");
+  const c = await getTranslations("site.comum");
+  const paginas = await getTranslations("site.paginas");
+  const rel = await getTranslations("site.relacionados");
   return (
     <>
       <section className="pg-sec"><Losango classe="l1" velocidade={-0.22} />
       <div className="pg-wrap pg-hero">
       <div>
-      <p className="crumb"><a href="#" data-open-menu="m-plat">Plataforma</a> · Materiais da marca</p>
-      <Titulo como="h1" className="pg-h1" partes={["Tudo que a marca precisa, pronto para baixar."]} />
-      <p className="pg-lead">Logo, símbolo, cores, fonte, ícones e fotografia num só lugar. Cada arquivo com a regra de uso junto, e o kit inteiro num clique.</p>
+      <Trilha menu="m-plat" grupo="plataforma" pagina={paginas("materiais.titulo")} />
+      <Titulo como="h1" className="pg-h1" partes={[t("tudo_que_a_marca_precisa")]} />
+      <p className="pg-lead">{t("logo_simbolo_cores_fonte_icones")}</p>
       <div className="pg-actions">
-      <button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button>
-      <Link className="btn btn--ghost" href="/#planos" data-go="planos">Ver os planos <span className="arrow" aria-hidden="true">→</span></Link>
+      <BotaoDemonstracao />
+      <LinkVerPlanos />
       </div>
       </div>
-      <Captura src={telaMateriais} alt="Materiais da marca: a lista dos arquivos do Brennimark, cada um com a sua miniatura" />
+      <Captura src={telaMateriais} alt={t("materiais_da_marca_a_lista")} />
       </div>
       </section>
 
       <section className="pg-sec" style={{ paddingTop: "0", borderTop: "0" }}>
       <div className="pg-wrap points">
-      <div><i>01</i><b>O kit num clique</b><span>Tudo o que a marca tem, num pacote só, nos formatos certos.</span></div>
-      <div><i>02</i><b>A regra vai junto</b><span>Cada arquivo leva a regra de uso e a página do manual.</span></div>
-      <div><i>03</i><b>A fonte também</b><span>Para quem é da marca, com a licença em ordem.</span></div>
-      <div><i>04</i><b>Nada de versão velha</b><span>O que saiu de uso fica marcado como descontinuado.</span></div>
+      <div><i>01</i><b>{t("o_kit_num_clique")}</b><span>{t("tudo_o_que_a_marca")}</span></div>
+      <div><i>02</i><b>{t("a_regra_vai_junto")}</b><span>{t("cada_arquivo_leva_a_regra")}</span></div>
+      <div><i>03</i><b>{t("a_fonte_tambem")}</b><span>{t("para_quem_e_da_marca")}</span></div>
+      <div><i>04</i><b>{t("nada_de_versao_velha")}</b><span>{t("o_que_saiu_de_uso")}</span></div>
       </div>
       </section>
 
@@ -39,74 +49,74 @@ export function ConteudoMateriais() {
       <div className="pg-wrap">
       <div className="feat-row">
       <div>
-      <p className="eyebrow">O kit</p>
-      <Titulo className="h2" partes={["O kit inteiro, montado na hora."]} />
-      <p className="body">Escolha o que precisa ou leve tudo. O pacote é montado no seu próprio navegador e chega organizado em pastas, pronto para passar a quem vai produzir.</p>
-      <ul className="ticks"><li>Logo em SVG, PNG e PDF</li><li>Paleta em ASE, com HEX, RGB e CMYK</li><li>Fonte, ícones e fotografia</li><li>As regras de uso em PDF, dentro do pacote</li></ul>
+      <p className="eyebrow">{t("o_kit")}</p>
+      <Titulo className="h2" partes={[t("o_kit_inteiro_montado_na")]} />
+      <p className="body">{t("escolha_o_que_precisa_ou")}</p>
+      <ul className="ticks"><li>{t("logo_em_svg_png_e")}</li><li>{t("paleta_em_ase_com_hex")}</li><li>{t("fonte_icones_e_fotografia")}</li><li>{t("as_regras_de_uso_em")}</li></ul>
       </div>
       <div className="frame">
-      <div className="kit" role="img" aria-label="Painel de montagem do kit com seis grupos marcados e a barra de progresso">
-      <h4>Kit da marca Brennimark</h4>
-      <div className="kit-row"><span className="ck">✓</span><b>Logotipo</b><em>SVG · PNG · PDF</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Símbolo</b><em>SVG · PNG</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Cores</b><em>ASE · PDF</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Tipografia</b><em>OTF</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Ícones</b><em>SVG</em></div>
-      <div className="kit-row"><span className="ck">✓</span><b>Regras de uso</b><em>PDF</em></div>
+      <div className="kit" role="img" aria-label={t("painel_de_montagem_do_kit")}>
+      <h4>{t("kit_da_marca_brennimark")}</h4>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("logotipo")}</b><em>SVG · PNG · PDF</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("simbolo")}</b><em>SVG · PNG</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("cores")}</b><em>ASE · PDF</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("tipografia")}</b><em>OTF</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("icones")}</b><em>SVG</em></div>
+      <div className="kit-row"><span className="ck">✓</span><b>{t("regras_de_uso")}</b><em>PDF</em></div>
       <div className="prog"><i></i></div>
-      <div className="kit-foot"><span>Montando o pacote no seu navegador… 68%</span><span className="mk-btn">Baixar .zip</span></div>
+      <div className="kit-foot"><span>{t("montando_o_pacote_no_seu")}</span><span className="mk-btn">{t("baixar_zip")}</span></div>
       </div>
       </div>
       </div>
 
       <div className="feat-row rev">
       <div>
-      <p className="eyebrow">A regra junto</p>
-      <Titulo className="h2" partes={["Quem baixa o logo leva junto como usar."]} />
-      <p className="body">Cada item tem as suas versões e, ao lado, a regra que vale para ele, com a página do manual. O fornecedor não precisa adivinhar, e ninguém precisa explicar de novo.</p>
-      <ul className="ticks"><li>Versões para fundo claro e escuro</li><li>O que pode e o que não pode, lado a lado</li><li>A citação abre o manual na página</li></ul>
+      <p className="eyebrow">{t("a_regra_junto")}</p>
+      <Titulo className="h2" partes={[t("quem_baixa_o_logo_leva")]} />
+      <p className="body">{t("cada_item_tem_as_suas")}</p>
+      <ul className="ticks"><li>{t("versoes_para_fundo_claro_e")}</li><li>{t("o_que_pode_e_o")}</li><li>{t("a_citacao_abre_o_manual")}</li></ul>
       </div>
-      <Captura src={telaItemLogotipo} alt="A página de um item: a prévia do arquivo, a regra de uso com as páginas do manual e o botão de baixar" />
+      <Captura src={telaItemLogotipo} alt={t("a_pagina_de_um_item")} />
       </div>
 
       <div className="feat-row">
       <div>
-      <p className="eyebrow">A fonte</p>
-      <Titulo className="h2" partes={["A fonte da marca vem junto."]} />
-      <p className="body">Sem a fonte, o primeiro arquivo aberto já sai errado. No Brennimark ela fica com o resto da marca, para baixar, e só para quem faz parte dela.</p>
-      <ul className="ticks"><li>Só para membros daquela marca</li><li>Nunca em endereço público</li><li>Licença aceita e registrada no envio</li></ul>
+      <p className="eyebrow">{t("a_fonte")}</p>
+      <Titulo className="h2" partes={[t("a_fonte_da_marca_vem")]} />
+      <p className="body">{t("sem_a_fonte_o_primeiro")}</p>
+      <ul className="ticks"><li>{t("so_para_membros_daquela_marca")}</li><li>{t("nunca_em_endereco_publico")}</li><li>{t("licenca_aceita_e_registrada_no")}</li></ul>
       </div>
       <div className="font-card">
       <div className="spec">Aa</div>
       <p className="alpha">ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789</p>
       <div className="weights"><span style={{ fontWeight: "400" }}>Inter Regular</span><span style={{ fontWeight: "500" }}>Inter Medium</span><span style={{ fontWeight: "600" }}>Inter Semibold</span></div>
-      <p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="7" width="10" height="7" rx="1.5" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" /></svg><span><b>Download para membros desta marca.</b> Licença aceita por Carolina Menezes em 12/03/2026, no envio dos arquivos.</span></p>
+      <p className="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="3" y="7" width="10" height="7" rx="1.5" /><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" /></svg><span><b>{t("download_para_membros_desta_marca")}</b>{" "}{t("licenca_aceita_por_carolina_menezes")}</span></p>
       </div>
       </div>
 
       <div className="feat-row rev">
       <div>
-      <p className="eyebrow">Fotografia</p>
-      <Titulo className="h2" partes={["O acervo de fotos, organizado."]} />
-      <p className="body">Álbuns por assunto, com miniaturas e ampliação de cada imagem. Selecione uma, várias ou todas e baixe de uma vez.</p>
-      <ul className="ticks"><li>Álbuns criados pela agência</li><li>Ampliação antes de baixar</li><li>Várias fotos num pacote</li></ul>
+      <p className="eyebrow">{t("fotografia")}</p>
+      <Titulo className="h2" partes={[t("o_acervo_de_fotos_organizado")]} />
+      <p className="body">{t("albuns_por_assunto_com_miniaturas")}</p>
+      <ul className="ticks"><li>{t("albuns_criados_pela_agencia")}</li><li>{t("ampliacao_antes_de_baixar")}</li><li>{t("varias_fotos_num_pacote")}</li></ul>
       </div>
-      <Captura src={telaBanco} alt="Banco de imagens da marca: miniaturas de um álbum com três fotos selecionadas e o botão Baixar 3 fotos (ZIP)" />
+      <Captura src={telaBanco} alt={t("banco_de_imagens_da_marca")} />
       </div>
 
       <div className="feat-row">
       <div>
-      <p className="eyebrow">Versões</p>
-      <Titulo className="h2" partes={["O logo antigo não se confunde com o atual."]} />
-      <p className="body">Quando um arquivo sai de uso, ele não some: fica marcado como descontinuado, com a data. Quem procura encontra o atual primeiro.</p>
+      <p className="eyebrow">{t("versoes")}</p>
+      <Titulo className="h2" partes={[t("o_logo_antigo_nao_se")]} />
+      <p className="body">{t("quando_um_arquivo_sai_de")}</p>
       </div>
       <div className="frame">
       <div className="mk"><div className="mk-body">
       <div className="vs">
-      <div className="tile"><span className="tag cur">ATUAL</span><div className="tile-art dark logo"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><p>Logotipo 2026 <span>SVG · PNG</span></p></div>
-      <div className="tile old"><span className="tag dis">DESCONTINUADO</span><div className="tile-art dark logo" style={{ color: "#f2f5f6" }}><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><p>Logotipo 2019 <span>desde 03/2026</span></p></div>
+      <div className="tile"><span className="tag cur">{t("atual")}</span><div className="tile-art dark logo"><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><p>{t("logotipo_2026")}{" "}<span>SVG · PNG</span></p></div>
+      <div className="tile old"><span className="tag dis">{t("descontinuado")}</span><div className="tile-art dark logo" style={{ color: "#f2f5f6" }}><svg viewBox="0 0 750 170"><use href="#bm-logo" /></svg></div><p>{t("logotipo_2019")}{" "}<span>{t("desde_03_2026")}</span></p></div>
       </div>
-      <p className="vs-note">O descontinuado continua disponível para consulta, com aviso, e não entra no kit.</p>
+      <p className="vs-note">{t("o_descontinuado_continua_disponivel_para")}</p>
       </div></div>
       </div>
       </div>
@@ -115,31 +125,26 @@ export function ConteudoMateriais() {
 
       <section className="pg-sec">
       <div className="pg-wrap">
-      <div className="sec-head"><p className="eyebrow">Como funciona</p><Titulo className="h2" partes={["A agência organiza uma vez. A equipe usa sempre."]} /></div>
+      <div className="sec-head"><p className="eyebrow">{c("comoFunciona")}</p><Titulo className="h2" partes={[t("a_agencia_organiza_uma_vez")]} /></div>
       <div className="steps">
-      <div className="stp"><b>A agência sobe os arquivos</b><p>No Studio, cada arquivo entra no seu grupo: logotipo, cores, fonte, ícones, fotos.</p><small>Studio</small></div>
-      <div className="stp"><b>Liga cada um à regra</b><p>A regra de uso e a página do manual ficam presas ao arquivo.</p><small>Studio</small></div>
-      <div className="stp"><b>A equipe baixa o que precisa</b><p>Um arquivo, um grupo ou o kit inteiro, sempre a versão atual.</p><small>Book</small></div>
+      <div className="stp"><b>{t("a_agencia_sobe_os_arquivos")}</b><p>{t("no_studio_cada_arquivo_entra")}</p><small>Studio</small></div>
+      <div className="stp"><b>{t("liga_cada_um_a_regra")}</b><p>{t("a_regra_de_uso_e")}</p><small>Studio</small></div>
+      <div className="stp"><b>{t("a_equipe_baixa_o_que")}</b><p>{t("um_arquivo_um_grupo_ou")}</p><small>{t("book")}</small></div>
       </div>
       </div>
       </section>
 
-      <section className="pg-sec">
-      <figure className="pg-wrap big-quote">
-      <blockquote>Antes, cada fornecedor novo era uma hora de e-mail explicando qual arquivo usar. Agora eu mando o convite e pronto.</blockquote>
-      <figcaption><b>Depoimento fictício</b> · texto de marcação do layout</figcaption>
-      </figure>
-      </section>
+      <CitacaoFicticia>{t("antes_cada_fornecedor_novo_era")}</CitacaoFicticia>
 
       <section className="pg-sec">
       <div className="pg-wrap faq">
-      <div><p className="eyebrow">Perguntas</p><Titulo className="h2" partes={["Sobre os materiais."]} /></div>
+      <div><p className="eyebrow">{c("perguntas")}</p><Titulo className="h2" partes={[t("sobre_os_materiais")]} /></div>
       <div>
-      <details open><summary>Quem pode baixar os arquivos?</summary><p>As pessoas convidadas para aquela marca. Uma agência com vinte marcas convida cada fornecedor só para a marca em que ele trabalha.</p></details>
-      <details><summary>E quem não tem conta, como a gráfica?</summary><p>Você envia um link de entrega com prazo, com logo, cores, fotos e regras de uso. Ele expira sozinho. A fonte não vai por link: ela é só para membros da marca. <Link className="more" style={{ margin: "0", fontSize: "inherit" }} href="/materiais#entrega">Entrega e acesso →</Link></p></details>
-      <details><summary>A fonte da marca fica pública?</summary><p>Não. Ela é servida só para download, a membros autenticados daquela marca, depois de a licença ser aceita no envio. Nunca vira endereço público.</p></details>
-      <details><summary>Quais formatos posso subir?</summary><p>Os de uso comum em marca: SVG, PNG, JPG, PDF, EPS, AI, OTF, TTF, ASE e outros. O limite de tamanho por arquivo depende do plano.</p></details>
-      <details><summary>O que acontece com o logo antigo?</summary><p>Fica marcado como descontinuado, com data. Continua consultável, mas não entra no kit e aparece depois do atual.</p></details>
+      <details open><summary>{t("quem_pode_baixar_os_arquivos")}</summary><p>{t("as_pessoas_convidadas_para_aquela")}</p></details>
+      <details><summary>{t("e_quem_nao_tem_conta")}</summary><p>{t("voce_envia_um_link_de")}{" "}<Link className="more" style={{ margin: "0", fontSize: "inherit" }} href={rota("/materiais#entrega")}>{t("entrega_e_acesso")}</Link></p></details>
+      <details><summary>{t("a_fonte_da_marca_fica")}</summary><p>{t("nao_ela_e_servida_so")}</p></details>
+      <details><summary>{t("quais_formatos_posso_subir")}</summary><p>{t("os_de_uso_comum_em")}</p></details>
+      <details><summary>{t("o_que_acontece_com_o")}</summary><p>{t("fica_marcado_como_descontinuado_com")}</p></details>
       </div>
       </div>
       </section>
@@ -148,19 +153,19 @@ export function ConteudoMateriais() {
 
       <section className="pg-sec">
       <div className="pg-wrap">
-      <p className="eyebrow">Veja também</p>
+      <p className="eyebrow">{c("vejaTambem")}</p>
       <div className="related">
-      <Link className="rel" href="/vini"><small>Plataforma</small><b>Vini Max</b><span>Consulta, revisão de peça e prompts alinhados à marca.</span><em>→</em></Link>
-      <Link className="rel" href="/manual"><small>Plataforma</small><b>O manual em PDF</b><span>Fiel ao que o estúdio diagramou.</span><em>→</em></Link>
+      <CartaoRelacionado href="/vini" titulo={paginas("vini.titulo")} resumo={rel("vini.resumo")} />
+      <CartaoRelacionado href="/manual" titulo={paginas("manual.titulo")} resumo={rel("manual.resumo")} />
       </div>
       </div>
       </section>
 
-      <div className="marquee" aria-hidden="true"><div className="mq-track"><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span><span>Forjada com cuidado <i>✦</i> Viva em cada trabalho <i>✦</i> </span></div></div>
+      <FaixaDaMarca />
       <section className="pg-sec"><Losango classe="l4" velocidade={0.25} />
       <div className="pg-wrap cta-band">
-      <Titulo partes={["Entregue a marca pronta para usar."]} />
-      <button className="btn" type="button" data-open="dlg-demo">Agendar uma demonstração <span className="arrow" aria-hidden="true">↗</span></button>
+      <Titulo partes={[t("entregue_a_marca_pronta_para")]} />
+      <BotaoDemonstracao />
       </div>
       </section>
     </>
