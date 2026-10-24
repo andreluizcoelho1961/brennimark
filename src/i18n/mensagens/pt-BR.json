@@ -661,6 +661,11 @@
       "cada_plano_tem_um_limite": "Cada plano tem um limite de uso do Vini, e o excedente pode ser comprado à parte.",
       "a_peca_que_eu_envio": "A peça que eu envio fica com quem?",
       "com_a_marca_so_quem": "Com a marca. Só quem tem acesso àquela marca vê a análise."
+    },
+    "legal": {
+      "termosTitulo": "Termos de uso.",
+      "privacidadeTitulo": "Política de privacidade.",
+      "vigencia": "Em vigor desde {data} · versão {versao}"
     }
   }
 }

@@ -59,7 +59,7 @@ const SEGMENTOS: Record<Exclude<IdiomaDoSite, "pt-BR">, Record<string, string>> 
  */
 export const PAGINAS_TRADUZIDAS: Record<IdiomaDoSite, ReadonlySet<string> | "todas"> = {
   "pt-BR": "todas",
-  en: new Set<string>(["manifesto", "agencias", "empresas", "licenca-de-fontes", "manual", "materiais", "vini", "seguranca"]),
+  en: new Set<string>(["manifesto", "agencias", "empresas", "licenca-de-fontes", "manual", "materiais", "vini", "seguranca", "termos", "privacidade"]),
 };
 
 /** O parâmetro que avisa, na página em português, que a pedida ainda não existe no outro idioma. */

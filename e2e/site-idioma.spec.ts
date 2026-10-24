@@ -34,8 +34,8 @@ test("o Manifesto em português continua igual, e o botão leva ao inglês", asy
 });
 
 test("página sem tradução leva à equivalente em português, com o aviso nos dois idiomas", async ({ page }) => {
-  await page.goto("/en/terms");
-  await expect(page).toHaveURL(/\/termos\?idioma=indisponivel$/);
+  await page.goto("/en/help");
+  await expect(page).toHaveURL(/\/ajuda\?idioma=indisponivel$/);
   const aviso = page.locator("[data-aviso-de-idioma]");
   await expect(aviso).toContainText("This page isn't available in English yet");
   await expect(aviso).toContainText("Esta página ainda não está disponível em inglês");
@@ -59,9 +59,9 @@ test("os redirecionamentos do idioma: status e destino, uma URL por página", as
   expect(b.status()).toBe(308);
   expect(b.headers()["location"]).toMatch(/\/vini$/);
   // Sem tradução: provisório (307), porque a tradução vem depois.
-  const c = await request.get("/en/terms", { maxRedirects: 0 });
+  const c = await request.get("/en/help", { maxRedirects: 0 });
   expect(c.status()).toBe(307);
-  expect(c.headers()["location"]).toMatch(/\/termos\?idioma=indisponivel$/);
+  expect(c.headers()["location"]).toMatch(/\/ajuda\?idioma=indisponivel$/);
   // O que não existe no site é 404, não redirecionamento.
   expect((await request.get("/en/nao-existe", { maxRedirects: 0 })).status()).toBe(404);
 });
@@ -130,4 +130,31 @@ test("Materiais em português: etiqueta da versão antiga e bloco de entrega seg
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Tudo que a marca precisa");
   await expect(page.getByText("DESCONTINUADO", { exact: true })).toBeVisible();
   await expect(page.locator("#entrega")).toContainText("Cada fornecedor com a versão atual da marca.");
+});
+
+test("Termos e Privacidade em inglês: versão, termos jurídicos, âncora e link entre os documentos", async ({ page }) => {
+  await page.goto("/en/terms");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Terms of use.");
+  await expect(page.locator(".pg-lead")).toHaveText("In force since October 22, 2026 · version 2026-10-22");
+  await expect(page.locator("[data-documento-legal]")).toHaveAttribute("data-versao", "2026-10-22");
+  await expect(page.locator("#data-processed-on-behalf-of-the-subscriber h2")).toHaveText("6. Data processed on behalf of the Subscriber");
+  await expect(page.getByText("Brazilian Consumer Defense Code").first()).toBeVisible();
+  await expect(page.locator(".legal h2")).toHaveCount(19);
+});
+
+test("A privacidade em inglês: 11 seções, e o link para os Termos vai ao endereço e à âncora em inglês", async ({ page }) => {
+  await page.goto("/en/privacy");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Privacy policy.");
+  await expect(page.locator(".legal h2")).toHaveCount(11);
+  await expect(page.locator('.legal a[href="/en/terms#data-processed-on-behalf-of-the-subscriber"]')).toHaveCount(1);
+  await expect(page.getByText("Brazilian General Data Protection Law").first()).toBeVisible();
+});
+
+test("Termos e Privacidade em português seguem iguais, com a mesma versão", async ({ page }) => {
+  await page.goto("/termos");
+  await expect(page.locator(".pg-lead")).toHaveText("Em vigor desde 22 de outubro de 2026 · versão 2026-10-22");
+  await expect(page.locator(".legal h2")).toHaveCount(19);
+  await page.goto("/privacidade");
+  await expect(page.locator('.legal a[href="/termos#dados-tratados-em-nome-do-assinante"]')).toHaveCount(1);
 });
