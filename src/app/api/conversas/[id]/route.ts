@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { idDeConversa } from "@/lib/ai/conversas";
 import { createClient } from "@/lib/supabase/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 /**
  * Uma conversa: abrir (as mensagens) e apagar — fatia 4d.
@@ -15,20 +16,20 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
  * depois de perder o acesso (LGPD). Vai por `apagar_conversa`, que só confere
  * o autor. Sem conteúdo no log.
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
-const naoEncontrada = () => NextResponse.json({
+const naoEncontrada = (isEnglish: boolean) => NextResponse.json({
   message: isEnglish ? "Conversation not found." : "Conversa não encontrada.",
 }, { status: 404 });
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const id = idDeConversa((await params).id);
-  if (!id) return naoEncontrada();
+  if (!id) return naoEncontrada(isEnglish);
   const portao = await portaoDeIA(request, "chat");
   if (!portao.ok) return portao.resposta;
 
   const { data: conversa } = await portao.auth.supabase
     .from("conversas").select("id, titulo").eq("id", id).eq("brand_id", portao.brand.id).maybeSingle();
-  if (!conversa) return naoEncontrada();
+  if (!conversa) return naoEncontrada(isEnglish);
 
   const { data, error } = await portao.auth.supabase
     .from("mensagens_da_conversa")
@@ -51,8 +52,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const id = idDeConversa((await params).id);
-  if (!id) return naoEncontrada();
+  if (!id) return naoEncontrada(isEnglish);
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ message: isEnglish ? "Sign in again." : "Entre de novo." }, { status: 401 });
@@ -62,6 +64,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     console.error(JSON.stringify({ level: "error", msg: "conversa_nao_apagada", code: error.code ?? "unknown" }));
     return NextResponse.json({ message: isEnglish ? "Couldn't delete the conversation." : "Não foi possível apagar a conversa." }, { status: 500 });
   }
-  if (data !== 1) return naoEncontrada();
+  if (data !== 1) return naoEncontrada(isEnglish);
   return NextResponse.json({ apagada: true });
 }

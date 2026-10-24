@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { ehTipoDeItem } from "@/lib/assets/eixos";
 
@@ -11,9 +12,8 @@ import { ehTipoDeItem } from "@/lib/assets/eixos";
  * construção. Quem AUTORIZA é a RLS de `brand_asset_items`, por capacidade na
  * marca; o portão aqui só decide a resposta.
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
-async function donoDaMarca(request: Request) {
+async function donoDaMarca(request: Request, isEnglish: boolean) {
   const r = await marcaDaRota(request);
   if (!r.ok) return { ok: false as const, resposta: r.resposta };
   if (r.papel !== "owner") {
@@ -32,7 +32,8 @@ function textoCurto(valor: unknown, maximo: number): string | null {
 }
 
 export async function POST(request: Request) {
-  const r = await donoDaMarca(request);
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const r = await donoDaMarca(request, isEnglish);
   if (!r.ok) return r.resposta;
   const { contexto } = r;
   const corpo = await request.json().catch(() => null);
@@ -55,7 +56,8 @@ export async function POST(request: Request) {
 
 /** Renomear e descrever. O tipo não muda aqui: com arquivos, o banco recusa. */
 export async function PATCH(request: Request) {
-  const r = await donoDaMarca(request);
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const r = await donoDaMarca(request, isEnglish);
   if (!r.ok) return r.resposta;
   const { contexto } = r;
   const corpo = await request.json().catch(() => null);
@@ -82,7 +84,8 @@ export async function PATCH(request: Request) {
  * "não foi possível" diante de um botão de remover parece defeito, e é regra.
  */
 export async function DELETE(request: Request) {
-  const r = await donoDaMarca(request);
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const r = await donoDaMarca(request, isEnglish);
   if (!r.ok) return r.resposta;
   const { contexto } = r;
   const corpo = await request.json().catch(() => null);

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { Complementos } from "@/components/complementos/Complementos";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -10,10 +11,11 @@ export const metadata = { robots: { index: false, follow: false } };
  * com prévia, publicar, arquivar, histórico. Quem lê o quê está provado no
  * banco (`scripts/prova-complementos.sh`).
  */
-export default function BancadaDeComplementos() {
+export default async function BancadaDeComplementos() {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main className="min-h-dvh bg-platform-bg">
         <Complementos />
       </main>

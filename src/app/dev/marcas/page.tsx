@@ -5,6 +5,7 @@ import { shellSections } from "@/components/shell/navigation";
 import { BrandCanvas } from "@/components/BrandCanvas";
 import { DocPage } from "@/components/docs/DocPage";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
@@ -58,6 +59,7 @@ export default async function MarcasOpostas({
 }: {
   searchParams: Promise<{ marca?: string }>;
 }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
 
   const { marca: chave } = await searchParams;
@@ -82,7 +84,7 @@ export default async function MarcasOpostas({
 
   return (
     <ProvedorDeTraducao>
-    <LocaleProvider locale={PRODUCT_LOCALE}>
+    <LocaleProvider locale={idioma}>
       <BrandVocabularyProvider language={marca.metadata.language} statusLabels={marca.statusLabels}>
         <AppShellV2
           {...molduraDaMarcaAberta({ sections, basePath: "/dev/marcas", contaSlug: "dev", administraConta: true, ingles: PRODUCT_LOCALE === "en" })}

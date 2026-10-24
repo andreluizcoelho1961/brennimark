@@ -27,12 +27,12 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { brandPromptContext } from "@/lib/brennimark/context";
 import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const CHAT_TIMEOUT_MS = 60_000;
 
 export const maxDuration = 120;
@@ -50,7 +50,7 @@ export const maxDuration = 120;
  * evidência. Um é uma afirmação sobre o manual; o outro é a confissão de que
  * não deu para consultá-lo.
  */
-function conhecimentoIndisponivel() {
+function conhecimentoIndisponivel(isEnglish: boolean) {
   return NextResponse.json(
     {
       error: "knowledge_unavailable",
@@ -63,6 +63,7 @@ function conhecimentoIndisponivel() {
 }
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const body = await request.json().catch(() => null);
   const recebidas = body?.messages as ModelMessage[] | undefined;
   // Histórico limitado pelas duas pontas antes de qualquer outra coisa: as
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
     );
     // A falha da busca interrompe AQUI, antes de resolver o roteamento e antes
     // de qualquer chamada ao provedor.
-    if (!recuperacao.ok) return conhecimentoIndisponivel();
+    if (!recuperacao.ok) return conhecimentoIndisponivel(isEnglish);
     trechos = recuperacao.trechos;
     const routing = await resolveChatRouting(portao.auth.workspaceId);
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
@@ -136,7 +137,7 @@ export async function POST(request: Request) {
     // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
     // mensagem que diz a quem pedir.
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish);
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     // A fila inteira: principal e reserva. A reserva abaixo é da PRIMEIRA;
@@ -346,7 +347,7 @@ export async function POST(request: Request) {
     // este catch cobre tanto as falhas anteriores a ela (portão, busca,
     // roteamento) quanto o que ela deixa passar.
     const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(rootError);
+    const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }

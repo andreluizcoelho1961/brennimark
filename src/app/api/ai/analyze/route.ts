@@ -21,12 +21,12 @@ import type { Trecho } from "@/lib/ai/recuperacao";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio, type AIExecutionRequest } from "@/lib/ai/execucao";
 import { registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const ANALYSIS_COMPLETION_TIMEOUT_MS = 90_000;
 
 export const maxDuration = 120;
@@ -62,7 +62,7 @@ function parseImageDataUrl(value: string) {
  * evidência. Um é uma afirmação sobre o manual; o outro é a confissão de que
  * não deu para consultá-lo.
  */
-function conhecimentoIndisponivel() {
+function conhecimentoIndisponivel(isEnglish: boolean) {
   return NextResponse.json(
     {
       error: "knowledge_unavailable",
@@ -75,6 +75,7 @@ function conhecimentoIndisponivel() {
 }
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const startedAt = Date.now();
   const requestId = request.headers.get("x-vercel-id") ?? crypto.randomUUID();
   const body = await request.json().catch(() => null);
@@ -153,7 +154,7 @@ export async function POST(request: Request) {
     );
     // Interrompe antes do provedor: julgar uma peça sem o manual seria julgar
     // com conhecimento geral, e o veredito sairia com a mesma confiança.
-    if (!recuperacao.ok) return conhecimentoIndisponivel();
+    if (!recuperacao.ok) return conhecimentoIndisponivel(isEnglish);
     trechos = recuperacao.trechos;
     brandPrompt = brandPromptContext(portao.brand);
   } catch {
@@ -166,13 +167,13 @@ export async function POST(request: Request) {
     const routing = await resolveAnalysisRouting(workspaceId);
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish);
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
   } catch (error) {
-    const { code, message, detalheTecnico } = classifyAIError(error);
+    const { code, message, detalheTecnico } = classifyAIError(error, isEnglish);
     // O detalhe fica no log do servidor. A resposta leva só a mensagem de
     // produto — ela atravessa a rede e aparece na tela.
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
@@ -238,7 +239,7 @@ export async function POST(request: Request) {
     // (é a checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
     pricing = decisao.capabilities.pricing!;
   } catch (error) {
-    const { code, message, detalheTecnico } = classifyAIError(error);
+    const { code, message, detalheTecnico } = classifyAIError(error, isEnglish);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
     return NextResponse.json({ error: code, message }, { status: 503 });
   }
@@ -429,7 +430,7 @@ export async function POST(request: Request) {
         // executarComOrcamento já libera a reserva antes de repassar o
         // erro — nenhuma chamada extra precisa acontecer aqui.
         const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-        const { code, message, detalheTecnico } = classifyAIError(rootError);
+        const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish);
         console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
         console.error(JSON.stringify({
           level: "error",

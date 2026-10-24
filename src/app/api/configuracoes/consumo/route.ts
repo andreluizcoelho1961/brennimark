@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { autenticacaoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import {
   diaDeReferencia, inicioUtc, intervaloDoMes, resumoDoConsumo,
   type ArmazenamentoDaMarca, type ExecucaoDoMes, type GastoDoRazao, type Orcamento,
 } from "@/lib/configuracoes/consumo";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * Configurações › Consumo da CONTA (30/09/2026).
@@ -59,6 +59,7 @@ async function fotografia(supabase: SupabaseClient, workspaceId: string, ate: st
 }
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await autenticacaoDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { supabase, workspaceId, role } = resolvido.contexto;

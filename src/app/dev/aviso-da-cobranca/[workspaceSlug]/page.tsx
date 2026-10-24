@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { AvisoDaCobranca } from "@/components/shell/AvisoDaCobranca";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -10,10 +11,11 @@ export const metadata = { robots: { index: false, follow: false } };
  * finge `/api/cobranca/situacao`; a regra de atraso está provada no banco
  * (`scripts/prova-cobranca.sh`, parte 7).
  */
-export default function BancadaDoAvisoDaCobranca() {
+export default async function BancadaDoAvisoDaCobranca() {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main className="min-h-dvh bg-platform-bg p-8"><AvisoDaCobranca /><p>Conteúdo da conta</p></main>
     </LocaleProvider>
   );

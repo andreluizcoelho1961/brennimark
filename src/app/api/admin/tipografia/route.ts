@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { COLUNAS_DA_TIPOGRAFIA, LIMITES, deLinhaDaTipografia, lerFonteEscrita, type MotivoDaRecusa } from "@/lib/tipografia/tipografia";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * A tipografia da marca — 14/10/2026. O mesmo modelo da ficha da paleta.
@@ -18,7 +18,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
  * ATUAL da marca.
  */
 
-function recusa(motivo: MotivoDaRecusa, paginas: number | null) {
+function recusa(motivo: MotivoDaRecusa, paginas: number | null, isEnglish: boolean) {
   const mensagens: Record<MotivoDaRecusa, [string, string]> = {
     uso: ["Choose the use.", "Escolha o uso."],
     segmento: [`Segment: up to ${LIMITES.segmento} characters.`, `Segmento: até ${LIMITES.segmento} caracteres.`],
@@ -38,15 +38,15 @@ function recusa(motivo: MotivoDaRecusa, paginas: number | null) {
   return NextResponse.json({ message: isEnglish ? en : pt }, { status: 400 });
 }
 
-const SO_QUEM_EDITA = () => NextResponse.json(
+const SO_QUEM_EDITA = (isEnglish: boolean) => NextResponse.json(
   { message: isEnglish ? "Only who edits this brand changes the typography." : "Só quem edita esta marca altera a tipografia." },
   { status: 403 },
 );
-const JA_EXISTE = () => NextResponse.json(
+const JA_EXISTE = (isEnglish: boolean) => NextResponse.json(
   { message: isEnglish ? "There is already a font for this use and segment. Edit that one." : "Já existe uma fonte para este uso e segmento. Edite aquela." },
   { status: 409 },
 );
-const FALHOU = () => NextResponse.json(
+const FALHOU = (isEnglish: boolean) => NextResponse.json(
   { message: isEnglish ? "Couldn't save the font." : "Não foi possível guardar a fonte." },
   { status: 500 },
 );
@@ -59,25 +59,27 @@ async function fonteDoCorpo(request: Request, supabase: Parameters<typeof lerMan
 }
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;
 
   const { lida, paginas } = await fonteDoCorpo(request, auth.supabase, workspaceId, brandId);
-  if (!lida.ok) return recusa(lida.motivo, paginas);
+  if (!lida.ok) return recusa(lida.motivo, paginas, isEnglish);
 
   const { data, error } = await auth.supabase.from("tipografia_da_marca")
     .insert({ workspace_id: workspaceId, brand_id: brandId, ...lida.fonte })
     .select(COLUNAS_DA_TIPOGRAFIA)
     .single();
   // 42501: a policy recusou — quem pediu não edita esta marca.
-  if (error?.code === "42501") return SO_QUEM_EDITA();
-  if (error?.code === "23505") return JA_EXISTE();
-  if (error || !data) return FALHOU();
+  if (error?.code === "42501") return SO_QUEM_EDITA(isEnglish);
+  if (error?.code === "23505") return JA_EXISTE(isEnglish);
+  if (error || !data) return FALHOU(isEnglish);
   return NextResponse.json({ fonte: deLinhaDaTipografia(data as Record<string, unknown>) }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;
@@ -85,7 +87,7 @@ export async function PATCH(request: Request) {
   const { corpo, lida, paginas } = await fonteDoCorpo(request, auth.supabase, workspaceId, brandId);
   const id = typeof corpo?.id === "string" ? corpo.id : "";
   if (!id) return NextResponse.json({ message: isEnglish ? "Choose a font." : "Escolha uma fonte." }, { status: 400 });
-  if (!lida.ok) return recusa(lida.motivo, paginas);
+  if (!lida.ok) return recusa(lida.motivo, paginas, isEnglish);
 
   // Uso e segmento não mudam numa linha (o gatilho recusa): quem quer outro
   // uso remove e cria. Por isso só o resto vai no update.
@@ -97,12 +99,13 @@ export async function PATCH(request: Request) {
     })
     .eq("id", id).eq("workspace_id", workspaceId).eq("brand_id", brandId)
     .select(COLUNAS_DA_TIPOGRAFIA);
-  if (error) return FALHOU();
-  if (!data || data.length === 0) return SO_QUEM_EDITA();
+  if (error) return FALHOU(isEnglish);
+  if (!data || data.length === 0) return SO_QUEM_EDITA(isEnglish);
   return NextResponse.json({ fonte: deLinhaDaTipografia(data[0] as Record<string, unknown>) });
 }
 
 export async function DELETE(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;
@@ -116,7 +119,7 @@ export async function DELETE(request: Request) {
     .delete()
     .eq("id", id).eq("workspace_id", workspaceId).eq("brand_id", brandId)
     .select("id");
-  if (error) return FALHOU();
+  if (error) return FALHOU(isEnglish);
   if (!data || data.length === 0) {
     return NextResponse.json(
       { message: isEnglish ? "Only drafts can be removed, and only by who edits this brand." : "Só fonte em rascunho se remove, e só quem edita esta marca remove." },

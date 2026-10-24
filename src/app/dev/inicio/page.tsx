@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { TelaInicial } from "@/components/shell/TelaInicial";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
 
@@ -27,13 +28,14 @@ export default async function BancadaDaTelaInicial({
 }: {
   searchParams: Promise<{ marcas?: string; administra?: string }>;
 }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
 
   const { marcas, administra } = await searchParams;
 
   if (marcas === "0") {
     return (
-      <LocaleProvider locale="pt-BR">
+      <LocaleProvider locale={idioma}>
         <main className="min-h-dvh bg-platform-bg">
           <EmptyBrandState
             podeImportar={administra === "1"}
@@ -54,7 +56,7 @@ export default async function BancadaDaTelaInicial({
   }));
 
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main>
         <TelaInicial opcoes={opcoes} />
       </main>

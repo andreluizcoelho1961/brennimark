@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { autenticacaoDaRota, marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { gerarCodigo, lerPedidoDeLink, mensagemDaRecusa, resumoDoCodigo, situacaoDoLink } from "@/lib/links/links";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const SEM_CACHE = { "Cache-Control": "private, no-store" };
 
 /**
@@ -16,6 +16,7 @@ const SEM_CACHE = { "Cache-Control": "private, no-store" };
 
 /** A lista: todos os links da conta que a sessão alcança, do mais recente para trás. */
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await autenticacaoDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { supabase, workspaceId } = resolvido.contexto;
@@ -70,6 +71,7 @@ export async function GET(request: Request) {
  * Depois disso ninguém mais o recupera — nem quem criou.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, brandId } = resolvido;

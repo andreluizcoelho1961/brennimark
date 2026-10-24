@@ -59,4 +59,7 @@ test("data e hora de Brasília, curtas; o ano só aparece quando não é o corre
   const agora = new Date("2026-09-28T15:00:00Z");
   assert.equal(quandoCurto("2026-09-28T12:13:10Z", agora), "28/09 09:13");
   assert.equal(quandoCurto("2025-12-31T23:30:00Z", agora), "31/12/2025 20:30");
+  // Em inglês: mês escrito (sem a ambiguidade 03/04), e o ano só quando não é o corrente.
+  assert.equal(quandoCurto("2026-09-28T12:13:10Z", agora, true), "Sep 28, 9:13 AM");
+  assert.equal(quandoCurto("2025-12-31T23:30:00Z", agora, true), "Dec 31, 2025, 8:30 PM");
 });

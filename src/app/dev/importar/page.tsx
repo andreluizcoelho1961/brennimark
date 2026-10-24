@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { BrandImporter } from "@/components/import/BrandImporter";
 import { LIMITES_DE_IMPORTACAO } from "@/lib/import/limites";
 import { LocaleProvider } from "@/platform/locale-client";
-import { PRODUCT_LOCALE } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 export const metadata = { robots: { index: false, follow: false } };
 
@@ -22,6 +22,7 @@ export default async function ImportarLab({
 }: {
   searchParams: Promise<{ maxBytes?: string; maxPaginas?: string }>;
 }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
 
   // Limites reduzíveis pela URL: testar a recusa por tamanho com o limite real
@@ -34,7 +35,7 @@ export default async function ImportarLab({
   };
 
   return (
-    <LocaleProvider locale={PRODUCT_LOCALE}>
+    <LocaleProvider locale={idioma}>
       <BrandImporter workspaceSlug="laboratorio"
       workspaceId="00000000-0000-4000-8000-000000000000" limites={limites} />
     </LocaleProvider>

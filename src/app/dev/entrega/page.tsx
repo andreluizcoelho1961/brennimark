@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { EntregaPublica, LinkIndisponivel } from "@/components/entrega/EntregaPublica";
 import type { VistaDaEntrega } from "@/lib/links/vista";
 
@@ -39,11 +40,12 @@ const VISTA: VistaDaEntrega = {
  * `/api/entrega/.../baixar`. `?estado=` mostra as páginas de link indisponível.
  */
 export default async function BancadaDaEntrega({ searchParams }: { searchParams: Promise<{ estado?: string }> }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   const { estado } = await searchParams;
   const indisponivel = estado === "expirado" || estado === "revogado" || estado === "inexistente" || estado === "erro" ? estado : null;
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       {indisponivel ? <LinkIndisponivel estado={indisponivel} /> : <EntregaPublica codigo={CODIGO} vista={VISTA} />}
     </LocaleProvider>
   );

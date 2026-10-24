@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { conferirSenhaNova, senhaProvisoriaAte, senhaProvisoriaVencida } from "@/lib/acesso/senha-provisoria";
@@ -21,10 +22,10 @@ import { ipDoPedido } from "@/lib/conformidade/registro-de-acesso";
  *
  * A senha nova não vai para log, nem para a resposta.
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
-const t = (pt: string, en: string) => (isEnglish ? en : pt);
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (pt: string, en: string) => (isEnglish ? en : pt);
   const supabase = await createClient();
   // `getUser` valida a sessão no provedor e devolve o `app_metadata` ATUAL —
   // não o que ficou gravado no token quando a pessoa entrou.

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, caminhoDeAsset } from "@/lib/storage/caminhos";
 import { conferirEixos, ehTipoDeItem, lerEixos, rotulo } from "@/lib/assets/eixos";
 import { TAMANHO_MAXIMO_DE_MATERIAL, TIPOS_ACEITOS } from "@/lib/assets/conferir-arquivo";
 import { PRAZO_DO_ENVIO_MS, assinarEnvio } from "@/lib/assets/envio";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * PREPARAR o envio de um material — passo 1 de 2 (24/09/2026).
@@ -24,6 +24,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
  * O conteúdo real é conferido no passo 2, sobre os bytes que chegaram.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await marcaDaRota(request);
   if (!r.ok) return r.resposta;
   if (r.papel !== "owner") {

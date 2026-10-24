@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { createServiceClient } from "@/lib/supabase/service";
 import { codigoValido, identificacaoValida, MAXIMO_DE_ARQUIVOS, resumoDoCodigo } from "@/lib/links/links";
 import { liberarEntrega, type LinkAberto } from "@/lib/links/entrega";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * O download por LINK DE ENTREGA — ADR-0007 §2.5 (30/09/2026).
@@ -24,11 +24,10 @@ const VALIDADE_DO_ENDERECO_S = 120;
 const SEM_CACHE = { "Cache-Control": "no-store" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function t(pt: string, en: string) {
-  return isEnglish ? en : pt;
-}
 
 export async function POST(request: Request, ctx: { params: Promise<{ codigo: string }> }) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (pt: string, en: string) => (isEnglish ? en : pt);
   const { codigo } = await ctx.params;
   if (!codigoValido(codigo)) {
     return NextResponse.json({ estado: "inexistente", message: t("Este link não existe.", "This link doesn't exist.") }, { status: 404, headers: SEM_CACHE });

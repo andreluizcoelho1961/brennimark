@@ -150,14 +150,24 @@ export function descreverAcao(acao: LinhaDeAcao["acao"], ingles = false): string
   return acao === "published" ? (ingles ? "published" : "publicou") : (ingles ? "restored a version" : "recuperou uma versão");
 }
 
-/** Um instante em data e hora de Brasília, curto: "28/09 09:13". Ano só se não for o corrente. */
-export function quandoCurto(iso: string, agora = new Date()): string {
+/**
+ * Um instante em data e hora de Brasília, curto: "28/09 09:13" (pt) ou
+ * "Sep 28, 9:13 AM" (en). Ano só se não for o corrente.
+ */
+export function quandoCurto(iso: string, agora = new Date(), ingles = false): string {
   const d = new Date(iso);
+  const timeZone = "America/Sao_Paulo";
+  const ano = new Intl.DateTimeFormat("pt-BR", { timeZone, year: "numeric" }).format(d);
+  const anoAtual = new Intl.DateTimeFormat("pt-BR", { timeZone, year: "numeric" }).format(agora);
+  const comAno = ano !== anoAtual;
+  if (ingles) {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone, month: "short", day: "numeric", ...(comAno ? { year: "numeric" as const } : {}), hour: "numeric", minute: "2-digit",
+    }).format(d).replace(/\u202f/g, " "); // versões novas do ICU usam espaço fino antes de AM/PM
+  }
   const partes = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+    timeZone, day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
   }).formatToParts(d);
   const p = (tipo: string) => partes.find((x) => x.type === tipo)?.value ?? "";
-  const ano = p("year");
-  const anoAtual = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric" }).format(agora);
-  return `${p("day")}/${p("month")}${ano !== anoAtual ? `/${ano}` : ""} ${p("hour")}:${p("minute")}`;
+  return `${p("day")}/${p("month")}${comAno ? `/${ano}` : ""} ${p("hour")}:${p("minute")}`;
 }

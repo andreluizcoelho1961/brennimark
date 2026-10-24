@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -22,11 +23,12 @@ export default async function BancadaDaBiblioteca({
 }: {
   searchParams: Promise<{ gerencia?: string }>;
 }) {
+  const idioma = await idiomaDaSessao();
   if (process.env.NODE_ENV === "production") notFound();
   const { gerencia } = await searchParams;
 
   return (
-    <LocaleProvider locale="pt-BR">
+    <LocaleProvider locale={idioma}>
       <main className="min-h-dvh bg-platform-bg p-8">
         <AssetLibrary canManage={gerencia !== "0"} />
       </main>

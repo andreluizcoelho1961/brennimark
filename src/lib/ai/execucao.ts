@@ -906,7 +906,7 @@ export async function executarEmFila<TAttempt extends { config: { provider: stri
 
       // Sobrecarga: o MESMO modelo mais uma vez, depois de uma espera curta.
       // Uma vez só por modelo — sobrecarga que insiste é caso da reserva.
-      if (!repetidos.has(indice) && causas.some((c) => classifyAIError(c).code === "overloaded")) {
+      if (!repetidos.has(indice) && causas.some((c) => classifyAIError(c, false).code === "overloaded")) {
         repetidos.add(indice);
         vezes.splice(vez + 1, 0, { attempt, indice });
         await esperar(espera, params.parentSignal);

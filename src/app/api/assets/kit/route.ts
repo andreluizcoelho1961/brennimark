@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { liberarKit } from "@/lib/assets/liberar-kit";
@@ -7,7 +8,6 @@ import { MAXIMO_DO_KIT } from "@/lib/assets/kit";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Eixos } from "@/lib/assets/eixos";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * O kit de um item — fatia 5. "Cada tipo tem um botão que baixa o kit"
@@ -31,6 +31,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
 const VALIDADE_DO_ENDERECO_S = 120;
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId, brand } = resolvido;
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
   // Seleção acima do máximo é recusada já aqui, com o número que a pessoa
   // escolheu — antes, os ids eram cortados em silêncio (200, depois 60).
   if (ids && ids.length > MAXIMO_DO_KIT) {
-    return NextResponse.json({ message: mensagemDeKitGrande(ids.length, true) }, { status: 400 });
+    return NextResponse.json({ message: mensagemDeKitGrande(ids.length, true, isEnglish) }, { status: 400 });
   }
 
   const resultado = await liberarKit({
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
   const semCache = { "Cache-Control": "no-store" };
   switch (resultado.tipo) {
     case "grande-demais":
-      return NextResponse.json({ message: mensagemDeKitGrande(resultado.total, Boolean(ids)) }, { status: 400, headers: semCache });
+      return NextResponse.json({ message: mensagemDeKitGrande(resultado.total, Boolean(ids), isEnglish) }, { status: 400, headers: semCache });
     case "emitir":
       // Endereços assinados são credencial: nada de cache.
       return NextResponse.json({ nome: resultado.nome, arquivos: resultado.arquivos }, { headers: semCache });
@@ -121,7 +122,7 @@ export async function POST(request: Request) {
 }
 
 /** O kit acima do máximo, dito com números — e o que fazer. */
-function mensagemDeKitGrande(total: number, selecao: boolean): string {
+function mensagemDeKitGrande(total: number, selecao: boolean, isEnglish: boolean): string {
   if (isEnglish) {
     return selecao
       ? `You selected ${total} files; a kit downloads up to ${MAXIMO_DO_KIT} at a time. Select fewer and download in parts.`

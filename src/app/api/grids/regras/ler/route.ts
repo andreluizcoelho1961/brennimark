@@ -7,6 +7,8 @@ import { capacidadesDe } from "@/lib/ai/catalogo";
 import { lerPaginasVistas, modeloVePaginas } from "@/lib/ai/paginas-para-ver";
 import { lerManualInteiro } from "@/lib/ai/manual-inteiro";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -33,6 +35,7 @@ const recusa = (status: number, error: string, message: string) => NextResponse.
  * leitura por marca a cada 24 horas, reservada no banco antes de gastar IA.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const portao = await portaoDeIA(request, "chat");
   if (!portao.ok) return portao.resposta;
   const { auth } = portao;
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
   try {
     const routing = await resolveChatRouting(workspaceId);
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish);
       return recusa(503, code, message);
     }
     const attempts = routing.attempts.filter((a) => modeloVePaginas(capacidadesDe(a.config.provider, a.config.model)));
@@ -168,7 +171,7 @@ export async function POST(request: Request) {
   } catch (error) {
     await devolver?.();
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "grids-regras", code, detalheTecnico, executionId }));
     return recusa(502, code, message);
   }

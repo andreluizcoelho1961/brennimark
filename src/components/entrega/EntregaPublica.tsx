@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { platformIdentity } from "@/platform/identity";
 import { identificacaoValida } from "@/lib/links/links";
@@ -129,8 +130,8 @@ export function EntregaPublica({ codigo, vista }: { codigo: string; vista: Vista
   }, []);
 
   const entregaveis = useMemo(() => vista.itens.flatMap((i) => i.arquivos.filter((a) => !a.retirado).map((a) => a.id)), [vista]);
-  const prazo = new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(vista.expira_em));
-  const data = (iso: string) => new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(iso));
+  const prazo = new Intl.DateTimeFormat(localeDeFormato(isEnglish), { dateStyle: "long", timeStyle: "short", timeZone: "America/Sao_Paulo" }).format(new Date(vista.expira_em));
+  const data = (iso: string) => new Intl.DateTimeFormat(localeDeFormato(isEnglish), { day: "2-digit", month: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(iso));
 
   function identificar(e: React.FormEvent) {
     e.preventDefault();
