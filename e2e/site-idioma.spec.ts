@@ -34,8 +34,8 @@ test("o Manifesto em português continua igual, e o botão leva ao inglês", asy
 });
 
 test("página sem tradução leva à equivalente em português, com o aviso nos dois idiomas", async ({ page }) => {
-  await page.goto("/en/help");
-  await expect(page).toHaveURL(/\/ajuda\?idioma=indisponivel$/);
+  await page.goto("/en/tools/kit");
+  await expect(page).toHaveURL(/\/ferramentas\/kit\?idioma=indisponivel$/);
   const aviso = page.locator("[data-aviso-de-idioma]");
   await expect(aviso).toContainText("This page isn't available in English yet");
   await expect(aviso).toContainText("Esta página ainda não está disponível em inglês");
@@ -69,9 +69,9 @@ test("os redirecionamentos do idioma: status e destino, uma URL por página", as
   expect(b.status()).toBe(308);
   expect(b.headers()["location"]).toMatch(/\/vini$/);
   // Sem tradução: provisório (307), porque a tradução vem depois.
-  const c = await request.get("/en/help", { maxRedirects: 0 });
+  const c = await request.get("/en/tools/kit", { maxRedirects: 0 });
   expect(c.status()).toBe(307);
-  expect(c.headers()["location"]).toMatch(/\/ajuda\?idioma=indisponivel$/);
+  expect(c.headers()["location"]).toMatch(/\/ferramentas\/kit\?idioma=indisponivel$/);
   // O que não existe no site é 404, não redirecionamento.
   expect((await request.get("/en/nao-existe", { maxRedirects: 0 })).status()).toBe(404);
 });
@@ -194,4 +194,22 @@ test("O Fonts em português segue igual: recursos, comparação e perguntas", as
   await expect(page.locator('.fx-tab [data-melhor]')).toHaveCount(8);
   await expect(page.locator(".fx-demo")).toContainText("Conflito de nome");
   await expect(page.getByRole("link", { name: /Avisar-me do lançamento/ })).toHaveAttribute("href", /subject=Avisem-me/);
+});
+
+test("a Central de ajuda em inglês: página, artigo, categoria e busca falam inglês", async ({ page }) => {
+  await page.goto("/en/help");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("How can we help?");
+  await expect(page.locator('a.rel[href="/en/help/category/materiais-da-marca"]')).toBeVisible();
+  // A busca roda sobre o índice em inglês.
+  await page.getByRole("searchbox", { name: "Search the help center" }).fill("delivery link");
+  await expect(page.locator('.ajuda-resultados a[href="/en/help/links-de-entrega"]')).toBeVisible();
+  // O artigo: título, migalha, link interno traduzido e marcas do site/da marca em inglês.
+  await page.goto("/en/help/kit");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Kit — how to use it");
+  await expect(page.locator(".ajuda-artigo")).toContainText("Inside a brand");
+  await page.goto("/en/help/primeiros-passos");
+  await expect(page.locator('.ajuda-artigo a[href="/en/help/pessoas-e-acesso"]')).toBeVisible();
+  await page.goto("/en/help/category/vini-max");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Vini Max");
 });

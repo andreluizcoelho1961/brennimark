@@ -39,7 +39,8 @@ test("só vale como traduzida a página declarada, e toda declarada existe no si
   assert.equal(paginaTraduzida("pt-BR", "/qualquer"), true);
   assert.equal(paginaTraduzida("en", "/manifesto"), true);
   assert.equal(paginaTraduzida("en", "/vini"), true);
-  assert.equal(paginaTraduzida("en", "/ajuda"), false);
+  assert.equal(paginaTraduzida("en", "/ajuda"), true);
+  assert.equal(paginaTraduzida("en", "/ferramentas/kit"), false);
   assert.equal(paginaTraduzida("en", "/"), true);
   const traduzidas = PAGINAS_TRADUZIDAS.en;
   assert.ok(traduzidas !== "todas");

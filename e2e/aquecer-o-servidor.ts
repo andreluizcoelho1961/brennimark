@@ -48,13 +48,15 @@ export default async function aquecer(config: FullConfig) {
   for (const caminho of urls) await aquecerPagina(caminho);
   // A Central de ajuda: os artigos e as categorias saem do que a própria /ajuda lista, e a
   // busca (`/api/ajuda`) é a que os testes de ajuda usam logo no início da suíte.
-  try {
-    const html = await (await fetch(new URL("/ajuda", base), { signal: AbortSignal.timeout(90_000) })).text();
-    const links = [...new Set([...html.matchAll(/href="(\/ajuda\/[a-z0-9\-/]+)"/g)].map((m) => m[1]))];
-    for (const caminho of links) await aquecerPagina(caminho);
-    try { await fetch(new URL("/api/ajuda", base), { signal: AbortSignal.timeout(90_000) }); } catch { falhas++; }
-  } catch {
-    falhas++;
+  for (const [inicio, prefixo] of [["/ajuda", "/ajuda"], ["/en/help", "/en/help"]] as const) {
+    try {
+      const html = await (await fetch(new URL(inicio, base), { signal: AbortSignal.timeout(90_000) })).text();
+      const links = [...new Set([...html.matchAll(new RegExp(`href="(${prefixo}/[a-z0-9\\-/]+)"`, "g"))].map((m) => m[1]))];
+      for (const caminho of links) await aquecerPagina(caminho);
+    } catch {
+      falhas++;
+    }
   }
+  try { await fetch(new URL("/api/ajuda", base), { signal: AbortSignal.timeout(90_000) }); } catch { falhas++; }
   if (falhas) console.warn(`[aquecimento] ${falhas} de ${urls.length} páginas não responderam; os testes seguem.`);
 }

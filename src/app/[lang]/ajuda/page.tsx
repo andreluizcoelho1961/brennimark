@@ -1,7 +1,7 @@
 import { ConteudoAjuda } from "@/components/site/paginas/Ajuda";
-import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
+import { metadadosDoIdioma, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosDaPagina("ajuda");
+export const generateMetadata = metadadosDoIdioma("ajuda");
 
 export default function Pagina() {
   return (

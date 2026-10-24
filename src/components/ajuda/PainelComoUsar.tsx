@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
@@ -18,6 +19,7 @@ import { textoDaDica } from "@/components/shell/dicas";
  * cor da marca cliente.
  */
 export function PainelComoUsar({ titulo, html, hrefDoArtigo }: { titulo: string; html: string; hrefDoArtigo: string }) {
+  const t = useTranslations("ajudaDaMoldura");
   const [aberto, setAberto] = useState(false);
   const idDoTitulo = useId();
   const botao = useRef<HTMLButtonElement>(null);
@@ -47,7 +49,7 @@ export function PainelComoUsar({ titulo, html, hrefDoArtigo }: { titulo: string;
           onClick={() => setAberto((v) => !v)}
           className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-platform-border px-3 py-1.5 text-sm text-platform-text hover:border-platform-text">
           <span aria-hidden className="font-mono text-[12px]">?</span>
-          Como usar
+          {t("comoUsar")}
         </button>
       </Dica>
       {aberto && (
@@ -57,13 +59,13 @@ export function PainelComoUsar({ titulo, html, hrefDoArtigo }: { titulo: string;
             <h2 id={idDoTitulo} className="font-display text-[17px] font-semibold tracking-tight text-platform-text">{titulo}</h2>
             <button ref={fechar} type="button" data-como-usar-fechar onClick={() => setAberto(false)}
               className="rounded-[var(--radius-control)] border border-platform-border px-2.5 py-1 text-sm text-platform-text">
-              Fechar
+              {t("fechar")}
             </button>
           </header>
           <div className="prosa-da-ajuda min-h-0 flex-1 overflow-y-auto px-5 py-4" dangerouslySetInnerHTML={{ __html: html }} />
           <footer className="border-t border-platform-border px-5 py-3 text-[13px] text-platform-text-muted">
             <a href={hrefDoArtigo} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-platform-text">
-              Abrir na Central de ajuda
+              {t("abrirCentral")}
             </a>
           </footer>
         </aside>

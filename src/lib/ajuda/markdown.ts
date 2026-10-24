@@ -1,4 +1,5 @@
 import { Marked } from "marked";
+import { IDIOMA_PADRAO_DO_SITE, caminhoDoSite, type IdiomaDoSite } from "../site/idiomas";
 
 /**
  * Os artigos da Central de ajuda são Markdown em `src/content/ajuda/`. Este
@@ -17,21 +18,22 @@ import { Marked } from "marked";
  */
 export type Audiencia = "site" | "marca" | "tudo";
 
-const ROTULO: Record<"site" | "marca", string> = {
-  site: "No site, sem login",
-  marca: "Dentro de uma marca",
+const ROTULO: Record<IdiomaDoSite, Record<"site" | "marca", string>> = {
+  "pt-BR": { site: "No site, sem login", marca: "Dentro de uma marca" },
+  en: { site: "On the site, no login", marca: "Inside a brand" },
 };
 
-export function filtrarPorAudiencia(md: string, audiencia: Audiencia): string {
+export function filtrarPorAudiencia(md: string, audiencia: Audiencia, idioma: IdiomaDoSite = IDIOMA_PADRAO_DO_SITE): string {
+  const rotulos = ROTULO[idioma];
   const blocos = md.replace(/^:::(site|marca)[ \t]*\n([\s\S]*?)\n:::[ \t]*$/gm, (_t, quem: "site" | "marca", dentro: string) => {
     if (audiencia === "tudo") {
       const citado = dentro.split("\n").map((l) => (l ? `> ${l}` : ">")).join("\n");
-      return `> **${ROTULO[quem]}**\n>\n${citado}`;
+      return `> **${rotulos[quem]}**\n>\n${citado}`;
     }
     return audiencia === quem ? dentro : "";
   });
   return blocos.replace(/([ \t]*)\{(site|marca): ([^{}]*)\}/g, (_t, espaco: string, quem: "site" | "marca", texto: string) => {
-    if (audiencia === "tudo") return `${espaco}(${ROTULO[quem].toLowerCase()}: ${texto})`;
+    if (audiencia === "tudo") return `${espaco}(${rotulos[quem].toLowerCase()}: ${texto})`;
     return audiencia === quem ? `${espaco}${texto}` : "";
   });
 }
@@ -44,26 +46,36 @@ function escapar(s: string): string {
  * HTML cru dentro do Markdown é mostrado como texto. O conteúdo é do
  * repositório e passa por revisão, mas o renderizador não deveria depender
  * disso: um `<script>` colado num artigo vira texto visível, não código.
+ *
+ * Os links internos são escritos uma vez, em português (`/ajuda/kit`), e saem
+ * no endereço do idioma do leitor (`/en/help/kit`).
  */
-const marked = new Marked({
-  gfm: true,
-  renderer: {
-    html: ({ text }) => escapar(text),
-    link: function ({ href, tokens }) {
-      const texto = this.parser.parseInline(tokens);
-      const seguro = /^(\/|#|https:\/\/|mailto:)/.test(href) ? href : "#";
-      return `<a href="${escapar(seguro)}">${texto}</a>`;
+function criarRenderizador(idioma: IdiomaDoSite) {
+  return new Marked({
+    gfm: true,
+    renderer: {
+      html: ({ text }) => escapar(text),
+      link: function ({ href, tokens }) {
+        const texto = this.parser.parseInline(tokens);
+        const seguro = /^(\/|#|https:\/\/|mailto:)/.test(href) ? href : "#";
+        const destino = seguro.startsWith("/") ? caminhoDoSite(idioma, seguro) : seguro;
+        return `<a href="${escapar(destino)}">${texto}</a>`;
+      },
     },
-  },
-});
+  });
+}
 
-export function renderizarArtigo(md: string, audiencia: Audiencia): string {
-  return marked.parse(filtrarPorAudiencia(md, audiencia), { async: false });
+const renderizadores = new Map<IdiomaDoSite, Marked>();
+
+export function renderizarArtigo(md: string, audiencia: Audiencia, idioma: IdiomaDoSite = IDIOMA_PADRAO_DO_SITE): string {
+  let marked = renderizadores.get(idioma);
+  if (!marked) renderizadores.set(idioma, (marked = criarRenderizador(idioma)));
+  return marked.parse(filtrarPorAudiencia(md, audiencia, idioma), { async: false });
 }
 
 /** O texto corrido do artigo, sem marcação — para a busca da Central. */
-export function textoPuro(md: string): string {
-  return filtrarPorAudiencia(md, "tudo")
+export function textoPuro(md: string, idioma: IdiomaDoSite = IDIOMA_PADRAO_DO_SITE): string {
+  return filtrarPorAudiencia(md, "tudo", idioma)
     .replace(/[`*_>#|]/g, " ")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/\s+/g, " ")
