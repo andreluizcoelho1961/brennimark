@@ -57,10 +57,10 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  // Idioma da interface (23/10/2026): coluna `profiles.locale`. Provada só no banco
-  // local (13 casos). NÃO aplicada ao hospedado: sai daqui quando o André autorizar
-  // a aplicação e ela for carimbada.
-  "idioma_da_interface",
+  // `idioma_da_interface` saiu daqui em 24/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261024000900`; impressão digital igual
+  // à do local (7 itens: coluna, constraint, as 3 políticas, RLS e privilégios de
+  // anon/authenticated). Os 6 perfis existentes ficaram com `locale` vazio.
   // `envios_de_email` saiu daqui em 21/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261021204259`; impressão digital igual
   // à do local (19 itens: colunas, constraints, índice, RLS, privilégios de
