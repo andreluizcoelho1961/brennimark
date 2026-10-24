@@ -9,5 +9,37 @@
     "cancelar": "Cancelar",
     "voltar": "Voltar",
     "carregando": "Carregando…"
+  },
+  "telaInicial": {
+    "bemVindo": "Bem-vindo ao {nome}",
+    "subtitulo": "O manual da marca, os arquivos e a inteligência que entende os dois — no mesmo lugar.",
+    "ler": "<b>Ler</b> o manual como o estúdio diagramou, com índice e busca",
+    "baixar": "<b>Baixar</b> logo, ícones, paleta, fontes e fotos, com a regra que governa cada arquivo",
+    "perguntar": "<b>Perguntar</b> ao assistente, que responde citando a página do manual",
+    "conferir": "<b>Conferir</b> a sua peça e gerar prompts com o DNA da marca",
+    "escolha": "Escolha uma marca para começar.",
+    "tituloUma": "Sua marca",
+    "tituloVarias": "Suas marcas",
+    "disponiveis": "{count, plural, one {# marca disponível} other {# marcas disponíveis}}",
+    "novaMarca": "+ Nova marca",
+    "enviarManual": "Enviar o manual em PDF"
+  },
+  "estadoVazio": {
+    "tituloImportar": "Nenhuma marca por aqui ainda",
+    "tituloSemAcesso": "Você ainda não tem acesso a uma marca",
+    "textoImportar": "Um manual de marca costuma ser um PDF que ninguém lê e onde ninguém acha nada. Aqui ele vira um sistema que responde perguntas — e que mostra de onde veio cada resposta.",
+    "textoSemAcesso": "O acesso é concedido marca a marca. Peça a quem administra a conta para liberar as marcas com que você vai trabalhar, e elas aparecem aqui.",
+    "botao": "Enviar o primeiro manual",
+    "comoComeca": "Como uma marca começa",
+    "passo1Titulo": "Envie o manual em PDF",
+    "passo1Texto": "O texto é extraído e vira um rascunho estruturado.",
+    "passo2Titulo": "Revise o rascunho",
+    "passo2Texto": "Nada é publicado sem alguém confirmar. O que não foi aprovado fica marcado como rascunho.",
+    "passo3Titulo": "Publique",
+    "passo3Texto": "A partir daí a marca responde perguntas, valida peças e entrega os arquivos certos."
+  },
+  "paginaNaoEncontrada": {
+    "titulo": "Esta página não está neste manual",
+    "texto": "O endereço pode estar desatualizado, ou a página pode pertencer a outra marca da conta. A navegação ao lado mostra o que existe aqui."
   }
 }

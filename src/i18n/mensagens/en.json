@@ -9,5 +9,37 @@
     "cancelar": "Cancel",
     "voltar": "Back",
     "carregando": "Loading…"
+  },
+  "telaInicial": {
+    "bemVindo": "Welcome to {nome}",
+    "subtitulo": "The brand manual, the files and the intelligence that understands both — in one place.",
+    "ler": "<b>Read</b> the manual as the studio laid it out, with index and search",
+    "baixar": "<b>Download</b> logo, icons, palette, fonts and photos, with the rule that governs each file",
+    "perguntar": "<b>Ask</b> the assistant, which answers citing the manual page",
+    "conferir": "<b>Check</b> your piece and generate prompts with the brand's DNA",
+    "escolha": "Pick a brand to get started.",
+    "tituloUma": "Your brand",
+    "tituloVarias": "Your brands",
+    "disponiveis": "{count, plural, one {# brand available} other {# brands available}}",
+    "novaMarca": "+ New brand",
+    "enviarManual": "Upload the manual as a PDF"
+  },
+  "estadoVazio": {
+    "tituloImportar": "No brands here yet",
+    "tituloSemAcesso": "You don't have access to a brand yet",
+    "textoImportar": "A brand manual is usually a PDF nobody reads and where nobody finds anything. Here it becomes a system that answers questions — and shows where each answer came from.",
+    "textoSemAcesso": "Access is granted brand by brand. Ask whoever manages the account to unlock the brands you'll work with, and they will appear here.",
+    "botao": "Upload the first manual",
+    "comoComeca": "How a brand starts",
+    "passo1Titulo": "Upload the manual as a PDF",
+    "passo1Texto": "The text is extracted and becomes a structured draft.",
+    "passo2Titulo": "Review the draft",
+    "passo2Texto": "Nothing is published until someone confirms it. Whatever hasn't been approved stays marked as a draft.",
+    "passo3Titulo": "Publish",
+    "passo3Texto": "From then on the brand answers questions, checks pieces and delivers the right files."
+  },
+  "paginaNaoEncontrada": {
+    "titulo": "This page is not in this manual",
+    "texto": "The address may be out of date, or the page may belong to another brand in the account. The navigation on the side shows what exists here."
   }
 }
