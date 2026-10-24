@@ -38,7 +38,8 @@ test("pasta em português não é endereço em inglês", () => {
 test("só vale como traduzida a página declarada, e toda declarada existe no site", () => {
   assert.equal(paginaTraduzida("pt-BR", "/qualquer"), true);
   assert.equal(paginaTraduzida("en", "/manifesto"), true);
-  assert.equal(paginaTraduzida("en", "/vini"), false);
+  assert.equal(paginaTraduzida("en", "/vini"), true);
+  assert.equal(paginaTraduzida("en", "/fonts"), false);
   assert.equal(paginaTraduzida("en", "/"), false);
   const traduzidas = PAGINAS_TRADUZIDAS.en;
   assert.ok(traduzidas !== "todas");

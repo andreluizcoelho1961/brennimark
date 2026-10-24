@@ -1,7 +1,8 @@
 import { ConteudoManual } from "@/components/site/paginas/Manual";
-import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
+import { metadadosDoIdioma, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosDaPagina("manual");
+/** Esta página existe em português e em inglês: o título e a prévia de link seguem o idioma do endereço. */
+export const generateMetadata = metadadosDoIdioma("manual");
 
 export default function Pagina() {
   return (

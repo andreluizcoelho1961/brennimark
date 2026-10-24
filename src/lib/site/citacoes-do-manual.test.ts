@@ -23,7 +23,11 @@ function arquivosDoSite(pasta: string): string[] {
   });
 }
 
-const fontes = arquivosDoSite(PASTA).map((arquivo) => ({
+// Desde a fatia 5 (24/10/2026) o texto das páginas mora nos catálogos de tradução, e não no
+// JSX: sem eles aqui, as citações sairiam do alcance deste teste sem ninguém ver.
+const CATALOGOS = ["src/i18n/mensagens/pt-BR.json", "src/i18n/mensagens/en.json"].map((a) => path.join(process.cwd(), a));
+
+const fontes = [...arquivosDoSite(PASTA), ...CATALOGOS].map((arquivo) => ({
   arquivo: path.relative(process.cwd(), arquivo),
   texto: readFileSync(arquivo, "utf8"),
 }));
@@ -53,6 +57,8 @@ test("as citações usam a numeração da versão 0.3", () => {
   // As citações "Manual, p. 10" e "Cores, p. 14" moravam nas telas e no prompt desenhados;
   // agora são capturas reais. O que ainda se escreve usa a numeração nova.
   assert.match(tudo, /Área de proteção · p\. 10\b/);
+  // E a mesma citação, no inglês, aponta para a mesma página.
+  assert.match(tudo, /Protection area · p\. 10\b/);
 });
 
 test("o fólio e a contagem do manual são os da edição de demonstração", () => {

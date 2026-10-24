@@ -1,7 +1,8 @@
 import { ConteudoVini } from "@/components/site/paginas/Vini";
-import { metadadosDaPagina, PaginaDoSite } from "@/components/site/PaginaDoSite";
+import { metadadosDoIdioma, PaginaDoSite } from "@/components/site/PaginaDoSite";
 
-export const metadata = metadadosDaPagina("vini");
+/** Esta página existe em português e em inglês: o título e a prévia de link seguem o idioma do endereço. */
+export const generateMetadata = metadadosDoIdioma("vini");
 
 export default function Pagina() {
   return (
