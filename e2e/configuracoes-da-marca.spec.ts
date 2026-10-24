@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { abrirAdministracao } from "./abrir-administracao";
 
 /**
  * Nome editável e apagar marca, na administração (ensaio de 25/09/2026).
@@ -32,7 +33,7 @@ test("o nome da marca é editável e vai ao servidor já normalizado", async ({ 
     await rota.fallback();
   });
 
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const secao = page.getByRole("region", { name: "Nome da marca" });
   const campo = secao.getByRole("textbox");
   const salvar = secao.getByRole("button", { name: "Salvar nome" });
@@ -62,7 +63,7 @@ test("apagar a marca exige digitar o nome, e só então chama o servidor", async
     await rota.fallback();
   });
 
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const secao = page.getByRole("region", { name: "Apagar marca" });
   await secao.getByRole("button", { name: "Apagar esta marca…" }).click();
 
@@ -99,7 +100,7 @@ test("a recusa do servidor aparece e a marca continua", async ({ page }) => {
     await rota.fallback();
   });
 
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const secao = page.getByRole("region", { name: "Apagar marca" });
   await secao.getByRole("button", { name: "Apagar esta marca…" }).click();
   await secao.getByRole("textbox").fill("Marca de Bancada");

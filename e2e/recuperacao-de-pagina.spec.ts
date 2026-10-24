@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { abrirAdministracao } from "./abrir-administracao";
 
 /**
  * O ciclo que faltava: excluir uma página, chegar ao histórico dela, e
@@ -89,7 +90,7 @@ for (const largura of [375, 1440]) {
     await interceptarApis(page);
     page.on("dialog", (dialogo) => dialogo.accept());
 
-    await page.goto("/dev/admin-panel");
+    await abrirAdministracao(page);
     await expect(page.getByRole("heading", { name: "Conteúdo e assets" })).toBeVisible();
 
     await escolherPagina(page, "Tipografia", largura);
@@ -118,7 +119,7 @@ for (const largura of [375, 1440]) {
 
     // O servidor devolve uma página viva e outra já excluída: é o estado de
     // quem fecha a aba depois de excluir e volta no dia seguinte.
-    await page.goto("/dev/admin-panel?estado=com-excluida");
+    await abrirAdministracao(page, "/dev/admin-panel?estado=com-excluida");
     await expect(page.getByLabel(/^(Título|Title)$/)).toHaveValue("Cores");
 
     // A regressão que isto impede: a excluída aparecer só na navegação de
