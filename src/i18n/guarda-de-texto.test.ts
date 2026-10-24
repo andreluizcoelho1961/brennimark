@@ -26,6 +26,11 @@ const MIGRADAS: string[] = [
   "src/components/shell/TelaInicial.tsx",
   "src/components/shell/EmptyBrandState.tsx",
   "src/app/w/[workspaceSlug]/b/[brandKey]/docs/not-found.tsx",
+  "src/components/acesso/PedidoDeNovaSenha.tsx",
+  "src/components/acesso/NovaSenha.tsx",
+  "src/components/ajuda/AjudaDaMoldura.tsx",
+  "src/components/ProvedorDeTraducao.tsx",
+  "src/components/IdiomaDaSessao.tsx",
 ];
 
 const ACENTOS = /[áàâãéêíóôõúüç]/i;
@@ -48,7 +53,8 @@ function semComentarios(codigo: string): string {
 export function textosDoCodigo(codigo: string): string[] {
   const limpo = semComentarios(codigo);
   const literais = [...limpo.matchAll(/(["'`])((?:\\.|(?!\1)[^\\\n])*)\1/g)].map((m) => m[2]);
-  const jsx = [...limpo.matchAll(/>([^<>{}\n]+)</g)].map((m) => m[1]);
+  // Texto de JSX pode ocupar várias linhas: junta os espaços antes de julgar.
+  const jsx = [...limpo.matchAll(/>([^<>{}]+)</g)].map((m) => m[1].replace(/\s+/g, " "));
   return [...literais, ...jsx].map((t) => t.trim()).filter(Boolean);
 }
 
@@ -64,6 +70,11 @@ test("o detector pega frase em português no JSX e em literal", () => {
   assert.deepEqual(frasesEmPortugues(`aviso("falha para conectar com o servidor")`), [
     "falha para conectar com o servidor",
   ]);
+});
+
+test("o detector pega parágrafo de JSX que ocupa várias linhas", () => {
+  const codigo = "<p>\n  O manual original é o PDF\n  enviado na importação.\n</p>";
+  assert.deepEqual(frasesEmPortugues(codigo), ["O manual original é o PDF enviado na importação."]);
 });
 
 test("o detector deixa passar chave, endereço, comentário e código", () => {

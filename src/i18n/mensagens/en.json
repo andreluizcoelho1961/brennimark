@@ -41,5 +41,36 @@
   "paginaNaoEncontrada": {
     "titulo": "This page is not in this manual",
     "texto": "The address may be out of date, or the page may belong to another brand in the account. The navigation on the side shows what exists here."
+  },
+  "recuperacao": {
+    "pedidoTitulo": "Forgot your password",
+    "pedidoTexto": "Enter the email you sign in to Brennimark with. We'll send you a link to create a new password.",
+    "pedidoEmail": "Email",
+    "pedidoPlaceholder": "you@company.com",
+    "pedidoEnviar": "Send the link",
+    "pedidoErro": "We couldn't send the request right now. Try again.",
+    "lembrou": "Remembered it?",
+    "entrar": "Sign in",
+    "novaTituloVencido": "This link is no longer valid",
+    "novaTituloCriar": "Create a new password",
+    "novaPara": "For <b>{email}</b>",
+    "novaLinkVencido": "The link works once and is valid for one hour. <a>Request another</a>.",
+    "novaRotulo": "New password",
+    "novaRepita": "Repeat the new password",
+    "novaMinimo": "At least 12 characters.",
+    "novaSalvar": "Save and sign in",
+    "erroCurta": "The password needs at least 12 characters.",
+    "erroLonga": "The password is over the maximum length.",
+    "erroDiferentes": "The two passwords don't match.",
+    "erroTrocar": "We couldn't change the password. Try again."
+  },
+  "ajudaDaMoldura": {
+    "erroAbrir": "We couldn't open the help right now.",
+    "semArtigo": "There is no article for this screen. Choose a topic:"
+  },
+  "manualOriginal": {
+    "semTitulo": "This brand doesn't have an original manual yet",
+    "semTexto": "The original manual is the PDF uploaded at import. Brands created before this screen may not have the file attached — importing again fixes it, and nothing that already exists is deleted.",
+    "importar": "Import a manual"
   }
 }

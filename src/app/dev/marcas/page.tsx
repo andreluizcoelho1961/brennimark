@@ -5,6 +5,7 @@ import { shellSections } from "@/components/shell/navigation";
 import { BrandCanvas } from "@/components/BrandCanvas";
 import { DocPage } from "@/components/docs/DocPage";
 import { LocaleProvider } from "@/platform/locale-client";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { BrandVocabularyProvider } from "@/platform/brand-vocabulary-client";
 import { PRODUCT_LOCALE } from "@/platform/locale";
 import { capabilitiesForRole } from "@/platform/capabilities";
@@ -80,6 +81,7 @@ export default async function MarcasOpostas({
   });
 
   return (
+    <ProvedorDeTraducao>
     <LocaleProvider locale={PRODUCT_LOCALE}>
       <BrandVocabularyProvider language={marca.metadata.language} statusLabels={marca.statusLabels}>
         <AppShellV2
@@ -103,5 +105,6 @@ export default async function MarcasOpostas({
         </AppShellV2>
       </BrandVocabularyProvider>
     </LocaleProvider>
+</ProvedorDeTraducao>
   );
 }
