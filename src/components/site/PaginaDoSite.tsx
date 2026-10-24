@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA } from "@/lib/site/empresa";
 import { paginaDoSite } from "@/lib/site/paginas";
-import { caminhoDoSite, type IdiomaDoSite } from "@/lib/site/idiomas";
+import { IDIOMA_PADRAO_DO_SITE, caminhoDoSite, idiomaDoSiteValido, type IdiomaDoSite } from "@/lib/site/idiomas";
 import { idiomaDoSiteAtual } from "@/lib/site/idioma-atual";
 import { metadadosDoSite } from "./metadados";
 import { MolduraDoSite } from "./MolduraDoSite";
@@ -23,6 +23,17 @@ export function metadadosDaPagina(slug: string): Metadata {
  * catálogo, `og:locale` do idioma e os endereços equivalentes (`hreflang`), que
  * valem quando o site sair de trás do `noindex`.
  */
+/**
+ * `generateMetadata` pronto para a página de pasta `slug`: o título e a prévia
+ * de link seguem o idioma do endereço. É o que toda página traduzida exporta.
+ */
+export function metadadosDoIdioma(slug: string) {
+  return async ({ params }: { params: Promise<{ lang: string }> }): Promise<Metadata> => {
+    const { lang } = await params;
+    return metadadosDaPaginaNoIdioma(slug, idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE);
+  };
+}
+
 export async function metadadosDaPaginaNoIdioma(slug: string, idioma: IdiomaDoSite): Promise<Metadata> {
   const t = await getTranslations({ locale: idioma, namespace: "site.paginas" });
   return metadadosDoSite({

@@ -34,8 +34,8 @@ test("o Manifesto em português continua igual, e o botão leva ao inglês", asy
 });
 
 test("página sem tradução leva à equivalente em português, com o aviso nos dois idiomas", async ({ page }) => {
-  await page.goto("/en/agencies");
-  await expect(page).toHaveURL(/\/agencias\?idioma=indisponivel$/);
+  await page.goto("/en/security");
+  await expect(page).toHaveURL(/\/seguranca\?idioma=indisponivel$/);
   const aviso = page.locator("[data-aviso-de-idioma]");
   await expect(aviso).toContainText("This page isn't available in English yet");
   await expect(aviso).toContainText("Esta página ainda não está disponível em inglês");
@@ -69,4 +69,26 @@ test("os redirecionamentos do idioma: status e destino, uma URL por página", as
 test("a plataforma não é reescrita nem ganha prefixo de idioma", async ({ request }) => {
   expect((await request.get("/en/login", { maxRedirects: 0 })).status()).toBe(404);
   expect((await request.get("/login", { maxRedirects: 0 })).status()).toBe(200);
+});
+
+test("Agências, Empresas e Licença de fontes em inglês: texto, trilha, cartões e FAQ no idioma", async ({ page }) => {
+  await page.goto("/en/agencies");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("The brands in your portfolio");
+  await expect(page.locator(".crumb")).toContainText("Who it's for");
+  // Os cartões de páginas relacionadas apontam para os endereços traduzidos, e o Studio é âncora da própria página.
+  await expect(page.locator('a.rel[href="/en/materials#entrega"]')).toHaveCount(1);
+  await expect(page.locator('a.rel[href="/en/agencies#studio"]')).toHaveCount(1);
+  await expect(page.locator("details summary").first()).toHaveText("How many brands fit?");
+  await expect(page.locator("#studio")).toContainText("Studio is where the agency looks after all its brands.");
+
+  await page.goto("/en/companies");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Agencies, suppliers and teams with the same reference");
+  await page.goto("/en/font-license");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("The brand font and its license.");
+
+  // E o português continua o mesmo, na mesma árvore de páginas.
+  await page.goto("/agencias");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("As marcas da sua carteira");
+  await expect(page.locator('a.rel[href="/materiais#entrega"]')).toHaveCount(1);
 });
