@@ -46,9 +46,9 @@ export function ConteudoVini() {
       <span className="src">Fonte: Manual do Brennimark · Área de proteção · p. 10</span>
       </div>
       <div className="turn">
-      <p className="q">Posso aplicar o símbolo sobre uma foto?</p>
-      <p className="a">O manual não trata do símbolo sobre fotografia. Existe um complemento sobre isso, ainda em rascunho, então ele não vale como regra. Vale confirmar com quem gere a marca.</p>
-      <span className="src">Procurado em: Marca, p. 5–13 · Linguagem fotográfica, p. 27–29 · Complementos</span>
+      <p className="q">Posso colocar o logo em cima de uma foto?</p>
+      <p className="a">Sim, desde que a foto dê leitura sem esforço: a área atrás do logo deve ser limpa, sem rostos, produtos ou áreas poluídas. O manual não traz essa regra no corpo principal; ela vem de um complemento aprovado.</p>
+      <span className="src">Fonte: Complemento &quot;O logotipo sobre fotografia&quot; · Pronto</span>
       </div>
       </div>
       </div>
