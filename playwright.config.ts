@@ -43,7 +43,10 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Localmente, 3 trabalhadores (o padrão seria metade dos núcleos). Cada um abre um navegador
+  // enquanto o `next dev` compila a rota nova com todos os núcleos; com 4 a carga da máquina chegou
+  // a mais de 100 e testes de site, que passam isolados e no CI, estouravam o tempo de acordar a página.
+  workers: process.env.CI ? 1 : 3,
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
 
   use: {
