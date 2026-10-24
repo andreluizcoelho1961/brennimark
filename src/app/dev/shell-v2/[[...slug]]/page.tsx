@@ -3,6 +3,7 @@ import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { AppShellV2 } from "@/components/shell/AppShellV2";
 import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { LocaleProvider } from "@/platform/locale-client";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { shellSections } from "@/components/shell/navigation";
 import { BrandCanvas } from "@/components/BrandCanvas";
 import { EmptyBrandState } from "@/components/shell/EmptyBrandState";
@@ -32,6 +33,7 @@ export default async function ShellV2Preview({
   const sections = shellSections({ capabilities, locale, utilityLinks: brand?.navigation.utilityLinks });
 
   return (
+    <ProvedorDeTraducao>
     <LocaleProvider locale={locale}>
     <AppShellV2
       {...molduraDaMarcaAberta({ sections, basePath: "/dev/shell-v2", contaSlug: "dev", administraConta: capabilities.includes("administrar"), ingles: locale === "en" })}
@@ -57,5 +59,6 @@ export default async function ShellV2Preview({
       )}
     </AppShellV2>
     </LocaleProvider>
+</ProvedorDeTraducao>
   );
 }

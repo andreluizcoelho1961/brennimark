@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { artigoDaTela } from "@/lib/ajuda/da-tela";
 
@@ -24,6 +25,7 @@ type ItemDaLista = { slug: string; titulo: string; resumo: string; categoria: st
 type Aberto = { slug: string; titulo: string; html: string };
 
 export function AjudaDaMoldura() {
+  const t = useTranslations("ajudaDaMoldura");
   const pathname = usePathname() ?? "";
   const [aberto, setAberto] = useState(false);
   const [artigo, setArtigo] = useState<Aberto | null>(null);
@@ -38,8 +40,8 @@ export function AjudaDaMoldura() {
     setErro("");
     const r = await fetch(`/api/ajuda?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }).catch(() => null);
     const corpo = r ? await r.json().catch(() => ({})) : {};
-    if (r?.ok) { setArtigo(corpo); setVerLista(false); } else setErro(corpo.message ?? "Não foi possível abrir a ajuda agora.");
-  }, []);
+    if (r?.ok) { setArtigo(corpo); setVerLista(false); } else setErro(corpo.message ?? t("erroAbrir"));
+  }, [t]);
 
   // Abrir: guarda quem abriu (para devolver o foco), busca a lista e o artigo da tela.
   useEffect(() => {
@@ -99,7 +101,7 @@ export function AjudaDaMoldura() {
         {erro && <p role="alert" className="text-sm text-platform-text">{erro}</p>}
         {verLista || !artigo ? (
           <>
-            {!artigo && !erro && <p className="mb-3 text-sm text-platform-text-muted">Não há um artigo para esta tela. Escolha um assunto:</p>}
+            {!artigo && !erro && <p className="mb-3 text-sm text-platform-text-muted">{t("semArtigo")}</p>}
             <ul data-ajuda-lista className="flex flex-col">
               {(lista ?? []).map((a) => (
                 <li key={a.slug} className="border-t border-platform-border first:border-t-0">

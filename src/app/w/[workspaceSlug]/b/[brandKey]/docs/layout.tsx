@@ -9,6 +9,7 @@ import { shellSections } from "@/components/shell/navigation";
 import { molduraDaMarcaAberta } from "@/components/shell/coluna-da-marca";
 import { SignOutButton } from "@/components/SignOutButton";
 import { SeletorDeIdioma } from "@/components/SeletorDeIdioma";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 
 /**
  * A moldura real do produto.
@@ -64,36 +65,38 @@ export default async function DocsLayout({
 
   return (
     <LocaleProvider locale={locale}>
-      <BrandVocabularyProvider
-        language={brand?.metadata.language}
-        statusLabels={brand?.statusLabels}
-      >
-        <AppShellV2
-          basePath={basePath}
-          contextoAtivo={{
-            workspaceSlug: alvo.workspaceSlug,
-            brandKey: alvo.brandKey,
-            opcoes: opcoes.map((w) => ({
-              slug: w.slug,
-              nome: w.nome,
-              marcas: w.marcas.map((m) => ({ key: m.key, nome: m.nome })),
-            })),
-          }}
-          coluna={coluna}
-          segmentado={segmentado}
-          vini={vini}
-          sections={sections}
-          docs={documentosVisiveis(docs, capabilities)}
-          userEmail={userEmail}
-          brandName={brand?.brand.name}
-          brandDescriptor={brand?.brand.descriptor}
-          brandLanguage={brand?.metadata.language}
+      <ProvedorDeTraducao>
+        <BrandVocabularyProvider
+          language={brand?.metadata.language}
           statusLabels={brand?.statusLabels}
-          sessionControl={<><SeletorDeIdioma /><SignOutButton /></>}
         >
-          {children}
-        </AppShellV2>
-      </BrandVocabularyProvider>
+          <AppShellV2
+            basePath={basePath}
+            contextoAtivo={{
+              workspaceSlug: alvo.workspaceSlug,
+              brandKey: alvo.brandKey,
+              opcoes: opcoes.map((w) => ({
+                slug: w.slug,
+                nome: w.nome,
+                marcas: w.marcas.map((m) => ({ key: m.key, nome: m.nome })),
+              })),
+            }}
+            coluna={coluna}
+            segmentado={segmentado}
+            vini={vini}
+            sections={sections}
+            docs={documentosVisiveis(docs, capabilities)}
+            userEmail={userEmail}
+            brandName={brand?.brand.name}
+            brandDescriptor={brand?.brand.descriptor}
+            brandLanguage={brand?.metadata.language}
+            statusLabels={brand?.statusLabels}
+            sessionControl={<><SeletorDeIdioma /><SignOutButton /></>}
+          >
+            {children}
+          </AppShellV2>
+        </BrandVocabularyProvider>
+      </ProvedorDeTraducao>
     </LocaleProvider>
   );
 }
