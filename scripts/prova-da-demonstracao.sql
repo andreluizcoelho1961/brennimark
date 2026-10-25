@@ -190,11 +190,11 @@ do $$
 declare m mundo%rowtype;
 begin
   select * into m from mundo;
-  perform pg_temp.registrar('B1 conta real é recusada', 'sessao_nao_anonima',
+  perform pg_temp.registrar('B1 conta real é recusada', 'sessao_nao_visitante',
     pg_temp.msg_de('service_role', format('select public.demonstracao_entrar(%L)::text', m.real)));
   perform pg_temp.registrar('B2 conta real não ganhou vínculo nenhum', '0',
     (select (select count(*) from public.brand_members where user_id = m.real)::text));
-  perform pg_temp.registrar('B3 usuário inexistente é recusado', 'sessao_nao_anonima',
+  perform pg_temp.registrar('B3 usuário inexistente é recusado', 'sessao_nao_visitante',
     pg_temp.msg_de('service_role', format('select public.demonstracao_entrar(%L)::text', gen_random_uuid())));
 end $$;
 
