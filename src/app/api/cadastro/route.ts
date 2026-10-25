@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { ACEITES, COOKIE_DO_CADASTRO, comMarcaDoConvite, idiomaDoCadastro, lerRespostaDoRegistro, validarCadastro } from "@/lib/cadastro/cadastro";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { mensagemDeConfirmacaoDaLista } from "@/lib/email/mensagens";
+import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 
 /**
  * O cadastro gratuito (17/10/2026): quem baixa ou exporta de uma ferramenta do
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
       const envio = await enviarEmail(d.email, mensagemDeConfirmacaoDaLista({
         link: `${origem}/confirmar/${registro.token}`,
         linkDeSair: `${origem}/sair/${registro.token}`,
-      }));
+      }, await tradutorDoEmail(d.idioma)));
       if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "cadastro_confirmacao_nao_enviada", motivo: envio.motivo }));
     });
   }

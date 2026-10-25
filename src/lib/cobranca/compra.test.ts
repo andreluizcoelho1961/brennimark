@@ -89,3 +89,18 @@ test("Console: o link de primeiro acesso só aceita uma conta válida, e não pa
     { ok: true, acao: { tipo: "link_de_acesso", workspaceId: "33333333-3333-4333-8333-333333333333" } });
   assert.match((lerAcaoDeCobranca({ tipo: "link_de_acesso", workspaceId: "qualquer" }) as { motivo: string }).motivo, /inválida/);
 });
+
+test("o pedido feito pela tela em inglês leva o idioma, e as recusas saem em inglês", () => {
+  const lido = lerPedidoDeCompra({ ...PEDIDO, moeda: "USD", idioma: "en" });
+  assert.ok(lido.ok && lido.valor.idioma === "en");
+  const pedido = (lido as { ok: true; valor: PedidoDeCompra }).valor;
+  const p = parametrosDoCheckout({ pedido, idDoPreco: "price_x", origem: "https://x.test" });
+  assert.equal(p.metadata.idioma, "en", "o Stripe guarda o idioma da compra");
+  assert.equal(p.locale, "en");
+  const recusa = lerPedidoDeCompra({ ...PEDIDO, idioma: "en", email: "sem-arroba" });
+  assert.deepEqual(recusa, { ok: false, motivo: "Check the email address." });
+  // Em português, nada muda: sem idioma no pedido, sem idioma no metadata.
+  const pt = (lerPedidoDeCompra(PEDIDO) as { ok: true; valor: PedidoDeCompra }).valor;
+  assert.equal(pt.idioma, undefined);
+  assert.equal(lerPedidoDeCompra({ ...PEDIDO, email: "sem-arroba" }).ok === false && (lerPedidoDeCompra({ ...PEDIDO, email: "sem-arroba" }) as { motivo: string }).motivo, "Confira o e-mail.");
+});

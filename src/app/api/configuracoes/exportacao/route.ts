@@ -4,6 +4,7 @@ import { workspaceDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { pedidoParaTela, prazoDaExportacao } from "@/lib/cobranca/exportacao";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { mensagemDePedidoDeExportacao } from "@/lib/email/mensagens";
+import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 import { EMPRESA } from "@/lib/site/empresa";
 
 /**
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     const envio = await enviarEmail(EMPRESA.email, mensagemDePedidoDeExportacao({
       conta: p.conta, pedidoPor: p.pedido_por, pedidoEm: p.pedido_em, prazo: prazoDaExportacao(p.pedido_em),
       linkDoConsole: `${EMPRESA.site}/console/cobranca`,
-    }));
+    }, await tradutorDoEmail("pt-BR")));
     if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "exportacao_aviso_falhou", motivo: envio.motivo }));
   }
   return NextResponse.json({ pedido: pedidoParaTela({ pedido_em: p.pedido_em, entregue_em: null }) }, SEM_CACHE);

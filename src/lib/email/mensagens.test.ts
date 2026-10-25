@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escaparHtml, mensagemDeAvisoDeExclusao, mensagemDeBoasVindas, mensagemDeCancelamento, mensagemDeConfirmacaoDaLista, mensagemDeMarketing, mensagemDePedidoDeExportacao, mensagemDeRecuperacao } from "./mensagens";
+import { escaparHtml, mensagemDeAvisoDeExclusao as avisoBase, mensagemDeBoasVindas as boasVindasBase, mensagemDeCancelamento as cancelamentoBase, mensagemDeConfirmacaoDaLista as confirmacaoBase, mensagemDeMarketing as marketingBase, mensagemDePedidoDeExportacao as exportacaoBase, mensagemDeRecuperacao as recuperacaoBase } from "./mensagens";
+import { comTradutor, tradutorDeTeste } from "../i18n/catalogo-de-teste";
+
+const pt = tradutorDeTeste("email");
+const en = tradutorDeTeste("email", "en");
+const mensagemDeAvisoDeExclusao = comTradutor(avisoBase, pt);
+const mensagemDeBoasVindas = comTradutor(boasVindasBase, pt);
+const mensagemDeCancelamento = comTradutor(cancelamentoBase, pt);
+const mensagemDeConfirmacaoDaLista = comTradutor(confirmacaoBase, pt);
+const mensagemDeMarketing = comTradutor(marketingBase, pt);
+const mensagemDePedidoDeExportacao = comTradutor(exportacaoBase, pt);
+const mensagemDeRecuperacao = comTradutor(recuperacaoBase, pt);
 
 test("a recuperação leva o link, o prazo e o que fazer se não foi você", () => {
   const m = mensagemDeRecuperacao({ link: "https://x.test/l?a=1&b=2", validoPorMinutos: 60 });
@@ -106,4 +117,35 @@ test("o marketing sem botão não inventa link de ação, mas mantém a saída",
   assert.doesNotMatch(m.texto, /Pedir/);
   assert.match(m.texto, /https:\/\/x\.test\/sair\/abc/);
   assert.match(m.html, /Sair da lista ou apagar o meu cadastro/);
+});
+
+test("em inglês: assunto, corpo, data, botão e rodapé saem no idioma, sem sobra de português", () => {
+  const entrar = "https://www.brennimark.com/login";
+  const r = recuperacaoBase({ link: "https://x.test/l", validoPorMinutos: 60 }, en);
+  assert.equal(r.assunto, "Create a new password on Brennimark");
+  assert.match(r.texto, /valid for 60 minutes/);
+  assert.match(r.html, /<html lang="en">/);
+  assert.match(r.html, /If the button doesn&#39;t open/);
+
+  const c = cancelamentoBase({ conta: "Acme", tipo: "no-fim-do-periodo", ate: "2026-11-08T13:37:12Z", linkDeEntrar: entrar }, en);
+  assert.match(c.texto, /continues until November 8, 2026/);
+  assert.match(c.texto, /After that, the account is kept read-only for 12 months/);
+  assert.match(c.texto, /Sign in: https:\/\/www\.brennimark\.com\/login/);
+  const refund = cancelamentoBase({ conta: null, tipo: "arrependimento", ate: null, linkDeEntrar: entrar }, en);
+  assert.equal(refund.assunto, "Subscription cancelled and amount refunded");
+  assert.match(refund.texto, /refunding the amount paid in full/);
+
+  const x = avisoBase({ conta: "Acme", excluirEm: "2027-10-08T15:00:00Z", linkDeEntrar: entrar, contato: "contato@brennimark.com" }, en);
+  assert.match(x.texto, /On October 8, 2027/);
+  assert.match(x.texto, /Export everything/);
+
+  const l = confirmacaoBase({ link: "https://x.test/c", linkDeSair: "https://x.test/s" }, en);
+  assert.equal(l.assunto, "Confirm your email on Brennimark");
+  assert.match(l.texto, /Without the confirmation, we send nothing/);
+
+  const m = marketingBase({ assunto: "Invite", paragrafos: ["Hi."], quando: "October 21, 2026", linkDeSair: "https://x.test/s", linkDaPolitica: "https://x.test/p",
+    empresa: { nome: "Fulano", cnpj: "00.000.000/0001-00", endereco: "Rua A, 1" } }, en);
+  assert.match(m.texto, /You are receiving this email because you signed up for Brennimark's free tools on October 21, 2026/);
+  assert.match(m.html, /Leave the list or delete my sign-up/);
+  for (const msg of [r, c, refund, x, l, m]) assert.doesNotMatch(msg.texto, /\b(você|conta|assinatura|Entrar)\b/i, msg.assunto);
 });

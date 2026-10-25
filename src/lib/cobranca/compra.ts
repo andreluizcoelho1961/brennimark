@@ -19,6 +19,8 @@ export type PedidoDeCompra = {
   nome: string;
   email: string;
   empresa: string;
+  /** "en" quando a pessoa comprou pela tela em inglês: as mensagens saem em inglês e a sessão do Stripe guarda o idioma. Ausente = português. */
+  idioma?: "en";
 };
 
 export type Leitura<T> = { ok: true; valor: T } | { ok: false; motivo: string };
@@ -34,17 +36,18 @@ function texto(valor: unknown, maximo: number): string | null {
 
 export function lerPedidoDeCompra(corpo: unknown): Leitura<PedidoDeCompra> {
   const c = (corpo ?? {}) as Record<string, unknown>;
+  const en = c.idioma === "en";
   const plano = typeof c.plano === "string" && CODIGO_DE_PLANO.test(c.plano) ? c.plano : null;
-  if (!plano) return { ok: false, motivo: "Escolha um plano." };
+  if (!plano) return { ok: false, motivo: en ? "Choose a plan." : "Escolha um plano." };
   const moeda = MOEDAS.find((m) => m === c.moeda);
-  if (!moeda) return { ok: false, motivo: "Escolha a moeda." };
+  if (!moeda) return { ok: false, motivo: en ? "Choose the currency." : "Escolha a moeda." };
   const nome = texto(c.nome, 120);
-  if (!nome) return { ok: false, motivo: "Diga o seu nome." };
+  if (!nome) return { ok: false, motivo: en ? "Tell us your name." : "Diga o seu nome." };
   const email = typeof c.email === "string" ? c.email.trim().toLowerCase() : "";
-  if (email.length > 254 || !EMAIL.test(email)) return { ok: false, motivo: "Confira o e-mail." };
+  if (email.length > 254 || !EMAIL.test(email)) return { ok: false, motivo: en ? "Check the email address." : "Confira o e-mail." };
   const empresa = texto(c.empresa, 120);
-  if (!empresa) return { ok: false, motivo: "Diga o nome da empresa: ele vira o nome da conta." };
-  return { ok: true, valor: { plano, moeda, nome, email, empresa } };
+  if (!empresa) return { ok: false, motivo: en ? "Tell us the company name: it becomes the account name." : "Diga o nome da empresa: ele vira o nome da conta." };
+  return { ok: true, valor: { plano, moeda, nome, email, empresa, ...(en ? { idioma: "en" as const } : {}) } };
 }
 
 /**
@@ -78,6 +81,7 @@ export function parametrosDoCheckout(p: {
     nome_da_conta: pedido.empresa, plano: pedido.plano, comprador: pedido.nome,
     termos_versao: TERMOS_DE_USO.versao, privacidade_versao: POLITICA_DE_PRIVACIDADE.versao,
     ...(p.piloto ? { piloto: "sim" } : {}),
+    ...(pedido.idioma === "en" ? { idioma: "en" } : {}),
   };
   return {
     mode: "subscription" as const,

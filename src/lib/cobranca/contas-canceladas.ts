@@ -15,7 +15,8 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
-export type ContaAAvisar = { idAssinatura: string; email: string; nomeDaConta: string | null; excluirEm: string };
+/** `moeda` é a da assinatura cancelada (dela sai o idioma do aviso); nula se o banco não a guardou. */
+export type ContaAAvisar = { idAssinatura: string; email: string; nomeDaConta: string | null; excluirEm: string; moeda?: string | null };
 export type ContaAExcluir = { conta: string; iniciada: boolean };
 
 export type PortasDaRotina = {

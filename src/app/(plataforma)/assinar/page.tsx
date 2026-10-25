@@ -1,7 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { FormularioDeAssinatura, type PlanoAVenda } from "@/components/cobranca/FormularioDeAssinatura";
 
-export const metadata = { title: "Assinar · Brennimark", robots: { index: false, follow: false } };
+export async function generateMetadata() {
+  const t = await getTranslations("cobranca.assinar");
+  return { title: t("metaTitulo"), robots: { index: false, follow: false } };
+}
 
 /**
  * Assinar (cobrança, fatia 2). Quem chega aqui ainda não tem conta: a página
@@ -12,6 +16,7 @@ export const metadata = { title: "Assinar · Brennimark", robots: { index: false
  */
 export default async function AssinarPage({ searchParams }: { searchParams: Promise<{ plano?: string }> }) {
   const { plano } = await searchParams;
+  const t = await getTranslations("cobranca.assinar");
   const supabase = await createClient();
   const { data } = await supabase
     .from("planos")
@@ -24,10 +29,9 @@ export default async function AssinarPage({ searchParams }: { searchParams: Prom
     <main className="flex min-h-full flex-1 justify-center px-page-inline py-16">
       <div className="w-full max-w-2xl">
         <p className="font-display text-xs font-bold uppercase tracking-[0.2em] text-platform-text">Brennimark</p>
-        <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-platform-text">Assinar</h1>
+        <h1 className="mt-3 font-display text-3xl font-black uppercase leading-[0.95] text-platform-text">{t("titulo")}</h1>
         <p className="mt-4 max-w-[36rem] text-sm leading-relaxed text-platform-text-muted">
-          Planos pelo número de marcas. Pessoas, ilimitadas. O pagamento é feito na página segura do Stripe; a conta é
-          criada assim que ele for confirmado.
+          {t("intro")}
         </p>
         <FormularioDeAssinatura planos={planos} planoInicial={plano ?? null} />
       </div>
