@@ -2297,5 +2297,188 @@
         }
       }
     }
+  },
+  "email": {
+    "meta": {
+      "locale": "en-US",
+      "lang": "en"
+    },
+    "html": {
+      "seOBotaoNaoAbrir": "If the button doesn't open, copy this address into your browser:"
+    },
+    "recuperacao": {
+      "p1": "We received a request to create a new password for this email address on Brennimark.",
+      "p2": "The link below is valid for {min} minutes and can be used once.",
+      "fim": "If this wasn't you, ignore this message: your password stays the same.",
+      "assunto": "Create a new password on Brennimark",
+      "acao": "Create new password"
+    },
+    "boasVindas": {
+      "comConta": "The subscription for the account {conta} is active.",
+      "semConta": "Your Brennimark subscription is active.",
+      "p2": "If you created your password on the payment page, just sign in with this email address.",
+      "p3": "If you haven't yet, or closed the page before finishing, create it now at {link}",
+      "assunto": "Your Brennimark subscription is active",
+      "acao": "Sign in to Brennimark"
+    },
+    "entrar": "Sign in: {link}",
+    "cancelamento": {
+      "daConta": "for the account {conta}",
+      "doBrennimark": "for Brennimark",
+      "arrependimento1": "The subscription {daConta} has been cancelled.",
+      "arrependimento2": "Because the cancellation was made within 7 days of subscribing, we are refunding the amount paid in full, to the same card used for the purchase. The refund has already been requested from Stripe and will show on your statement according to your card issuer's timeline.",
+      "arrependimento3": "Full access ended just now.",
+      "falta": "The subscription {daConta} has been cancelled because the payment was not completed after the collection attempts.",
+      "fim1": "We confirm the cancellation of the subscription {daConta}.",
+      "fimComData": "Full access continues until {data}, the end of the period already paid, and there will be no further charges.",
+      "fimSemData": "Full access continues until the end of the period already paid, and there will be no further charges.",
+      "imediato": "The subscription {daConta} has been cancelled, and there will be no further charges.",
+      "depoisNoFim": "After that, the account is kept read-only for 12 months: you can view, download and export what is yours (Settings › Plan › Export everything). We will warn you 30 days before the end of that period.",
+      "depois": "The account is kept read-only for 12 months: you can view, download and export what is yours (Settings › Plan › Export everything). We will warn you 30 days before the end of that period.",
+      "mudarDeIdeia": "If you change your mind, just subscribe again.",
+      "assuntoArrependimento": "Subscription cancelled and amount refunded",
+      "assunto": "Your Brennimark subscription has been cancelled"
+    },
+    "exclusao": {
+      "daConta": "The account {conta}",
+      "suaConta": "Your Brennimark account",
+      "p1": "{daConta} was cancelled almost 12 months ago and is kept read-only.",
+      "p2": "On {data}, as the Terms state, its content will be permanently deleted: brands, manuals, files and the access of invited people.",
+      "p3": "To keep a copy, export it by then: sign in to the account and, under Settings › Plan, click Export everything. If you can't, write to {contato}, and we will deliver the original files and an index of the content within 15 days.",
+      "p4": "Data the law requires us to keep, such as billing data, stays for the legal period. If you want to use Brennimark again, just subscribe again.",
+      "assunto": "Your Brennimark account will be deleted in 30 days"
+    },
+    "confirmacaoDaLista": {
+      "p1": "You asked to receive emails from Brennimark, with news and content for people who work with brands.",
+      "p2": "To confirm that this email address is yours, click the button below. Without the confirmation, we send nothing.",
+      "fim": "If this wasn't you, ignore this message: nothing will be sent. To delete your sign-up, use {link}",
+      "confirmar": "Confirm: {link}",
+      "assunto": "Confirm your email on Brennimark",
+      "acao": "Confirm my email"
+    },
+    "marketing": {
+      "motivo": "You are receiving this email because you signed up for Brennimark's free tools on {quando} and confirmed your email address.",
+      "quem": "Brennimark, operated by {nome}, CNPJ {cnpj}, {endereco}.",
+      "sair": "To stop receiving these emails or delete your sign-up: {link}",
+      "politica": "Privacy Policy: {link}",
+      "dataAnterior": "an earlier date",
+      "sairLink": "Leave the list or delete my sign-up",
+      "politicaLink": "Privacy Policy"
+    },
+    "equipe": {
+      "p1": "The account {conta} requested the export of its content on {data}{por}.",
+      "por": ", by {quem}",
+      "p2": "Deadline promised in the Terms: {data} (15 days). Deliver the original files and an index of the content, and mark it as delivered in the Console.",
+      "assunto": "Export request: {conta}",
+      "console": "Console: {link}",
+      "abrir": "Open the Console"
+    }
+  },
+  "cobranca": {
+    "assinar": {
+      "metaTitulo": "Subscribe · Brennimark",
+      "titulo": "Subscribe",
+      "intro": "Plans by number of brands. People, unlimited. Payment is made on Stripe's secure page; the account is created as soon as it is confirmed."
+    },
+    "obrigado": {
+      "metaTitulo": "Payment sent · Brennimark"
+    },
+    "formulario": {
+      "fechada": "Online purchase isn't open yet. Talk to the Brennimark team.",
+      "erro": "Couldn't open the payment page. Try again.",
+      "plano": "Plan",
+      "marcasSemLimite": "Unlimited brands",
+      "ateMarcas": "Up to {n} brands",
+      "pessoas": " · unlimited people",
+      "ondeFica": "Where the company is based",
+      "brasil": "Brazil · R$",
+      "outros": "Other countries · US$",
+      "cartao": "card",
+      "nome": "Your name",
+      "email": "Email",
+      "empresa": "Company",
+      "empresaAjuda": "It becomes your account's name on Brennimark.",
+      "renovacao": "Monthly subscription with automatic renewal. Cancel any time under Settings → Plan. If you cancel within 7 days, we refund the amount paid.",
+      "aceite": "By going to payment, you accept the <t>Terms of Use</t> and the <p>Privacy Policy</p>.",
+      "ir": "Go to payment",
+      "abrindo": "Opening the payment page…"
+    },
+    "volta": {
+      "titulos": {
+        "pago": "Payment sent",
+        "confirmando": "Confirming the payment",
+        "criarSenha": "Create your password",
+        "pronta": "Your account is ready"
+      },
+      "esperando": "We are waiting for Stripe to confirm the payment and opening your account. With a card, this takes a few seconds. Don't close this page.",
+      "demorou": "The confirmation is taking longer than usual. You can check again in a moment, on this same page.",
+      "conferir": "Check again",
+      "confirmado": "Payment confirmed. Create the password you will use to sign in to Brennimark.",
+      "email": "Email",
+      "senha": "Password",
+      "repita": "Repeat the password",
+      "minimo": "At least 12 characters.",
+      "criar": "Create password and sign in",
+      "curta": "The password needs at least 12 characters.",
+      "longa": "The password is longer than the maximum.",
+      "diferentes": "The two passwords don't match.",
+      "falhouCriar": "Couldn't create the password. Try again.",
+      "entreCom": "Sign in with <b>{email}</b> and your Brennimark password.",
+      "entreSemEmail": "Sign in with your email and your Brennimark password.",
+      "entrar": "Sign in",
+      "falhou": "We couldn't check the purchase right now. Reload this page in a moment.",
+      "expirado": "The time to create the password through this page has passed. Use “Forgot your password?” on the sign-in screen, with the email you bought with.",
+      "semProva": "As soon as Stripe confirms the payment, your account is created. To create the password here, open this page in the same browser you used to buy — or use “Forgot your password?” on the sign-in screen, with the email you bought with.",
+      "jaTem": "Already have access?"
+    }
+  },
+  "cadastroPublico": {
+    "invalido": {
+      "titulo": "This link isn't valid.",
+      "texto": "Check that the address arrived in full. If you need help, write to the contact shown in the footer of the email."
+    },
+    "erro": "Couldn't do it right now. Try again in a moment.",
+    "confirmar": {
+      "metaTitulo": "Confirm your email",
+      "inicialTitulo": "Confirm your email",
+      "inicialTexto": "Click to confirm that you want to receive Brennimark's emails. Nothing happens until you click.",
+      "botao": "Confirm my email",
+      "enviando": "Confirming…",
+      "feitoTitulo": "Done, your email is confirmed.",
+      "feitoTexto": "From now on you receive Brennimark's emails. Every email carries a link to leave the list whenever you want.",
+      "naoAchouTitulo": "We couldn't confirm.",
+      "naoAchouTexto": "This sign-up no longer exists, or you left the list. If you want to receive the emails, tick the box again when you download a tool, and we will send another confirmation."
+    },
+    "sair": {
+      "metaTitulo": "Leave the list",
+      "titulo": "Leave Brennimark's list",
+      "texto": "Choose what you want. Nothing happens until you click.",
+      "pararTitulo": "Stop receiving emails",
+      "pararTexto": "You can still use the free tools.",
+      "pararBotao": "Stop receiving",
+      "enviando": "Sending…",
+      "apagarTitulo": "Delete my sign-up",
+      "apagarTexto": "We delete your name, your email and your answers. This can't be undone.",
+      "apagarDeVez": "Delete for good",
+      "cancelar": "Cancel",
+      "apagarBotao": "Delete my sign-up",
+      "feitoSairTitulo": "Done, you won't receive emails any more.",
+      "feitoSairTexto": "We keep your sign-up only as a record that you left. If you'd rather have it deleted, come back to this link and choose delete.",
+      "feitoApagarTitulo": "Your sign-up was deleted.",
+      "feitoApagarTexto": "We no longer keep your name, your email or your answers.",
+      "naoAchouTitulo": "This sign-up no longer exists.",
+      "naoAchouTexto": "If your sign-up was already deleted, there is nothing more to do. If you think this is a mistake, write to the contact in the footer of the email."
+    },
+    "naoEncontrada": {
+      "titulo": "This address doesn't exist",
+      "texto": "It may be an old link. The front door works out which brand you have access to.",
+      "botao": "Go to the manuals"
+    },
+    "esqueciSenha": {
+      "metaTitulo": "Forgot your password? · Brennimark"
+    },
+    "entrega": {
+      "metaTitulo": "File delivery"
+    }
   }
 }

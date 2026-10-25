@@ -226,9 +226,10 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
  * os campos, um deles acabaria esquecendo o papel ou o idioma e caindo em um
  * padrão — que foi exatamente como a instância global sobreviveu até aqui.
  */
-export function brandPromptContext(marca: ActiveBrand): BrandPromptContext {
+export function brandPromptContext(marca: ActiveBrand, idiomaDaInterface?: string): BrandPromptContext {
   return {
     language: marca.metadata.language,
+    interfaceLanguage: idiomaDaInterface,
     chatRole: marca.ai.chatRole,
     analysisRole: marca.ai.analysisRole,
     // Esquecer esta linha não quebrava nada: o campo é opcional, e o prompt

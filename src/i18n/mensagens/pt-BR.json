@@ -2297,5 +2297,188 @@
         }
       }
     }
+  },
+  "email": {
+    "meta": {
+      "locale": "pt-BR",
+      "lang": "pt-BR"
+    },
+    "html": {
+      "seOBotaoNaoAbrir": "Se o botão não abrir, copie este endereço no navegador:"
+    },
+    "recuperacao": {
+      "p1": "Recebemos um pedido para criar uma nova senha para este e-mail no Brennimark.",
+      "p2": "O link abaixo vale por {min} minutos e serve uma vez.",
+      "fim": "Se não foi você, ignore esta mensagem: a sua senha continua a mesma.",
+      "assunto": "Crie uma nova senha no Brennimark",
+      "acao": "Criar nova senha"
+    },
+    "boasVindas": {
+      "comConta": "A assinatura da conta {conta} está ativa.",
+      "semConta": "A sua assinatura do Brennimark está ativa.",
+      "p2": "Se você criou a senha na página de pagamento, é só entrar com este e-mail.",
+      "p3": "Se ainda não criou, ou fechou a página antes, crie agora em {link}",
+      "assunto": "Sua assinatura do Brennimark está ativa",
+      "acao": "Entrar no Brennimark"
+    },
+    "entrar": "Entrar: {link}",
+    "cancelamento": {
+      "daConta": "da conta {conta}",
+      "doBrennimark": "do Brennimark",
+      "arrependimento1": "A assinatura {daConta} foi cancelada.",
+      "arrependimento2": "Como o cancelamento foi feito em até 7 dias da contratação, devolvemos o valor pago, por inteiro, no mesmo cartão da compra. O estorno já foi pedido ao Stripe e aparece na fatura conforme o prazo da operadora do cartão.",
+      "arrependimento3": "O acesso completo terminou agora.",
+      "falta": "A assinatura {daConta} foi cancelada porque o pagamento não foi concluído depois das tentativas de cobrança.",
+      "fim1": "Confirmamos o cancelamento da assinatura {daConta}.",
+      "fimComData": "O acesso completo continua até {data}, o fim do período já pago, e não haverá nova cobrança.",
+      "fimSemData": "O acesso completo continua até o fim do período já pago, e não haverá nova cobrança.",
+      "imediato": "A assinatura {daConta} foi cancelada, e não haverá nova cobrança.",
+      "depoisNoFim": "Depois disso, a conta fica guardada só para leitura por 12 meses: dá para consultar, baixar e exportar o que é seu (Configurações › Plano › Exportar tudo). Avisamos 30 dias antes do fim desse prazo.",
+      "depois": "A conta fica guardada só para leitura por 12 meses: dá para consultar, baixar e exportar o que é seu (Configurações › Plano › Exportar tudo). Avisamos 30 dias antes do fim desse prazo.",
+      "mudarDeIdeia": "Se mudar de ideia, é só assinar de novo.",
+      "assuntoArrependimento": "Assinatura cancelada e valor devolvido",
+      "assunto": "Sua assinatura do Brennimark foi cancelada"
+    },
+    "exclusao": {
+      "daConta": "A conta {conta}",
+      "suaConta": "A sua conta do Brennimark",
+      "p1": "{daConta} foi cancelada há quase 12 meses e está guardada só para leitura.",
+      "p2": "Em {data}, como dizem os Termos, o conteúdo dela será excluído definitivamente: marcas, manuais, arquivos e os acessos das pessoas convidadas.",
+      "p3": "Para guardar uma cópia, exporte até lá: entre na conta e, em Configurações › Plano, clique em Exportar tudo. Se não conseguir, escreva para {contato}, e entregamos os arquivos originais e um índice do conteúdo em até 15 dias.",
+      "p4": "Dados que a lei manda guardar, como os de cobrança, ficam pelo prazo legal. Se quiser voltar a usar o Brennimark, é só assinar de novo.",
+      "assunto": "Sua conta do Brennimark será excluída em 30 dias"
+    },
+    "confirmacaoDaLista": {
+      "p1": "Você pediu para receber e-mails do Brennimark, com novidades e conteúdo para quem trabalha com marcas.",
+      "p2": "Para confirmar que este e-mail é seu, clique no botão abaixo. Sem a confirmação, não enviamos nada.",
+      "fim": "Se não foi você, ignore esta mensagem: nada será enviado. Para apagar o seu cadastro, use {link}",
+      "confirmar": "Confirmar: {link}",
+      "assunto": "Confirme o seu e-mail no Brennimark",
+      "acao": "Confirmar o meu e-mail"
+    },
+    "marketing": {
+      "motivo": "Você recebe este e-mail porque se cadastrou nas ferramentas gratuitas do Brennimark em {quando} e confirmou o seu e-mail.",
+      "quem": "Brennimark, operado por {nome}, CNPJ {cnpj}, {endereco}.",
+      "sair": "Para parar de receber estes e-mails ou apagar o seu cadastro: {link}",
+      "politica": "Política de Privacidade: {link}",
+      "dataAnterior": "uma data anterior",
+      "sairLink": "Sair da lista ou apagar o meu cadastro",
+      "politicaLink": "Política de Privacidade"
+    },
+    "equipe": {
+      "p1": "A conta {conta} pediu a exportação do conteúdo em {data}{por}.",
+      "por": ", por {quem}",
+      "p2": "Prazo prometido nos Termos: {data} (15 dias). Entregue os arquivos originais e um índice do conteúdo, e marque como entregue no Console.",
+      "assunto": "Pedido de exportação: {conta}",
+      "console": "Console: {link}",
+      "abrir": "Abrir o Console"
+    }
+  },
+  "cobranca": {
+    "assinar": {
+      "metaTitulo": "Assinar · Brennimark",
+      "titulo": "Assinar",
+      "intro": "Planos pelo número de marcas. Pessoas, ilimitadas. O pagamento é feito na página segura do Stripe; a conta é criada assim que ele for confirmado."
+    },
+    "obrigado": {
+      "metaTitulo": "Pagamento enviado · Brennimark"
+    },
+    "formulario": {
+      "fechada": "A compra online ainda não está aberta. Fale com a equipe da Brennimark.",
+      "erro": "Não foi possível abrir o pagamento. Tente de novo.",
+      "plano": "Plano",
+      "marcasSemLimite": "Marcas sem limite",
+      "ateMarcas": "Até {n} marcas",
+      "pessoas": " · pessoas ilimitadas",
+      "ondeFica": "Onde fica a empresa",
+      "brasil": "Brasil · R$",
+      "outros": "Outros países · US$",
+      "cartao": "cartão",
+      "nome": "Seu nome",
+      "email": "E-mail",
+      "empresa": "Empresa",
+      "empresaAjuda": "Vira o nome da sua conta no Brennimark.",
+      "renovacao": "Assinatura mensal com renovação automática. Cancele quando quiser em Configurações → Plano. Se cancelar em até 7 dias, devolvemos o valor pago.",
+      "aceite": "Ao ir para o pagamento, você aceita os <t>Termos de uso</t> e a <p>Política de privacidade</p>.",
+      "ir": "Ir para o pagamento",
+      "abrindo": "Abrindo o pagamento…"
+    },
+    "volta": {
+      "titulos": {
+        "pago": "Pagamento enviado",
+        "confirmando": "Confirmando o pagamento",
+        "criarSenha": "Crie a sua senha",
+        "pronta": "Sua conta está pronta"
+      },
+      "esperando": "Estamos esperando o Stripe confirmar o pagamento e abrindo a sua conta. No cartão, isso leva alguns segundos. Não feche esta página.",
+      "demorou": "A confirmação está demorando mais que o normal. Você pode conferir de novo daqui a pouco, nesta mesma página.",
+      "conferir": "Conferir de novo",
+      "confirmado": "Pagamento confirmado. Crie a senha com que você vai entrar no Brennimark.",
+      "email": "E-mail",
+      "senha": "Senha",
+      "repita": "Repita a senha",
+      "minimo": "Ao menos 12 caracteres.",
+      "criar": "Criar senha e entrar",
+      "curta": "A senha precisa de ao menos 12 caracteres.",
+      "longa": "A senha passou do tamanho máximo.",
+      "diferentes": "As duas senhas não são iguais.",
+      "falhouCriar": "Não foi possível criar a senha. Tente de novo.",
+      "entreCom": "Entre com <b>{email}</b> e a sua senha do Brennimark.",
+      "entreSemEmail": "Entre com o seu e-mail e a sua senha do Brennimark.",
+      "entrar": "Entrar",
+      "falhou": "Não conseguimos conferir a compra agora. Recarregue esta página em instantes.",
+      "expirado": "O prazo para criar a senha por esta página passou. Use “Esqueci a senha” na tela de entrar, com o e-mail da compra.",
+      "semProva": "Assim que o Stripe confirmar o pagamento, a sua conta é criada. Para criar a senha aqui, abra esta página no mesmo navegador em que fez a compra — ou use “Esqueci a senha” na tela de entrar, com o e-mail da compra.",
+      "jaTem": "Já tem acesso?"
+    }
+  },
+  "cadastroPublico": {
+    "invalido": {
+      "titulo": "Este link não é válido.",
+      "texto": "Confira se o endereço chegou inteiro. Se precisar de ajuda, escreva para o contato que aparece no rodapé do e-mail."
+    },
+    "erro": "Não foi possível agora. Tente de novo em instantes.",
+    "confirmar": {
+      "metaTitulo": "Confirmar o e-mail",
+      "inicialTitulo": "Confirme o seu e-mail",
+      "inicialTexto": "Clique para confirmar que você quer receber os e-mails do Brennimark. Nada acontece até você clicar.",
+      "botao": "Confirmar o meu e-mail",
+      "enviando": "Confirmando…",
+      "feitoTitulo": "Pronto, o seu e-mail está confirmado.",
+      "feitoTexto": "A partir de agora você recebe os e-mails do Brennimark. Todo e-mail traz um link para sair da lista quando quiser.",
+      "naoAchouTitulo": "Não foi possível confirmar.",
+      "naoAchouTexto": "Este cadastro não existe mais, ou você saiu da lista. Se quiser receber os e-mails, marque a caixa de novo ao baixar uma ferramenta, e enviaremos outra confirmação."
+    },
+    "sair": {
+      "metaTitulo": "Sair da lista",
+      "titulo": "Sair da lista do Brennimark",
+      "texto": "Escolha o que você quer. Nada acontece até você clicar.",
+      "pararTitulo": "Parar de receber e-mails",
+      "pararTexto": "Você continua podendo usar as ferramentas gratuitas.",
+      "pararBotao": "Parar de receber",
+      "enviando": "Enviando…",
+      "apagarTitulo": "Apagar o meu cadastro",
+      "apagarTexto": "Apagamos o seu nome, o seu e-mail e as suas respostas. Não dá para desfazer.",
+      "apagarDeVez": "Apagar de vez",
+      "cancelar": "Cancelar",
+      "apagarBotao": "Apagar o meu cadastro",
+      "feitoSairTitulo": "Pronto, você não vai mais receber e-mails.",
+      "feitoSairTexto": "Mantemos o seu cadastro só como registro de que você saiu. Se preferir que ele seja apagado, volte a este link e escolha apagar.",
+      "feitoApagarTitulo": "O seu cadastro foi apagado.",
+      "feitoApagarTexto": "Não guardamos mais o seu nome, o seu e-mail nem as suas respostas.",
+      "naoAchouTitulo": "Este cadastro não existe mais.",
+      "naoAchouTexto": "Se o seu cadastro já foi apagado, não há mais nada a fazer. Se acha que é um engano, escreva para o contato do rodapé do e-mail."
+    },
+    "naoEncontrada": {
+      "titulo": "Este endereço não existe",
+      "texto": "Pode ser um link antigo. A porta de entrada resolve para qual marca você tem acesso.",
+      "botao": "Ir para os manuais"
+    },
+    "esqueciSenha": {
+      "metaTitulo": "Esqueci a senha · Brennimark"
+    },
+    "entrega": {
+      "metaTitulo": "Entrega de arquivos"
+    }
   }
 }

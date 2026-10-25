@@ -102,7 +102,7 @@ export async function POST(request: Request) {
      */
     const portao = await portaoDeIA(request, "chat");
     if (!portao.ok) return portao.resposta;
-    brandPrompt = brandPromptContext(portao.brand);
+    brandPrompt = brandPromptContext(portao.brand, isEnglish ? "en" : "pt-BR");
     // O cliente PODE enviar o próprio execution_id (torna um retry de rede
     // idempotente ponta a ponta, e é o identificador comum entre a
     // requisição, a reserva e o ledger); sem ele, um novo é gerado aqui —

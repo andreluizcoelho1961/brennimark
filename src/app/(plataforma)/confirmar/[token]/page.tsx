@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { tokenDeSaidaValido } from "@/lib/cadastro/saida";
 import { ConfirmacaoDoCadastro } from "@/components/cadastro/ConfirmacaoDoCadastro";
 
@@ -11,14 +12,14 @@ import { ConfirmacaoDoCadastro } from "@/components/cadastro/ConfirmacaoDoCadast
  *
  * `no-referrer`: o endereço carrega o token.
  */
-export const metadata: Metadata = {
-  title: "Confirmar o e-mail",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("cadastroPublico.confirmar");
+  return { title: t("metaTitulo"), robots: { index: false, follow: false }, referrer: "no-referrer" };
+}
 
 export default async function PaginaDeConfirmacao({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  const t = await getTranslations("cadastroPublico.invalido");
   return (
     <main className="grid min-h-dvh place-items-center bg-platform-bg px-6 py-12 text-platform-text">
       <div className="w-full max-w-[34rem]">
@@ -27,8 +28,8 @@ export default async function PaginaDeConfirmacao({ params }: { params: Promise<
           <ConfirmacaoDoCadastro token={token} />
         ) : (
           <div data-confirmacao-invalida>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Este link não é válido.</h1>
-            <p className="mt-3 text-sm leading-relaxed text-platform-text-muted">Confira se o endereço chegou inteiro. Se precisar de ajuda, escreva para o contato que aparece no rodapé do e-mail.</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight">{t("titulo")}</h1>
+            <p className="mt-3 text-sm leading-relaxed text-platform-text-muted">{t("texto")}</p>
           </div>
         )}
       </div>
