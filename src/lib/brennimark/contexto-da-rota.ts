@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { resolveWorkspaceContext, type WorkspaceContext } from "./workspace-context";
 import type { Alvo } from "./selecao";
 import { podeUsar, type Utilidade } from "../ai/permissao";
+import { ehVisitanteDoTour } from "../demonstracao/visitante";
 import { getBrennimarkAuthContext, resolverWorkspaceAtivo, type BrennimarkAuthContext } from "./server";
 
 /**
@@ -205,11 +206,23 @@ export type PortaoDeIA =
 export async function portaoDeIA(
   request: Request,
   utilidade: Utilidade,
+  opcoes: { visitanteDoTour?: "permitir" } = {},
 ): Promise<PortaoDeIA> {
   const resolvido = await conteudoDaRota(request);
   if (!resolvido.ok) return resolvido;
 
   const { contexto, auth } = resolvido;
+  /*
+   * O visitante do tour (25/10/2026) só usa o chat do Vini e as conversas dele,
+   * e as rotas que o permitem dizem isso AQUI, com o contador na própria rota.
+   * Qualquer outra rota de IA recusa — copiloto de prompts, leitura de regras,
+   * sugestão de paleta, análise de imagem. É a cerca do "2 perguntas, nada mais",
+   * no servidor: esconder o botão não fecha a rota. O padrão é recusar, para uma
+   * rota de IA nova nascer fechada ao visitante.
+   */
+  if (ehVisitanteDoTour(auth.user) && opcoes.visitanteDoTour !== "permitir") {
+    return { ok: false, resposta: NextResponse.json({ error: "tour_sem_ia" }, { status: 403 }) };
+  }
   if (!contexto.brand) {
     return { ok: false, resposta: NextResponse.json({ error: "no_brand" }, { status: 409 }) };
   }

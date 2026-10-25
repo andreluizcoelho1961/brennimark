@@ -13,7 +13,7 @@ import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 export async function GET(request: Request) {
   const isEnglish = inEnglish(await idiomaDaSessao());
-  const portao = await portaoDeIA(request, "chat");
+  const portao = await portaoDeIA(request, "chat", { visitanteDoTour: "permitir" });
   if (!portao.ok) return portao.resposta;
 
   const { data, error } = await portao.auth.supabase

@@ -1423,11 +1423,30 @@ test("chat e análise passam pelo portão, e por utilidades diferentes", () => {
   const chat = lerCodigo("src/app/api/ai/chat/route.ts");
   const analise = lerCodigo("src/app/api/ai/analyze/route.ts");
 
-  assert.match(chat, /portaoDeIA\(request, "chat"\)/);
+  assert.match(chat, /portaoDeIA\(request, "chat"(, \{ visitanteDoTour: "permitir" \})?\)/);
   assert.match(analise, /portaoDeIA\(request, "analysis"\)/);
   // Contratar o chat não contrata a análise. Se as duas rotas pedissem a mesma
   // utilidade, uma marca que contratou só o assistente responderia análises.
   assert.doesNotMatch(analise, /portaoDeIA\(request, "chat"\)/);
+});
+
+/*
+ * O visitante do tour (25/10/2026) só pode usar o chat do Vini e as conversas
+ * dele. `portaoDeIA` recusa o visitante por padrão; quem o libera diz isso na
+ * chamada. A lista é fechada: rota de IA nova nasce fechada ao visitante, e
+ * abri-la é uma decisão que aparece aqui, com motivo.
+ */
+test("só o chat e as conversas liberam o visitante do tour", () => {
+  const liberam = listarArquivos("src/app/api")
+    .filter((arquivo) => arquivo.endsWith("route.ts"))
+    .filter((arquivo) => /visitanteDoTour:\s*"permitir"/.test(lerCodigo(arquivo)))
+    .map((arquivo) => arquivo.replace(/\\/g, "/"))
+    .sort();
+  assert.deepEqual(liberam, [
+    "src/app/api/ai/chat/route.ts",
+    "src/app/api/conversas/[id]/route.ts",
+    "src/app/api/conversas/route.ts",
+  ]);
 });
 
 test("o portão vem antes do provedor, nas duas rotas", () => {
