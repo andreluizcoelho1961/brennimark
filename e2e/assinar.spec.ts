@@ -32,7 +32,7 @@ test("escolher plano e moeda e ir ao pagamento manda o pedido sem preço nenhum"
   await preencher(page);
   await page.locator("[data-ir-ao-pagamento]").click();
   await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/x");
-  expect(pedidos).toEqual([{ plano: "premium", moeda: "USD", nome: "Fulana de Tal", email: "fulana@agencia.com", empresa: "Agência Exemplo" }]);
+  expect(pedidos).toEqual([{ plano: "premium", moeda: "USD", nome: "Fulana de Tal", email: "fulana@agencia.com", empresa: "Agência Exemplo", idioma: "pt-BR" }]);
 });
 
 test("a recusa do servidor aparece com a frase dele, e o botão volta", async ({ page }) => {

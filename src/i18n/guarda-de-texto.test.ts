@@ -63,7 +63,6 @@ const MIGRADAS: string[] = [
   "src/components/site/ajuda/ArtigoDaAjuda.tsx",
   "src/components/site/ajuda/BuscaDaAjuda.tsx",
   "src/components/site/ajuda/CategoriaDaAjuda.tsx",
-  "src/components/ajuda/AjudaDaMoldura.tsx",
   "src/components/ajuda/PainelComoUsar.tsx",
   "src/components/ferramentas/Cores.tsx",
   "src/components/ferramentas/CoresDoAssinante.tsx",
@@ -98,6 +97,12 @@ const MIGRADAS: string[] = [
   "src/app/(plataforma)/confirmar/[token]/page.tsx",
   "src/components/cadastro/SaidaDoCadastro.tsx",
   "src/components/cadastro/ConfirmacaoDoCadastro.tsx",
+  "src/lib/email/mensagens.ts",
+  "src/components/site/LembrarIdiomaDoSite.tsx",
+  "src/app/(plataforma)/assinar/obrigado/page.tsx",
+  "src/app/(plataforma)/assinar/page.tsx",
+  "src/components/cobranca/SenhaNaVolta.tsx",
+  "src/components/cobranca/FormularioDeAssinatura.tsx",
 ];
 
 const ACENTOS = /[áàâãéêíóôõúüç]/i;

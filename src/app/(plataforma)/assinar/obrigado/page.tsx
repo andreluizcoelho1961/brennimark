@@ -1,7 +1,11 @@
+import { getTranslations } from "next-intl/server";
 import { SenhaNaVolta } from "@/components/cobranca/SenhaNaVolta";
 import { sessaoValida } from "@/lib/cobranca/senha-na-volta";
 
-export const metadata = { title: "Pagamento enviado · Brennimark", robots: { index: false, follow: false } };
+export async function generateMetadata() {
+  const t = await getTranslations("cobranca.obrigado");
+  return { title: t("metaTitulo"), robots: { index: false, follow: false } };
+}
 
 /**
  * A volta do checkout. O endereço, sozinho, NÃO confirma nada: qualquer um

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { caminhoNoOutroIdioma, type IdiomaDoSite } from "@/lib/site/idiomas";
+import { gravarIdiomaDoNavegador } from "./LembrarIdiomaDoSite";
 
 /**
  * O botão de idioma do cabeçalho do site.
@@ -31,6 +32,7 @@ export function SeletorDeIdiomaDoSite({ atual }: { atual: IdiomaDoSite }) {
       aria-label={destino === "en" ? t("paraIngles") : t("paraPortugues")}
       title={destino === "en" ? t("paraIngles") : t("paraPortugues")}
       data-seletor-de-idioma-do-site
+      onClick={() => gravarIdiomaDoNavegador(destino)}
     >
       {destino === "en" ? "EN" : "PT"}
     </Link>

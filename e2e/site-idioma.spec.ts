@@ -245,3 +245,19 @@ test("as ferramentas em português seguem iguais", async ({ page }) => {
   await page.goto("/ferramentas/kit");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Todos os tamanhos do seu logo, num clique");
 });
+
+test("a ponte do idioma: quem lê o site em inglês chega ao Assinar em inglês, e o formulário fala inglês", async ({ page, context }) => {
+  await context.clearCookies();
+  await page.goto("/en");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  // O cookie é gravado quando a página termina de ligar (efeito do cliente): espera, como uma pessoa que lê antes de clicar.
+  await expect.poll(async () => (await context.cookies()).some((c) => c.name === "BRENNIMARK_IDIOMA" && c.value === "en")).toBe(true);
+  await page.goto("/assinar");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Subscribe");
+  await page.goto("/dev/assinar");
+  await expect(page.getByText("Where the company is based")).toBeVisible();
+  await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Cancel any time under Settings → Plan");
+  await expect(page.locator("[data-aceite-dos-termos] a").first()).toHaveAttribute("href", "/en/terms");
+  await expect(page.locator("[data-moeda=USD] input")).toBeChecked();
+  await expect(page.locator("[data-ir-ao-pagamento]")).toHaveText("Go to payment");
+});
