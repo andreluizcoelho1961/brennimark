@@ -11,7 +11,7 @@
  * de `@/`: roda no formulário e na rota, e a suíte de unidade o compila sozinho.
  */
 
-export const ORIGENS = ["kit", "cores", "grids", "fonts"] as const;
+export const ORIGENS = ["kit", "cores", "grids", "fonts", "tour"] as const;
 export type Origem = (typeof ORIGENS)[number];
 
 export const CARGOS = [

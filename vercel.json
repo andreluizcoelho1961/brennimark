@@ -13,6 +13,10 @@
     {
       "path": "/api/manutencao/contas-canceladas",
       "schedule": "53 6 * * *"
+    },
+    {
+      "path": "/api/manutencao/demonstracao",
+      "schedule": "29 7 * * *"
     }
   ]
 }
