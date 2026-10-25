@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { IdiomaDaSessao } from "@/components/IdiomaDaSessao";
 import { FormularioDeAssinatura } from "@/components/cobranca/FormularioDeAssinatura";
 
 export const metadata = { robots: { index: false, follow: false } };
@@ -18,8 +19,8 @@ export default async function BancadaDaCompra({ searchParams }: { searchParams: 
     { codigo: "premium", nome: "Premium", maximoDeMarcas: 30 },
   ];
   return (
-    <main className="min-h-dvh bg-platform-bg p-8">
+    <IdiomaDaSessao><main className="min-h-dvh bg-platform-bg p-8">
       <div className="mx-auto max-w-2xl"><FormularioDeAssinatura planos={planos} planoInicial={plano ?? null} /></div>
-    </main>
+    </main></IdiomaDaSessao>
   );
 }

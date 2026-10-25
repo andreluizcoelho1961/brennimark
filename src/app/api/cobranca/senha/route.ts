@@ -1,3 +1,5 @@
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { inEnglish } from "@/platform/locale";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buscarSessaoNoStripe, chavesDoStripe } from "@/lib/cobranca/stripe";
@@ -38,12 +40,12 @@ type Contexto = {
 
 const SEM_PROVA = (status = 200) => NextResponse.json({ momento: "sem-prova" }, { status, headers: { "Cache-Control": "no-store" } });
 
-async function contexto(request: NextRequest, idDaSessao: string): Promise<Contexto | NextResponse> {
+async function contexto(request: NextRequest, idDaSessao: string, isEnglish: boolean): Promise<Contexto | NextResponse> {
   const prova = request.cookies.get(COOKIE_DA_PROVA)?.value;
   if (!prova) return SEM_PROVA();
 
   const chaves = chavesDoStripe();
-  if (!chaves) return NextResponse.json({ message: "A compra online ainda não está aberta." }, { status: 503 });
+  if (!chaves) return NextResponse.json({ message: (isEnglish ? "Online purchase isn't open yet." : "A compra online ainda não está aberta.") }, { status: 503 });
 
   let sessao: SessaoDaCompra;
   try {
@@ -52,7 +54,7 @@ async function contexto(request: NextRequest, idDaSessao: string): Promise<Conte
     // Sessão que não existe (ou de outra conta do Stripe) é só "sem prova".
     if ((erro as { code?: string }).code === "resource_missing") return SEM_PROVA();
     console.error(JSON.stringify({ level: "error", msg: "senha_na_volta_stripe_falhou", motivo: erro instanceof Error ? erro.message.slice(0, 200) : "desconhecido" }));
-    return NextResponse.json({ message: "Não foi possível consultar o pagamento. Tente de novo." }, { status: 502 });
+    return NextResponse.json({ message: (isEnglish ? "Couldn't look up the payment. Try again." : "Não foi possível consultar o pagamento. Tente de novo.") }, { status: 502 });
   }
 
   const provaConfere = sessao.resumoDaProva !== null && mesmoTexto(await resumoDaProva(prova), sessao.resumoDaProva);
@@ -99,15 +101,16 @@ async function contexto(request: NextRequest, idDaSessao: string): Promise<Conte
 }
 
 export async function POST(request: NextRequest) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const corpo = await request.json().catch(() => null) as { sessao?: unknown; acao?: unknown; senha?: unknown; confirmacao?: unknown } | null;
   if (!sessaoValida(corpo?.sessao)) return SEM_PROVA(400);
 
   let c: Contexto | NextResponse;
   try {
-    c = await contexto(request, corpo.sessao);
+    c = await contexto(request, corpo.sessao, isEnglish);
   } catch (erro) {
     console.error(JSON.stringify({ level: "error", msg: "senha_na_volta_falhou", motivo: erro instanceof Error ? erro.message.slice(0, 200) : "desconhecido" }));
-    return NextResponse.json({ message: "Não foi possível conferir a compra. Tente de novo." }, { status: 500 });
+    return NextResponse.json({ message: (isEnglish ? "Couldn't check the purchase. Try again." : "Não foi possível conferir a compra. Tente de novo.") }, { status: 500 });
   }
   if (c instanceof NextResponse) return c;
 
@@ -121,9 +124,9 @@ export async function POST(request: NextRequest) {
   const recusa = conferirSenhaNova(corpo.senha, corpo.confirmacao);
   if (recusa) {
     const frases = {
-      curta: "A senha precisa de ao menos 12 caracteres.",
-      longa: "A senha passou do tamanho máximo.",
-      diferentes: "As duas senhas não são iguais.",
+      curta: (isEnglish ? "The password needs at least 12 characters." : "A senha precisa de ao menos 12 caracteres."),
+      longa: (isEnglish ? "The password is longer than the maximum." : "A senha passou do tamanho máximo."),
+      diferentes: (isEnglish ? "The two passwords don't match." : "As duas senhas não são iguais."),
     } as const;
     return NextResponse.json({ ...leitura, message: frases[recusa] }, { status: 400 });
   }
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
     const fraca = error.code === "weak_password";
     return NextResponse.json({
       ...leitura,
-      message: fraca ? "Esta senha é fácil demais de adivinhar. Escolha outra." : "Não foi possível criar a senha. Tente de novo.",
+      message: fraca ? (isEnglish ? "This password is too easy to guess. Choose another." : "Esta senha é fácil demais de adivinhar. Escolha outra.") : (isEnglish ? "Couldn't create the password. Try again." : "Não foi possível criar a senha. Tente de novo."),
     }, { status: fraca ? 400 : 502 });
   }
 

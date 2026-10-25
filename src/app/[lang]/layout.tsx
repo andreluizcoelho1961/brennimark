@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./site.css";
 import { RaizDoDocumento } from "@/components/RaizDoDocumento";
 import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
-import { IDIOMAS_DO_SITE } from "@/lib/site/idiomas";
+import { LembrarIdiomaDoSite } from "@/components/site/LembrarIdiomaDoSite";
+import { IDIOMAS_DO_SITE, idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
 
 /**
  * A raiz do SITE público. O idioma vem do endereço (`/en/...`), e o português,
@@ -38,7 +39,10 @@ export default async function LayoutDoSite({
   const { lang } = await params;
   return (
     <RaizDoDocumento lang={lang}>
-      <ProvedorDeTraducao>{children}</ProvedorDeTraducao>
+      <ProvedorDeTraducao>
+        <LembrarIdiomaDoSite idioma={idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE} />
+        {children}
+      </ProvedorDeTraducao>
     </RaizDoDocumento>
   );
 }

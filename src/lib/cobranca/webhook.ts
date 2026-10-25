@@ -96,7 +96,7 @@ export type Portas = {
    * erro. O login novo leva a assinatura que o criou: só a volta DESSA compra
    * pode criar a senha dele (`senha-na-volta.ts`).
    */
-  garantirLogin(email: string, nome: string | null, idAssinatura: string): Promise<void>;
+  garantirLogin(email: string, nome: string | null, idAssinatura: string, moeda: string): Promise<void>;
   sincronizar(assinatura: AssinaturaNoProvedor & { situacao: Situacao; emailDoTitular: string }): Promise<string | null>;
   /**
    * Registra (ou esquece) o pedido de cancelamento — `cobranca_pedido_de_cancelamento`.
@@ -134,7 +134,8 @@ export type EstadoDoCancelamento = {
  *   imediato            cancelada na hora (pelo André, por exemplo), sem estorno automático
  */
 export type TipoDeCancelamento = "arrependimento" | "falta-de-pagamento" | "no-fim-do-periodo" | "imediato";
-export type AvisoDeCancelamento = { email: string; conta: string | null; tipo: TipoDeCancelamento; ate: string | null };
+/** `moeda` é a da assinatura: dela sai o idioma do e-mail (dólar, inglês). */
+export type AvisoDeCancelamento = { email: string; conta: string | null; tipo: TipoDeCancelamento; ate: string | null; moeda: string };
 
 export function tipoDoCancelamento(
   estado: Pick<EstadoDoCancelamento, "arrependimento" | "situacao" | "periodoPagoAte">,
@@ -174,7 +175,7 @@ export async function tratarCancelamento(assinatura: AssinaturaNoProvedor & { si
     const tipo = tipoDoCancelamento(estado, assinatura.porFaltaDePagamento);
     await portas.avisarCancelamento({
       email: estado.titularEmail, conta: estado.nomeDaConta, tipo,
-      ate: tipo === "no-fim-do-periodo" ? estado.periodoPagoAte : null,
+      ate: tipo === "no-fim-do-periodo" ? estado.periodoPagoAte : null, moeda: assinatura.moeda,
     });
   } catch (erro) {
     await portas.reservarAviso(assinatura.idAssinatura, false);
@@ -204,7 +205,7 @@ export async function processarAviso(provedor: string, aviso: Aviso, portas: Por
     if (!assinatura.emailDoTitular) throw new Error("assinatura sem e-mail do titular");
 
     if (assinatura.situacao === "ativa") {
-      await portas.garantirLogin(assinatura.emailDoTitular, assinatura.nomeDoComprador, assinatura.idAssinatura);
+      await portas.garantirLogin(assinatura.emailDoTitular, assinatura.nomeDoComprador, assinatura.idAssinatura, assinatura.moeda);
     }
     const conta = await portas.sincronizar({
       ...assinatura, situacao: assinatura.situacao, emailDoTitular: assinatura.emailDoTitular,

@@ -1,3 +1,4 @@
+import { idiomaDoEmailPelaMoeda, tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
@@ -47,8 +48,14 @@ export async function GET(request: Request) {
       if (!emailConfigurado()) return [];
       const { data, error } = await servico.rpc("cobranca_contas_a_avisar_da_exclusao", { p_limite: 50 });
       if (error) throw new Error(`listar avisos: ${error.code}`);
-      return ((data ?? []) as Array<{ id_externo_assinatura: string; titular_email: string; nome_da_conta: string | null; excluir_em: string }>)
-        .map((l) => ({ idAssinatura: l.id_externo_assinatura, email: l.titular_email, nomeDaConta: l.nome_da_conta, excluirEm: l.excluir_em }));
+      const linhas = (data ?? []) as Array<{ id_externo_assinatura: string; titular_email: string; nome_da_conta: string | null; excluir_em: string }>;
+      // A moeda da assinatura decide o idioma do aviso (dólar, inglês). Falhar ao lê-la não impede o aviso: sai em português.
+      const moedas = new Map<string, string | null>();
+      if (linhas.length > 0) {
+        const { data: ass } = await servico.from("assinaturas").select("id_externo_assinatura, moeda").in("id_externo_assinatura", linhas.map((l) => l.id_externo_assinatura));
+        for (const a of (ass ?? []) as Array<{ id_externo_assinatura: string; moeda: string | null }>) moedas.set(a.id_externo_assinatura, a.moeda);
+      }
+      return linhas.map((l) => ({ idAssinatura: l.id_externo_assinatura, email: l.titular_email, nomeDaConta: l.nome_da_conta, excluirEm: l.excluir_em, moeda: moedas.get(l.id_externo_assinatura) ?? null }));
     },
     async reservarAviso(idAssinatura, reservar) {
       const { data, error } = await servico.rpc("cobranca_aviso_de_exclusao", { p_id_externo_assinatura: idAssinatura, p_reservar: reservar });
@@ -58,7 +65,7 @@ export async function GET(request: Request) {
     async avisar(conta) {
       const envio = await enviarEmail(conta.email, mensagemDeAvisoDeExclusao({
         conta: conta.nomeDaConta, excluirEm: conta.excluirEm, linkDeEntrar: `${EMPRESA.site}/login`, contato: EMPRESA.email,
-      }));
+      }, await tradutorDoEmail(idiomaDoEmailPelaMoeda(conta.moeda))));
       if (!envio.ok) throw new Error(`e-mail: ${envio.motivo}`);
     },
     async contasAExcluir() {

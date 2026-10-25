@@ -1,3 +1,4 @@
+import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { lerMotivo } from "@/lib/console/ia";
@@ -39,17 +40,17 @@ function traduzir(error: ErroDoBanco): NextResponse | null {
 }
 
 /** O e-mail pronto de uma pessoa: texto da campanha, rodapé legal e links dela. */
-function montar(campanha: Campanha, pessoa: { nome: string; token: string; aceiteEm: string | null }) {
+function montar(campanha: Campanha, pessoa: { nome: string; token: string; aceiteEm: string | null }, t: Awaited<ReturnType<typeof tradutorDoEmail>>) {
   const site = EMPRESA.site;
   const mensagem = mensagemDeMarketing({
     assunto: campanha.assunto,
     paragrafos: campanha.paragrafos.map((p) => personalizar(p, pessoa.nome)),
     botao: campanha.botao ? { rotulo: campanha.botao.rotulo, link: `${site}${campanha.botao.caminho}` } : undefined,
-    quando: pessoa.aceiteEm ? dataPorExtenso(pessoa.aceiteEm) : "uma data anterior",
+    quando: pessoa.aceiteEm ? dataPorExtenso(pessoa.aceiteEm, t) : t("marketing.dataAnterior"),
     linkDeSair: `${site}/sair/${pessoa.token}`,
     linkDaPolitica: `${site}/privacidade`,
     empresa: { nome: EMPRESA.nome, cnpj: EMPRESA.cnpj, endereco: ENDERECO_COMPLETO },
-  });
+  }, t);
   return { mensagem, opcoes: { replyTo: EMPRESA.email, headers: cabecalhosDeSaida(`${site}/api/sair/${pessoa.token}`) } };
 }
 
@@ -61,6 +62,9 @@ export async function POST(request: Request) {
   if (!lida.ok) return RECUSA(lida.motivo);
   const acao = lida.acao;
   const campanha = campanhaDe(acao.campanha) as Campanha;
+  // As campanhas são escritas em português e o Console é só em português: o rodapé também.
+  // (O idioma de CADA destinatário ainda não é lido da lista; ver a decisão pendente com o André.)
+  const tPt = await tradutorDoEmail("pt-BR");
 
   const supabase = await createClient();
 
@@ -84,7 +88,7 @@ export async function POST(request: Request) {
     if (!para) return RECUSA("Não achei o seu e-mail de login.");
     // O teste leva o rótulo no assunto e um endereço de saída que não existe: o link
     // do rodapé não apaga cadastro nenhum.
-    const { mensagem, opcoes } = montar(campanha, { nome: "", token: "00000000-0000-4000-8000-000000000000", aceiteEm: null });
+    const { mensagem, opcoes } = montar(campanha, { nome: "", token: "00000000-0000-4000-8000-000000000000", aceiteEm: null }, tPt);
     const envio = await enviarEmail(para, { ...mensagem, assunto: `[TESTE] ${mensagem.assunto}` }, opcoes);
     if (!envio.ok) return RECUSA("O serviço de e-mail não aceitou o envio. Tente de novo.", 502);
     return NextResponse.json({ ok: true, para }, SEM_CACHE);
@@ -104,7 +108,7 @@ export async function POST(request: Request) {
   let falhas = 0;
   for (const [i, p] of escolhidos.entries()) {
     if (i > 0) await espera(PAUSA_ENTRE_ENVIOS_MS);
-    const { mensagem, opcoes } = montar(campanha, { nome: p.nome, token: p.token, aceiteEm: p.aceite_em });
+    const { mensagem, opcoes } = montar(campanha, { nome: p.nome, token: p.token, aceiteEm: p.aceite_em }, tPt);
     const envio = await enviarEmail(p.email, mensagem, opcoes);
     const { error: erroDeMarca } = await supabase.rpc("console_email_marcar", {
       p_campanha: acao.campanha, p_cadastro_id: p.cadastro_id, p_enviado: envio.ok,

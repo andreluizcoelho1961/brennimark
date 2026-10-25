@@ -1,3 +1,5 @@
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { inEnglish } from "@/platform/locale";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { workspaceDaRota } from "@/lib/brennimark/contexto-da-rota";
@@ -13,23 +15,24 @@ import { voltaDoPortal } from "@/lib/cobranca/plano-da-conta";
  * Cada mudança feita lá volta pelo webhook, como qualquer outra.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await workspaceDaRota(request);
   if (!r.ok) return r.resposta;
   if (r.papel !== "owner") return NextResponse.json({ error: "nao_encontrado" }, { status: 404 });
 
   const chaves = chavesDoStripe();
-  if (!chaves) return NextResponse.json({ message: "A gestão da assinatura ainda não está disponível. Fale com a equipe da Brennimark." }, { status: 503 });
+  if (!chaves) return NextResponse.json({ message: (isEnglish ? "Subscription management isn't available yet. Talk to the Brennimark team." : "A gestão da assinatura ainda não está disponível. Fale com a equipe da Brennimark.") }, { status: 503 });
 
   const supabase = await createClient();
   const { data, error } = await supabase.from("assinaturas").select("id_externo_cliente").eq("workspace_id", r.workspaceId).maybeSingle<{ id_externo_cliente: string }>();
-  if (error) return NextResponse.json({ message: "Não foi possível ler a assinatura." }, { status: 500 });
-  if (!data) return NextResponse.json({ message: "Esta conta não tem assinatura." }, { status: 404 });
+  if (error) return NextResponse.json({ message: (isEnglish ? "Couldn't read the subscription." : "Não foi possível ler a assinatura.") }, { status: 500 });
+  if (!data) return NextResponse.json({ message: (isEnglish ? "This account doesn't have a subscription." : "Esta conta não tem assinatura.") }, { status: 404 });
 
   try {
     const url = await abrirPortalNoStripe(chaves.chave, data.id_externo_cliente, voltaDoPortal(new URL(request.url).origin, r.workspaceSlug));
     return NextResponse.json({ url }, { headers: { "Cache-Control": "no-store" } });
   } catch (erro) {
     console.error(JSON.stringify({ level: "error", msg: "cobranca_portal_falhou", motivo: erro instanceof Error ? erro.message.slice(0, 200) : "desconhecido" }));
-    return NextResponse.json({ message: "O portal não abriu. Tente de novo em instantes." }, { status: 500 });
+    return NextResponse.json({ message: (isEnglish ? "The portal didn't open. Try again in a moment." : "O portal não abriu. Tente de novo em instantes.") }, { status: 500 });
   }
 }

@@ -91,6 +91,12 @@ const MIGRADAS: string[] = [
   "src/lib/kit/pacote.ts",
   "src/lib/kit/desenhar-no-navegador.ts",
   "src/lib/kit/materiais-do-kit.ts",
+  "src/lib/email/mensagens.ts",
+  "src/components/site/LembrarIdiomaDoSite.tsx",
+  "src/app/(plataforma)/assinar/obrigado/page.tsx",
+  "src/app/(plataforma)/assinar/page.tsx",
+  "src/components/cobranca/SenhaNaVolta.tsx",
+  "src/components/cobranca/FormularioDeAssinatura.tsx",
 ];
 
 const ACENTOS = /[áàâãéêíóôõúüç]/i;

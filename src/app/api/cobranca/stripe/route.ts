@@ -1,3 +1,4 @@
+import { idiomaDoEmailPelaMoeda, tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buscarAssinaturaNoStripe, chavesDoStripe, estornarArrependimento, lerAvisoAssinado } from "@/lib/cobranca/stripe";
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
         if (error) throw new Error(`concluir: ${error.code}`);
       },
       buscarAssinatura: (idAssinatura) => buscarAssinaturaNoStripe(chaves.chave, idAssinatura),
-      async garantirLogin(email, nome, idAssinatura) {
+      async garantirLogin(email, nome, idAssinatura, moeda) {
         // Sem senha: quem comprou a cria na volta do pagamento, e só a volta
         // desta compra pode (`criado_pela_assinatura`, ver senha-na-volta.ts).
         const { error } = await servico.auth.admin.createUser({
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
           const origem = new URL(request.url).origin;
           const envio = await enviarEmail(email, mensagemDeBoasVindas({
             conta: null, linkDeEntrar: `${origem}/login`, linkDeSenha: `${origem}/esqueci-senha`,
-          }));
+          }, await tradutorDoEmail(idiomaDoEmailPelaMoeda(moeda))));
           if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "cobranca_boas_vindas_falhou", motivo: envio.motivo }));
         }
       },
@@ -148,7 +149,7 @@ export async function POST(request: Request) {
         const origem = new URL(request.url).origin;
         const envio = await enviarEmail(a.email, mensagemDeCancelamento({
           conta: a.conta, tipo: a.tipo, ate: a.ate, linkDeEntrar: `${origem}/login`,
-        }));
+        }, await tradutorDoEmail(idiomaDoEmailPelaMoeda(a.moeda))));
         if (!envio.ok) throw new Error(`e-mail de cancelamento: ${envio.motivo}`);
       },
     });
