@@ -165,9 +165,9 @@ test("o site em inglês: endereço traduzido reescreve, pasta em português redi
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/materials"), { tipo: "reescrever", para: "/en/materiais" });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/terms"), { tipo: "reescrever", para: "/en/termos" });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/help"), { tipo: "reescrever", para: "/en/ajuda" });
-  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/kit"), { tipo: "redirecionar", para: "/ferramentas/kit", permanente: false, aviso: true });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/kit"), { tipo: "reescrever", para: "/en/ferramentas/kit" });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en"), { tipo: "nenhuma" });
-  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/window/kit"), { tipo: "redirecionar", para: "/ferramentas/janela/kit", permanente: false, aviso: true });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/window/kit"), { tipo: "reescrever", para: "/en/ferramentas/janela/kit" });
   // Pasta em português com prefixo: vira o endereço traduzido (uma URL por página).
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/agencias"), { tipo: "redirecionar", para: "/en/agencies", permanente: true, aviso: false });
   assert.deepEqual(decisaoDeIdiomaDoSite("/en/ajuda"), { tipo: "redirecionar", para: "/en/help", permanente: true, aviso: false });

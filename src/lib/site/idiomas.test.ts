@@ -40,13 +40,13 @@ test("só vale como traduzida a página declarada, e toda declarada existe no si
   assert.equal(paginaTraduzida("en", "/manifesto"), true);
   assert.equal(paginaTraduzida("en", "/vini"), true);
   assert.equal(paginaTraduzida("en", "/ajuda"), true);
-  assert.equal(paginaTraduzida("en", "/ferramentas/kit"), false);
+  assert.equal(paginaTraduzida("en", "/ferramentas/kit"), true);
   assert.equal(paginaTraduzida("en", "/"), true);
   const traduzidas = PAGINAS_TRADUZIDAS.en;
   assert.ok(traduzidas !== "todas");
   const slugs = new Set(PAGINAS_DO_SITE.map((p) => p.slug));
-  // "" é a home.
-  for (const t of traduzidas as ReadonlySet<string>) assert.ok(t === "" || slugs.has(t), `${t} está em PAGINAS_TRADUZIDAS mas não existe no site`);
+  // "" é a home; "ferramentas" é uma seção (Kit, Cores, Grids), não uma página só.
+  for (const t of traduzidas as ReadonlySet<string>) assert.ok(t === "" || t === "ferramentas" || slugs.has(t), `${t} está em PAGINAS_TRADUZIDAS mas não existe no site`);
 });
 
 test("o botão de idioma leva à mesma página no outro idioma", () => {

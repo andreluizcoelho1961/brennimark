@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { GridsDoAssinante } from "@/components/ferramentas/GridsDoAssinante";
 
@@ -14,7 +15,9 @@ export default async function BancadaDoGridsDoAssinante() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
     <LocaleProvider locale={idioma}>
-      <GridsDoAssinante />
+      <ProvedorDeTraducao>
+        <GridsDoAssinante />
+      </ProvedorDeTraducao>
     </LocaleProvider>
   );
 }

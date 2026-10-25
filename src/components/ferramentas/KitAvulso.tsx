@@ -1,7 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { GRUPOS_DO_KIT, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "@/lib/kit/tamanhos";
+import { GRUPOS_DO_KIT, ITENS_DO_KIT, nomeDoArquivo, textoDoItem, type Grupo, type ItemDoKit } from "@/lib/kit/tamanhos";
 import { assinaturaHtml, type DadosDaAssinatura, type ReducaoMinima, type RegrasInformadas } from "@/lib/kit/pacote";
 import {
   carregarDesenho, contarArquivos, desenharItem, medirItem, fundoEscuro, itensDoPacote, montarPacote, type Desenho, type Escolhas, type Fundo,
@@ -64,6 +65,8 @@ function numero(v: string): number {
 }
 
 export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
+  const t = useTranslations("ferramentas.kit");
+  const tArquivos = useTranslations("ferramentas.arquivos");
   const { pedir, dialogo } = useCadastroParaBaixar("kit", { ativo: !fixo });
   const [logoEnviado, setLogo] = useState<Desenho | null>(null);
   const [verticalEnviado, setVertical] = useState<Desenho | null>(null);
@@ -83,7 +86,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
   const [aba, setAba] = useState<Grupo>("site");
   const [nome, setNome] = useState(fixo?.nome ?? "");
   const [dados, setDados] = useState<DadosDaAssinatura & { enderecoDoLogo: string }>({
-    nome: "Seu nome", cargo: "Cargo", telefone: "(51) 0000-0000", site: "suaempresa.com.br", empresa: "", enderecoDoLogo: "",
+    nome: t("ui.email.padrao.nome"), cargo: t("ui.email.padrao.cargo"), telefone: t("ui.email.padrao.telefone"), site: t("ui.email.padrao.site"), empresa: "", enderecoDoLogo: "",
   });
   const [gerando, setGerando] = useState<{ prontos: number; total: number } | null>(null);
 
@@ -101,7 +104,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
     if (!arquivo) return;
     setErro("");
     try {
-      const d = await carregarDesenho(arquivo);
+      const d = await carregarDesenho(arquivo, tArquivos);
       if (tipo === "logo") {
         setLogo(d);
         if (!nome) setNome(arquivo.name.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").replace(/\b(logo|logotipo|marca)\b/gi, "").trim());
@@ -110,7 +113,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
       if (tipo === "simbolo") setSimbolo(d);
       if (tipo === "negativo") setNegativo(d);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Não foi possível abrir este arquivo.");
+      setErro(e instanceof Error ? e.message : t("ui.erro.abrir"));
     }
   }
 
@@ -118,18 +121,18 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
     if (!escolhas) return;
     setGerando({ prontos: 0, total: itensDoPacote(grupos, escolhas).length });
     try {
-      const blob = await montarPacote(grupos, escolhas, nome.trim(), { ...dados, empresa: dados.empresa || nome, fonte: fixo?.fonteDaAssinatura ?? null }, (prontos, total) => setGerando({ prontos, total }));
+      const blob = await montarPacote(grupos, escolhas, nome.trim(), { ...dados, empresa: dados.empresa || nome, fonte: fixo?.fonteDaAssinatura ?? null }, (prontos, total) => setGerando({ prontos, total }), t);
       const base = `kit-${(nome.trim() || "marca").toLowerCase().normalize("NFD").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "") || "marca"}`;
       salvarArquivo(blob, grupos.length === 1 ? `${base}-${grupos[0]}.zip` : `${base}.zip`);
     } catch (e) {
-      setErro(e instanceof Error ? e.message : "Não foi possível montar o pacote.");
+      setErro(e instanceof Error ? e.message : t("ui.erro.montar"));
     } finally {
       setGerando(null);
     }
   }
 
   const avisosDoFundo = escolhas && fundoEscuro(fundo) && !negativo
-    ? [`Sobre fundo escuro, o Kit faz o logo em branco: as partes escuras viram branco e as claras deixam o fundo aparecer. ${fixo ? "Se a marca tem versão negativa, cadastre-a nos Materiais (polaridade negativa)." : "Se a marca tem versão negativa própria, envie-a no passo 1."}`]
+    ? [t("ui.ajustes.avisoEscuro", { extra: fixo ? t("ui.ajustes.extraAssinante") : t("ui.ajustes.extraLivre") })]
     : [];
   const avisosDoLogo = [...(logo?.avisos ?? []), ...(simbolo?.avisos ?? [])];
   const abaixoDaReducao = escolhas ? itensDoPacote(GRUPOS_DO_KIT.map((g) => g.id), escolhas).filter((i) => medirItem(i, escolhas).abaixoDe).length : 0;
@@ -141,23 +144,23 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
       {/* ─── Passos ─────────────────────────────────────────────────────── */}
       <aside className="flex flex-col gap-8 border-platform-border p-6 lg:border-r">
         <section className="flex flex-col gap-3">
-          <p className={ROTULO}>Passo 1</p>
-          <h2 className={PASSO}>O logo</h2>
+          <p className={ROTULO}>{t("ui.passo", { n: 1 })}</p>
+          <h2 className={PASSO}>{t("ui.logo.titulo")}</h2>
           {fixo ? (
             <div data-kit-dos-materiais className="flex flex-col gap-2">{fixo.seletorDeVersoes}</div>
           ) : (<>
-          <Envio rotulo="Logotipo" dica="SVG, PDF ou AI é o ideal · PNG a partir de 1024 px" atributo="logo" desenho={logo} aoEscolher={(f) => receber("logo", f)} grande />
+          <Envio rotulo={t("ui.logo.logotipo")} dica={t("ui.logo.logotipoDica")} atributo="logo" desenho={logo} aoEscolher={(f) => receber("logo", f)} grande />
           <details className="text-sm text-platform-text-muted">
-            <summary className="cursor-pointer">Tem versão vertical, símbolo ou versão negativa?</summary>
+            <summary className="cursor-pointer">{t("ui.logo.temOutras")}</summary>
             <div className="mt-3 flex flex-col gap-3">
-              <Envio rotulo="Logotipo vertical (opcional)" dica="usado nos quadrados quando não há símbolo" atributo="vertical" desenho={vertical} aoEscolher={(f) => receber("vertical", f)} aoTirar={() => setVertical(null)} />
-              <Envio rotulo="Símbolo (opcional)" dica="usado nos ícones e perfis" atributo="simbolo" desenho={simbolo} aoEscolher={(f) => receber("simbolo", f)} aoTirar={() => setSimbolo(null)} />
-              <Envio rotulo="Versão para fundo escuro (opcional)" dica="senão, o Kit faz o logo em branco" atributo="negativo" desenho={negativo} aoEscolher={(f) => receber("negativo", f)} aoTirar={() => setNegativo(null)} escuro />
+              <Envio rotulo={t("ui.logo.vertical")} dica={t("ui.logo.verticalDica")} atributo="vertical" desenho={vertical} aoEscolher={(f) => receber("vertical", f)} aoTirar={() => setVertical(null)} />
+              <Envio rotulo={t("ui.logo.simbolo")} dica={t("ui.logo.simboloDica")} atributo="simbolo" desenho={simbolo} aoEscolher={(f) => receber("simbolo", f)} aoTirar={() => setSimbolo(null)} />
+              <Envio rotulo={t("ui.logo.negativo")} dica={t("ui.logo.negativoDica")} atributo="negativo" desenho={negativo} aoEscolher={(f) => receber("negativo", f)} aoTirar={() => setNegativo(null)} escuro />
             </div>
           </details>
           <label className="flex flex-col gap-1">
-            <span className={ROTULO}>Nome da marca</span>
-            <input data-kit-nome className={CAMPO} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Acme" />
+            <span className={ROTULO}>{t("ui.logo.nomeDaMarca")}</span>
+            <input data-kit-nome className={CAMPO} value={nome} onChange={(e) => setNome(e.target.value)} placeholder={t("ui.logo.nomePlaceholder")} />
           </label>
           </>)}
           {erro && <p role="alert" className="text-sm text-platform-danger">{erro}</p>}
@@ -165,12 +168,12 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
         </section>
 
         <section className="flex flex-col gap-3">
-          <p className={ROTULO}>Passo 2</p>
-          <h2 className={PASSO}>Ajustes</h2>
+          <p className={ROTULO}>{t("ui.passo", { n: 2 })}</p>
+          <h2 className={PASSO}>{t("ui.ajustes.titulo")}</h2>
           <div className="flex flex-col gap-2">
-            <span className={ROTULO}>Fundo</span>
+            <span className={ROTULO}>{t("ui.ajustes.fundo")}</span>
             <div className="flex flex-wrap gap-2">
-              {([["branco", "Branco", "#ffffff"], ["escuro", "Escuro", "#111418"], ["cor", "Cor da marca", fundo.cor], ["transparente", "Transparente", ""]] as const).map(([tipo, rotulo, amostra]) => (
+              {([["branco", t("ui.ajustes.branco"), "#ffffff"], ["escuro", t("ui.ajustes.escuro"), "#111418"], ["cor", t("ui.ajustes.cor"), fundo.cor], ["transparente", t("ui.ajustes.transparente"), ""]] as const).map(([tipo, rotulo, amostra]) => (
                 <Dica key={tipo} texto={dicaDe("kit-fundo")} lado="cima"><button type="button" data-kit-fundo={tipo} aria-pressed={fundo.tipo === tipo} onClick={() => setFundo({ ...fundo, tipo })}
                   className={`${PILULA} ${fundo.tipo === tipo ? "border-platform-text text-platform-text" : "border-platform-border text-platform-text-muted hover:text-platform-text"}`}>
                   <i aria-hidden className="h-3 w-3 rounded-full border border-platform-border" style={{ background: amostra || "repeating-conic-gradient(#999 0 25%,#ddd 0 50%) 0 0/6px 6px" }} />
@@ -181,84 +184,82 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
             {fundo.tipo === "cor" && fixo && fixo.coresDaMarca.length > 0 && (
               <div data-kit-cores-da-marca className="flex flex-wrap gap-1.5">
                 {fixo.coresDaMarca.map((c) => (
-                  <button key={c} type="button" aria-label={`Fundo ${c}`} aria-pressed={fundo.cor.toLowerCase() === c.toLowerCase()} onClick={() => setFundo({ tipo: "cor", cor: c })}
+                  <button key={c} type="button" aria-label={t("ui.ajustes.fundoAria", { c })} aria-pressed={fundo.cor.toLowerCase() === c.toLowerCase()} onClick={() => setFundo({ tipo: "cor", cor: c })}
                     className={`h-7 w-7 rounded-full border ${fundo.cor.toLowerCase() === c.toLowerCase() ? "border-platform-text ring-2 ring-platform-text/20" : "border-platform-border"}`} style={{ background: c }} />
                 ))}
               </div>
             )}
             {fundo.tipo === "cor" && (
               <label className="flex items-center gap-2 text-sm text-platform-text-muted">
-                <input type="color" value={fundo.cor} onChange={(e) => setFundo({ ...fundo, cor: e.target.value })} aria-label="Cor do fundo" />
+                <input type="color" value={fundo.cor} onChange={(e) => setFundo({ ...fundo, cor: e.target.value })} aria-label={t("ui.ajustes.corAria")} />
                 <input data-kit-cor className={`${CAMPO} w-32 font-mono`} value={fundo.cor} onChange={(e) => /^#[0-9a-f]{0,6}$/i.test(e.target.value) && setFundo({ ...fundo, cor: e.target.value })} />
               </label>
             )}
-            {fundo.tipo === "transparente" && <p className="text-[13px] text-platform-text-muted">Perfis de rede com fundo transparente ganham o fundo que a rede escolher (branco ou preto).</p>}
+            {fundo.tipo === "transparente" && <p className="text-[13px] text-platform-text-muted">{t("ui.ajustes.transparenteNota")}</p>}
             {avisosDoFundo.map((a) => <Aviso key={a} texto={a} />)}
           </div>
           <Dica texto={dicaDe("kit-margem")} lado="cima"><label className="flex flex-col gap-1">
-            <span className={ROTULO}>Margem · {margem}%</span>
+            <span className={ROTULO}>{t("ui.ajustes.margem", { n: margem })}</span>
             <input data-kit-margem type="range" min={4} max={30} value={margem} onChange={(e) => setMargem(+e.target.value)} />
           </label></Dica>
           {simbolo && (
             <label className="flex items-center gap-2 text-sm text-platform-text">
               <input type="checkbox" checked={usarSimbolo} onChange={(e) => setUsarSimbolo(e.target.checked)} />
-              Usar o símbolo nos ícones e perfis
+              {t("ui.ajustes.usarSimbolo")}
             </label>
           )}
           {fixo ? fixo.painelDeRegras : (
           <div data-kit-regras className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-platform-border p-3">
             <div>
-              <span className={ROTULO}>Regras da marca</span>
-              <p className="mt-1 text-[12.5px] leading-snug text-platform-text-muted">Estão no manual da marca, nas páginas de área de proteção e redução mínima. Deixe em branco o que o manual não define.</p>
+              <span className={ROTULO}>{t("ui.regrasLivres.titulo")}</span>
+              <p className="mt-1 text-[12.5px] leading-snug text-platform-text-muted">{t("ui.regrasLivres.intro")}</p>
             </div>
             <label className="flex flex-col gap-1">
-              <span className="text-[13px] text-platform-text">Área de proteção · % da altura do logo</span>
-              <input data-kit-protecao inputMode="decimal" className={CAMPO} value={protecao} onChange={(e) => setProtecao(soNumero(e.target.value))} placeholder="Ex.: 25 (um quarto da altura livre em volta)" />
+              <span className="text-[13px] text-platform-text">{t("ui.regrasLivres.protecao")}</span>
+              <input data-kit-protecao inputMode="decimal" className={CAMPO} value={protecao} onChange={(e) => setProtecao(soNumero(e.target.value))} placeholder={t("ui.regrasLivres.protecaoPh")} />
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-[13px] text-platform-text">Redução mínima do logotipo · largura em px</span>
-              <input data-kit-reducao-logo inputMode="numeric" className={CAMPO} value={reducaoLogo} onChange={(e) => setReducaoLogo(soNumero(e.target.value))} placeholder="Ex.: 120" />
+              <span className="text-[13px] text-platform-text">{t("ui.regrasLivres.reducaoLogo")}</span>
+              <input data-kit-reducao-logo inputMode="numeric" className={CAMPO} value={reducaoLogo} onChange={(e) => setReducaoLogo(soNumero(e.target.value))} placeholder={t("ui.regrasLivres.reducaoLogoPh")} />
             </label>
             {simbolo && (
               <label className="flex flex-col gap-1">
-                <span className="text-[13px] text-platform-text">Redução mínima do símbolo · largura em px</span>
-                <input data-kit-reducao-simbolo inputMode="numeric" className={CAMPO} value={reducaoSimbolo} onChange={(e) => setReducaoSimbolo(soNumero(e.target.value))} placeholder="Ex.: 24" />
+                <span className="text-[13px] text-platform-text">{t("ui.regrasLivres.reducaoSimbolo")}</span>
+                <input data-kit-reducao-simbolo inputMode="numeric" className={CAMPO} value={reducaoSimbolo} onChange={(e) => setReducaoSimbolo(soNumero(e.target.value))} placeholder={t("ui.regrasLivres.reducaoSimboloPh")} />
               </label>
             )}
           </div>
           )}
           {abaixoDaReducao > 0 && (
-            <Aviso texto={`${abaixoDaReducao} arquivo(s) ficam abaixo da redução mínima ${fixo ? "do manual" : "que você informou"} — marcados na lista. Nos ícones pequenos, um símbolo separado costuma resolver.`} />
+            <Aviso texto={t("ui.abaixo", { n: abaixoDaReducao, de: fixo ? t("ui.abaixoDoManual") : t("ui.abaixoInformada") })} />
           )}
         </section>
 
         <section className="flex flex-col gap-3">
-          <p className={ROTULO}>Passo 3</p>
-          <h2 className={PASSO}>Baixar</h2>
+          <p className={ROTULO}>{t("ui.passo", { n: 3 })}</p>
+          <h2 className={PASSO}>{t("ui.baixar.titulo")}</h2>
           <Dica texto={dicaDe("kit-baixar-tudo")} lado="cima"><button type="button" data-kit-baixar-tudo disabled={!escolhas || Boolean(gerando)} onClick={() => pedir(() => baixar(GRUPOS_DO_KIT.map((g) => g.id)))}
             className="flex items-center justify-between rounded-[var(--radius-control)] bg-platform-signal px-4 py-3 text-sm font-semibold text-platform-bg disabled:opacity-40">
-            <span>{gerando ? `Gerando… ${gerando.prontos} de ${gerando.total}` : "Baixar tudo (.zip)"}</span>
-            {totalDeArquivos !== null && <span data-kit-total className="font-mono text-[11px] opacity-80">{totalDeArquivos} arquivos</span>}
+            <span>{gerando ? t("ui.baixar.gerando", { p: gerando.prontos, total: gerando.total }) : t("ui.baixar.tudo")}</span>
+            {totalDeArquivos !== null && <span data-kit-total className="font-mono text-[11px] opacity-80">{t("ui.baixar.total", { n: totalDeArquivos })}</span>}
           </button></Dica>
           <Dica texto={dicaDe("kit-baixar-grupo")} lado="cima"><button type="button" data-kit-baixar-grupo disabled={!escolhas || Boolean(gerando)} onClick={() => pedir(() => baixar([aba]))}
             className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2.5 text-sm text-platform-text disabled:opacity-40">
-            Só {GRUPOS_DO_KIT.find((g) => g.id === aba)!.nome.toLowerCase()}
+            {t("ui.baixar.soGrupo", { grupo: t(`grupos.${aba}`).toLowerCase() })}
           </button></Dica>
           <p className="rounded-[var(--radius-control)] border border-platform-border p-3 text-[13px] leading-relaxed text-platform-text-muted">
-            {fixo
-              ? "Os arquivos são montados no seu computador, a partir dos originais dos Materiais. O LEIA-ME do pacote diz de que página do manual veio cada regra."
-              : "Tudo é feito no seu computador: o logo não sai dele. No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho."}
+            {fixo ? t("ui.baixar.notaAssinante") : t("ui.baixar.notaLivre")}
           </p>
         </section>
       </aside>
 
       {/* ─── Prévia ─────────────────────────────────────────────────────── */}
       <section className="flex min-w-0 flex-col gap-6 p-6">
-        <nav aria-label="Grupos de arquivos" className="flex flex-wrap gap-1 border-b border-platform-border">
+        <nav aria-label={t("ui.previa.gruposAria")} className="flex flex-wrap gap-1 border-b border-platform-border">
           {GRUPOS_DO_KIT.map((g) => (
             <Dica key={g.id} texto={dicaDe("kit-aba")} lado="baixo"><button type="button" data-kit-aba={g.id} aria-current={aba === g.id ? "true" : undefined} onClick={() => setAba(g.id)}
               className={`-mb-px border-b-2 px-3 py-2.5 text-sm ${aba === g.id ? "border-platform-text font-medium text-platform-text" : "border-transparent text-platform-text-muted hover:text-platform-text"}`}>
-              {g.nome}
+              {t(`grupos.${g.id}`)}
             </button></Dica>
           ))}
         </nav>
@@ -266,7 +267,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
           <>
             <Cenas aba={aba} escolhas={escolhas} nome={nome} dados={dados} setDados={setDados} fonteDaAssinatura={fixo?.fonteDaAssinatura ?? null} />
             <div>
-              <p className={`${ROTULO} mb-3`}>Arquivos deste grupo</p>
+              <p className={`${ROTULO} mb-3`}>{t("ui.previa.arquivosDoGrupo")}</p>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
                 {itensDoPacote([aba], escolhas).map((item) => <Miniatura key={item.arquivo} item={item} escolhas={escolhas} />)}
               </div>
@@ -274,7 +275,7 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
           </>
         ) : (
           <div className="grid flex-1 place-items-center rounded-[var(--radius-panel)] border border-dashed border-platform-border p-10 text-center text-platform-text-muted">
-            <p className="max-w-[28rem] text-[15px] leading-relaxed">Envie o logo no passo 1. A prévia de cada arquivo aparece aqui, já no lugar onde ele vai ser usado.</p>
+            <p className="max-w-[28rem] text-[15px] leading-relaxed">{t("ui.previa.vazio")}</p>
           </div>
         )}
       </section>
@@ -292,6 +293,7 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
   rotulo: string; dica: string; atributo: Arquivo; desenho: Desenho | null;
   aoEscolher: (f: File | undefined) => void; aoTirar?: () => void; grande?: boolean; escuro?: boolean;
 }) {
+  const t = useTranslations("ferramentas.kit");
   const [arrastando, setArrastando] = useState(false);
   const previa = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -319,9 +321,9 @@ function Envio({ rotulo, dica, atributo, desenho, aoEscolher, aoTirar, grande, e
     >
       <input data-kit-arquivo={atributo} type="file" accept=".svg,.pdf,.ai,image/svg+xml,application/pdf,image/png,image/jpeg,image/webp,image/gif,image/avif" className="sr-only" onChange={(e) => aoEscolher(e.target.files?.[0])} />
       <div ref={previa} className={`grid w-full place-items-center rounded-[var(--radius-control)] ${grande ? "h-24" : "h-14"} ${escuro ? "bg-[#111418]" : ""}`} />
-      <span className="text-sm font-medium text-platform-text">{desenho ? `${rotulo} ✓` : rotulo}</span>
-      <span className="text-[12px] text-platform-text-muted">{desenho ? "clique para trocar" : `arraste aqui ou clique · ${dica}`}</span>
-      {desenho && aoTirar && <button type="button" onClick={(e) => { e.preventDefault(); aoTirar(); }} className="text-[12px] text-platform-text-muted underline">tirar</button>}
+      <span className="text-sm font-medium text-platform-text">{desenho ? t("ui.envio.ok", { rotulo }) : rotulo}</span>
+      <span className="text-[12px] text-platform-text-muted">{desenho ? t("ui.envio.trocar") : t("ui.envio.arraste", { dica })}</span>
+      {desenho && aoTirar && <button type="button" onClick={(e) => { e.preventDefault(); aoTirar(); }} className="text-[12px] text-platform-text-muted underline">{t("ui.envio.tirar")}</button>}
     </label></Dica>
   );
 }
@@ -340,6 +342,8 @@ function Tela({ item, escolhas, escala, className, estilo }: { item: ItemDoKit; 
 }
 
 function Miniatura({ item, escolhas }: { item: ItemDoKit; escolhas: Escolhas }) {
+  const t = useTranslations("ferramentas.kit");
+  const texto = textoDoItem(item, t);
   const escala = Math.min(1, 200 / Math.max(item.largura, item.altura || item.largura));
   const xadrez = item.formato === "transparente" || escolhas.fundo.tipo === "transparente";
   const abaixoDe = medirItem(item, escolhas).abaixoDe;
@@ -350,12 +354,12 @@ function Miniatura({ item, escolhas }: { item: ItemDoKit; escolhas: Escolhas }) 
         <Tela item={item} escolhas={escolhas} escala={escala} className={`max-h-28 max-w-full ${item.formato === "circulo" ? "rounded-full" : ""}`} />
       </div>
       <figcaption className="flex flex-col gap-0.5">
-        <b className="text-[12.5px] font-medium text-platform-text">{item.nome}</b>
-        <span className="font-mono text-[11px] text-platform-text-muted">{item.largura} × {item.altura || "auto"}</span>
-        {item.obs && <span className="text-[11px] leading-snug text-platform-text-muted">{item.obs}</span>}
-        {abaixoDe && <span data-kit-abaixo className="text-[11px] font-medium leading-snug text-platform-warning">abaixo da redução mínima ({abaixoDe} px)</span>}
+        <b className="text-[12.5px] font-medium text-platform-text">{texto.nome}</b>
+        <span className="font-mono text-[11px] text-platform-text-muted">{item.largura} × {item.altura || t("ui.miniatura.auto")}</span>
+        {texto.obs && <span className="text-[11px] leading-snug text-platform-text-muted">{texto.obs}</span>}
+        {abaixoDe && <span data-kit-abaixo className="text-[11px] font-medium leading-snug text-platform-warning">{t("ui.miniatura.abaixo", { px: abaixoDe })}</span>}
         {item.fonte.tipo === "conferido" && (
-          <a href={item.fonte.url} target="_blank" rel="noreferrer" className="text-[11px] text-platform-text-muted underline">medida conferida na documentação</a>
+          <a href={item.fonte.url} target="_blank" rel="noreferrer" className="text-[11px] text-platform-text-muted underline">{t("ui.miniatura.conferida")}</a>
         )}
       </figcaption>
     </figure>
@@ -382,18 +386,19 @@ function Cenas({ aba, escolhas, nome, dados, setDados, fonteDaAssinatura }: {
   dados: DadosDaAssinatura & { enderecoDoLogo: string };
   setDados: (d: DadosDaAssinatura & { enderecoDoLogo: string }) => void;
 }) {
-  const marca = nome.trim() || "Sua marca";
+  const t = useTranslations("ferramentas.kit");
+  const marca = nome.trim() || t("ui.cenas.suaMarca");
   const grade = "grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4";
 
   if (aba === "site") return (
     <div className={grade}>
-      <Cena titulo="Na aba do navegador" legenda="favicon 16 · 32 · 48">
+      <Cena titulo={t("ui.cenas.naAba")} legenda={t("ui.cenas.favLegenda")}>
         <div className="overflow-hidden rounded-[var(--radius-control)] bg-[#dfe3e6] text-[#222]">
           <div className="flex gap-1.5 px-2 pt-2">
             <div className="flex min-w-44 items-center gap-2 rounded-t-[7px] bg-white px-3 py-1.5 text-[12px]">
               <Tela item={item("favicon-32.png")} escolhas={escolhas} escala={1} estilo={{ width: "16px", height: "16px" }} />{marca}
             </div>
-            <div className="px-3 py-1.5 text-[12px] text-[#555]">Nova aba</div>
+            <div className="px-3 py-1.5 text-[12px] text-[#555]">{t("ui.cenas.novaAba")}</div>
           </div>
           <div className="flex items-end gap-4 bg-white p-3">
             {(["favicon-16.png", "favicon-32.png", "favicon-48.png"] as const).map((n, i) => (
@@ -405,7 +410,7 @@ function Cenas({ aba, escolhas, nome, dados, setDados, fonteDaAssinatura }: {
           </div>
         </div>
       </Cena>
-      <Cena titulo="Link colado no WhatsApp" legenda="imagem de compartilhamento 1200 × 630">
+      <Cena titulo={t("ui.cenas.whatsapp")} legenda={t("ui.cenas.whatsappLegenda")}>
         <div className="rounded-[var(--radius-control)] bg-[#e7f6dc] p-2 text-[#111]">
           <Tela item={item("compartilhamento-1200x630.png")} escolhas={escolhas} escala={0.4} estilo={{ width: "100%", borderRadius: "6px", display: "block" }} />
           <b className="mt-1.5 block text-[13px]">{marca}</b>
@@ -417,22 +422,22 @@ function Cenas({ aba, escolhas, nome, dados, setDados, fonteDaAssinatura }: {
 
   if (aba === "redes") return (
     <div className={grade}>
-      <Cena titulo="Perfil no Instagram" legenda="recorte em círculo">
+      <Cena titulo={t("ui.cenas.instagram")} legenda={t("ui.cenas.circulo")}>
         <div className="mx-auto w-56 rounded-[26px] border-[6px] border-[#111] bg-white p-4 text-[#111]">
           <div className="flex items-center gap-3">
             <Tela item={item("instagram-perfil-1080.png")} escolhas={escolhas} escala={0.12} estilo={{ width: "64px", height: "64px", borderRadius: "50%", border: "1px solid #ddd" }} />
-            <div><b className="text-[13px]">{marca.toLowerCase().replace(/\s+/g, "")}</b><small className="block text-[11px] text-[#666]">perfil da marca</small></div>
+            <div><b className="text-[13px]">{marca.toLowerCase().replace(/\s+/g, "")}</b><small className="block text-[11px] text-[#666]">{t("ui.cenas.perfilDaMarca")}</small></div>
           </div>
           <div className="mt-3 grid grid-cols-3 gap-0.5">{Array.from({ length: 6 }, (_, i) => <i key={i} className="aspect-square bg-[#eee]" />)}</div>
         </div>
       </Cena>
-      <Cena titulo="Página no LinkedIn" legenda="capa 1512 × 256 + logo 400">
+      <Cena titulo={t("ui.cenas.linkedin")} legenda={t("ui.cenas.linkedinLegenda")}>
         <div className="overflow-hidden rounded-[var(--radius-control)] border border-[#ddd] bg-white text-[#111]">
           <Tela item={item("linkedin-capa-1512x256.png")} escolhas={escolhas} escala={0.5} estilo={{ width: "100%", display: "block" }} />
           <div className="px-3.5 pb-3.5">
             <Tela item={item("linkedin-logo-400.png")} escolhas={escolhas} escala={0.2} estilo={{ width: "72px", height: "72px", marginTop: "-30px", border: "3px solid #fff", borderRadius: "4px", display: "block" }} />
             <b className="mt-1.5 block text-[15px]">{marca}</b>
-            <small className="text-[11.5px] text-[#666]">Empresa · Porto Alegre</small>
+            <small className="text-[11.5px] text-[#666]">{t("ui.cenas.empresa")}</small>
           </div>
         </div>
       </Cena>
@@ -441,17 +446,17 @@ function Cenas({ aba, escolhas, nome, dados, setDados, fonteDaAssinatura }: {
 
   if (aba === "endomarketing") return (
     <div className={grade}>
-      <Cena titulo="Videochamada" legenda="fundo 1920 × 1080 · o centro fica livre para o rosto">
+      <Cena titulo={t("ui.cenas.video")} legenda={t("ui.cenas.videoLegenda")}>
         <div className="relative aspect-video overflow-hidden rounded-[var(--radius-control)]">
           <Tela item={item("fundo-videochamada-1920x1080.png")} escolhas={escolhas} escala={0.25} estilo={{ width: "100%", height: "100%", display: "block" }} />
           <div aria-hidden className="absolute bottom-0 left-1/2 h-[72%] w-[34%] -translate-x-1/2" style={{ background: "radial-gradient(circle at 50% 28%,#c9a68a 0 17%,transparent 17.5%),radial-gradient(ellipse at 50% 100%,#2f4b58 0 48%,transparent 48.5%)" }} />
           <span className="absolute bottom-2 left-2 rounded bg-black/50 px-2 py-0.5 text-[11px] text-white">{dados.nome}</span>
         </div>
       </Cena>
-      <Cena titulo="Equipe no Teams" legenda="ícone de equipe 240">
+      <Cena titulo={t("ui.cenas.teams")} legenda={t("ui.cenas.teamsLegenda")}>
         <div className="flex items-center gap-3 rounded-[var(--radius-control)] bg-[#f3f2f1] p-3 text-[#252423]">
           <Tela item={item("teams-equipe-240.png")} escolhas={escolhas} escala={0.5} estilo={{ width: "40px", height: "40px", borderRadius: "6px" }} />
-          <div><b className="text-[13px]">Comunicação interna</b><small className="block text-[11px] text-[#605e5c]">{marca} · equipe</small></div>
+          <div><b className="text-[13px]">{t("ui.cenas.comunicacao")}</b><small className="block text-[11px] text-[#605e5c]">{t("ui.cenas.equipe", { marca })}</small></div>
         </div>
       </Cena>
     </div>
@@ -460,10 +465,10 @@ function Cenas({ aba, escolhas, nome, dados, setDados, fonteDaAssinatura }: {
   if (aba === "email") return <CenaDoEmail escolhas={escolhas} dados={dados} setDados={setDados} marca={marca} fonte={fonteDaAssinatura} />;
 
   return (
-    <Cena titulo="Para apresentação" legenda="PNG transparente, 2000 px">
+    <Cena titulo={t("ui.cenas.apresentacao")} legenda={t("ui.cenas.apresentacaoLegenda")}>
       <p className="text-[13.5px] leading-relaxed text-platform-text-muted">
-        Versões para fundo claro, fundo escuro e uma cor só{escolhas.logo.svg ? ", e o SVG original" : ""}.{" "}
-        {escolhas.negativo ? "A versão para fundo escuro usa o arquivo negativo que você enviou." : "A versão para fundo escuro é o logo em branco feito pelo Kit; se a marca tem negativo próprio, envie-o no passo 1."}
+        {t("ui.cenas.apresentacaoTexto", { svg: escolhas.logo.svg ? t("ui.cenas.svgOriginal") : "" })}{" "}
+        {escolhas.negativo ? t("ui.cenas.negativoEnviado") : t("ui.cenas.negativoFeito")}
       </p>
     </Cena>
   );
@@ -475,6 +480,7 @@ function CenaDoEmail({ escolhas, dados, setDados, marca, fonte }: {
   dados: DadosDaAssinatura & { enderecoDoLogo: string };
   setDados: (d: DadosDaAssinatura & { enderecoDoLogo: string }) => void;
 }) {
+  const t = useTranslations("ferramentas.kit");
   const [copiada, setCopiada] = useState(false);
   const logoDaAssinatura = useMemo(() => desenharItem(item("assinatura-logo-600.png"), escolhas).toDataURL("image/png"), [escolhas]);
   const html = assinaturaHtml({ ...dados, empresa: dados.empresa || marca, fonte }, dados.enderecoDoLogo.trim() || logoDaAssinatura);
@@ -506,28 +512,28 @@ function CenaDoEmail({ escolhas, dados, setDados, marca, fonte }: {
 
   return (
     <div className="grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-4">
-      <Cena titulo="Os dados da assinatura" legenda="aparecem na prévia ao lado">
+      <Cena titulo={t("ui.email.dadosTitulo")} legenda={t("ui.email.dadosLegenda")}>
         <div className="grid gap-3">
-          {campo("nome", "Nome")}{campo("cargo", "Cargo")}{campo("telefone", "Telefone")}{campo("site", "Site")}
-          {campo("enderecoDoLogo", "Endereço do logo no site (opcional)")}
+          {campo("nome", t("ui.email.nome"))}{campo("cargo", t("ui.email.cargo"))}{campo("telefone", t("ui.email.telefone"))}{campo("site", t("ui.email.site"))}
+          {campo("enderecoDoLogo", t("ui.email.endereco"))}
           <p className="text-[12px] leading-snug text-platform-text-muted">
-            Para o logo aparecer para quem recebe, ele precisa estar no site da empresa: suba o <code>assinatura-logo-600.png</code> e cole o endereço acima antes de copiar.
+            {t.rich("ui.email.nota", { arquivo: nomeDoArquivo({ arquivo: "assinatura-logo-600.png" }, t), c: (x) => <code>{x}</code> })}
           </p>
         </div>
       </Cena>
-      <Cena titulo="A assinatura no e-mail" legenda="copie e cole no Gmail, no Outlook ou no Apple Mail">
+      <Cena titulo={t("ui.email.assinaturaTitulo")} legenda={t("ui.email.assinaturaLegenda")}>
         <div className="rounded-[var(--radius-control)] bg-white p-4 text-[13px] leading-normal text-[#222]" style={{ fontFamily: "Arial, sans-serif" }}>
-          Olá, segue o material.<br />Abraço,
+          {t("ui.email.ola")}<br />{t("ui.email.abraco")}
           <hr className="my-2.5 border-[#ddd]" />
           {/* Gerado por `assinaturaHtml`, que escapa tudo o que a pessoa digita. */}
           <div ref={caixa} data-kit-assinatura-previa dangerouslySetInnerHTML={{ __html: html }} />
         </div>
         <Dica texto={dicaDe("kit-copiar")} lado="cima"><button type="button" data-kit-copiar onClick={copiar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
-          {copiada ? "Copiada ✓" : "Copiar assinatura"}
+          {copiada ? t("ui.email.copiada") : t("ui.email.copiar")}
         </button></Dica>
         <p className="text-[12px] leading-snug text-platform-text-muted">
-          {fonte && <span data-kit-fonte-da-assinatura className="mb-1 block">Fonte: {fonte.nome}, {fonte.origem}.</span>}
-          Gmail: Configurações → Ver todas → Assinatura → colar. Outlook: Configurações → Contas → Assinaturas → colar. Apple Mail: Ajustes → Assinaturas → colar e desmarcar “fonte padrão”.
+          {fonte && <span data-kit-fonte-da-assinatura className="mb-1 block">{t("ui.email.fonte", { nome: fonte.nome, origem: fonte.origem })}</span>}
+          {t("ui.email.instrucoes")}
         </p>
       </Cena>
     </div>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { KitDoAssinante } from "@/components/ferramentas/KitDoAssinante";
 
@@ -14,7 +15,9 @@ export default async function BancadaDoKitDoAssinante() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
     <LocaleProvider locale={idioma}>
-      <KitDoAssinante />
+      <ProvedorDeTraducao>
+        <KitDoAssinante />
+      </ProvedorDeTraducao>
     </LocaleProvider>
   );
 }

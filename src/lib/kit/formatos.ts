@@ -15,10 +15,15 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+/** Por que o Kit não abre o arquivo; o texto vem de `textoDaRecusa`, no idioma da tela. */
+import type { Tradutor } from "../i18n/tradutor";
+
+export type MotivoDaRecusa = "eps" | "affinity" | "corel" | "aiSemPdf" | "outro";
+
 export type Formato =
   | { tipo: "imagem"; mime: string }
   | { tipo: "pdf" }
-  | { tipo: "fora"; motivo: string };
+  | { tipo: "fora"; motivo: MotivoDaRecusa; extensao: string };
 
 const IMAGENS: Record<string, string> = {
   svg: "image/svg+xml", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
@@ -26,18 +31,9 @@ const IMAGENS: Record<string, string> = {
 };
 const MIMES_DE_IMAGEM = new Set(Object.values(IMAGENS));
 
-const COMO_RESOLVER = "Quem edita a marca pode exportar em SVG ou PDF e enviar nos Materiais.";
-
-const FORA: Record<string, string> = {
-  eps: `O arquivo está em EPS, que o Kit ainda não abre. ${COMO_RESOLVER}`,
-  afdesign: `O arquivo é do Affinity, um formato fechado que só o próprio Affinity abre. ${COMO_RESOLVER}`,
-  afphoto: `O arquivo é do Affinity, um formato fechado que só o próprio Affinity abre. ${COMO_RESOLVER}`,
-  afpub: `O arquivo é do Affinity, um formato fechado que só o próprio Affinity abre. ${COMO_RESOLVER}`,
-  af: `O arquivo é do Affinity, um formato fechado que só o próprio Affinity abre. ${COMO_RESOLVER}`,
-  cdr: `O arquivo é do CorelDRAW, um formato fechado que só o próprio CorelDRAW abre. ${COMO_RESOLVER}`,
+const FORA: Record<string, MotivoDaRecusa> = {
+  eps: "eps", afdesign: "affinity", afphoto: "affinity", afpub: "affinity", af: "affinity", cdr: "corel",
 };
-
-export const AI_SEM_PDF = `O arquivo .ai foi salvo sem "compatibilidade PDF", e assim só o Illustrator o abre. ${COMO_RESOLVER}`;
 
 function extensao(nome: string): string {
   const m = /\.([a-z0-9]+)$/i.exec(nome.trim());
@@ -47,19 +43,29 @@ function extensao(nome: string): string {
 export function formatoDoArquivo(nome: string, mime: string): Formato {
   const ext = extensao(nome);
   const tipo = (mime || "").toLowerCase();
-  if (FORA[ext]) return { tipo: "fora", motivo: FORA[ext] };
+  if (FORA[ext]) return { tipo: "fora", motivo: FORA[ext], extensao: ext };
   if (ext === "pdf" || ext === "ai" || tipo === "application/pdf" || tipo === "application/illustrator") return { tipo: "pdf" };
   if (IMAGENS[ext]) return { tipo: "imagem", mime: IMAGENS[ext] };
   if (MIMES_DE_IMAGEM.has(tipo)) return { tipo: "imagem", mime: tipo };
-  if (tipo === "application/postscript") return { tipo: "fora", motivo: FORA.eps };
-  return { tipo: "fora", motivo: `O Kit não abre este formato${ext ? ` (.${ext})` : ""}. Use SVG, PDF, AI, PNG ou JPG.` };
+  if (tipo === "application/postscript") return { tipo: "fora", motivo: "eps", extensao: ext };
+  return { tipo: "fora", motivo: "outro", extensao: ext };
+}
+
+/**
+ * O texto da recusa, no idioma de `t` (ligado a `ferramentas.arquivos`). Quase
+ * todas dizem o que fazer: quem edita a marca exporta em SVG ou PDF e envia nos
+ * Materiais; só o formato desconhecido lista o que o Kit abre.
+ */
+export function textoDaRecusa(f: { motivo: MotivoDaRecusa; extensao: string }, t: Tradutor): string {
+  if (f.motivo === "outro") return t("recusa.outro", { ext: f.extensao ? ` (.${f.extensao})` : "" });
+  return `${t(`recusa.${f.motivo}`)} ${t("recusa.comoResolver")}`;
 }
 
 /** Primeiros bytes de um arquivo tratado como PDF: o que dizer se não é PDF. */
-export function motivoDoCabecalho(cabecalho: string, nome: string): string | null {
+export function motivoDoCabecalho(cabecalho: string, nome: string, t: Tradutor): string | null {
   if (cabecalho.includes("%PDF")) return null;
-  if (cabecalho.startsWith("%!PS")) return extensao(nome) === "ai" ? AI_SEM_PDF : FORA.eps;
-  return `O arquivo ${nome} não parece um PDF válido. ${COMO_RESOLVER}`;
+  if (cabecalho.startsWith("%!PS")) return textoDaRecusa({ motivo: extensao(nome) === "ai" ? "aiSemPdf" : "eps", extensao: extensao(nome) }, t);
+  return `${t("recusa.naoEPdf", { nome })} ${t("recusa.comoResolver")}`;
 }
 
 /** Vetor antes de bitmap: SVG 2, PDF/AI 1, imagem 0; fora −1. */

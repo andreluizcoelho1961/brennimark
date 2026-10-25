@@ -1,9 +1,10 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
-  BIBLIOTECAS, CARGOS, COMO_CONHECEU, COOKIE_DO_CADASTRO, EQUIPES, MARCAS, SISTEMAS, TEXTO_DO_ACEITE, type Origem,
+  ACEITES, BIBLIOTECAS, CARGOS, COMO_CONHECEU, COOKIE_DO_CADASTRO, EQUIPES, MARCAS, SISTEMAS, idiomaDoCadastro, type Origem,
 } from "@/lib/cadastro/cadastro";
 import { EMPRESA } from "@/lib/site/empresa";
 
@@ -67,13 +68,14 @@ export function useCadastroParaBaixar(origem: Origem, { ativo = true }: { ativo?
 const CAMPO = "w-full rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-3 py-2 text-sm text-platform-text";
 const ROTULO = "mb-1 block font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
 
-function Seletor({ id, rotulo, valor, aoMudar, opcoes }: { id: string; rotulo: string; valor: string; aoMudar: (v: string) => void; opcoes: readonly { id: string; rotulo: string }[] }) {
+function Seletor({ id, rotulo, valor, aoMudar, opcoes, lista }: { id: string; rotulo: string; valor: string; aoMudar: (v: string) => void; opcoes: readonly { id: string }[]; lista: string }) {
+  const t = useTranslations("ferramentas.cadastro");
   return (
     <div>
       <label htmlFor={id} className={ROTULO}>{rotulo}</label>
       <select id={id} className={CAMPO} value={valor} onChange={(e) => aoMudar(e.target.value)}>
-        <option value="">Prefiro não dizer</option>
-        {opcoes.map((o) => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+        <option value="">{t("naoDizer")}</option>
+        {opcoes.map((o) => <option key={o.id} value={o.id}>{t(`opcoes.${lista}.${o.id}`)}</option>)}
       </select>
     </div>
   );
@@ -87,6 +89,8 @@ function Seletor({ id, rotulo, valor, aoMudar, opcoes }: { id: string; rotulo: s
  * e-mail como caminho.
  */
 export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, aoFechar }: { origem: Origem; variante?: "baixar" | "convite"; aoConcluir: () => void; aoFechar: () => void }) {
+  const t = useTranslations("ferramentas.cadastro");
+  const idioma = idiomaDoCadastro(useLocale());
   const dialogo = useRef<HTMLDialogElement>(null);
   const base = useId();
   const [nome, setNome] = useState("");
@@ -117,20 +121,20 @@ export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email, nome, agencia, cargo, origem, aceiteMarketing: aceite, website,
+          email, nome, agencia, cargo, origem, aceiteMarketing: aceite, website, idioma,
           respostas: { equipe, marcas, comoConheceu, ...(variante === "convite" ? { sistema, biblioteca } : {}) },
         }),
       });
       // 429: o limite de pedidos por IP (regra do Firewall da Vercel). O corpo não
       // é nosso, então a mensagem também não pode vir dele.
       if (r.status === 429) {
-        setErro("Muitos pedidos deste endereço em pouco tempo. Espere alguns minutos e tente de novo.");
+        setErro(t("erros.muitosPedidos"));
         setEnviando(false);
         return;
       }
       if (r.status >= 400 && r.status < 500) {
         const corpo = await r.json().catch(() => null) as { message?: string } | null;
-        setErro(corpo?.message ?? "Confira os campos e tente de novo.");
+        setErro(corpo?.message ?? t("erros.conferir"));
         setEnviando(false);
         return;
       }
@@ -143,7 +147,7 @@ export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, 
   }
 
   function falhaDoConvite() {
-    setErro(`Não foi possível enviar o pedido agora. Tente de novo em instantes, ou escreva para ${EMPRESA.email}.`);
+    setErro(t("erros.falhaDoConvite", { email: EMPRESA.email }));
     setEnviando(false);
   }
 
@@ -160,58 +164,56 @@ export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, 
     >
       <form onSubmit={enviar} className="flex flex-col gap-4 p-6">
         <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">{variante === "convite" ? "Beta do Brennimark Fonts" : "Quase lá"}</p>
-          <h2 id={`${base}-t`} className="mt-1 text-xl font-semibold tracking-tight">{variante === "convite" ? "Pedir acesso ao beta" : "Para baixar, um cadastro rápido"}</h2>
+          <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">{variante === "convite" ? t("convite.selo") : t("baixar.selo")}</p>
+          <h2 id={`${base}-t`} className="mt-1 text-xl font-semibold tracking-tight">{variante === "convite" ? t("convite.titulo") : t("baixar.titulo")}</h2>
           <p className="mt-1.5 text-[13px] leading-relaxed text-platform-text-muted">
-            {variante === "convite"
-              ? "São 50 vagas, por convite, com 90 dias de uso gratuito. Vamos avaliar o seu pedido e escrever para você com o instalador."
-              : "Só uma vez. A ferramenta continua gratuita, e o seu arquivo não sai do seu computador."}
+            {variante === "convite" ? t("convite.texto") : t("baixar.texto")}
           </p>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label htmlFor={`${base}-nome`} className={ROTULO}>Nome</label>
+            <label htmlFor={`${base}-nome`} className={ROTULO}>{t("campos.nome")}</label>
             <input id={`${base}-nome`} data-cadastro-nome className={CAMPO} value={nome} onChange={(e) => setNome(e.target.value)} required maxLength={120} autoComplete="name" autoFocus />
           </div>
           <div>
-            <label htmlFor={`${base}-email`} className={ROTULO}>E-mail</label>
+            <label htmlFor={`${base}-email`} className={ROTULO}>{t("campos.email")}</label>
             <input id={`${base}-email`} data-cadastro-email type="email" className={CAMPO} value={email} onChange={(e) => setEmail(e.target.value)} required maxLength={254} autoComplete="email" />
           </div>
           <div>
-            <label htmlFor={`${base}-agencia`} className={ROTULO}>Agência ou estúdio</label>
+            <label htmlFor={`${base}-agencia`} className={ROTULO}>{t("campos.agencia")}</label>
             <input id={`${base}-agencia`} className={CAMPO} value={agencia} onChange={(e) => setAgencia(e.target.value)} maxLength={120} autoComplete="organization" />
           </div>
-          <Seletor id={`${base}-cargo`} rotulo="Cargo" valor={cargo} aoMudar={setCargo} opcoes={CARGOS} />
-          <Seletor id={`${base}-equipe`} rotulo="Tamanho da equipe" valor={equipe} aoMudar={setEquipe} opcoes={EQUIPES} />
-          <Seletor id={`${base}-marcas`} rotulo="Marcas que você cuida" valor={marcas} aoMudar={setMarcas} opcoes={MARCAS} />
+          <Seletor id={`${base}-cargo`} rotulo={t("campos.cargo")} valor={cargo} aoMudar={setCargo} opcoes={CARGOS} lista="cargos" />
+          <Seletor id={`${base}-equipe`} rotulo={t("campos.equipe")} valor={equipe} aoMudar={setEquipe} opcoes={EQUIPES} lista="equipes" />
+          <Seletor id={`${base}-marcas`} rotulo={t("campos.marcas")} valor={marcas} aoMudar={setMarcas} opcoes={MARCAS} lista="marcas" />
           {variante === "convite" && (
             <>
-              <Seletor id={`${base}-sistema`} rotulo="Computador" valor={sistema} aoMudar={setSistema} opcoes={SISTEMAS} />
-              <Seletor id={`${base}-biblioteca`} rotulo="Tamanho da biblioteca de fontes" valor={biblioteca} aoMudar={setBiblioteca} opcoes={BIBLIOTECAS} />
+              <Seletor id={`${base}-sistema`} rotulo={t("campos.sistema")} valor={sistema} aoMudar={setSistema} opcoes={SISTEMAS} lista="sistemas" />
+              <Seletor id={`${base}-biblioteca`} rotulo={t("campos.biblioteca")} valor={biblioteca} aoMudar={setBiblioteca} opcoes={BIBLIOTECAS} lista="bibliotecas" />
             </>
           )}
           <div className="sm:col-span-2">
-            <Seletor id={`${base}-conheceu`} rotulo="Como conheceu o Brennimark" valor={comoConheceu} aoMudar={setComoConheceu} opcoes={COMO_CONHECEU} />
+            <Seletor id={`${base}-conheceu`} rotulo={t("campos.conheceu")} valor={comoConheceu} aoMudar={setComoConheceu} opcoes={COMO_CONHECEU} lista="conheceu" />
           </div>
         </div>
 
         {/* A isca: um campo que pessoa nenhuma vê nem preenche. */}
         <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-          <label>Site<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
+          <label>{t("campos.isca")}<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
         </div>
 
         <label className="flex items-start gap-2.5 text-[13px] leading-snug text-platform-text-muted">
           <input type="checkbox" data-cadastro-aceite className="mt-0.5" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
-          <span>{TEXTO_DO_ACEITE}</span>
+          <span>{ACEITES[idioma].texto}</span>
         </label>
 
         {erro && <p role="alert" data-cadastro-erro className="text-sm text-platform-danger">{erro}</p>}
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button type="button" data-cadastro-fechar onClick={aoFechar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">Agora não</button>
+          <button type="button" data-cadastro-fechar onClick={aoFechar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">{t("agoraNao")}</button>
           <button type="submit" data-cadastro-enviar disabled={enviando} className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
-            {enviando ? "Enviando…" : variante === "convite" ? "Enviar o pedido" : "Cadastrar e baixar"}
+            {enviando ? t("enviando") : variante === "convite" ? t("convite.enviar") : t("baixar.enviar")}
           </button>
         </div>
       </form>

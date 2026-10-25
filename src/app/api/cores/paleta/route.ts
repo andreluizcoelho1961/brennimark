@@ -1,3 +1,5 @@
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { inEnglish } from "@/platform/locale";
 import { NextResponse } from "next/server";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { lerPaleta } from "@/lib/paleta/paleta";
@@ -8,11 +10,12 @@ import { lerPaleta } from "@/lib/paleta/paleta";
  * chama de "cor da marca" a aprovada, e mostra o rascunho identificado.
  */
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await conteudoDaRota(request);
   if (!r.ok) return r.resposta;
   if (!r.contexto.brand) return NextResponse.json({ error: "sem_marca" }, { status: 409 });
   const lida = await lerPaleta(r.auth.supabase, r.contexto.brand.id);
-  if (!lida.ok) return NextResponse.json({ message: "Não foi possível ler a paleta agora." }, { status: 503 });
+  if (!lida.ok) return NextResponse.json({ message: (isEnglish ? "Couldn't read the palette right now." : "Não foi possível ler a paleta agora.") }, { status: 503 });
   return NextResponse.json({
     marca: r.contexto.brand.brand.name,
     paleta: lida.cores.filter((c) => c.hex).map((c) => ({

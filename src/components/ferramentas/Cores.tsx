@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DALTONISMOS, compararComAMarca, contraste, fraseDaComparacao, hexParaRgb, lerCodigo, nomeDaCor, paletaEmAse, paletaEmCss, paletaEmJson,
@@ -40,6 +41,8 @@ export type MarcaDoCores = {
 const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
 const TITULO = "font-display text-[17px] font-semibold tracking-tight text-platform-text";
 const CAIXA = "flex flex-col gap-3 rounded-[var(--radius-panel)] border border-platform-border bg-platform-panel p-4";
+/** Os trechos em negrito das instruções do Mac. */
+const destaque = { b: (c: React.ReactNode) => <strong className="font-medium text-platform-text">{c}</strong> };
 const CHAVE_DO_HISTORICO = "brennimark:cores:historico";
 
 type EyeDropperDoNavegador = { open: () => Promise<{ sRGBHex: string }> };
@@ -55,6 +58,7 @@ function lerHistorico(): string[] {
 
 export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
   const { pedir, dialogo } = useCadastroParaBaixar("cores", { ativo: !marca });
+  const t = useTranslations("ferramentas.cores");
   const [cor, setCor] = useState("#FF4103");
   const [codigo, setCodigo] = useState("");
   const [erroDoCodigo, setErroDoCodigo] = useState("");
@@ -153,7 +157,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
 
   function aplicarCodigo() {
     const hex = lerCodigo(codigo);
-    if (!hex) { setErroDoCodigo("Não reconheci esse código. Use HEX (#FF4103), RGB (255 65 3), HSB ou CMYK."); return; }
+    if (!hex) { setErroDoCodigo(t("erroCodigo")); return; }
     setErroDoCodigo("");
     usar(hex);
   }
@@ -161,19 +165,20 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
   const [r, g, b] = hexParaRgb(cor);
   const hsb = rgbParaHsb(r, g, b);
   const cmyk = rgbParaCmyk(r, g, b, papel);
-  const nome = nomeDaCor(cor);
+  const nome = nomeDaCor(cor, t);
   const razao = contraste(cor, textoSobre);
   const v = veredito(razao);
   const comparacao = useMemo(() => (marca ? compararComAMarca(cor, marca.paleta) : null), [cor, marca]);
+  const decimal = t("separadorDecimal");
   const corDoManual = comparacao && comparacao.tipo !== "sem-paleta" && comparacao.tipo !== "diferente" ? comparacao.cor : null;
 
   const paraExportar: CorNomeada[] = marca && marca.paleta.some((c) => c.status === "ready")
     ? marca.paleta.filter((c) => c.status === "ready").map((c) => ({ nome: c.nome, hex: c.hex }))
-    : historico.map((h) => ({ nome: nomeDaCor(h), hex: h }));
-  const baseDoArquivo = marca && marca.paleta.some((c) => c.status === "ready") ? `paleta-${marca.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : "cores-pegas";
+    : historico.map((h) => ({ nome: nomeDaCor(h, t), hex: h }));
+  const baseDoArquivo = marca && marca.paleta.some((c) => c.status === "ready") ? `${t("arquivoPaleta")}-${marca.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : t("arquivoPegas");
 
   const opcoesDeTexto: { hex: string; rotulo: string }[] = [
-    { hex: "#FFFFFF", rotulo: "Branco" }, { hex: "#000000", rotulo: "Preto" },
+    { hex: "#FFFFFF", rotulo: t("branco") }, { hex: "#000000", rotulo: t("preto") },
     ...historico.filter((h) => h !== cor).slice(0, 3).map((h) => ({ hex: h, rotulo: h })),
     ...(marca?.paleta.filter((c) => c.status === "ready" && c.hex.toUpperCase() !== cor).slice(0, 4).map((c) => ({ hex: c.hex.toUpperCase(), rotulo: c.nome })) ?? []),
   ].filter((o, i, todas) => todas.findIndex((x) => x.hex === o.hex) === i);
@@ -184,13 +189,13 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* ─── 1. A cor da vez ───────────────────────────────────────────── */}
         <section className={CAIXA} aria-labelledby="titulo-cor">
-          <h2 id="titulo-cor" className={TITULO}>A cor</h2>
+          <h2 id="titulo-cor" className={TITULO}>{t("titulos.cor")}</h2>
           <div className="flex flex-wrap items-stretch gap-4">
-            <div data-cores-amostra aria-label={`Amostra ${cor}`} className="h-32 w-40 flex-none rounded-[var(--radius-panel)] border border-platform-border" style={{ background: cor }} />
+            <div data-cores-amostra aria-label={t("amostraAria", { cor })} className="h-32 w-40 flex-none rounded-[var(--radius-panel)] border border-platform-border" style={{ background: cor }} />
             <div className="flex min-w-0 flex-1 flex-col gap-1">
               <span data-cores-nome className="text-[20px] font-semibold text-platform-text first-letter:uppercase">{nome}</span>
               <span data-cores-hex className="font-mono text-[15px] text-platform-text">{cor}</span>
-              {corDoManual && <span className="text-[13px] text-platform-text-muted">No manual: {corDoManual.nome}</span>}
+              {corDoManual && <span className="text-[13px] text-platform-text-muted">{t("noManual", { nome: corDoManual.nome })}</span>}
             </div>
           </div>
 
@@ -198,32 +203,32 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             {temContaGotas ? (
               <Dica texto={dicaDe("cores-conta-gotas")} lado="cima"><button type="button" data-cores-conta-gotas onClick={contaGotas}
                 className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg">
-                Conta-gotas na tela
+                {t("contaGotas")}
               </button></Dica>
             ) : (
               <label onMouseLeave={() => setDicaFechada(false)} className="group relative cursor-pointer rounded-[var(--radius-control)] bg-platform-signal px-4 py-2 text-sm font-semibold text-platform-bg focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-platform-signal">
-                {noMac ? "Conta-gotas do Mac" : "Seletor de cores"}
+                {noMac ? t("contaGotasMac") : t("seletor")}
                 {/* Transparente por cima do botão: o clique é da pessoa, e é o que o navegador exige para abrir o seletor. */}
                 <input data-cores-seletor-do-sistema type="color" value={cor.toLowerCase()} onChange={(e) => doSeletor(e.target.value)}
                   onPointerDown={() => setDicaFechada(true)} onBlur={() => setDicaFechada(false)}
                   aria-describedby={noMac ? "dica-do-conta-gotas" : undefined}
-                  aria-label={noMac ? "Conta-gotas do Mac: abre o painel de cores do sistema" : "Seletor de cores do sistema"}
+                  aria-label={noMac ? t("seletorAriaMac") : t("seletorAria")}
                   className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
                 {noMac && (
                   // A dica (tooltip), acima do botão: aparece ao passar o mouse
                   // ou ao chegar pelo teclado (Tab).
                   <span id="dica-do-conta-gotas" role="tooltip" data-cores-dica
                     className={`pointer-events-none absolute bottom-full left-0 z-20 mb-2 w-[300px] flex-col gap-1.5 rounded-[var(--radius-control)] bg-platform-text p-3 text-left text-[12.5px] font-normal leading-snug text-platform-bg shadow-lg ${dicaFechada ? "hidden" : "hidden group-hover:flex group-focus-within:flex"}`}>
-                    <span className="font-semibold">Como usar</span>
-                    <span>1&nbsp; Clique aqui.</span>
-                    <span>2&nbsp; No quadro de cores, clique em <strong>Mostrar cores…</strong> (ou <strong>Show Colors…</strong>), no rodapé.</span>
-                    <span>3&nbsp; No painel do Mac, clique na <strong>lupa</strong> e depois na cor, em qualquer lugar da tela.</span>
+                    <span className="font-semibold">{t("dicaMac.titulo")}</span>
+                    <span>1&nbsp; {t("dicaMac.p1")}</span>
+                    <span>2&nbsp; {t.rich("dicaMac.p2", { b: (c) => <strong>{c}</strong> })}</span>
+                    <span>3&nbsp; {t.rich("dicaMac.p3", { b: (c) => <strong>{c}</strong> })}</span>
                   </span>
                 )}
               </label>
             )}
             <Dica texto={dicaDe("cores-imagem")} lado="cima"><label className="cursor-pointer rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
-              Subir imagem
+              {t("subirImagem")}
               <input data-cores-print type="file" accept="image/*" className="sr-only" onChange={(e) => abrirImagem(e.target.files?.[0])} />
             </label></Dica>
           </div>
@@ -232,28 +237,26 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             // muda de nome com o idioma do Mac — o André levou um tempo para
             // achar (10/10/2026). Os passos ficam escritos, um por linha.
             <ol data-cores-passos-do-mac className="flex list-none flex-col gap-1 text-[12.5px] leading-snug text-platform-text-muted">
-              <li><span className="font-mono text-platform-text">1</span>&nbsp; Clique em <strong className="font-medium text-platform-text">Conta-gotas do Mac</strong>.</li>
-              <li><span className="font-mono text-platform-text">2</span>&nbsp; No quadro de cores que abre, clique em <strong className="font-medium text-platform-text">Mostrar cores…</strong> (ou <strong className="font-medium text-platform-text">Show Colors…</strong>), no rodapé.</li>
-              <li><span className="font-mono text-platform-text">3</span>&nbsp; No painel do Mac, clique na <strong className="font-medium text-platform-text">lupa</strong> e depois na cor que quiser, em qualquer lugar da tela.</li>
-              <li className="pt-1">Ou cole um print aqui (⌘V) e clique na cor.</li>
+              <li><span className="font-mono text-platform-text">1</span>&nbsp; {t.rich("passosMac.p1", destaque)}</li>
+              <li><span className="font-mono text-platform-text">2</span>&nbsp; {t.rich("passosMac.p2", destaque)}</li>
+              <li><span className="font-mono text-platform-text">3</span>&nbsp; {t.rich("passosMac.p3", destaque)}</li>
+              <li className="pt-1">{t("passosMac.colar")}</li>
             </ol>
           ) : (
             <p className="text-[12.5px] leading-snug text-platform-text-muted">
-              {temContaGotas
-                ? "O conta-gotas pega a cor de qualquer lugar da tela, inclusive de outros programas. Ou cole um print aqui (⌘V)."
-                : "O seletor de cores do sistema abre. Para pegar uma cor da tela, tire um print, cole aqui (Ctrl+V ou ⌘V) e clique na cor."}
+              {temContaGotas ? t("dicaComContaGotas") : t("dicaSemContaGotas")}
             </p>
           )}
           {imagem && (
             <div className="overflow-auto rounded-[var(--radius-control)] border border-platform-border">
-              <canvas ref={canvas} data-cores-imagem onClick={pegarDoPrint} className="block max-w-full cursor-crosshair" aria-label="Clique na cor que quer medir" />
+              <canvas ref={canvas} data-cores-imagem onClick={pegarDoPrint} className="block max-w-full cursor-crosshair" aria-label={t("imagemAria")} />
             </div>
           )}
 
           <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); aplicarCodigo(); }}>
-            <input data-cores-codigo value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder="Ou digite: #FF4103, 255 65 3, cmyk(0 85 100 0)"
+            <input data-cores-codigo value={codigo} onChange={(e) => setCodigo(e.target.value)} placeholder={t("codigoPlaceholder")}
               className="min-w-0 flex-1 rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-3 py-2 font-mono text-sm" />
-            <button type="submit" className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm">Usar</button>
+            <button type="submit" className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm">{t("usar")}</button>
           </form>
           {erroDoCodigo && <p role="alert" className="text-[13px] text-platform-danger">{erroDoCodigo}</p>}
 
@@ -262,26 +265,28 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             <Codigo rotulo="RGB" valor={`${r} ${g} ${b}`} />
             <Codigo rotulo="HSB" valor={`${hsb[0]}° ${hsb[1]}% ${hsb[2]}%`} />
             <Codigo rotulo="CMYK" valor={corDoManual?.cmyk ?? cmyk.join(" ")} dado="cmyk"
-              nota={corDoManual?.cmyk ? `do manual${corDoManual.pagina ? `, p. ${corDoManual.pagina}` : ""}` : `aproximado · ${papel === "couche" ? "couché (revestido)" : "offset (não revestido)"}`} />
-            {corDoManual?.pms && <Codigo rotulo="Pantone" valor={corDoManual.pms} nota={`declarado no manual${corDoManual.pagina ? `, p. ${corDoManual.pagina}` : ""}`} />}
+              nota={corDoManual?.cmyk
+                ? (corDoManual.pagina ? t("cmyk.doManualPagina", { n: corDoManual.pagina }) : t("cmyk.doManual"))
+                : t("cmyk.aproximado", { papel: papel === "couche" ? t("cmyk.papelCouche") : t("cmyk.papelOffset") })} />
+            {corDoManual?.pms && <Codigo rotulo="Pantone" valor={corDoManual.pms} nota={corDoManual.pagina ? t("cmyk.pantonePagina", { n: corDoManual.pagina }) : t("cmyk.pantone")} />}
           </dl>
           <div className="flex flex-wrap items-center gap-2 text-[12.5px] text-platform-text-muted">
-            <span>Papel do CMYK:</span>
+            <span>{t("papelDoCmyk")}</span>
             {(["couche", "offset"] as const).map((p) => (
               <button key={p} type="button" data-cores-papel={p} aria-pressed={papel === p} onClick={() => setPapel(p)}
                 className={`rounded-full border px-2.5 py-0.5 ${papel === p ? "border-platform-text text-platform-text" : "border-platform-border"}`}>
-                {p === "couche" ? "Couché" : "Offset"}
+                {p === "couche" ? t("couche") : t("offset")}
               </button>
             ))}
           </div>
           <p className="text-[12px] leading-snug text-platform-text-muted">
-            O CMYK é sempre uma conversão aproximada: para impressão, vale o CMYK do manual ou o da prova da gráfica. Pantone o Cores não sugere — a referência é o guia físico da Pantone{marca ? ", ou o que o manual declara" : ""}.
+            {marca ? t("notaCmykComMarca") : t("notaCmyk")}
           </p>
         </section>
 
         {/* ─── 2. Dá para ler? ──────────────────────────────────────────── */}
         <section className={CAIXA} aria-labelledby="titulo-leitura">
-          <h2 id="titulo-leitura" className={TITULO}>Dá para ler?</h2>
+          <h2 id="titulo-leitura" className={TITULO}>{t("titulos.leitura")}</h2>
           <div className="flex flex-wrap gap-1.5">
             {opcoesDeTexto.map((o) => (
               <button key={o.hex} type="button" data-cores-texto={o.hex} aria-pressed={textoSobre === o.hex} onClick={() => setTextoSobre(o.hex)}
@@ -294,19 +299,19 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             <Amostra fundo={cor} texto={textoSobre} />
             <Amostra fundo={textoSobre} texto={cor} />
           </div>
-          <Dica texto={dicaDe("cores-contraste")} lado="cima"><p data-cores-contraste className="text-sm text-platform-text">Contraste <b className="font-mono">{razao.toFixed(2).replace(".", ",")} : 1</b></p></Dica>
+          <Dica texto={dicaDe("cores-contraste")} lado="cima"><p data-cores-contraste className="text-sm text-platform-text">{t("contraste")} <b className="font-mono">{razao.toFixed(2).replace(".", decimal)} : 1</b></p></Dica>
           <ul data-cores-veredito className="grid grid-cols-3 gap-2 text-center text-[12px]">
-            <Selo rotulo="Texto pequeno" valor={v.textoPequeno} />
-            <Selo rotulo="Texto grande" valor={v.textoGrande} />
-            <Selo rotulo="Ícones e botões" valor={v.iconesEBotoes} />
+            <Selo rotulo={t("selos.textoPequeno")} valor={v.textoPequeno} />
+            <Selo rotulo={t("selos.textoGrande")} valor={v.textoGrande} />
+            <Selo rotulo={t("selos.iconesEBotoes")} valor={v.iconesEBotoes} />
           </ul>
           <div>
-            <Dica texto={dicaDe("cores-daltonismo")} lado="cima"><p className={`${ROTULO} mb-2`}>Para quem não enxerga certas cores</p></Dica>
+            <Dica texto={dicaDe("cores-daltonismo")} lado="cima"><p className={`${ROTULO} mb-2`}>{t("daltonismoTitulo")}</p></Dica>
             <div className="grid grid-cols-3 gap-2">
-              {(Object.keys(DALTONISMOS) as Daltonismo[]).map((t) => (
-                <figure key={t} data-cores-daltonismo={t} className="flex flex-col gap-1">
-                  <Amostra fundo={simularDaltonismo(cor, t)} texto={simularDaltonismo(textoSobre, t)} pequena />
-                  <figcaption className="text-[11px] leading-tight text-platform-text-muted">{DALTONISMOS[t].nome}</figcaption>
+              {(Object.keys(DALTONISMOS) as Daltonismo[]).map((tipo) => (
+                <figure key={tipo} data-cores-daltonismo={tipo} className="flex flex-col gap-1">
+                  <Amostra fundo={simularDaltonismo(cor, tipo)} texto={simularDaltonismo(textoSobre, tipo)} pequena />
+                  <figcaption className="text-[11px] leading-tight text-platform-text-muted">{t(`daltonismo.${tipo}`)}</figcaption>
                 </figure>
               ))}
             </div>
@@ -316,58 +321,58 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
 
       {/* ─── 3. A marca ─────────────────────────────────────────────────── */}
       <section data-cores-marca className={CAIXA} aria-labelledby="titulo-marca">
-        <Dica texto={dicaDe("cores-comparar")} lado="cima"><h2 id="titulo-marca" className={TITULO}>É a cor da marca?</h2></Dica>
+        <Dica texto={dicaDe("cores-comparar")} lado="cima"><h2 id="titulo-marca" className={TITULO}>{t("titulos.marca")}</h2></Dica>
         {marca && comparacao ? (
           <>
-            <p data-cores-comparacao className="text-[15px] font-medium text-platform-text">{fraseDaComparacao(comparacao)}</p>
+            <p data-cores-comparacao className="text-[15px] font-medium text-platform-text">{fraseDaComparacao(comparacao, t)}</p>
             {comparacao.tipo !== "sem-paleta" && comparacao.cor.pagina && (
-              <a href={marca.linkDaPagina(comparacao.cor.pagina)} className="w-fit text-[13px] text-platform-text-muted underline">Ver no manual, p. {comparacao.cor.pagina}</a>
+              <a href={marca.linkDaPagina(comparacao.cor.pagina)} className="w-fit text-[13px] text-platform-text-muted underline">{t("verNoManual", { n: comparacao.cor.pagina })}</a>
             )}
             <div className="flex flex-wrap gap-3">
               {marca.paleta.map((c) => (
-                <button key={`${c.nome}${c.hex}`} type="button" data-cores-paleta={c.hex} onClick={() => usar(c.hex)} title={`Usar ${c.nome}`}
+                <button key={`${c.nome}${c.hex}`} type="button" data-cores-paleta={c.hex} onClick={() => usar(c.hex)} title={t("usarCor", { nome: c.nome })}
                   className="flex w-28 flex-col gap-1 text-left">
                   <span className="h-12 w-full rounded-[var(--radius-control)] border border-platform-border" style={{ background: c.hex }} />
                   <span className="text-[12px] font-medium leading-tight text-platform-text">{c.nome}</span>
                   <span className="font-mono text-[11px] text-platform-text-muted">{c.hex.toUpperCase()}</span>
-                  {c.status !== "ready" && <span className="text-[11px] text-platform-warning">rascunho</span>}
+                  {c.status !== "ready" && <span className="text-[11px] text-platform-warning">{t("rascunho")}</span>}
                 </button>
               ))}
             </div>
           </>
         ) : (
           <div className="flex flex-col gap-2 opacity-70">
-            <p className="text-[15px] text-platform-text">No Brennimark, o Cores diz se essa é a cor da sua marca — e mostra o código e o Pantone que o manual declara.</p>
-            <Link href="/assinar" prefetch={false} className="w-fit text-[13px] text-platform-text-muted underline">Conhecer os planos</Link>
+            <p className="text-[15px] text-platform-text">{t("semMarca")}</p>
+            <Link href="/assinar" prefetch={false} className="w-fit text-[13px] text-platform-text-muted underline">{t("conhecerPlanos")}</Link>
           </div>
         )}
       </section>
 
       {/* ─── Histórico e exportação ─────────────────────────────────────── */}
       <section className={CAIXA} aria-labelledby="titulo-historico">
-        <h2 id="titulo-historico" className={TITULO}>Cores pegas</h2>
+        <h2 id="titulo-historico" className={TITULO}>{t("titulos.historico")}</h2>
         {historico.length === 0
-          ? <p className="text-[13px] text-platform-text-muted">As cores que você pegar ficam aqui, guardadas só neste navegador.</p>
+          ? <p className="text-[13px] text-platform-text-muted">{t("historicoVazio")}</p>
           : (
             <div data-cores-historico className="flex flex-wrap gap-2">
               {historico.map((h) => (
-                <button key={h} type="button" onClick={() => setCor(h)} title={`${nomeDaCor(h)} · ${h}`}
+                <button key={h} type="button" onClick={() => setCor(h)} title={`${nomeDaCor(h, t)} · ${h}`}
                   className={`h-10 w-10 rounded-[var(--radius-control)] border ${h === cor ? "border-platform-text ring-2 ring-platform-text/20" : "border-platform-border"}`} style={{ background: h }} />
               ))}
             </div>
           )}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-[12.5px] text-platform-text-muted">
-            Levar {marca && marca.paleta.some((c) => c.status === "ready") ? "a paleta aprovada da marca" : "as cores pegas"}:
+            {marca && marca.paleta.some((c) => c.status === "ready") ? t("levarPaleta") : t("levarPegas")}
           </span>
-          <Exportar rotulo="ASE (Adobe)" dado="ase" desligado={paraExportar.length === 0}
+          <Exportar rotulo={t("ase")} dado="ase" desligado={paraExportar.length === 0}
             aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmAse(paraExportar) as BlobPart], { type: "application/octet-stream" }), `${baseDoArquivo}.ase`))} />
           <Exportar rotulo="CSS" dado="css" desligado={paraExportar.length === 0}
             aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmCss(paraExportar)], { type: "text/css" }), `${baseDoArquivo}.css`))} />
           <Exportar rotulo="JSON" dado="json" desligado={paraExportar.length === 0}
             aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmJson(paraExportar)], { type: "application/json" }), `${baseDoArquivo}.json`))} />
           <Exportar rotulo="PNG" dado="png" desligado={paraExportar.length === 0} aoClicar={() => pedir(() => baixarPng(paraExportar, baseDoArquivo))} />
-          <Copiar rotulo="Copiar lista" texto={paletaEmTexto(paraExportar)} desligado={paraExportar.length === 0} />
+          <Copiar rotulo={t("copiarLista")} texto={paletaEmTexto(paraExportar)} desligado={paraExportar.length === 0} />
         </div>
       </section>
     </div>
@@ -377,6 +382,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
 // ─── Peças ───────────────────────────────────────────────────────────────
 
 function Codigo({ rotulo, valor, nota, dado }: { rotulo: string; valor: string; nota?: string; dado?: string }) {
+  const t = useTranslations("ferramentas.cores");
   return (
     <>
       <dt className={ROTULO}>{rotulo}</dt>
@@ -384,12 +390,13 @@ function Codigo({ rotulo, valor, nota, dado }: { rotulo: string; valor: string; 
         <span data-cores-valor={dado ?? rotulo.toLowerCase()} className="font-mono text-platform-text">{valor}</span>
         {nota && <span className="text-[11px] text-platform-text-muted">{nota}</span>}
       </dd>
-      <dd><Copiar rotulo="Copiar" texto={valor} pequeno /></dd>
+      <dd><Copiar rotulo={t("copiar")} texto={valor} pequeno /></dd>
     </>
   );
 }
 
 function Copiar({ rotulo, texto, pequeno, desligado }: { rotulo: string; texto: string; pequeno?: boolean; desligado?: boolean }) {
+  const t = useTranslations("ferramentas.cores");
   const [feito, setFeito] = useState(false);
   async function copiar() {
     try { await navigator.clipboard.writeText(texto); } catch { /* sem permissão: nada a fazer */ }
@@ -399,7 +406,7 @@ function Copiar({ rotulo, texto, pequeno, desligado }: { rotulo: string; texto: 
   return (
     <Dica texto={dicaDe("cores-copiar")} lado="cima"><button type="button" onClick={copiar} disabled={desligado}
       className={`rounded-[var(--radius-control)] border border-platform-border text-platform-text disabled:opacity-40 ${pequeno ? "px-2 py-0.5 text-[12px]" : "px-3 py-1.5 text-[13px]"}`}>
-      {feito ? "Copiado ✓" : rotulo}
+      {feito ? t("copiado") : rotulo}
     </button></Dica>
   );
 }
@@ -414,20 +421,22 @@ function Exportar({ rotulo, dado, aoClicar, desligado }: { rotulo: string; dado:
 }
 
 function Amostra({ fundo, texto, pequena }: { fundo: string; texto: string; pequena?: boolean }) {
+  const t = useTranslations("ferramentas.cores");
   return (
     <div className={`flex flex-col justify-center rounded-[var(--radius-control)] border border-platform-border ${pequena ? "h-14 px-2" : "h-24 px-3"}`} style={{ background: fundo, color: texto }}>
-      <span className={pequena ? "text-[13px] font-semibold" : "text-[22px] font-semibold leading-tight"}>Aa Marca</span>
-      {!pequena && <span className="text-[12px]">Texto pequeno de exemplo, para leitura.</span>}
+      <span className={pequena ? "text-[13px] font-semibold" : "text-[22px] font-semibold leading-tight"}>{t("amostra.titulo")}</span>
+      {!pequena && <span className="text-[12px]">{t("amostra.texto")}</span>}
     </div>
   );
 }
 
 function Selo({ rotulo, valor }: { rotulo: string; valor: string }) {
-  const passa = valor !== "não passa";
+  const t = useTranslations("ferramentas.cores");
+  const passa = valor !== "falha";
   return (
     <li className={`flex flex-col gap-0.5 rounded-[var(--radius-control)] border px-2 py-1.5 ${passa ? "border-platform-border" : "border-platform-danger/40"}`}>
       <span className="text-platform-text-muted">{rotulo}</span>
-      <b className={passa ? "text-platform-success" : "text-platform-danger"}>{valor}</b>
+      <b className={passa ? "text-platform-success" : "text-platform-danger"}>{t(`veredito.${valor}`)}</b>
     </li>
   );
 }
