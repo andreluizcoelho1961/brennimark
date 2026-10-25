@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { LocaleProvider } from "@/platform/locale-client";
+import { ProvedorDeTraducao } from "@/components/ProvedorDeTraducao";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { CoresDoAssinante } from "@/components/ferramentas/CoresDoAssinante";
 
@@ -11,7 +12,9 @@ export default async function BancadaDoCoresDoAssinante() {
   if (process.env.NODE_ENV === "production") notFound();
   return (
     <LocaleProvider locale={idioma}>
-      <CoresDoAssinante />
+      <ProvedorDeTraducao>
+        <CoresDoAssinante />
+      </ProvedorDeTraducao>
     </LocaleProvider>
   );
 }

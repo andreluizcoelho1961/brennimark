@@ -1133,5 +1133,1169 @@
       },
       "abrirFerramenta": "Abrir a ferramenta gratuita"
     }
+  },
+  "ferramentas": {
+    "comum": {
+      "convite": {
+        "paraQuem": "Para quem assina",
+        "verPlanos": "Ver os planos",
+        "conhecerPlataforma": "Conhecer a plataforma"
+      },
+      "janela": {
+        "abrir": "Abrir em janela",
+        "bloqueada": "O navegador bloqueou a janela. Permita pop-ups para este site e tente de novo.",
+        "voltar": "Voltar à aba do site",
+        "ferramenta": "Ferramenta",
+        "nomes": {
+          "kit": "Kit",
+          "cores": "Cores",
+          "grids": "Grids"
+        }
+      }
+    },
+    "cores": {
+      "erroCodigo": "Não reconheci esse código. Use HEX (#FF4103), RGB (255 65 3), HSB ou CMYK.",
+      "titulos": {
+        "cor": "A cor",
+        "leitura": "Dá para ler?",
+        "marca": "É a cor da marca?",
+        "historico": "Cores pegas"
+      },
+      "amostraAria": "Amostra {cor}",
+      "noManual": "No manual: {nome}",
+      "contaGotas": "Conta-gotas na tela",
+      "contaGotasMac": "Conta-gotas do Mac",
+      "seletor": "Seletor de cores",
+      "seletorAriaMac": "Conta-gotas do Mac: abre o painel de cores do sistema",
+      "seletorAria": "Seletor de cores do sistema",
+      "dicaMac": {
+        "titulo": "Como usar",
+        "p1": "Clique aqui.",
+        "p2": "No quadro de cores, clique em <b>Mostrar cores…</b> (ou <b>Show Colors…</b>), no rodapé.",
+        "p3": "No painel do Mac, clique na <b>lupa</b> e depois na cor, em qualquer lugar da tela."
+      },
+      "passosMac": {
+        "p1": "Clique em <b>Conta-gotas do Mac</b>.",
+        "p2": "No quadro de cores que abre, clique em <b>Mostrar cores…</b> (ou <b>Show Colors…</b>), no rodapé.",
+        "p3": "No painel do Mac, clique na <b>lupa</b> e depois na cor que quiser, em qualquer lugar da tela.",
+        "colar": "Ou cole um print aqui (⌘V) e clique na cor."
+      },
+      "dicaComContaGotas": "O conta-gotas pega a cor de qualquer lugar da tela, inclusive de outros programas. Ou cole um print aqui (⌘V).",
+      "dicaSemContaGotas": "O seletor de cores do sistema abre. Para pegar uma cor da tela, tire um print, cole aqui (Ctrl+V ou ⌘V) e clique na cor.",
+      "subirImagem": "Subir imagem",
+      "imagemAria": "Clique na cor que quer medir",
+      "codigoPlaceholder": "Ou digite: #FF4103, 255 65 3, cmyk(0 85 100 0)",
+      "usar": "Usar",
+      "cmyk": {
+        "doManual": "do manual",
+        "doManualPagina": "do manual, p. {n}",
+        "aproximado": "aproximado · {papel}",
+        "papelCouche": "couché (revestido)",
+        "papelOffset": "offset (não revestido)",
+        "pantone": "declarado no manual",
+        "pantonePagina": "declarado no manual, p. {n}"
+      },
+      "papelDoCmyk": "Papel do CMYK:",
+      "couche": "Couché",
+      "offset": "Offset",
+      "notaCmyk": "O CMYK é sempre uma conversão aproximada: para impressão, vale o CMYK do manual ou o da prova da gráfica. Pantone o Cores não sugere — a referência é o guia físico da Pantone.",
+      "notaCmykComMarca": "O CMYK é sempre uma conversão aproximada: para impressão, vale o CMYK do manual ou o da prova da gráfica. Pantone o Cores não sugere — a referência é o guia físico da Pantone, ou o que o manual declara.",
+      "branco": "Branco",
+      "preto": "Preto",
+      "contraste": "Contraste",
+      "separadorDecimal": ",",
+      "selos": {
+        "textoPequeno": "Texto pequeno",
+        "textoGrande": "Texto grande",
+        "iconesEBotoes": "Ícones e botões"
+      },
+      "veredito": {
+        "AAA": "AAA",
+        "AA": "AA",
+        "falha": "não passa",
+        "passa": "passa"
+      },
+      "daltonismoTitulo": "Para quem não enxerga certas cores",
+      "daltonismo": {
+        "protanopia": "Protanopia (sem vermelho)",
+        "deuteranopia": "Deuteranopia (sem verde)",
+        "tritanopia": "Tritanopia (sem azul)"
+      },
+      "verNoManual": "Ver no manual, p. {n}",
+      "usarCor": "Usar {nome}",
+      "rascunho": "rascunho",
+      "semMarca": "No Brennimark, o Cores diz se essa é a cor da sua marca — e mostra o código e o Pantone que o manual declara.",
+      "conhecerPlanos": "Conhecer os planos",
+      "historicoVazio": "As cores que você pegar ficam aqui, guardadas só neste navegador.",
+      "levarPaleta": "Levar a paleta aprovada da marca:",
+      "levarPegas": "Levar as cores pegas:",
+      "ase": "ASE (Adobe)",
+      "copiarLista": "Copiar lista",
+      "copiar": "Copiar",
+      "copiado": "Copiado ✓",
+      "arquivoPegas": "cores-pegas",
+      "arquivoPaleta": "paleta",
+      "amostra": {
+        "titulo": "Aa Marca",
+        "texto": "Texto pequeno de exemplo, para leitura."
+      },
+      "assinante": {
+        "erro": "Não foi possível ler a paleta agora.",
+        "abrindo": "Abrindo as cores da marca…"
+      },
+      "nome": {
+        "cinza": "cinza{temperatura}{claridade}",
+        "cor": "{base}{claridade}{forca}",
+        "temperatura": {
+          "frio": " frio",
+          "quente": " quente"
+        },
+        "claridade": {
+          "claro": " claro",
+          "escuro": " escuro",
+          "muitoEscuro": " muito escuro"
+        },
+        "forca": {
+          "vivo": " vivo",
+          "acinzentado": " acinzentado"
+        },
+        "base": {
+          "branco": "branco",
+          "preto": "preto",
+          "vermelho": "vermelho",
+          "laranjaAvermelhado": "laranja avermelhado",
+          "laranja": "laranja",
+          "ambar": "âmbar",
+          "amarelo": "amarelo",
+          "verdeLimao": "verde-limão",
+          "verde": "verde",
+          "verdeAgua": "verde-água",
+          "azulPetroleo": "azul petróleo",
+          "azul": "azul",
+          "azulRoyal": "azul royal",
+          "anil": "anil",
+          "roxo": "roxo",
+          "magenta": "magenta",
+          "rosa": "rosa",
+          "marrom": "marrom",
+          "marromAvermelhado": "marrom avermelhado",
+          "marromDourado": "marrom dourado",
+          "oliva": "oliva"
+        }
+      },
+      "comparacao": {
+        "semPaleta": "A paleta desta marca ainda não tem cores com código HEX no Brennimark.",
+        "paginaManual": " — manual, p. {n}",
+        "diferenteRascunho": "Não é uma cor da marca. A mais próxima é {nome}, que ainda está em rascunho no manual.",
+        "quaseRascunho": "Parecida com {nome}, que ainda está em RASCUNHO no manual — não vale como cor da marca até ser aprovada{pagina}.",
+        "igual": "É {nome}, aprovada{pagina}.",
+        "quase": "Praticamente {nome}: a diferença é imperceptível a olho{pagina}.",
+        "diferente": "Não é uma cor da marca. A mais próxima é {nome}, e a diferença é visível."
+      },
+      "pagina": {
+        "metaTitulo": "Brennimark Cores — que cor é essa?",
+        "metaDescricao": "Pegue uma cor de qualquer lugar da tela e saiba os códigos, o nome, o contraste e como ela aparece para quem não enxerga certas cores. Gratuito, no seu navegador.",
+        "rotulo": "Brennimark Cores",
+        "titulo": "Que cor é essa?",
+        "lead": "Pegue uma cor de qualquer lugar da tela e saiba os códigos, um nome em português, se dá para ler texto sobre ela e como ela aparece para quem não enxerga certas cores. Gratuito, com um cadastro rápido na hora de exportar. Nada sai do seu computador.",
+        "conviteTitulo": "Com a marca do cliente, o Cores responde se aquela é a cor da marca.",
+        "convite1": "Compara com a paleta aprovada no manual",
+        "convite2": "Diz qual cor da marca é a mais próxima",
+        "convite3": "Guarda os códigos oficiais, com a página do manual"
+      },
+      "assinantePagina": {
+        "metaTitulo": "Cores da marca",
+        "rotulo": "Cores da marca",
+        "titulo": "Que cor é essa — e é a cor da marca?"
+      }
+    },
+    "arquivos": {
+      "recusa": {
+        "eps": "O arquivo está em EPS, que o Kit ainda não abre.",
+        "affinity": "O arquivo é do Affinity, um formato fechado que só o próprio Affinity abre.",
+        "corel": "O arquivo é do CorelDRAW, um formato fechado que só o próprio CorelDRAW abre.",
+        "aiSemPdf": "O arquivo .ai foi salvo sem \"compatibilidade PDF\", e assim só o Illustrator o abre.",
+        "comoResolver": "Quem edita a marca pode exportar em SVG ou PDF e enviar nos Materiais.",
+        "outro": "O Kit não abre este formato{ext}. Use SVG, PDF, AI, PNG ou JPG.",
+        "naoEPdf": "O arquivo {nome} não parece um PDF válido.",
+        "indesignNaoColoca": "O InDesign não coloca {arquivo}. Use PDF, AI, SVG, PNG ou JPG nos Materiais.",
+        "paginaVazia": "A primeira página de {arquivo} está vazia.",
+        "svgIlegivel": "Este SVG não pôde ser lido.",
+        "svgSemTamanho": "O SVG não diz o próprio tamanho (falta o viewBox).",
+        "naoMedir": "Não foi possível medir {arquivo}.",
+        "logoNosMateriais": "O logotipo nos Materiais ({arquivo}) não abre aqui.",
+        "naoAbreComoImagem": "Não foi possível abrir este arquivo como imagem.",
+        "imagemTransparente": "A imagem está toda transparente.",
+        "naoAbriu": "Não foi possível abrir {arquivo}. Quem edita a marca pode exportar em SVG ou PDF e enviar nos Materiais."
+      },
+      "aviso": {
+        "jpg": "JPG não tem fundo transparente: o retângulo do fundo vai aparecer em volta do logo. Se tiver, use SVG ou PNG.",
+        "pequena": "A imagem tem {largura} × {altura} px. Nos tamanhos grandes (capas, banner, papel de parede) ela vai sair borrada. Se tiver, use o SVG."
+      },
+      "variante": {
+        "horizontal": "Horizontal",
+        "vertical": "Vertical",
+        "colorido": "colorido",
+        "monocromatico": "monocromático",
+        "positivo": "positivo",
+        "negativo": "negativo",
+        "cmyk": "CMYK",
+        "secundario": "secundário",
+        "simbolo": "Símbolo"
+      }
+    },
+    "grids": {
+      "separadorDecimal": ",",
+      "idioma": "pt-BR",
+      "formatos": {
+        "a4": {
+          "nome": "A4",
+          "fonte": "ISO 216"
+        },
+        "a3": {
+          "nome": "A3",
+          "fonte": "ISO 216"
+        },
+        "a5": {
+          "nome": "A5 (flyer)",
+          "fonte": "ISO 216"
+        },
+        "carta": {
+          "nome": "Carta (EUA)",
+          "fonte": "ANSI Letter"
+        },
+        "cartaz-50x70": {
+          "nome": "Cartaz 50 × 70 cm",
+          "fonte": "formato de gráfica (sangria: conferir com a gráfica)"
+        },
+        "cartao-br": {
+          "nome": "Cartão de visita 90 × 50",
+          "fonte": "padrão brasileiro"
+        },
+        "cartao-int": {
+          "nome": "Cartão de visita 85 × 55",
+          "fonte": "padrão internacional"
+        },
+        "livro-14x21": {
+          "nome": "Capa de livro 14 × 21",
+          "fonte": "miolo 14 × 21; lombada e orelhas informadas (sangria: conferir com a gráfica)"
+        },
+        "livro-16x23": {
+          "nome": "Capa de livro 16 × 23",
+          "fonte": "miolo 16 × 23; lombada e orelhas informadas (sangria: conferir com a gráfica)"
+        },
+        "post-4x5": {
+          "nome": "Post 4:5 (Instagram, LinkedIn)",
+          "fonte": "a mesma tabela do Brennimark Kit"
+        },
+        "post-1x1": {
+          "nome": "Post 1:1",
+          "fonte": "a mesma tabela do Brennimark Kit"
+        },
+        "stories": {
+          "nome": "Stories / Reels 9:16",
+          "fonte": "Meta, guia de anúncios para Stories (conferido em 13/10/2026)",
+          "seguraNota": "fora da área segura, a interface cobre (perfil, botões, chamada)"
+        },
+        "linkedin-carrossel": {
+          "nome": "LinkedIn · carrossel (PDF)",
+          "fonte": "medida usual de mercado — a plataforma não publica especificação"
+        },
+        "linkedin-capa": {
+          "nome": "LinkedIn · capa da página",
+          "fonte": "LinkedIn, central de ajuda a563309 (conferido em 13/10/2026)",
+          "seguraNota": "o importante no centro; longe das bordas e do canto inferior direito"
+        },
+        "linkedin-vitrine": {
+          "nome": "LinkedIn · página vitrine",
+          "fonte": "LinkedIn, central de ajuda a563309 (conferido em 13/10/2026)",
+          "seguraNota": "o importante no centro; longe das bordas e do canto inferior direito"
+        },
+        "linkedin-vida": {
+          "nome": "LinkedIn · aba Vida (Career Pages)",
+          "fonte": "LinkedIn, central de ajuda a563309 (conferido em 13/10/2026)"
+        },
+        "linkedin-evento": {
+          "nome": "LinkedIn · capa de evento",
+          "fonte": "LinkedIn, central de ajuda (conferido em 09/10/2026, no Kit)"
+        },
+        "linkedin-artigo": {
+          "nome": "LinkedIn · capa de artigo/newsletter",
+          "fonte": "medida usual de mercado — a plataforma não publica especificação"
+        },
+        "facebook-capa": {
+          "nome": "Facebook · capa",
+          "fonte": "a mesma tabela do Brennimark Kit"
+        },
+        "x-capa": {
+          "nome": "X · capa",
+          "fonte": "a mesma tabela do Brennimark Kit"
+        },
+        "youtube-banner": {
+          "nome": "YouTube · banner",
+          "fonte": "a mesma tabela do Brennimark Kit",
+          "seguraNota": "a faixa central aparece em todo aparelho"
+        },
+        "link": {
+          "nome": "Imagem de link",
+          "fonte": "a mesma tabela do Brennimark Kit; LinkedIn usa 1200 × 627"
+        },
+        "gupy-carreiras": {
+          "nome": "Gupy · página de carreiras",
+          "fonte": "Gupy, central de suporte (conferido em 09/10/2026, no Kit)"
+        },
+        "gupy-vaga": {
+          "nome": "Gupy · topo da vaga",
+          "fonte": "Gupy, central de suporte (conferido em 09/10/2026, no Kit)"
+        },
+        "glassdoor-capa": {
+          "nome": "Glassdoor · capa",
+          "fonte": "Glassdoor, central de ajuda (conferido em 09/10/2026, no Kit)"
+        },
+        "viva-engage": {
+          "nome": "Viva Engage · capa da comunidade",
+          "fonte": "Microsoft, suporte do Viva Engage (conferido em 09/10/2026, no Kit)"
+        },
+        "videochamada": {
+          "nome": "Fundo de videochamada",
+          "fonte": "a mesma tabela do Brennimark Kit",
+          "seguraNota": "o centro fica atrás da pessoa: a marca vai nos cantos superiores"
+        },
+        "papel-de-parede": {
+          "nome": "Papel de parede",
+          "fonte": "a mesma tabela do Brennimark Kit"
+        },
+        "iab-300x250": {
+          "nome": "Retângulo médio 300 × 250",
+          "fonte": "IAB, padrão de formatos de mídia digital"
+        },
+        "iab-728x90": {
+          "nome": "Leaderboard 728 × 90",
+          "fonte": "IAB, padrão de formatos de mídia digital"
+        },
+        "iab-160x600": {
+          "nome": "Arranha-céu 160 × 600",
+          "fonte": "IAB, padrão de formatos de mídia digital"
+        },
+        "iab-300x600": {
+          "nome": "Meia página 300 × 600",
+          "fonte": "IAB, padrão de formatos de mídia digital"
+        },
+        "iab-970x250": {
+          "nome": "Billboard 970 × 250",
+          "fonte": "IAB, padrão de formatos de mídia digital"
+        },
+        "iab-320x50": {
+          "nome": "Banner de celular 320 × 50",
+          "fonte": "IAB, padrão de formatos de mídia digital"
+        },
+        "email-cabecalho": {
+          "nome": "Cabeçalho de e-mail 600 × 200",
+          "fonte": "largura usual de e-mail (600 px)"
+        },
+        "slide-16x9": {
+          "nome": "Slide 16:9",
+          "fonte": "16:9 Full HD"
+        }
+      },
+      "corpo": {
+        "tituloETexto": "título {t1}/{t2} · texto {x1}/{x2}",
+        "soTexto": "{a} / {b} pt"
+      },
+      "grupos": {
+        "impressos": "Impressos",
+        "redes": "Redes, endomarketing e employer branding",
+        "digital": "Mídia digital",
+        "apresentacao": "Apresentação"
+      },
+      "zonas": {
+        "orelhaVerso": "Orelha (verso)",
+        "contracapa": "Contracapa",
+        "lombada": "Lombada",
+        "capa": "Capa",
+        "orelhaFrente": "Orelha (frente)",
+        "umaParte": "Zona {n} · {p} parte",
+        "variasPartes": "Zona {n} · {p} partes"
+      },
+      "avisos": {
+        "lombadaFina": "Lombada fina: o texto da lombada precisa de pelo menos 5 mm de cada lado da dobra.",
+        "margensAjustadas": "Margens de cima e de baixo ajustadas de {de} para {para} para os módulos fecharem na linha de base.",
+        "margemInferiorAjustada": "Margem inferior ajustada de {de} para {para} para os módulos fecharem na linha de base.",
+        "medianizForaDaBase": "A medianiz não é múltiplo da linha de base: os módulos não fecham exatamente na linha de base.",
+        "margensSomamMais": "As margens somam mais que a página."
+      },
+      "marca": {
+        "logoAumentado": "O logo foi aumentado para {px} px, a redução mínima do manual.",
+        "margemMenorQueProtecao": "A margem é menor que a área de proteção do logo ({medida}): a página corta a proteção.",
+        "corSemHex": "{nome}: sem código HEX no Brennimark — não entrou.",
+        "corSemCmyk": "{nome}: o manual não declara CMYK — entrou em RGB ({hex}); confira com a gráfica.",
+        "corOrigem": " — manual, p. {n}",
+        "origemManualPagina": "manual, p. {n}",
+        "origemTipografia": "tipografia da marca",
+        "origemHerdada": "o manual não define; usa a do {de} (proposta do Brennimark)",
+        "origemAprovada": "{onde} — aprovada"
+      },
+      "estilos": {
+        "titulo": "Título",
+        "subtitulo": "Subtítulo",
+        "texto": "Texto",
+        "legenda": "Legenda",
+        "destaque": "Destaque",
+        "apoio": "Apoio",
+        "semFonte": "{nome} ({medida}): sem fonte da marca aprovada — fica a fonte padrão do InDesign.",
+        "comFonte": "{nome} ({medida}): {fonte}{extras} — {origem}.",
+        "espacejamento": "espacejamento {v}",
+        "caixaAlta": "caixa alta"
+      },
+      "leiaMe": {
+        "titulo": "Grid de {marca} — {formato}",
+        "feitoNo": "Feito no Brennimark Grids. Abra o .idml no InDesign (ou no Affinity Publisher).",
+        "grid": "GRID ({tipo}): {origem}.",
+        "camadas": "As camadas de guia são travadas e não imprimem; ligue e desligue no painel Camadas.",
+        "logo": "LOGO: {arquivo} ({versao}), na pasta Links. {protecao}",
+        "logoComProtecao": "Área de proteção: {protecao} — o retângulo vermelho em volta do logo não imprime.",
+        "logoSemProtecao": "O manual não tem área de proteção registrada no Brennimark.",
+        "semLogo": "LOGO: a marca não tem logotipo nos Materiais em formato que o InDesign coloque (PDF, AI, SVG, PNG ou JPG).",
+        "vinculo": "Se o InDesign disser que o vínculo está ausente, mantenha a pasta Links ao lado do .idml.",
+        "pdfDeReferencia": "O PDF do grid é a referência para outros programas: lá o logo vai como imagem; o original vetorial está na pasta Links.",
+        "cores": "CORES (amostras): só as aprovadas — {lista}.",
+        "semCores": "CORES: a paleta desta marca ainda não tem cores aprovadas no Brennimark.",
+        "pecaDigital": "Peça digital: amostras em RGB, do HEX do manual (o CMYK fica para os impressos).",
+        "estilos": "ESTILOS DE TEXTO: {lista}, no corpo e na entrelinha do grid, alinhados à linha de base.",
+        "estilosPadrao": "Título, Subtítulo, Texto e Legenda",
+        "instaleAsFontes": "INSTALE AS FONTES antes de abrir: {familias}. O Brennimark não distribui o arquivo da fonte; sem ela instalada, o InDesign avisa que a fonte falta.",
+        "semFonteAprovada": "A tipografia da marca ainda não tem fonte aprovada no Brennimark: os estilos ficam com a fonte padrão do InDesign.",
+        "umaFonteEmRascunho": "1 fonte em rascunho não entrou: elas entram quando forem aprovadas.",
+        "fontesEmRascunho": "{n} fontes em rascunho não entraram: elas entram quando forem aprovadas.",
+        "avisos": "AVISOS:"
+      },
+      "idml": {
+        "camadas": {
+          "conteudo": "Conteúdo",
+          "grid": "Grid — proposta do Brennimark",
+          "zonas": "Zonas do hierárquico",
+          "segura": "Área segura da plataforma",
+          "dobras": "Dobras (lombada e orelhas)",
+          "sobreposto": "Desconstrução — grid sobreposto",
+          "rotacionado": "Desconstrução — grid rotacionado",
+          "logo": "Logo — área de proteção do manual"
+        },
+        "protecaoDoLogo": "Área de proteção do logo",
+        "guiaDaProtecao": "Guia da área de proteção",
+        "gridDaMarca": "Grid — {origem}"
+      },
+      "regras": {
+        "gridGeral": "Grid geral",
+        "gridDoFormato": "Grid do formato",
+        "proposta": "proposta do Brennimark — o manual não define o grid deste formato",
+        "doManualPagina": "do manual, p. {n}",
+        "doManual": "do manual",
+        "informada": "informada por quem edita a marca",
+        "geral": "(regra geral da marca, aplicada a este formato)",
+        "aprovada": "aprovada",
+        "lidaPelaIA": "lida pela IA, ainda não confirmada",
+        "naoAprovada": "ainda não aprovada"
+      },
+      "ui": {
+        "passo": "Passo {n}",
+        "passo3Assinante": "Passo 3 · assinante",
+        "passo3Opcional": "Passo 3 · opcional",
+        "formato": {
+          "titulo": "O formato",
+          "medida": "Medida: {fonte}.{corpo}",
+          "corpo": " Corpo de texto da proposta: {corpo}.",
+          "bloqueados": "+ {n} formatos, como livro, cartaz e carreiras: no plano de assinatura",
+          "lombada": "Lombada",
+          "orelha": "Orelha (cada)",
+          "lombadaNota": "A lombada depende do papel e do número de páginas: confirme a medida com a gráfica."
+        },
+        "tipo": {
+          "titulo": "O tipo de grid",
+          "aria": "Tipo de grid",
+          "manuscrito": {
+            "nome": "Manuscrito",
+            "dica": "um bloco de texto"
+          },
+          "colunas": {
+            "nome": "Colunas",
+            "dica": "colunas e medianiz"
+          },
+          "modular": {
+            "nome": "Modular",
+            "dica": "colunas × linhas"
+          },
+          "hierarquico": {
+            "nome": "Hierárquico",
+            "dica": "zonas pelo conteúdo"
+          }
+        },
+        "proporcao": {
+          "rotulo": "Proporção das margens",
+          "unidade": "Margens da proposta (unidade)",
+          "classica": "2 : 3 : 4 : 6 (clássica de livro)",
+          "vanDeGraaf": "Cânone de Van de Graaf",
+          "aurea": "Seção áurea"
+        },
+        "zonasDoGrid": {
+          "rotulo": "Divisão das zonas",
+          "z1": "1 : 2",
+          "z2": "2 : 3",
+          "z3": "1 : φ (áurea)",
+          "z4": "1 : 2 : 1",
+          "z5": "1 : 3 : 1,2 (logo · mensagem · chamada)",
+          "z6": "1 : 4"
+        },
+        "campos": {
+          "colunas": "Colunas",
+          "linhas": "Linhas",
+          "medianiz": "Medianiz",
+          "linhaDeBase": "Linha de base",
+          "sup": "Superior",
+          "inf": "Inferior",
+          "esq": "Esquerda",
+          "dir": "Direita",
+          "margensEm": "Margens em {un}."
+        },
+        "desconstrucao": {
+          "titulo": "Desconstrução",
+          "bloqueada": "Grid sobreposto e grid rotacionado, cada um numa camada própria do InDesign, são do plano de assinatura.",
+          "sobreposto": "Grid sobreposto",
+          "colunasSobreposto": "Colunas do grid sobreposto",
+          "rotacionado": "Grid rotacionado",
+          "angulo": "Ângulo · {a}°",
+          "camadas": "Cada um vem numa camada própria do InDesign, que não imprime: ligue e desligue no painel Camadas."
+        },
+        "baixar": {
+          "titulo": "Baixar",
+          "idml": "Baixar para o InDesign (.idml)",
+          "idmlMarca": "Baixar para o InDesign (.idml + Links)",
+          "montando": "Montando o pacote…",
+          "pdf": "PDF de referência (outros programas)",
+          "notaMarca": "Um .zip com o .idml, a pasta Links com o logo e o LEIA-ME. O .idml também abre no Affinity Publisher.",
+          "notaGratis": "O .idml também abre no Affinity Publisher. Logo, cores e estilos de texto da marca já posicionados: no plano de assinatura.",
+          "restaurarMarca": "Voltar ao grid da marca",
+          "restaurarProposta": "Voltar à proposta do Brennimark"
+        },
+        "resumo": {
+          "colunas": "{n, plural, one {# coluna} other {# colunas}}",
+          "linhas": "× {n} linhas",
+          "linhaDeBase": "linha de base {v} {u}",
+          "origem": "Grid: {origem}",
+          "proposta": "proposta do Brennimark",
+          "areaSegura": "Área segura: {nota}.",
+          "margens": "Margens: {sup} · {inf} · {esq} · {dir}",
+          "sangria": " · sangria {v}",
+          "previaAria": "Prévia do grid"
+        },
+        "legenda": {
+          "colunasEModulos": "colunas e módulos",
+          "linhaDeBase": "linha de base",
+          "margens": "margens",
+          "zonas": "zonas",
+          "dobras": "dobras",
+          "segura": "área segura da plataforma",
+          "sangria": "sangria",
+          "sobreposto": "grid sobreposto",
+          "rotacionado": "grid rotacionado"
+        },
+        "assinante": {
+          "erroAbrir": "Não foi possível abrir os Grids agora.",
+          "erroLogoBusca": "Não foi possível buscar o logo nos Materiais.",
+          "erroLogoAbrir": "Não foi possível abrir o logo.",
+          "manualSemRegras": "O Brennimark leu o manual e não encontrou regras de grid nas páginas que olhou. Vale a proposta do Brennimark.",
+          "manualLeu": "O Brennimark leu o grid de {n, plural, one {# formato} other {# formatos}} no manual (p. {paginas}). Confira antes de aprovar.",
+          "manualErro": "Não foi possível ler o manual agora.",
+          "aprovado": "Grid aprovado.",
+          "aprovados": "{n} grids aprovados.",
+          "aprovarErro": "Não foi possível aprovar agora.",
+          "guardado": "Grid guardado como regra SÓ deste formato — em rascunho até alguém aprovar.",
+          "guardarErro": "Não foi possível guardar.",
+          "ajustadoNaTela": "ajustado na tela — ainda não guardado como regra da marca",
+          "ajustadoAPartirDe": "ajustado na tela a partir de: {origem}",
+          "aMarca": "A marca no documento",
+          "pendente1": "1 grid lido do manual aguarda a sua aprovação",
+          "pendentes": "{n} grids lidos do manual aguardam a sua aprovação",
+          "pendentesNota": "Enquanto estiverem em rascunho, não valem em silêncio. Confira com o manual e aprove.",
+          "aprovarEste": "Aprovar este grid",
+          "aprovarOs": "Aprovar os {n} grids",
+          "regraDoFormato": "Regra de grid deste formato",
+          "lendo": "Lendo o grid no manual da marca…",
+          "gridDaMarca": "Grid da marca ({n} no manual)",
+          "paginaOpcao": " — p. {n}",
+          "rascunhoOpcao": " (rascunho)",
+          "semRegra": "O manual não define o grid deste formato — vale a proposta do Brennimark.",
+          "guardarComoRegra": "Guardar este grid como regra deste formato",
+          "logo": "Logo",
+          "semLogo": "A marca não tem logotipo nos Materiais em formato que o InDesign coloque (PDF, AI, SVG, PNG ou JPG).",
+          "foraDoIndesign": " Há {lista}: exporte em PDF ou SVG e envie nos Materiais.",
+          "cantoAria": "Canto do logo",
+          "logoNoCanto": "Logo no canto {canto}",
+          "cantos": {
+            "inf-dir": "inferior direito",
+            "sup-esq": "superior esquerdo",
+            "inf-esq": "inferior esquerdo",
+            "sup-dir": "superior direito"
+          },
+          "abrindoLogo": "Abrindo o logo dos Materiais…",
+          "logoProtecao": "Área de proteção: {pct}% da altura do logo.",
+          "logoSemProtecao": "Sem área de proteção registrada (Kit da marca).",
+          "ajustarMargens": "Ajustar as margens à área de proteção ({medida})",
+          "cores": "Cores {tipo}",
+          "coresCmyk": "(CMYK do manual)",
+          "coresRgb": "(RGB)",
+          "semCores": "A paleta ainda não tem cores aprovadas.",
+          "corRascunho1": "1 cor em rascunho não entra até ser aprovada.",
+          "coresRascunho": "{n} cores em rascunho não entram até serem aprovadas.",
+          "estilos": "Estilos de texto",
+          "semFonteAprovada": "A tipografia da marca ainda não tem fonte aprovada: os estilos saem no corpo e na entrelinha do grid, com a fonte padrão do InDesign.",
+          "fonteRascunho1": "1 fonte em rascunho não entra até ser aprovada.",
+          "fontesRascunho": "{n} fontes em rascunho não entram até serem aprovadas.",
+          "abrindo": "Abrindo os Grids da marca…",
+          "alturaDoLogo": "{pct}% da altura do logo"
+        },
+        "paginaSite": {
+          "metaTitulo": "Brennimark Grids — o grid pronto para o InDesign",
+          "metaDescricao": "Escolha o formato e o tipo de grid — manuscrito, colunas, modular ou hierárquico — e baixe o documento pronto para o InDesign. Tudo feito no seu computador.",
+          "rotulo": "Brennimark Grids",
+          "titulo": "O grid pronto para o InDesign, nos formatos mais usados",
+          "lead": "Manuscrito, colunas, modular ou hierárquico. Margens, medianiz, linha de base, sangria e área segura das plataformas, num documento que abre pronto para diagramar. Gratuito, com um cadastro rápido na hora de baixar. Nada sai do seu computador.",
+          "conviteTitulo": "Com a marca do cliente, o documento já nasce pronto.",
+          "convite1": "Logo na área de proteção que o manual define",
+          "convite2": "Cores aprovadas e estilos de texto com a fonte da marca",
+          "convite3": "Todos os formatos e a desconstrução em camadas próprias"
+        },
+        "paginaAssinante": {
+          "metaTitulo": "Grids da marca",
+          "rotulo": "Grids da marca",
+          "titulo": "O documento pronto para diagramar, com as regras do manual"
+        }
+      }
+    },
+    "kit": {
+      "itens": {
+        "favicon-16": {
+          "nome": "Favicon 16"
+        },
+        "favicon-32": {
+          "nome": "Favicon 32"
+        },
+        "favicon-48": {
+          "nome": "Favicon 48"
+        },
+        "apple-touch-icon": {
+          "nome": "Ícone do iPhone"
+        },
+        "android-192": {
+          "nome": "Ícone Android"
+        },
+        "android-512": {
+          "nome": "Ícone Android grande"
+        },
+        "android-adaptavel-512": {
+          "nome": "Ícone adaptável (Android)",
+          "obs": "o desenho dentro da área segura"
+        },
+        "compartilhamento-1200x630": {
+          "nome": "Imagem de link",
+          "obs": "WhatsApp, LinkedIn, e-mail"
+        },
+        "instagram-perfil-1080": {
+          "nome": "Instagram · perfil"
+        },
+        "facebook-perfil-720": {
+          "nome": "Facebook · perfil"
+        },
+        "facebook-capa-1640x624": {
+          "nome": "Facebook · capa"
+        },
+        "linkedin-logo-400": {
+          "nome": "LinkedIn · logo da página"
+        },
+        "linkedin-capa-1512x256": {
+          "nome": "LinkedIn · capa da página",
+          "obs": "o LinkedIn pede o importante no centro, longe do canto inferior direito"
+        },
+        "x-perfil-400": {
+          "nome": "X · perfil"
+        },
+        "x-capa-1500x500": {
+          "nome": "X · capa"
+        },
+        "youtube-perfil-800": {
+          "nome": "YouTube · perfil"
+        },
+        "youtube-banner-2560x1440": {
+          "nome": "YouTube · banner",
+          "obs": "a marca na área que aparece em todo aparelho"
+        },
+        "tiktok-perfil-720": {
+          "nome": "TikTok · perfil"
+        },
+        "whatsapp-business-640": {
+          "nome": "WhatsApp Business · perfil"
+        },
+        "pinterest-perfil-600": {
+          "nome": "Pinterest · perfil"
+        },
+        "linkedin-vitrine-capa-1512x256": {
+          "nome": "LinkedIn · página vitrine",
+          "obs": "o LinkedIn pede o importante no centro, longe do canto inferior direito"
+        },
+        "linkedin-vida-1128x376": {
+          "nome": "LinkedIn · aba Vida (Career Pages)",
+          "obs": "imagem principal da aba Vida — só nas Career Pages"
+        },
+        "linkedin-evento-capa-1776x444": {
+          "nome": "LinkedIn · capa de evento"
+        },
+        "gupy-carreiras-760x430": {
+          "nome": "Gupy · imagem da página de carreiras",
+          "obs": "a Gupy recomenda foto do ambiente; esta é a versão com a marca"
+        },
+        "gupy-vaga-topo-1980x600": {
+          "nome": "Gupy · topo da página de vaga"
+        },
+        "glassdoor-logo-512": {
+          "nome": "Glassdoor · logo",
+          "obs": "mínimo pedido: 256 × 256"
+        },
+        "glassdoor-capa-2880x550": {
+          "nome": "Glassdoor · capa",
+          "obs": "o dobro do mínimo de 1440 × 275"
+        },
+        "viva-engage-capa-1400x524": {
+          "nome": "Viva Engage · capa da comunidade"
+        },
+        "teams-equipe-240": {
+          "nome": "Teams · ícone de equipe"
+        },
+        "slack-espaco-512": {
+          "nome": "Slack · ícone do espaço"
+        },
+        "google-workspace-logo-320x132": {
+          "nome": "Google Workspace · logo",
+          "obs": "exibido em exatamente 320 × 132"
+        },
+        "fundo-videochamada-1920x1080": {
+          "nome": "Fundo de videochamada",
+          "obs": "Teams, Zoom e Meet"
+        },
+        "papel-de-parede-1920x1080": {
+          "nome": "Papel de parede"
+        },
+        "papel-de-parede-2560x1440": {
+          "nome": "Papel de parede (tela grande)"
+        },
+        "assinatura-logo-600": {
+          "nome": "Logo da assinatura",
+          "obs": "o dobro do tamanho exibido (300 px)"
+        },
+        "logotipo-2000": {
+          "nome": "Logotipo"
+        },
+        "logotipo-negativo-2000": {
+          "nome": "Logotipo · fundo escuro"
+        },
+        "logotipo-uma-cor-2000": {
+          "nome": "Logotipo · uma cor"
+        },
+        "logotipo-vertical-2000": {
+          "nome": "Logotipo vertical"
+        },
+        "simbolo-2000": {
+          "nome": "Símbolo"
+        },
+        "avatar-512": {
+          "nome": "Avatar (Slack, Teams, Google)"
+        }
+      },
+      "grupos": {
+        "site": "Site",
+        "redes": "Redes sociais",
+        "endomarketing": "Endomarketing e employer branding",
+        "email": "E-mail",
+        "apresentacao": "Apresentação"
+      },
+      "pacote": {
+        "cabecalho1": "<!-- Cole dentro do <head> de todas as páginas do site. Os arquivos da pasta",
+        "cabecalho2": "     site/ vão na raiz do site (o mesmo lugar do index.html). -->",
+        "informadaPorVoce": "informada por você",
+        "protecaoAplicada": "Área de proteção aplicada: {pct}% da altura do logo, {fonte}.",
+        "reducaoLogo": "Redução mínima do logotipo: {px} px de largura, {fonte}.",
+        "reducaoSimbolo": "Redução mínima do símbolo: {px} px de largura, {fonte}.",
+        "atencaoAbaixo": "ATENÇÃO — nestes arquivos o desenho ficou abaixo da redução mínima:",
+        "titulo": "Kit da marca {nome} — gerado pelo Brennimark Kit.",
+        "semNome": "(sem nome)",
+        "tudoNoComputador": "Tudo foi feito no seu computador; nenhum arquivo saiu dele.",
+        "pastaSite": "{pasta}  ícones do site, imagem de link, manifest e o código para colar no <head> ({colar}).",
+        "pastaRedes": "{pasta}  perfis e capas das redes sociais. Perfis são recortados em círculo: o desenho já cabe nele.",
+        "pastaEndomarketing": "{pasta}  LinkedIn, Gupy, Glassdoor, Viva Engage, Teams, Slack, Google Workspace, videochamada e papel de parede.",
+        "pastaEmail": "{pasta}  logo da assinatura e a assinatura pronta ({assinatura}).",
+        "pastaApresentacao": "{pasta}  logotipo e símbolo em alta resolução, para fundo claro, escuro e uma cor.",
+        "comSimbolo": "Nos tamanhos pequenos (ícones e perfis) entrou o símbolo; nos grandes, o logotipo inteiro.",
+        "semSimbolo": "Sem símbolo separado, o logotipo inteiro entrou também nos tamanhos pequenos — confira se fica legível.",
+        "assinaturaEndereco": "A assinatura usa o endereço da imagem: hospede {arquivo} no site e troque o endereço.",
+        "assinaturaFonte": "A assinatura usa {nome}, {origem}; onde ela não existir, o e-mail mostra Arial.",
+        "noBrennimark": "No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.",
+        "idiomaHtml": "pt-BR",
+        "tituloAssinatura": "Assinatura de e-mail",
+        "comentarioAssinatura": "Abra este arquivo no navegador, selecione a assinatura, copie e cole nas configurações do seu e-mail.",
+        "abaixoItem": "({largura} px; mínimo {minimo} px)",
+        "siteSemNome": "Site"
+      },
+      "regras": {
+        "valorProtecao": "{pct}% da altura do logo",
+        "valorLargura": "{px} px de largura",
+        "nome": {
+          "area_de_protecao": "Área de proteção",
+          "reducao_minima_logo": "Redução mínima do logotipo",
+          "reducao_minima_simbolo": "Redução mínima do símbolo"
+        }
+      },
+      "assinatura": {
+        "substitutaDoManual": "a substituta que o manual indica (p. {n})",
+        "substitutaDaMarca": "a substituta da tipografia da marca"
+      },
+      "ui": {
+        "passo": "Passo {n}",
+        "logo": {
+          "titulo": "O logo",
+          "logotipo": "Logotipo",
+          "logotipoDica": "SVG, PDF ou AI é o ideal · PNG a partir de 1024 px",
+          "temOutras": "Tem versão vertical, símbolo ou versão negativa?",
+          "vertical": "Logotipo vertical (opcional)",
+          "verticalDica": "usado nos quadrados quando não há símbolo",
+          "simbolo": "Símbolo (opcional)",
+          "simboloDica": "usado nos ícones e perfis",
+          "negativo": "Versão para fundo escuro (opcional)",
+          "negativoDica": "senão, o Kit faz o logo em branco",
+          "nomeDaMarca": "Nome da marca",
+          "nomePlaceholder": "Ex.: Acme"
+        },
+        "erro": {
+          "abrir": "Não foi possível abrir este arquivo.",
+          "montar": "Não foi possível montar o pacote."
+        },
+        "ajustes": {
+          "titulo": "Ajustes",
+          "fundo": "Fundo",
+          "branco": "Branco",
+          "escuro": "Escuro",
+          "cor": "Cor da marca",
+          "transparente": "Transparente",
+          "fundoAria": "Fundo {c}",
+          "corAria": "Cor do fundo",
+          "transparenteNota": "Perfis de rede com fundo transparente ganham o fundo que a rede escolher (branco ou preto).",
+          "margem": "Margem · {n}%",
+          "usarSimbolo": "Usar o símbolo nos ícones e perfis",
+          "avisoEscuro": "Sobre fundo escuro, o Kit faz o logo em branco: as partes escuras viram branco e as claras deixam o fundo aparecer. {extra}",
+          "extraAssinante": "Se a marca tem versão negativa, cadastre-a nos Materiais (polaridade negativa).",
+          "extraLivre": "Se a marca tem versão negativa própria, envie-a no passo 1."
+        },
+        "regrasLivres": {
+          "titulo": "Regras da marca",
+          "intro": "Estão no manual da marca, nas páginas de área de proteção e redução mínima. Deixe em branco o que o manual não define.",
+          "protecao": "Área de proteção · % da altura do logo",
+          "protecaoPh": "Ex.: 25 (um quarto da altura livre em volta)",
+          "reducaoLogo": "Redução mínima do logotipo · largura em px",
+          "reducaoLogoPh": "Ex.: 120",
+          "reducaoSimbolo": "Redução mínima do símbolo · largura em px",
+          "reducaoSimboloPh": "Ex.: 24"
+        },
+        "abaixo": "{n} arquivo(s) ficam abaixo da redução mínima {de} — marcados na lista. Nos ícones pequenos, um símbolo separado costuma resolver.",
+        "abaixoDoManual": "do manual",
+        "abaixoInformada": "que você informou",
+        "baixar": {
+          "titulo": "Baixar",
+          "gerando": "Gerando… {p} de {total}",
+          "tudo": "Baixar tudo (.zip)",
+          "total": "{n} arquivos",
+          "soGrupo": "Só {grupo}",
+          "notaAssinante": "Os arquivos são montados no seu computador, a partir dos originais dos Materiais. O LEIA-ME do pacote diz de que página do manual veio cada regra.",
+          "notaLivre": "Tudo é feito no seu computador: o logo não sai dele. No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho."
+        },
+        "previa": {
+          "gruposAria": "Grupos de arquivos",
+          "arquivosDoGrupo": "Arquivos deste grupo",
+          "vazio": "Envie o logo no passo 1. A prévia de cada arquivo aparece aqui, já no lugar onde ele vai ser usado."
+        },
+        "envio": {
+          "ok": "{rotulo} ✓",
+          "trocar": "clique para trocar",
+          "arraste": "arraste aqui ou clique · {dica}",
+          "tirar": "tirar"
+        },
+        "miniatura": {
+          "auto": "auto",
+          "abaixo": "abaixo da redução mínima ({px} px)",
+          "conferida": "medida conferida na documentação"
+        },
+        "cenas": {
+          "suaMarca": "Sua marca",
+          "naAba": "Na aba do navegador",
+          "favLegenda": "favicon 16 · 32 · 48",
+          "novaAba": "Nova aba",
+          "whatsapp": "Link colado no WhatsApp",
+          "whatsappLegenda": "imagem de compartilhamento 1200 × 630",
+          "instagram": "Perfil no Instagram",
+          "circulo": "recorte em círculo",
+          "perfilDaMarca": "perfil da marca",
+          "linkedin": "Página no LinkedIn",
+          "linkedinLegenda": "capa 1512 × 256 + logo 400",
+          "empresa": "Empresa · Porto Alegre",
+          "video": "Videochamada",
+          "videoLegenda": "fundo 1920 × 1080 · o centro fica livre para o rosto",
+          "teams": "Equipe no Teams",
+          "teamsLegenda": "ícone de equipe 240",
+          "comunicacao": "Comunicação interna",
+          "equipe": "{marca} · equipe",
+          "apresentacao": "Para apresentação",
+          "apresentacaoLegenda": "PNG transparente, 2000 px",
+          "apresentacaoTexto": "Versões para fundo claro, fundo escuro e uma cor só{svg}.",
+          "svgOriginal": ", e o SVG original",
+          "negativoEnviado": "A versão para fundo escuro usa o arquivo negativo que você enviou.",
+          "negativoFeito": "A versão para fundo escuro é o logo em branco feito pelo Kit; se a marca tem negativo próprio, envie-o no passo 1."
+        },
+        "email": {
+          "dadosTitulo": "Os dados da assinatura",
+          "dadosLegenda": "aparecem na prévia ao lado",
+          "nome": "Nome",
+          "cargo": "Cargo",
+          "telefone": "Telefone",
+          "site": "Site",
+          "endereco": "Endereço do logo no site (opcional)",
+          "nota": "Para o logo aparecer para quem recebe, ele precisa estar no site da empresa: suba o <c>{arquivo}</c> e cole o endereço acima antes de copiar.",
+          "assinaturaTitulo": "A assinatura no e-mail",
+          "assinaturaLegenda": "copie e cole no Gmail, no Outlook ou no Apple Mail",
+          "ola": "Olá, segue o material.",
+          "abraco": "Abraço,",
+          "copiar": "Copiar assinatura",
+          "copiada": "Copiada ✓",
+          "fonte": "Fonte: {nome}, {origem}.",
+          "instrucoes": "Gmail: Configurações → Ver todas → Assinatura → colar. Outlook: Configurações → Contas → Assinaturas → colar. Apple Mail: Ajustes → Assinaturas → colar e desmarcar “fonte padrão”.",
+          "padrao": {
+            "nome": "Seu nome",
+            "cargo": "Cargo",
+            "telefone": "(51) 0000-0000",
+            "site": "suaempresa.com.br"
+          }
+        },
+        "assinante": {
+          "erroAbrir": "Não foi possível abrir o Kit agora.",
+          "erroBuscar": "Não foi possível buscar o logo nos Materiais.",
+          "erroVersao": "Não foi possível abrir esta versão.",
+          "manualSemRegras": "O Kit leu o manual e não encontrou essas regras nas páginas que olhou.",
+          "manualErro": "Não foi possível ler o manual agora.",
+          "guardarErro": "Não foi possível guardar.",
+          "abrindo": "Abrindo o Kit da marca…",
+          "semLogo": "Esta marca ainda não tem o logotipo nos Materiais (um item do tipo Logo, versão positiva, em SVG, PDF, AI ou PNG). Assim que alguém cadastrar, o Kit monta todos os tamanhos a partir dele.",
+          "fonte": {
+            "doManual": "do manual",
+            "pagina": ", p. {n}",
+            "aprovada": ", aprovada",
+            "lidaPelaIA": ", lida pela IA e ainda não confirmada",
+            "naoAprovada": ", ainda não aprovada"
+          },
+          "papel": {
+            "logo": {
+              "titulo": "Logotipo",
+              "uso": "capas, banners e e-mail"
+            },
+            "vertical": {
+              "titulo": "Logotipo vertical",
+              "uso": "quadrados e círculos, quando não há símbolo",
+              "semNada": "Usar o logotipo acima"
+            },
+            "simbolo": {
+              "titulo": "Símbolo",
+              "uso": "ícones, favicon e perfis",
+              "semNada": "Não usar"
+            },
+            "negativo": {
+              "titulo": "Para fundo escuro",
+              "uso": "quando o fundo escolhido é escuro",
+              "semNada": "O Kit faz em branco"
+            }
+          },
+          "escolhaDoKit": "{nome} (escolha do Kit)",
+          "seletorNota": "Vêm dos Materiais da marca. O Kit já marcou a melhor de cada; troque se quiser.",
+          "painel": {
+            "titulo": "Regras do manual",
+            "lendo": "Lendo o manual da marca…",
+            "aplica": "O Kit aplica o que está no manual. Só a regra aprovada vale sem aviso."
+          },
+          "linha": {
+            "ariaPct": "Porcentagem da altura do logo",
+            "ariaPx": "Largura mínima em px",
+            "pctPh": "%",
+            "pxPh": "px",
+            "ariaPagina": "Página do manual",
+            "paginaPh": "pág.",
+            "guardar": "Guardar",
+            "cancelar": "Cancelar",
+            "digiteNumero": "Digite um número.",
+            "manualPagina": "manual, p. {n}",
+            "aprovada": "aprovada",
+            "lida": "lida pela IA — confira",
+            "rascunho": "rascunho — falta aprovar",
+            "confirmar": "Confirmar",
+            "corrigir": "Corrigir",
+            "procurando": "procurando no manual…",
+            "naoEncontrada": "não encontrada no manual",
+            "informar": "Informar"
+          }
+        },
+        "paginaSite": {
+          "metaTitulo": "Brennimark Kit — todos os tamanhos do seu logo",
+          "metaDescricao": "Envie o logo e baixe, num clique, ícones do site, perfis e capas de redes, assinatura de e-mail e arquivos de apresentação. Tudo feito no seu computador.",
+          "rotulo": "Brennimark Kit",
+          "titulo": "Todos os tamanhos do seu logo, num clique",
+          "lead": "Ícones do site, perfis e capas das redes, assinatura de e-mail, endomarketing e arquivos de apresentação. Gratuito, com um cadastro rápido na hora de baixar. O seu arquivo não sai do seu computador.",
+          "conviteTitulo": "Com a marca do cliente na plataforma, o Kit já sabe o que pode e o que não pode.",
+          "convite1": "Usa o logo e as regras de proteção aprovados no manual",
+          "convite2": "Pega o arquivo certo nos Materiais, sem caçar em pasta",
+          "convite3": "Mostra a regra no momento de baixar"
+        },
+        "paginaAssinante": {
+          "metaTitulo": "Kit da marca",
+          "rotulo": "Kit da marca",
+          "titulo": "Todos os tamanhos do logo, com as regras do manual"
+        }
+      },
+      "arquivos": {
+        "favicon-16": "favicon-16.png",
+        "favicon-32": "favicon-32.png",
+        "favicon-48": "favicon-48.png",
+        "apple-touch-icon": "apple-touch-icon.png",
+        "android-192": "android-192.png",
+        "android-512": "android-512.png",
+        "android-adaptavel-512": "android-adaptavel-512.png",
+        "compartilhamento-1200x630": "compartilhamento-1200x630.png",
+        "instagram-perfil-1080": "instagram-perfil-1080.png",
+        "facebook-perfil-720": "facebook-perfil-720.png",
+        "facebook-capa-1640x624": "facebook-capa-1640x624.png",
+        "linkedin-logo-400": "linkedin-logo-400.png",
+        "linkedin-capa-1512x256": "linkedin-capa-1512x256.png",
+        "x-perfil-400": "x-perfil-400.png",
+        "x-capa-1500x500": "x-capa-1500x500.png",
+        "youtube-perfil-800": "youtube-perfil-800.png",
+        "youtube-banner-2560x1440": "youtube-banner-2560x1440.png",
+        "tiktok-perfil-720": "tiktok-perfil-720.png",
+        "whatsapp-business-640": "whatsapp-business-640.png",
+        "pinterest-perfil-600": "pinterest-perfil-600.png",
+        "linkedin-vitrine-capa-1512x256": "linkedin-vitrine-capa-1512x256.png",
+        "linkedin-vida-1128x376": "linkedin-vida-1128x376.png",
+        "linkedin-evento-capa-1776x444": "linkedin-evento-capa-1776x444.png",
+        "gupy-carreiras-760x430": "gupy-carreiras-760x430.png",
+        "gupy-vaga-topo-1980x600": "gupy-vaga-topo-1980x600.png",
+        "glassdoor-logo-512": "glassdoor-logo-512.png",
+        "glassdoor-capa-2880x550": "glassdoor-capa-2880x550.png",
+        "viva-engage-capa-1400x524": "viva-engage-capa-1400x524.png",
+        "teams-equipe-240": "teams-equipe-240.png",
+        "slack-espaco-512": "slack-espaco-512.png",
+        "google-workspace-logo-320x132": "google-workspace-logo-320x132.png",
+        "fundo-videochamada-1920x1080": "fundo-videochamada-1920x1080.png",
+        "papel-de-parede-1920x1080": "papel-de-parede-1920x1080.png",
+        "papel-de-parede-2560x1440": "papel-de-parede-2560x1440.png",
+        "assinatura-logo-600": "assinatura-logo-600.png",
+        "logotipo-2000": "logotipo-2000.png",
+        "logotipo-negativo-2000": "logotipo-negativo-2000.png",
+        "logotipo-uma-cor-2000": "logotipo-uma-cor-2000.png",
+        "logotipo-vertical-2000": "logotipo-vertical-2000.png",
+        "simbolo-2000": "simbolo-2000.png",
+        "avatar-512": "avatar-512.png"
+      },
+      "pastas": {
+        "site": "site",
+        "redes": "redes",
+        "endomarketing": "endomarketing",
+        "email": "email",
+        "apresentacao": "apresentacao"
+      },
+      "extras": {
+        "coleNoSite": "COLE-NO-SITE.html",
+        "assinatura": "assinatura.html",
+        "leiaMe": "LEIA-ME.txt",
+        "logotipo": "logotipo.svg",
+        "logotipoVertical": "logotipo-vertical.svg",
+        "simbolo": "simbolo.svg"
+      }
+    },
+    "cadastro": {
+      "naoDizer": "Prefiro não dizer",
+      "baixar": {
+        "selo": "Quase lá",
+        "titulo": "Para baixar, um cadastro rápido",
+        "texto": "Só uma vez. A ferramenta continua gratuita, e o seu arquivo não sai do seu computador.",
+        "enviar": "Cadastrar e baixar"
+      },
+      "convite": {
+        "selo": "Beta do Brennimark Fonts",
+        "titulo": "Pedir acesso ao beta",
+        "texto": "São 50 vagas, por convite, com 90 dias de uso gratuito. Vamos avaliar o seu pedido e escrever para você com o instalador.",
+        "enviar": "Enviar o pedido"
+      },
+      "campos": {
+        "nome": "Nome",
+        "email": "E-mail",
+        "agencia": "Agência ou estúdio",
+        "cargo": "Cargo",
+        "equipe": "Tamanho da equipe",
+        "marcas": "Marcas que você cuida",
+        "sistema": "Computador",
+        "biblioteca": "Tamanho da biblioteca de fontes",
+        "conheceu": "Como conheceu o Brennimark",
+        "isca": "Site"
+      },
+      "agoraNao": "Agora não",
+      "enviando": "Enviando…",
+      "erros": {
+        "muitosPedidos": "Muitos pedidos deste endereço em pouco tempo. Espere alguns minutos e tente de novo.",
+        "conferir": "Confira os campos e tente de novo.",
+        "falhaDoConvite": "Não foi possível enviar o pedido agora. Tente de novo em instantes, ou escreva para {email}."
+      },
+      "opcoes": {
+        "cargos": {
+          "diretor-de-arte": "Diretor(a) de arte",
+          "designer": "Designer",
+          "atendimento": "Atendimento",
+          "marketing": "Marketing",
+          "freelancer": "Freelancer",
+          "outro": "Outro"
+        },
+        "equipes": {
+          "so-eu": "Só eu",
+          "2-5": "2 a 5 pessoas",
+          "6-15": "6 a 15 pessoas",
+          "16-50": "16 a 50 pessoas",
+          "mais-de-50": "Mais de 50"
+        },
+        "marcas": {
+          "1-3": "1 a 3 marcas",
+          "4-10": "4 a 10 marcas",
+          "11-30": "11 a 30 marcas",
+          "mais-de-30": "Mais de 30"
+        },
+        "conheceu": {
+          "indicacao": "Indicação",
+          "busca": "Busca na internet",
+          "instagram": "Instagram",
+          "linkedin": "LinkedIn",
+          "evento": "Evento",
+          "outro": "Outro"
+        },
+        "sistemas": {
+          "mac-apple": "Mac com chip Apple",
+          "mac-intel": "Mac com chip Intel",
+          "windows": "Windows"
+        },
+        "bibliotecas": {
+          "ate-500": "Até 500 fontes",
+          "500-5000": "De 500 a 5 mil",
+          "mais-de-5000": "Mais de 5 mil",
+          "nao-sei": "Não sei"
+        }
+      }
+    }
   }
 }

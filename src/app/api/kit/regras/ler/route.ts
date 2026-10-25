@@ -46,27 +46,27 @@ export async function POST(request: Request) {
   const workspaceId = auth.workspaceId;
 
   const atuais = await auth.supabase.from("regras_do_logo").select(COLUNAS_DAS_REGRAS).eq("brand_id", brandId);
-  if (atuais.error) return recusa(503, "regras_indisponiveis", "Não foi possível ler as regras agora.");
+  if (atuais.error) return recusa(503, "regras_indisponiveis", (isEnglish ? "Couldn't read the rules right now." : "Não foi possível ler as regras agora."));
   const regras = (atuais.data ?? []).map((l) => deLinhaDaRegra(l as Record<string, unknown>)).filter((x): x is RegraDoLogo => x !== null);
   const faltam = chavesQueFaltam(regras);
   if (faltam.length === 0) return NextResponse.json({ regras, lidas: 0, paginas: [] });
 
   const { manual, sourceDocumentId } = await lerManualDaMarca(auth.supabase, workspaceId, brandId);
-  if (!manual || !sourceDocumentId) return recusa(409, "sem_manual", "Esta marca ainda não tem manual.");
+  if (!manual || !sourceDocumentId) return recusa(409, "sem_manual", (isEnglish ? "This brand doesn't have a manual yet." : "Esta marca ainda não tem manual."));
 
   // As páginas: as que quem edita ligou ao Logotipo valem antes da busca.
   const item = await auth.supabase.from("brand_asset_items").select("regra_paginas")
     .eq("brand_id", brandId).eq("tipo", "logo").order("ordem", { ascending: true }).limit(1).maybeSingle<{ regra_paginas: number[] }>();
   const leitura = await lerManualInteiro(auth.supabase, brandId);
-  if (!leitura.ok) return recusa(503, "knowledge_unavailable", "Não foi possível ler o manual agora.");
+  if (!leitura.ok) return recusa(503, "knowledge_unavailable", (isEnglish ? "Couldn't read the manual right now." : "Não foi possível ler o manual agora."));
   const paginas = paginasDasRegras(leitura.trechos, item.data?.regra_paginas ?? []).filter((p) => p <= manual.paginas);
   if (paginas.length === 0) {
-    return recusa(422, "regras_nao_encontradas", "Não achei no manual as páginas de área de proteção e redução mínima. Quem edita a marca pode ligá-las ao item Logotipo, nos Materiais.");
+    return recusa(422, "regras_nao_encontradas", (isEnglish ? "I couldn't find the clear-space and minimum-size pages in the manual. Whoever edits the brand can link them to the Logotype item, in Materials." : "Não achei no manual as páginas de área de proteção e redução mínima. Quem edita a marca pode ligá-las ao item Logotipo, nos Materiais."));
   }
 
   const vistas = await lerPaginasVistas(auth.supabase, sourceDocumentId, paginas);
   if (vistas.length === 0) {
-    return recusa(409, "paginas_sem_imagem", `As páginas ${paginas.join(", ")} ainda não foram preparadas. No manual, use antes "Preparar o manual para o Vini".`);
+    return recusa(409, "paginas_sem_imagem", (isEnglish ? `Pages ${paginas.join(", ")} haven't been prepared yet. In the manual, first use "Prepare the manual for Vini".` : `As páginas ${paginas.join(", ")} ainda não foram preparadas. No manual, use antes "Preparar o manual para o Vini".`));
   }
   const enviadas = vistas.map((v) => v.pagina);
 
@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     }
     const attempts = routing.attempts.filter((a) => modeloVePaginas(capacidadesDe(a.config.provider, a.config.model)));
     if (attempts.length === 0) {
-      return recusa(422, "model_no_vision", "A leitura das regras está indisponível no momento. Se continuar, fale com o suporte da Brennimark.");
+      return recusa(422, "model_no_vision", (isEnglish ? "Reading the rules is unavailable at the moment. If it continues, talk to Brennimark support." : "A leitura das regras está indisponível no momento. Se continuar, fale com o suporte da Brennimark."));
     }
 
     executionId = crypto.randomUUID();
@@ -90,11 +90,11 @@ export async function POST(request: Request) {
     // de segurança, 10/10/2026): sem isto, cada abertura do Kit numa marca cujo
     // manual não tem as regras pagaria outra leitura.
     const reserva = await serviceClient.rpc("reservar_leitura_das_regras_do_logo", { p_workspace_id: workspaceId, p_brand_id: brandId });
-    if (reserva.error) return recusa(503, "reserva_indisponivel", "Não foi possível ler o manual agora.");
+    if (reserva.error) return recusa(503, "reserva_indisponivel", (isEnglish ? "Couldn't read the manual right now." : "Não foi possível ler o manual agora."));
     if (reserva.data !== true) {
       return NextResponse.json({
         regras, lidas: 0, paginas: [], recente: true,
-        message: "O manual desta marca foi lido nas últimas 24 horas. Quem edita a marca pode informar as regras que faltam.",
+        message: (isEnglish ? "This brand's manual was read in the last 24 hours. Whoever edits the brand can enter the missing rules." : "O manual desta marca foi lido nas últimas 24 horas. Quem edita a marca pode informar as regras que faltam."),
       });
     }
     devolver = () => devolverReserva(serviceClient, "leituras_das_regras_do_logo", brandId);
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
       auth.supabase, serviceClient, auth.user.id, pedido,
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
-    if (!decisao.pode) { await devolver?.(); return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, false)); }
+    if (!decisao.pode) { await devolver?.(); return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish)); }
 
     const inicio = Date.now();
     const execucao = await executarEmFila({

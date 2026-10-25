@@ -1,3 +1,5 @@
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { inEnglish } from "@/platform/locale";
 import { NextResponse } from "next/server";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { COLUNAS_DAS_REGRAS, deLinhaDaRegra, regrasParaOKit, type RegraDoLogo } from "@/lib/kit/regras";
@@ -24,6 +26,7 @@ const SEM_CACHE = { "Cache-Control": "private, no-store" };
 const VALIDADE_DA_MINIATURA_S = 600;
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await conteudoDaRota(request);
   if (!r.ok) return r.resposta;
   const { contexto, auth } = r;
@@ -45,7 +48,7 @@ export async function GET(request: Request) {
     auth.supabase.from("tipografia_da_marca").select("id", { count: "exact", head: true }).eq("brand_id", brandId).eq("status", "draft"),
   ]);
   if (regras.error || regrasDoLogo.error || variantes.error || paleta.error) {
-    return NextResponse.json({ message: "Não foi possível ler as regras da marca." }, { status: 503, headers: SEM_CACHE });
+    return NextResponse.json({ message: (isEnglish ? "Couldn't read the brand's rules." : "Não foi possível ler as regras da marca.") }, { status: 503, headers: SEM_CACHE });
   }
 
   const caminhos = (variantes.data ?? [])
@@ -88,12 +91,13 @@ const IDS = new Set(["todos", ...FORMATOS.map((f) => f.id)]);
 const numOuNulo = (v: unknown) => (v === null || v === undefined || v === "" ? null : Number(v));
 
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await conteudoDaRota(request);
   if (!r.ok) return r.resposta;
   const { contexto, auth } = r;
   if (!contexto.brand) return NextResponse.json({ error: "sem_marca" }, { status: 409 });
   if (!contexto.capabilities.includes("editar")) {
-    return NextResponse.json({ message: "Só quem edita esta marca guarda regras de grid." }, { status: 403 });
+    return NextResponse.json({ message: (isEnglish ? "Only people who edit this brand save grid rules." : "Só quem edita esta marca guarda regras de grid.") }, { status: 403 });
   }
   const c = await request.json().catch(() => null);
   const formato = typeof c?.formato === "string" ? c.formato : "";
@@ -101,16 +105,16 @@ export async function PATCH(request: Request) {
   const unidade = formato === "todos" ? "proporcao" : FORMATOS.find((f) => f.id === formato)!.unidade;
   const campos = ["colunas", "linhas", "medianiz", "margem_sup", "margem_inf", "margem_esq", "margem_dir", "linha_de_base"] as const;
   const valores = Object.fromEntries(campos.map((k) => [k, numOuNulo(c?.[k])]));
-  if (Object.values(valores).some((v) => v !== null && !Number.isFinite(v))) return NextResponse.json({ message: "Valor inválido." }, { status: 400 });
+  if (Object.values(valores).some((v) => v !== null && !Number.isFinite(v))) return NextResponse.json({ message: (isEnglish ? "Invalid value." : "Valor inválido.") }, { status: 400 });
   const pagina = numOuNulo(c?.pagina);
-  if (pagina !== null && !(Number.isInteger(pagina) && pagina >= 1)) return NextResponse.json({ message: "Página inválida." }, { status: 400 });
+  if (pagina !== null && !(Number.isInteger(pagina) && pagina >= 1)) return NextResponse.json({ message: (isEnglish ? "Invalid page." : "Página inválida.") }, { status: 400 });
   const zonas = Array.isArray(c?.zonas) ? (c.zonas as unknown[]).map(Number) : null;
 
   // Variante e segmento são a identidade da regra (16/10/2026): vários grids por formato.
   const aparar = (v: unknown) => (typeof v === "string" ? v.trim() : "");
   const variante = aparar(c?.variante);
   const segmento = aparar(c?.segmento);
-  if (variante.length > 60 || segmento.length > 60) return NextResponse.json({ message: "Nome da estrutura e segmento: até 60 caracteres." }, { status: 400 });
+  if (variante.length > 60 || segmento.length > 60) return NextResponse.json({ message: (isEnglish ? "Structure name and segment: up to 60 characters." : "Nome da estrutura e segmento: até 60 caracteres.") }, { status: 400 });
 
   const linha = {
     workspace_id: auth.workspaceId, brand_id: contexto.brand.id, formato, variante, segmento, tipo: String(c?.tipo ?? ""), unidade,
@@ -118,8 +122,8 @@ export async function PATCH(request: Request) {
   };
   const { data, error } = await auth.supabase.from("regras_de_grid")
     .upsert(linha, { onConflict: "brand_id,formato,segmento,variante" }).select(COLUNAS_DAS_REGRAS_DE_GRID).single();
-  if (error?.code === "23514") return NextResponse.json({ message: "Algum valor está fora do que uma regra de grid admite." }, { status: 400 });
-  if (error?.code === "42501") return NextResponse.json({ message: "Só quem edita esta marca guarda regras de grid." }, { status: 403 });
-  if (error || !data) return NextResponse.json({ message: "Não foi possível guardar a regra." }, { status: 500 });
+  if (error?.code === "23514") return NextResponse.json({ message: (isEnglish ? "Some value is outside what a grid rule allows." : "Algum valor está fora do que uma regra de grid admite.") }, { status: 400 });
+  if (error?.code === "42501") return NextResponse.json({ message: (isEnglish ? "Only people who edit this brand save grid rules." : "Só quem edita esta marca guarda regras de grid.") }, { status: 403 });
+  if (error || !data) return NextResponse.json({ message: (isEnglish ? "Couldn't save the rule." : "Não foi possível guardar a regra.") }, { status: 500 });
   return NextResponse.json({ regra: deLinhaDaRegraDeGrid(data as Record<string, unknown>) }, { headers: SEM_CACHE });
 }

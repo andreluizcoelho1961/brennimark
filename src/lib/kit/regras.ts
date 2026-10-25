@@ -1,3 +1,4 @@
+import type { Tradutor } from "../i18n/tradutor";
 import type { Trecho } from "../ai/recuperacao";
 import type { ReducaoMinima } from "./pacote";
 import { paginasDoAssunto } from "../ai/paginas-do-assunto";
@@ -138,13 +139,11 @@ export function lerRegrasDaIA(texto: string, paginasEnviadas: readonly number[])
 }
 
 /** Como a tela diz o valor. */
-export function valorLegivel(r: Pick<RegraDoLogo, "chave" | "valor">): string {
-  if (r.chave === "area_de_protecao") return `${Math.round(r.valor * 100)}% da altura do logo`;
-  return `${Math.round(r.valor)} px de largura`;
+/** `t` é o tradutor ligado a `ferramentas.kit`. */
+export function valorLegivel(r: Pick<RegraDoLogo, "chave" | "valor">, t: Tradutor): string {
+  if (r.chave === "area_de_protecao") return t("regras.valorProtecao", { pct: Math.round(r.valor * 100) });
+  return t("regras.valorLargura", { px: Math.round(r.valor) });
 }
 
-export const NOME_DA_REGRA: Record<ChaveDaRegra, string> = {
-  area_de_protecao: "Área de proteção",
-  reducao_minima_logo: "Redução mínima do logotipo",
-  reducao_minima_simbolo: "Redução mínima do símbolo",
-};
+/** O nome de cada regra vem do catálogo: `regras.nome.<chave>`. */
+export const NOME_DA_REGRA_CHAVE = { area_de_protecao: "regras.nome.area_de_protecao", reducao_minima_logo: "regras.nome.reducao_minima_logo", reducao_minima_simbolo: "regras.nome.reducao_minima_simbolo" } as const satisfies Record<ChaveDaRegra, string>;

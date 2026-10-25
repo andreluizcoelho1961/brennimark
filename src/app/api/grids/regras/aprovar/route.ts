@@ -1,3 +1,5 @@
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { inEnglish } from "@/platform/locale";
 import { NextResponse } from "next/server";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 
@@ -7,12 +9,13 @@ import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
  * aprova por aqui. Regra alheia ou inexistente: nada aprovado.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await conteudoDaRota(request);
   if (!r.ok) return r.resposta;
   const corpo = await request.json().catch(() => null);
   const ids = Array.isArray(corpo?.ids) ? (corpo.ids as unknown[]).filter((i): i is string => typeof i === "string").slice(0, 50) : [];
   if (ids.length === 0) return NextResponse.json({ message: "Nada para aprovar." }, { status: 400 });
   const { data, error } = await r.auth.supabase.rpc("aprovar_regras_de_grid", { p_ids: ids });
-  if (error) return NextResponse.json({ message: "Não foi possível aprovar agora." }, { status: 500 });
+  if (error) return NextResponse.json({ message: (isEnglish ? "Couldn't approve right now." : "Não foi possível aprovar agora.") }, { status: 500 });
   return NextResponse.json({ aprovadas: data as number }, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { carregarDesenho, type Desenho } from "@/lib/kit/desenhar-no-navegador";
@@ -7,8 +8,9 @@ import {
   PAPEIS, nomeDaVariante, opcoesDoPapel, type DesenhosDaMarca, type Papel, type VarianteDoKit,
 } from "@/lib/kit/materiais-do-kit";
 import {
-  CHAVES_DAS_REGRAS, NOME_DA_REGRA, chavesQueFaltam, regrasParaOKit, valorLegivel, type ChaveDaRegra, type RegraDoLogo,
+  CHAVES_DAS_REGRAS, NOME_DA_REGRA_CHAVE, chavesQueFaltam, regrasParaOKit, valorLegivel, type ChaveDaRegra, type RegraDoLogo,
 } from "@/lib/kit/regras";
+import { textoDaRecusa } from "@/lib/kit/formatos";
 import { KitAvulso } from "./KitAvulso";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
@@ -50,6 +52,8 @@ type Carregados = Record<Papel, Desenho | null>;
 type Escolha = Record<Papel, string | null>;
 
 export function KitDoAssinante() {
+  const t = useTranslations("ferramentas.kit");
+  const tArquivos = useTranslations("ferramentas.arquivos");
   const alvo = useAlvo();
   const [estado, setEstado] = useState<Estado | null>(null);
   const [desenhos, setDesenhos] = useState<Carregados | null>(null);
@@ -60,17 +64,17 @@ export function KitDoAssinante() {
   const [falhas, setFalhas] = useState<Record<string, string>>({});
   const baixados = useRef(new Map<string, Promise<Desenho>>());
   const [erro, setErro] = useState("");
-  const [lendo, setLendo] = useState<"nao" | "lendo" | "feito">("nao");
+  const [lendo, setLendo] = useState<"parado" | "lendo" | "feito">("parado");
   const [avisoDaLeitura, setAvisoDaLeitura] = useState("");
   const pediu = useRef(false);
 
   const carregar = useCallback(async () => {
     const r = await fetch(comAlvo("/api/kit/regras", alvo), { cache: "no-store" }).catch(() => null);
     const corpo = r ? await r.json().catch(() => ({})) : {};
-    if (!r?.ok) { setErro(corpo.message ?? "Não foi possível abrir o Kit agora."); return null; }
+    if (!r?.ok) { setErro(corpo.message ?? t("ui.assinante.erroAbrir")); return null; }
     setEstado(corpo as Estado);
     return corpo as Estado;
-  }, [alvo]);
+  }, [alvo, t]);
 
   // 1. Regras e desenhos.
   useEffect(() => {
@@ -79,7 +83,7 @@ export function KitDoAssinante() {
       const r = await fetch(comAlvo("/api/kit/regras", alvo), { cache: "no-store" }).catch(() => null);
       const corpo = r ? await r.json().catch(() => ({})) : {};
       if (cancelado) return;
-      if (!r?.ok) setErro(corpo.message ?? "Não foi possível abrir o Kit agora.");
+      if (!r?.ok) setErro(corpo.message ?? t("ui.assinante.erroAbrir"));
       else {
         const e = corpo as Estado;
         setEstado(e);
@@ -88,7 +92,7 @@ export function KitDoAssinante() {
       }
     })();
     return () => { cancelado = true; };
-  }, [alvo]);
+  }, [alvo, t]);
 
   // 2. Os originais escolhidos, cada um pela rota que registra o download —
   // uma vez por versão: voltar a uma versão já vista não baixa de novo.
@@ -107,9 +111,9 @@ export function KitDoAssinante() {
           });
           const corpo = await r.json().catch(() => ({}));
           const url = corpo?.arquivos?.[0]?.url as string | undefined;
-          if (!r.ok || !url) throw new Error(corpo.message ?? "Não foi possível buscar o logo nos Materiais.");
+          if (!r.ok || !url) throw new Error(corpo.message ?? t("ui.assinante.erroBuscar"));
           const blob = await (await fetch(url, { cache: "no-store" })).blob();
-          return carregarDesenho(new File([blob], v.arquivo, { type: v.mime || blob.type }));
+          return carregarDesenho(new File([blob], v.arquivo, { type: v.mime || blob.type }), tArquivos);
         })();
         // Falhou: esquece, para uma nova tentativa não reaproveitar o erro.
         pronto.catch(() => baixados.current.delete(v.id));
@@ -120,7 +124,7 @@ export function KitDoAssinante() {
     (async () => {
       const prontos = await Promise.all(PAPEIS.map(async (p) => {
         try { return [p, await original(escolha[p]), null] as const; }
-        catch (e) { return [p, null, e instanceof Error ? e.message : "Não foi possível abrir esta versão."] as const; }
+        catch (e) { return [p, null, e instanceof Error ? e.message : t("ui.assinante.erroVersao")] as const; }
       }));
       if (cancelado) return;
       const erros = prontos.filter(([, , e]) => e);
@@ -140,7 +144,7 @@ export function KitDoAssinante() {
       setDesenhos(Object.fromEntries(prontos.map(([p, d]) => [p, d])) as Carregados);
     })();
     return () => { cancelado = true; };
-  }, [versoes, escolha, alvo]);
+  }, [versoes, escolha, alvo, t, tArquivos]);
 
   // 3. Falta regra: o Kit lê o manual, uma vez por visita.
   useEffect(() => {
@@ -153,13 +157,13 @@ export function KitDoAssinante() {
       if (r?.ok) {
         setEstado((atual) => (atual ? { ...atual, regras: corpo.regras ?? atual.regras } : atual));
         if (corpo.recente) setAvisoDaLeitura(corpo.message);
-        else if (corpo.lidas === 0) setAvisoDaLeitura("O Kit leu o manual e não encontrou essas regras nas páginas que olhou.");
+        else if (corpo.lidas === 0) setAvisoDaLeitura(t("ui.assinante.manualSemRegras"));
       } else {
-        setAvisoDaLeitura(corpo.message ?? "Não foi possível ler o manual agora.");
+        setAvisoDaLeitura(corpo.message ?? t("ui.assinante.manualErro"));
       }
       setLendo("feito");
     })();
-  }, [estado, alvo]);
+  }, [estado, alvo, t]);
 
   async function aprovar(id: string) {
     const r = await fetch(comAlvo("/api/kit/regras/aprovar", alvo), {
@@ -173,25 +177,25 @@ export function KitDoAssinante() {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ chave, valor, pagina }),
     }).catch(() => null);
     const corpo = r ? await r.json().catch(() => ({})) : {};
-    if (!r?.ok) return corpo.message ?? "Não foi possível guardar.";
+    if (!r?.ok) return corpo.message ?? t("ui.assinante.guardarErro");
     await carregar();
     return "";
   }
 
   if (erro) return <p role="alert" className="m-6 text-sm text-platform-text">{erro}</p>;
-  if (!estado || !desenhos) return <p data-kit-carregando className="m-6 text-sm text-platform-text-muted">Abrindo o Kit da marca…</p>;
+  if (!estado || !desenhos) return <p data-kit-carregando className="m-6 text-sm text-platform-text-muted">{t("ui.assinante.abrindo")}</p>;
   if (!desenhos.logo) {
     return (
       <div data-kit-sem-logo className="m-6 max-w-[40rem] rounded-[var(--radius-panel)] border border-dashed border-platform-border p-6 text-[15px] leading-relaxed text-platform-text-muted">
         {versoes?.desenhos.semLogoPorque
-          ?? "Esta marca ainda não tem o logotipo nos Materiais (um item do tipo Logo, versão positiva, em SVG, PDF, AI ou PNG). Assim que alguém cadastrar, o Kit monta todos os tamanhos a partir dele."}
+          ?? t("ui.assinante.semLogo")}
       </div>
     );
   }
 
   const aplicadas = regrasParaOKit(estado.regras);
   const fonte = (r: RegraDoLogo | undefined) =>
-    r ? `do manual${r.pagina ? `, p. ${r.pagina}` : ""}${r.status === "ready" ? ", aprovada" : r.origem === "ia" ? ", lida pela IA e ainda não confirmada" : ", ainda não aprovada"}` : undefined;
+    r ? `${t("ui.assinante.fonte.doManual")}${r.pagina ? t("ui.assinante.fonte.pagina", { n: r.pagina }) : ""}${r.status === "ready" ? t("ui.assinante.fonte.aprovada") : r.origem === "ia" ? t("ui.assinante.fonte.lidaPelaIA") : t("ui.assinante.fonte.naoAprovada")}` : undefined;
   const regra = (c: ChaveDaRegra) => estado.regras.find((r) => r.chave === c);
 
   return (
@@ -221,12 +225,7 @@ export function KitDoAssinante() {
   );
 }
 
-const PAPEL: Record<Papel, { titulo: string; uso: string; semNada: string }> = {
-  logo: { titulo: "Logotipo", uso: "capas, banners e e-mail", semNada: "" },
-  vertical: { titulo: "Logotipo vertical", uso: "quadrados e círculos, quando não há símbolo", semNada: "Usar o logotipo acima" },
-  simbolo: { titulo: "Símbolo", uso: "ícones, favicon e perfis", semNada: "Não usar" },
-  negativo: { titulo: "Para fundo escuro", uso: "quando o fundo escolhido é escuro", semNada: "O Kit faz em branco" },
-};
+/** Título, uso e o texto de "sem versão" de cada papel: `ui.assinante.papel.<papel>` no catálogo. */
 
 /**
  * A escolha das versões, pelas miniaturas dos Materiais. A miniatura é um PNG
@@ -237,12 +236,14 @@ function SeletorDeVersoes({ todas, escolha, falhas, automatica, aoEscolher }: {
   todas: VarianteDoKit[]; escolha: Escolha; falhas: Record<string, string>; automatica: DesenhosDaMarca;
   aoEscolher: (p: Papel, id: string | null) => void;
 }) {
+  const t = useTranslations("ferramentas.kit");
+  const tArquivos = useTranslations("ferramentas.arquivos");
   return (
     <>
       {PAPEIS.map((papel) => {
         const opcoes = opcoesDoPapel(todas, papel);
         if (papel !== "logo" && opcoes.length === 0) return null;
-        const info = PAPEL[papel];
+        const info = { titulo: t(`ui.assinante.papel.${papel}.titulo`), uso: t(`ui.assinante.papel.${papel}.uso`), semNada: papel === "logo" ? "" : t(`ui.assinante.papel.${papel}.semNada`) };
         return (
           <fieldset key={papel} data-kit-papel={papel} className="flex flex-col gap-1.5 border-t border-platform-border pt-2.5 first:border-t-0 first:pt-0">
             <legend className="contents">
@@ -250,14 +251,15 @@ function SeletorDeVersoes({ todas, escolha, falhas, automatica, aoEscolher }: {
             </legend>
             <span className="text-[12px] leading-snug text-platform-text-muted">{info.uso}</span>
             <div className="flex flex-wrap gap-2">
-              {opcoes.map(({ variante: v, abre, motivo }) => {
+              {opcoes.map(({ variante: v, abre, recusa }) => {
                 const falha = falhas[v.id];
                 const desligada = !abre || Boolean(falha);
                 const marcada = escolha[papel] === v.id;
-                const nome = nomeDaVariante(v);
+                const nome = nomeDaVariante(v, tArquivos);
+                const motivo = recusa ? textoDaRecusa(recusa, tArquivos) : null;
                 return (
                   <Dica key={v.id} texto={dicaDe("kit-versao")} lado="cima"><button type="button" data-kit-opcao={v.id} aria-pressed={marcada} disabled={desligada}
-                    title={motivo ?? falha ?? (automatica[papel]?.id === v.id ? `${nome} (escolha do Kit)` : nome)}
+                    title={motivo ?? falha ?? (automatica[papel]?.id === v.id ? t("ui.assinante.escolhaDoKit", { nome }) : nome)}
                     onClick={() => aoEscolher(papel, v.id)}
                     className={`flex w-[104px] flex-col items-center gap-1 rounded-[var(--radius-control)] border p-1.5 text-center transition-colors ${marcada ? "border-platform-text" : "border-platform-border"} ${desligada ? "cursor-not-allowed opacity-45" : "hover:border-platform-text"}`}>
                     <span className={`grid h-12 w-full place-items-center overflow-hidden rounded-[6px] ${papel === "negativo" ? "bg-[#111418]" : "bg-white"}`}>
@@ -278,12 +280,12 @@ function SeletorDeVersoes({ todas, escolha, falhas, automatica, aoEscolher }: {
               )}
             </div>
             {opcoes.filter((o) => !o.abre || falhas[o.variante.id]).slice(0, 1).map((o) => (
-              <p key={o.variante.id} className="text-[11.5px] leading-snug text-platform-text-muted">{o.variante.arquivo}: {falhas[o.variante.id] ?? o.motivo}</p>
+              <p key={o.variante.id} className="text-[11.5px] leading-snug text-platform-text-muted">{o.variante.arquivo}: {falhas[o.variante.id] ?? (o.recusa ? textoDaRecusa(o.recusa, tArquivos) : "")}</p>
             ))}
           </fieldset>
         );
       })}
-      <p className="text-[12px] leading-snug text-platform-text-muted">Vêm dos Materiais da marca. O Kit já marcou a melhor de cada; troque se quiser.</p>
+      <p className="text-[12px] leading-snug text-platform-text-muted">{t("ui.assinante.seletorNota")}</p>
     </>
   );
 }
@@ -293,12 +295,13 @@ function PainelDeRegras({ regras, lendo, aviso, podeEditar, podeAprovar, aoAprov
   aoAprovar: (id: string) => void; aoCorrigir: (c: ChaveDaRegra, v: number, p: number | null) => Promise<string>;
   linkDaPagina: (p: number) => string;
 }) {
+  const t = useTranslations("ferramentas.kit");
   return (
     <div data-kit-regras-do-manual className="flex flex-col gap-3 rounded-[var(--radius-panel)] border border-platform-border p-3">
       <div>
-        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted">Regras do manual</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted">{t("ui.assinante.painel.titulo")}</span>
         <p className="mt-1 text-[12.5px] leading-snug text-platform-text-muted">
-          {lendo ? "Lendo o manual da marca…" : "O Kit aplica o que está no manual. Só a regra aprovada vale sem aviso."}
+          {lendo ? t("ui.assinante.painel.lendo") : t("ui.assinante.painel.aplica")}
         </p>
       </div>
       {CHAVES_DAS_REGRAS.map((c) => (
@@ -315,6 +318,7 @@ function LinhaDaRegra({ chave, regra, lendo, podeEditar, podeAprovar, aoAprovar,
   aoAprovar: (id: string) => void; aoCorrigir: (c: ChaveDaRegra, v: number, p: number | null) => Promise<string>;
   linkDaPagina: (p: number) => string;
 }) {
+  const t = useTranslations("ferramentas.kit");
   const [editando, setEditando] = useState(false);
   const area = chave === "area_de_protecao";
   const [valor, setValor] = useState("");
@@ -329,50 +333,50 @@ function LinhaDaRegra({ chave, regra, lendo, podeEditar, podeAprovar, aoAprovar,
   }
   async function guardar() {
     const n = Number(valor.replace(",", "."));
-    if (!Number.isFinite(n) || n <= 0) { setErro("Digite um número."); return; }
+    if (!Number.isFinite(n) || n <= 0) { setErro(t("ui.assinante.linha.digiteNumero")); return; }
     const motivo = await aoCorrigir(chave, area ? n / 100 : n, pagina ? Number(pagina) : null);
     if (motivo) setErro(motivo); else setEditando(false);
   }
 
   const situacao = !regra ? null
-    : regra.status === "ready" ? { texto: "aprovada", classe: "text-platform-success" }
-      : regra.origem === "ia" ? { texto: "lida pela IA — confira", classe: "text-platform-warning" }
-        : { texto: "rascunho — falta aprovar", classe: "text-platform-warning" };
+    : regra.status === "ready" ? { texto: t("ui.assinante.linha.aprovada"), classe: "text-platform-success" }
+      : regra.origem === "ia" ? { texto: t("ui.assinante.linha.lida"), classe: "text-platform-warning" }
+        : { texto: t("ui.assinante.linha.rascunho"), classe: "text-platform-warning" };
 
   return (
     <div data-kit-regra={chave} className="flex flex-col gap-1 border-t border-platform-border pt-2.5 first-of-type:border-t-0">
-      <span className="text-[13px] font-medium text-platform-text">{NOME_DA_REGRA[chave]}</span>
+      <span className="text-[13px] font-medium text-platform-text">{t(NOME_DA_REGRA_CHAVE[chave])}</span>
       {editando ? (
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <input aria-label={area ? "Porcentagem da altura do logo" : "Largura mínima em px"} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)}
-              className="w-24 rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-2 py-1 text-sm" placeholder={area ? "%" : "px"} />
-            <input aria-label="Página do manual" inputMode="numeric" value={pagina} onChange={(e) => setPagina(e.target.value.replace(/\D/g, ""))}
-              className="w-20 rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-2 py-1 text-sm" placeholder="pág." />
+            <input aria-label={area ? t("ui.assinante.linha.ariaPct") : t("ui.assinante.linha.ariaPx")} inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)}
+              className="w-24 rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-2 py-1 text-sm" placeholder={area ? t("ui.assinante.linha.pctPh") : t("ui.assinante.linha.pxPh")} />
+            <input aria-label={t("ui.assinante.linha.ariaPagina")} inputMode="numeric" value={pagina} onChange={(e) => setPagina(e.target.value.replace(/\D/g, ""))}
+              className="w-20 rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-2 py-1 text-sm" placeholder={t("ui.assinante.linha.paginaPh")} />
           </div>
           <div className="flex gap-3 text-[12.5px]">
-            <button type="button" onClick={guardar} className="font-medium text-platform-text underline">Guardar</button>
-            <button type="button" onClick={() => setEditando(false)} className="text-platform-text-muted underline">Cancelar</button>
+            <button type="button" onClick={guardar} className="font-medium text-platform-text underline">{t("ui.assinante.linha.guardar")}</button>
+            <button type="button" onClick={() => setEditando(false)} className="text-platform-text-muted underline">{t("ui.assinante.linha.cancelar")}</button>
           </div>
           {erro && <p className="text-[12px] text-platform-danger">{erro}</p>}
         </div>
       ) : regra ? (
         <>
-          <span data-kit-regra-valor className="text-[13px] text-platform-text">{valorLegivel(regra)}</span>
+          <span data-kit-regra-valor className="text-[13px] text-platform-text">{valorLegivel(regra, t)}</span>
           {regra.descricao && <span className="text-[12px] leading-snug text-platform-text-muted">“{regra.descricao}”</span>}
           <span className="flex flex-wrap items-center gap-x-2 text-[12px]">
-            {regra.pagina && <a href={linkDaPagina(regra.pagina)} className="text-platform-text-muted underline">manual, p. {regra.pagina}</a>}
+            {regra.pagina && <a href={linkDaPagina(regra.pagina)} className="text-platform-text-muted underline">{t("ui.assinante.linha.manualPagina", { n: regra.pagina })}</a>}
             {situacao && <span data-kit-regra-situacao className={situacao.classe}>{situacao.texto}</span>}
           </span>
           <span className="flex gap-3 text-[12.5px]">
-            {podeAprovar && regra.status === "draft" && <Dica texto={dicaDe("kit-confirmar")} lado="cima"><button type="button" data-kit-confirmar onClick={() => aoAprovar(regra.id)} className="font-medium text-platform-text underline">Confirmar</button></Dica>}
-            {podeEditar && <button type="button" onClick={abrir} className="text-platform-text-muted underline">Corrigir</button>}
+            {podeAprovar && regra.status === "draft" && <Dica texto={dicaDe("kit-confirmar")} lado="cima"><button type="button" data-kit-confirmar onClick={() => aoAprovar(regra.id)} className="font-medium text-platform-text underline">{t("ui.assinante.linha.confirmar")}</button></Dica>}
+            {podeEditar && <button type="button" onClick={abrir} className="text-platform-text-muted underline">{t("ui.assinante.linha.corrigir")}</button>}
           </span>
         </>
       ) : (
         <span className="flex flex-wrap gap-x-2 text-[12.5px] text-platform-text-muted">
-          {lendo ? "procurando no manual…" : "não encontrada no manual"}
-          {!lendo && podeEditar && <button type="button" onClick={abrir} className="underline">Informar</button>}
+          {lendo ? t("ui.assinante.linha.procurando") : t("ui.assinante.linha.naoEncontrada")}
+          {!lendo && podeEditar && <button type="button" onClick={abrir} className="underline">{t("ui.assinante.linha.informar")}</button>}
         </span>
       )}
     </div>

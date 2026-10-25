@@ -19,6 +19,8 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+import type { Tradutor } from "../i18n/tradutor";
+
 export type Rgb = [number, number, number];
 
 const limitar = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -130,31 +132,41 @@ export function deltaE2000(hexA: string, hexB: string): number {
   return Math.sqrt((dL / Sl) ** 2 + (dC / Sc) ** 2 + (dH / Sh) ** 2 + Rt * (dC / Sc) * (dH / Sh));
 }
 
-// ─── O nome em português (regras, sem tabela de terceiros) ─────────────────
+// ─── O nome da cor (regras, sem tabela de terceiros) ───────────────────────
 
+/** As faixas de matiz e o nome de cada uma: a chave é a de `nome.base.*` no catálogo. */
 const FAIXAS_DE_MATIZ: [number, string][] = [
-  [10, "vermelho"], [20, "laranja avermelhado"], [38, "laranja"], [48, "âmbar"], [62, "amarelo"], [80, "verde-limão"],
-  [150, "verde"], [172, "verde-água"], [195, "azul petróleo"], [215, "azul"], [245, "azul royal"], [265, "anil"],
+  [10, "vermelho"], [20, "laranjaAvermelhado"], [38, "laranja"], [48, "ambar"], [62, "amarelo"], [80, "verdeLimao"],
+  [150, "verde"], [172, "verdeAgua"], [195, "azulPetroleo"], [215, "azul"], [245, "azulRoyal"], [265, "anil"],
   [290, "roxo"], [320, "magenta"], [345, "rosa"], [361, "vermelho"],
 ];
 
-export function nomeDaCor(hex: string): string {
+/** O nome da cor no idioma de `t` (ligado a `ferramentas.cores`); cada idioma ordena as partes como precisa. */
+export function nomeDaCor(hex: string, t: Tradutor): string {
   const [r, g, b] = hexParaRgb(hex);
   const [h, s, v] = rgbParaHsb(r, g, b);
   const L = rgbParaLab(r, g, b)[0];
   if (s < 10 || (s < 18 && v < 30)) {
-    if (L > 96) return "branco";
-    if (L < 8) return "preto";
-    const temperatura = b > r + 6 ? " frio" : r > b + 6 ? " quente" : "";
-    return "cinza" + temperatura + (L > 75 ? " claro" : L < 35 ? " escuro" : "");
+    if (L > 96) return t("nome.base.branco");
+    if (L < 8) return t("nome.base.preto");
+    const temperatura = b > r + 6 ? "frio" : r > b + 6 ? "quente" : null;
+    const claridade = L > 75 ? "claro" : L < 35 ? "escuro" : null;
+    return t("nome.cinza", {
+      temperatura: temperatura ? t(`nome.temperatura.${temperatura}`) : "",
+      claridade: claridade ? t(`nome.claridade.${claridade}`) : "",
+    });
   }
   let base = FAIXAS_DE_MATIZ.find(([limite]) => h < limite)![1];
-  if (base.startsWith("laranja") && v < 55) base = "marrom" + (s > 60 ? " avermelhado" : "");
-  if (base === "âmbar" && v < 55) base = "marrom dourado";
+  if (base.startsWith("laranja") && v < 55) base = s > 60 ? "marromAvermelhado" : "marrom";
+  if (base === "ambar" && v < 55) base = "marromDourado";
   if (base === "amarelo" && v < 60) base = "oliva";
-  const claridade = L > 80 ? " claro" : L < 22 ? " muito escuro" : L < 38 ? " escuro" : "";
-  const forca = s > 85 && v > 80 ? " vivo" : s < 35 ? " acinzentado" : "";
-  return base + claridade + forca;
+  const claridade = L > 80 ? "claro" : L < 22 ? "muitoEscuro" : L < 38 ? "escuro" : null;
+  const forca = s > 85 && v > 80 ? "vivo" : s < 35 ? "acinzentado" : null;
+  return t("nome.cor", {
+    base: t(`nome.base.${base}`),
+    claridade: claridade ? t(`nome.claridade.${claridade}`) : "",
+    forca: forca ? t(`nome.forca.${forca}`) : "",
+  });
 }
 
 // ─── Leitura: contraste e daltonismo ───────────────────────────────────────
@@ -170,21 +182,22 @@ export function contraste(a: string, b: string): number {
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
 
-export type Veredito = { textoPequeno: "AAA" | "AA" | "não passa"; textoGrande: "AAA" | "AA" | "não passa"; iconesEBotoes: "passa" | "não passa" };
+/** O veredito é um CÓDIGO (`falha`, `passa`…); quem mostra traduz com `veredito.*` do catálogo. */
+export type Veredito = { textoPequeno: "AAA" | "AA" | "falha"; textoGrande: "AAA" | "AA" | "falha"; iconesEBotoes: "passa" | "falha" };
 
 export function veredito(razao: number): Veredito {
   return {
-    textoPequeno: razao >= 7 ? "AAA" : razao >= 4.5 ? "AA" : "não passa",
-    textoGrande: razao >= 4.5 ? "AAA" : razao >= 3 ? "AA" : "não passa",
-    iconesEBotoes: razao >= 3 ? "passa" : "não passa",
+    textoPequeno: razao >= 7 ? "AAA" : razao >= 4.5 ? "AA" : "falha",
+    textoGrande: razao >= 4.5 ? "AAA" : razao >= 3 ? "AA" : "falha",
+    iconesEBotoes: razao >= 3 ? "passa" : "falha",
   };
 }
 
 /** Matrizes de Machado et al. (severidade total), aplicadas em RGB linear. */
 export const DALTONISMOS = {
-  protanopia: { nome: "Protanopia (sem vermelho)", m: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]] },
-  deuteranopia: { nome: "Deuteranopia (sem verde)", m: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.01182, 0.04294, 0.968881]] },
-  tritanopia: { nome: "Tritanopia (sem azul)", m: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.3039]] },
+  protanopia: { m: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]] },
+  deuteranopia: { m: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.01182, 0.04294, 0.968881]] },
+  tritanopia: { m: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.3039]] },
 } as const;
 export type Daltonismo = keyof typeof DALTONISMOS;
 
@@ -230,23 +243,21 @@ export function compararComAMarca(hex: string, paleta: readonly CorDaMarca[]): C
   return { tipo: "diferente", ...referencia, aprovada: referencia.cor.status === "ready" };
 }
 
-/** A resposta em português, não em número. */
-export function fraseDaComparacao(c: Comparacao): string {
-  if (c.tipo === "sem-paleta") return "A paleta desta marca ainda não tem cores com código HEX no Brennimark.";
-  const pagina = c.cor.pagina ? ` — manual, p. ${c.cor.pagina}` : "";
+/** A resposta em palavras, não em número, no idioma de `t` (ligado a `ferramentas.cores`). */
+export function fraseDaComparacao(c: Comparacao, t: Tradutor): string {
+  if (c.tipo === "sem-paleta") return t("comparacao.semPaleta");
+  const pagina = c.cor.pagina ? t("comparacao.paginaManual", { n: c.cor.pagina }) : "";
   // Cor sem nome no manual chega com o próprio código como nome: não repetir
   // ("#E00B39 (#E00B39)", visto no Bradesco em 10/10/2026).
   const hex = c.cor.hex.toUpperCase();
   const semNome = c.cor.nome.trim().replace(/^#/, "").toUpperCase() === hex.replace(/^#/, "");
   const nome = semNome ? hex : `${c.cor.nome} (${hex})`;
   if (!c.aprovada) {
-    return c.tipo === "diferente"
-      ? `Não é uma cor da marca. A mais próxima é ${nome}, que ainda está em rascunho no manual.`
-      : `Parecida com ${nome}, que ainda está em RASCUNHO no manual — não vale como cor da marca até ser aprovada${pagina}.`;
+    return c.tipo === "diferente" ? t("comparacao.diferenteRascunho", { nome }) : t("comparacao.quaseRascunho", { nome, pagina });
   }
-  if (c.tipo === "igual") return `É ${nome}, aprovada${pagina}.`;
-  if (c.tipo === "quase") return `Praticamente ${nome}: a diferença é imperceptível a olho${pagina}.`;
-  return `Não é uma cor da marca. A mais próxima é ${nome}, e a diferença é visível.`;
+  if (c.tipo === "igual") return t("comparacao.igual", { nome, pagina });
+  if (c.tipo === "quase") return t("comparacao.quase", { nome, pagina });
+  return t("comparacao.diferente", { nome });
 }
 
 // ─── Levar para o trabalho ─────────────────────────────────────────────────

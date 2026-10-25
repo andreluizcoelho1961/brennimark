@@ -1,13 +1,27 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { formatoPorId } from "./formatos";
-import { PT_POR_MM, calcularGrid, escolhasPadrao } from "./calcular";
-import { aplicarRegras, deLinhaDaRegraDeGrid, fraseDaOrigem, instrucoesDoGrid, nomeDaRegra, regrasDoFormato, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
-import { cantoPadrao, coresParaODocumento, estilosDoFormato, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid, lerCmyk, linhasDosEstilos, margensComProtecao, posicionarLogo, type FonteParaOGrid } from "./marca";
-import { arquivosDoIdml } from "./idml";
+import { PT_POR_MM, calcularGrid as calcularGridBase, escolhasPadrao } from "./calcular";
+import { aplicarRegras as aplicarRegrasBase, deLinhaDaRegraDeGrid, fraseDaOrigem as fraseDaOrigemBase, instrucoesDoGrid as instrucoesDoGridBase, nomeDaRegra as nomeDaRegraBase, regrasDoFormato as regrasDoFormatoBase, lerRegrasDeGridDaIA, paginasDoGrid, regraDasEscolhas, type RegraDeGrid } from "./regras";
+import { cantoPadrao, coresParaODocumento as coresParaODocumentoBase, estilosDoFormato as estilosDoFormatoBase, fonteDoUso, larguraPadraoDoLogo, leiaMeDoGrid as leiaMeDoGridBase, lerCmyk, linhasDosEstilos as linhasDosEstilosBase, margensComProtecao, posicionarLogo as posicionarLogoBase, type FonteParaOGrid } from "./marca";
+import { arquivosDoIdml as arquivosDoIdmlBase } from "./idml";
+import { comTradutor, tradutorDeTeste } from "../i18n/catalogo-de-teste";
 import { montarPdf } from "./pdf";
 import { unzlibSync } from "fflate";
 
+const pt = tradutorDeTeste("ferramentas.grids");
+const calcularGrid = comTradutor(calcularGridBase, pt);
+const fraseDaOrigem = comTradutor(fraseDaOrigemBase, pt);
+const instrucoesDoGrid = comTradutor(instrucoesDoGridBase, pt);
+const nomeDaRegra = comTradutor(nomeDaRegraBase, pt);
+const regrasDoFormato = comTradutor(regrasDoFormatoBase, pt);
+const coresParaODocumento = comTradutor(coresParaODocumentoBase, pt);
+const leiaMeDoGrid = comTradutor(leiaMeDoGridBase, pt);
+const linhasDosEstilos = comTradutor(linhasDosEstilosBase, pt);
+const posicionarLogo = comTradutor(posicionarLogoBase, pt);
+const aplicarRegras = (f: Parameters<typeof aplicarRegrasBase>[0], regras: Parameters<typeof aplicarRegrasBase>[1], idEscolhido?: string | null) => aplicarRegrasBase(f, regras, pt, idEscolhido);
+const estilosDoFormato = (f: Parameters<typeof estilosDoFormatoBase>[0], e: Parameters<typeof estilosDoFormatoBase>[1], fontes?: FonteParaOGrid[]) => estilosDoFormatoBase(f, e, pt, fontes);
+const arquivosDoIdml = (g: Parameters<typeof arquivosDoIdmlBase>[0], marca?: Parameters<typeof arquivosDoIdmlBase>[1]) => arquivosDoIdmlBase(g, marca, pt);
 const regra = (p: Partial<RegraDeGrid>): RegraDeGrid => ({
   id: "r", formato: "a4", variante: "", segmento: "", tipo: "colunas", unidade: "mm", colunas: null, linhas: null, medianiz: null,
   margemSup: null, margemInf: null, margemEsq: null, margemDir: null, linhaDeBase: null, zonas: null,

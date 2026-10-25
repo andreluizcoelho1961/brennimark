@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { COOKIE_DO_CADASTRO, VERSAO_DO_ACEITE, comMarcaDoConvite, lerRespostaDoRegistro, validarCadastro } from "@/lib/cadastro/cadastro";
+import { ACEITES, COOKIE_DO_CADASTRO, comMarcaDoConvite, idiomaDoCadastro, lerRespostaDoRegistro, validarCadastro } from "@/lib/cadastro/cadastro";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { mensagemDeConfirmacaoDaLista } from "@/lib/email/mensagens";
 
@@ -22,12 +22,24 @@ import { mensagemDeConfirmacaoDaLista } from "@/lib/email/mensagens";
  */
 const TETO_DO_CORPO = 4_000;
 
+/** As recusas de campo em inglês (a validação devolve o texto em português, que é o que o Console e os testes leem). */
+function mensagemEmIngles(campo: string): string {
+  const porCampo: Record<string, string> = {
+    email: "Check the email address.", nome: "Tell us your name.", origem: "We couldn't identify the tool.",
+    agencia: "The agency name is too long.", cargo: "Pick a job title from the list.",
+  };
+  return porCampo[campo] ?? "Pick an option from the list.";
+}
+
 export async function POST(request: Request) {
   const bruto = await request.text();
-  if (bruto.length > TETO_DO_CORPO) return NextResponse.json({ message: "Pedido grande demais." }, { status: 413 });
-
   let corpo: unknown = null;
   try { corpo = JSON.parse(bruto); } catch { /* a validação recusa */ }
+  // O idioma é o da TELA em que a pessoa preencheu (vem no corpo): quem usa as ferramentas do site não tem sessão,
+  // e o idioma do site mora no endereço, não no cookie.
+  const idioma = idiomaDoCadastro((corpo as { idioma?: unknown } | null)?.idioma);
+  const isEnglish = idioma === "en";
+  if (bruto.length > TETO_DO_CORPO) return NextResponse.json({ message: isEnglish ? "Request too large." : "Pedido grande demais." }, { status: 413 });
 
   const resposta = () => {
     const r = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
@@ -39,23 +51,23 @@ export async function POST(request: Request) {
   if (corpo && typeof corpo === "object" && (corpo as { website?: unknown }).website) return resposta();
 
   const v = validarCadastro(corpo);
-  if (!v.ok) return NextResponse.json({ message: v.mensagem, campo: v.campo }, { status: 400 });
-  const d = comMarcaDoConvite(v.dados, new Date());
+  if (!v.ok) return NextResponse.json({ message: isEnglish ? mensagemEmIngles(v.campo) : v.mensagem, campo: v.campo }, { status: 400 });
+  const d = comMarcaDoConvite({ ...v.dados, respostas: { ...v.dados.respostas, idioma: v.dados.idioma } }, new Date());
 
   let servico;
   try { servico = createServiceClient(); } catch {
     console.error(JSON.stringify({ level: "error", msg: "cadastro_sem_chave" }));
-    return NextResponse.json({ message: "O cadastro não está disponível agora. Tente de novo em instantes." }, { status: 503 });
+    return NextResponse.json({ message: isEnglish ? "Sign-up isn't available right now. Try again in a moment." : "O cadastro não está disponível agora. Tente de novo em instantes." }, { status: 503 });
   }
 
   const { data, error } = await servico.rpc("registrar_cadastro", {
     p_email: d.email, p_nome: d.nome, p_agencia: d.agencia, p_cargo: d.cargo,
     p_respostas: d.respostas, p_origem: d.origem,
-    p_aceite_marketing: d.aceiteMarketing, p_aceite_versao: d.aceiteMarketing ? VERSAO_DO_ACEITE : null,
+    p_aceite_marketing: d.aceiteMarketing, p_aceite_versao: d.aceiteMarketing ? ACEITES[d.idioma].versao : null,
   });
   if (error) {
     console.error(JSON.stringify({ level: "error", msg: "cadastro_falhou", code: error.code ?? "unknown" }));
-    return NextResponse.json({ message: "Não foi possível guardar o cadastro. Tente de novo." }, { status: 500 });
+    return NextResponse.json({ message: isEnglish ? "Couldn't save your sign-up. Try again." : "Não foi possível guardar o cadastro. Tente de novo." }, { status: 500 });
   }
 
   // Double opt-in (18/10/2026): quem marcou a caixa recebe um e-mail para provar

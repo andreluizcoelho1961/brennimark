@@ -11,6 +11,7 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+import type { Tradutor } from "../i18n/tradutor";
 import type { Formato, TipoDeGrid, Unidade } from "./formatos";
 
 export const PT_POR_MM = 72 / 25.4;
@@ -37,7 +38,8 @@ export type Escolhas = {
 export type Camada = "grid" | "zonas" | "segura" | "dobras" | "sobreposto";
 export type Guia = { orientacao: "h" | "v"; pos: number; camada: Camada };
 export type Retangulo = { x: number; y: number; w: number; h: number };
-export type Zona = Retangulo & { nome: string };
+/** `id` só existe nos painéis da capa de livro, que o código procura por ele; o `nome` é o texto, já no idioma. */
+export type Zona = Retangulo & { nome: string; id?: "orelhaVerso" | "contracapa" | "lombada" | "capa" | "orelhaFrente" };
 
 export type Grid = {
   unidade: Unidade;
@@ -56,6 +58,8 @@ export type Grid = {
   sobreposto: [number, number][];
   rotacionado: { angulo: number; segmentos: [number, number, number, number][] } | null;
   avisos: string[];
+  /** As margens somam mais que a página: o grid não fecha, e o download fica travado. */
+  margensExcedem: boolean;
 };
 
 const paraPt = (v: number, unidade: Unidade) => (unidade === "mm" ? v * PT_POR_MM : v);
@@ -123,8 +127,12 @@ export function recortar(x1: number, y1: number, x2: number, y2: number, r: Reta
   return [x1 + t0 * dx, y1 + t0 * dy, x1 + t1 * dx, y1 + t1 * dy];
 }
 
-export function calcularGrid(f: Formato, e: Escolhas): Grid {
+/** `t` é o tradutor ligado a `ferramentas.grids`: os avisos e os nomes das zonas saem no idioma da tela. */
+export function calcularGrid(f: Formato, e: Escolhas, t: Tradutor): Grid {
   const avisos: string[] = [];
+  let margensExcedem = false;
+  const decimal = t("separadorDecimal");
+  const fmt = (pt: number) => formatar(pt, f.unidade, decimal);
   const guias: Guia[] = [];
   const un = f.unidade;
   const medianiz = paraPt(e.medianiz, un);
@@ -154,21 +162,21 @@ export function calcularGrid(f: Formato, e: Escolhas): Grid {
     // Painéis da esquerda para a direita: orelha · contracapa · lombada · capa · orelha.
     colunasNaMargem = false;
     const xs = [0, orelha, orelha + capaL, orelha + capaL + lombada, orelha + 2 * capaL + lombada, larg];
-    const nomes = ["Orelha (verso)", "Contracapa", "Lombada", "Capa", "Orelha (frente)"];
+    const ids = ["orelhaVerso", "contracapa", "lombada", "capa", "orelhaFrente"] as const;
     for (let i = 0; i < 5; i++) {
       if (xs[i + 1] - xs[i] <= 0.01) continue;
-      zonas.push({ nome: nomes[i], x: xs[i], y: 0, w: xs[i + 1] - xs[i], h: alt });
+      zonas.push({ id: ids[i], nome: t(`zonas.${ids[i]}`), x: xs[i], y: 0, w: xs[i + 1] - xs[i], h: alt });
       if (i > 0) guias.push({ orientacao: "v", pos: xs[i], camada: "dobras" });
     }
     const m = margens.esq;
-    const capa = zonas.find((z) => z.nome === "Capa")!;
-    const contra = zonas.find((z) => z.nome === "Contracapa")!;
+    const capa = zonas.find((z) => z.id === "capa")!;
+    const contra = zonas.find((z) => z.id === "contracapa")!;
     faixasCol = faixas(capa.x + m, capa.w - 2 * m, e.tipo === "manuscrito" ? 1 : e.colunas, medianiz);
     for (const [a, b] of [...faixasCol, ...faixas(contra.x + m, contra.w - 2 * m, e.tipo === "manuscrito" ? 1 : e.colunas, medianiz)]) {
       guias.push({ orientacao: "v", pos: a, camada: "grid" }, { orientacao: "v", pos: b, camada: "grid" });
     }
     guias.push({ orientacao: "h", pos: margens.sup, camada: "grid" }, { orientacao: "h", pos: alt - margens.inf, camada: "grid" });
-    if (lombada > 0 && lombada < 2 * 5 * PT_POR_MM) avisos.push("Lombada fina: o texto da lombada precisa de pelo menos 5 mm de cada lado da dobra.");
+    if (lombada > 0 && lombada < 2 * 5 * PT_POR_MM) avisos.push(t("avisos.lombadaFina"));
   } else {
     const n = e.tipo === "manuscrito" ? 1 : e.colunas;
     faixasCol = faixas(margens.esq, larg - margens.esq - margens.dir, n, medianiz);
@@ -205,13 +213,13 @@ export function calcularGrid(f: Formato, e: Escolhas): Grid {
             ? { ...margens, sup: margens.sup + sobra / 2, inf: margens.inf + sobra / 2 }
             : { ...margens, inf: margens.inf + sobra };
           avisos.push(simetrica
-            ? `Margens de cima e de baixo ajustadas de ${formatar(antes.sup, un)} para ${formatar(margens.sup, un)} para os módulos fecharem na linha de base.`
-            : `Margem inferior ajustada de ${formatar(antes.inf, un)} para ${formatar(margens.inf, un)} para os módulos fecharem na linha de base.`);
+            ? t("avisos.margensAjustadas", { de: fmt(antes.sup), para: fmt(margens.sup) })
+            : t("avisos.margemInferiorAjustada", { de: fmt(antes.inf), para: fmt(margens.inf) }));
         }
         m = escolhida;
       }
     } else {
-      avisos.push("A medianiz não é múltiplo da linha de base: os módulos não fecham exatamente na linha de base.");
+      avisos.push(t("avisos.medianizForaDaBase"));
     }
     linhas = Array.from({ length: L }, (_, i) => {
       const a = margens.sup + i * (m + medianiz);
@@ -232,7 +240,7 @@ export function calcularGrid(f: Formato, e: Escolhas): Grid {
     let pos = ini;
     pesos.forEach((p, i) => {
       const tam = (total * p) / soma;
-      const nome = `Zona ${i + 1} · ${String(p).replace(".", ",")} ${p === 1 ? "parte" : "partes"}`;
+      const nome = t(p === 1 ? "zonas.umaParte" : "zonas.variasPartes", { n: i + 1, p: String(p).replace(".", decimal) });
       zonas.push(deitado
         ? { nome, x: pos, y: margens.sup, w: tam, h: alt - margens.sup - margens.inf }
         : { nome, x: margens.esq, y: pos, w: larg - margens.esq - margens.dir, h: tam });
@@ -296,16 +304,17 @@ export function calcularGrid(f: Formato, e: Escolhas): Grid {
     rotacionado = { angulo: e.rotacionado.angulo, segmentos };
   }
 
-  if (margens.esq + margens.dir >= larg || margens.sup + margens.inf >= alt) avisos.push("As margens somam mais que a página.");
+  if (margens.esq + margens.dir >= larg || margens.sup + margens.inf >= alt) { avisos.push(t("avisos.margensSomamMais")); margensExcedem = true; }
 
   return {
     unidade: un, largura: larg, altura: alt, sangria: f.sangria * PT_POR_MM, margens, colunasNaMargem,
     colunas: { n: faixasCol.length, medianiz, faixas: faixasCol }, linhas,
-    linhaDeBase: { inicio: margens.sup, passo }, zonas, segura, guias, sobreposto, rotacionado, avisos,
+    linhaDeBase: { inicio: margens.sup, passo }, zonas, segura, guias, sobreposto, rotacionado, avisos, margensExcedem,
   };
 }
 
-export function formatar(pt: number, un: Unidade): string {
-  if (un === "mm") return `${(pt / PT_POR_MM).toFixed(1).replace(".", ",")} mm`;
+/** `decimal` é o separador do idioma da tela (`,` em português, `.` em inglês). */
+export function formatar(pt: number, un: Unidade, decimal = ","): string {
+  if (un === "mm") return `${(pt / PT_POR_MM).toFixed(1).replace(".", decimal)} mm`;
   return `${Math.round(pt)} px`;
 }

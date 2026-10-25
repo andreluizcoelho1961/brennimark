@@ -40,7 +40,7 @@ Under **Is it the brand's color?**, Colors compares the color with the palette a
 
 - **It is [color], approved:** it is exactly a palette color;
 - **Practically [color]:** the difference is imperceptible to the eye;
-- **Similar to [color]** or **Not a brand color** (with the closest one).
+- **Similar to [color]** or **It isn't a brand color** (with the closest one).
 
 When the color comes from the manual, **See in the manual, p. N** appears. Click a palette color to measure it. A color in **draft** has not been approved yet and **does not count as a brand color**.
 :::

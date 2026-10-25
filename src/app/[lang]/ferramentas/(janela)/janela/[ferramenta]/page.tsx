@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { BarraDaJanela } from "@/components/ferramentas/BarraDaJanela";
 import { Cores } from "@/components/ferramentas/Cores";
 import { Grids } from "@/components/ferramentas/Grids";
 import { KitAvulso } from "@/components/ferramentas/KitAvulso";
-import { ehFerramentaEmJanela, FERRAMENTAS_EM_JANELA, NOMES_DAS_FERRAMENTAS, type FerramentaEmJanela } from "@/lib/ferramentas/janela";
+import { ehFerramentaEmJanela, FERRAMENTAS_EM_JANELA, type FerramentaEmJanela } from "@/lib/ferramentas/janela";
+import { IDIOMA_PADRAO_DO_SITE, idiomaDoSiteValido } from "@/lib/site/idiomas";
 
 /**
  * A ferramenta gratuita em janela solta (21/10/2026): a mesma tela do Kit, do
@@ -20,9 +22,10 @@ export function generateStaticParams() {
   return FERRAMENTAS_EM_JANELA.map((ferramenta) => ({ ferramenta }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ ferramenta: string }> }): Promise<Metadata> {
-  const { ferramenta } = await params;
-  const nome = ehFerramentaEmJanela(ferramenta) ? NOMES_DAS_FERRAMENTAS[ferramenta] : "Ferramenta";
+export async function generateMetadata({ params }: { params: Promise<{ lang: string; ferramenta: string }> }): Promise<Metadata> {
+  const { lang, ferramenta } = await params;
+  const t = await getTranslations({ locale: idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE, namespace: "ferramentas.comum" });
+  const nome = ehFerramentaEmJanela(ferramenta) ? t(`janela.nomes.${ferramenta}`) : t("janela.ferramenta");
   return { title: `Brennimark ${nome}`, robots: { index: false, follow: false } };
 }
 

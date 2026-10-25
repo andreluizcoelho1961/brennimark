@@ -66,8 +66,30 @@ export const BIBLIOTECAS = [
  * data do aceite: mudou a frase, muda a versão — senão o registro deixa de
  * provar com quais palavras a pessoa concordou.
  */
-export const VERSAO_DO_ACEITE = "2026-10-18";
-export const TEXTO_DO_ACEITE = "Quero receber e-mails do Brennimark com novidades e conteúdo para quem trabalha com marcas. Vamos pedir que você confirme por e-mail, e você pode sair a qualquer momento.";
+/**
+ * O texto da caixa de marketing e a VERSÃO dele, por idioma. A versão é a data em
+ * que aquele texto passou a valer (o banco exige `AAAA-MM-DD`), e fica gravada
+ * junto do aceite: quem marcou a caixa em inglês tem a versão do texto em inglês,
+ * e a prova do que a pessoa leu não se confunde com o português. Mudou o texto de
+ * um idioma, a versão dele muda.
+ */
+export const ACEITES = {
+  "pt-BR": {
+    versao: "2026-10-18",
+    texto: "Quero receber e-mails do Brennimark com novidades e conteúdo para quem trabalha com marcas. Vamos pedir que você confirme por e-mail, e você pode sair a qualquer momento.",
+  },
+  en: {
+    versao: "2026-10-25",
+    texto: "I want to receive Brennimark emails with news and content for people who work with brands. We'll ask you to confirm by email, and you can unsubscribe at any time.",
+  },
+} as const;
+export type IdiomaDoCadastro = keyof typeof ACEITES;
+export const VERSAO_DO_ACEITE = ACEITES["pt-BR"].versao;
+export const TEXTO_DO_ACEITE = ACEITES["pt-BR"].texto;
+
+export function idiomaDoCadastro(valor: unknown): IdiomaDoCadastro {
+  return valor === "en" ? "en" : "pt-BR";
+}
 
 /** O cookie que diz ao navegador que esta pessoa já se cadastrou (não é segredo). */
 export const COOKIE_DO_CADASTRO = "bm_cadastro";
@@ -80,6 +102,8 @@ export type DadosDoCadastro = {
   respostas: Record<string, string>;
   origem: Origem;
   aceiteMarketing: boolean;
+  /** O idioma da tela em que a pessoa se cadastrou: define a versão do aceite e o idioma dos e-mails. */
+  idioma: IdiomaDoCadastro;
 };
 
 const EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -139,7 +163,7 @@ export function validarCadastro(entrada: unknown): ResultadoDaValidacao {
     respostas[chave] = v;
   }
 
-  return { ok: true, dados: { email, nome, agencia, cargo, respostas, origem, aceiteMarketing: c.aceiteMarketing === true } };
+  return { ok: true, dados: { email, nome, agencia, cargo, respostas, origem, aceiteMarketing: c.aceiteMarketing === true, idioma: idiomaDoCadastro(c.idioma) } };
 }
 
 /**

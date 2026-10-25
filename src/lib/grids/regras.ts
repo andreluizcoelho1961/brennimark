@@ -1,6 +1,7 @@
 import type { Trecho } from "../ai/recuperacao";
 import { paginasDoAssunto } from "../ai/paginas-do-assunto";
-import { FORMATOS, type Formato, type TipoDeGrid } from "./formatos";
+import type { Tradutor } from "../i18n/tradutor";
+import { FORMATOS, textoDoFormato, type Formato, type TipoDeGrid } from "./formatos";
 import { escolhasPadrao, type Escolhas } from "./calcular";
 
 /**
@@ -72,8 +73,8 @@ export function deLinhaDaRegraDeGrid(l: Record<string, unknown>): RegraDeGrid | 
 const arred = (v: number) => Math.round(v * 100) / 100;
 
 /** O nome da regra na tela: "Estrutura 3X3 · Institucional"; sem nome, o que ela é. */
-export function nomeDaRegra(r: Pick<RegraDeGrid, "formato" | "variante" | "segmento">): string {
-  const base = r.variante || (r.formato === "todos" ? "Grid geral" : "Grid do formato");
+export function nomeDaRegra(r: Pick<RegraDeGrid, "formato" | "variante" | "segmento">, t: Tradutor): string {
+  const base = r.variante || (r.formato === "todos" ? t("regras.gridGeral") : t("regras.gridDoFormato"));
   return r.segmento ? `${base} · ${r.segmento}` : base;
 }
 
@@ -82,14 +83,14 @@ export function nomeDaRegra(r: Pick<RegraDeGrid, "formato" | "variante" | "segme
  * geral (`todos`). Aprovados primeiro, depois por página e nome — a ordem em
  * que a tela os oferece, e o primeiro é o padrão.
  */
-export function regrasDoFormato(f: Pick<Formato, "id">, regras: readonly RegraDeGrid[]): { regras: RegraDeGrid[]; geral: boolean } {
+export function regrasDoFormato(f: Pick<Formato, "id">, regras: readonly RegraDeGrid[], t: Tradutor): { regras: RegraDeGrid[]; geral: boolean } {
   const doFormato = regras.filter((r) => r.formato === f.id);
   const geral = doFormato.length === 0;
   const lista = geral ? regras.filter((r) => r.formato === "todos") : doFormato;
   const ordem = [...lista].sort((a, b) =>
     Number(b.status === "ready") - Number(a.status === "ready")
     || (a.pagina ?? 9999) - (b.pagina ?? 9999)
-    || nomeDaRegra(a).localeCompare(nomeDaRegra(b), "pt-BR"));
+    || nomeDaRegra(a, t).localeCompare(nomeDaRegra(b, t), t("idioma")));
   return { regras: ordem, geral };
 }
 
@@ -103,9 +104,9 @@ export type OrigemDoGrid =
  * regras para o formato, vale a escolhida (`idEscolhido`, se ela vale para este
  * formato) ou a primeira da lista.
  */
-export function aplicarRegras(f: Formato, regras: readonly RegraDeGrid[], idEscolhido?: string | null): { escolhas: Escolhas; origem: OrigemDoGrid } {
+export function aplicarRegras(f: Formato, regras: readonly RegraDeGrid[], t: Tradutor, idEscolhido?: string | null): { escolhas: Escolhas; origem: OrigemDoGrid } {
   const base = escolhasPadrao(f);
-  const { regras: candidatas, geral } = regrasDoFormato(f, regras);
+  const { regras: candidatas, geral } = regrasDoFormato(f, regras, t);
   const regra = candidatas.find((r) => r.id === idEscolhido) ?? candidatas[0];
   if (!regra) return { escolhas: base, origem: { tipo: "proposta" } };
 
@@ -129,13 +130,13 @@ export function aplicarRegras(f: Formato, regras: readonly RegraDeGrid[], idEsco
 }
 
 /** Como a tela e o LEIA-ME dizem de onde veio o grid. */
-export function fraseDaOrigem(o: OrigemDoGrid): string {
-  if (o.tipo === "proposta") return "proposta do Brennimark — o manual não define o grid deste formato";
+export function fraseDaOrigem(o: OrigemDoGrid, t: Tradutor): string {
+  if (o.tipo === "proposta") return t("regras.proposta");
   const r = o.regra;
-  const nome = r.variante || r.segmento ? `${nomeDaRegra(r)} — ` : "";
-  const onde = r.pagina ? `do manual, p. ${r.pagina}` : r.origem === "ia" ? "do manual" : "informada por quem edita a marca";
-  const geral = o.geral ? " (regra geral da marca, aplicada a este formato)" : "";
-  const situacao = r.status === "ready" ? "aprovada" : r.origem === "ia" ? "lida pela IA, ainda não confirmada" : "ainda não aprovada";
+  const nome = r.variante || r.segmento ? `${nomeDaRegra(r, t)} — ` : "";
+  const onde = r.pagina ? t("regras.doManualPagina", { n: r.pagina }) : r.origem === "ia" ? t("regras.doManual") : t("regras.informada");
+  const geral = o.geral ? ` ${t("regras.geral")}` : "";
+  const situacao = r.status === "ready" ? t("regras.aprovada") : r.origem === "ia" ? t("regras.lidaPelaIA") : t("regras.naoAprovada");
   return `${nome}${onde}${geral} — ${situacao}`;
 }
 
@@ -177,8 +178,9 @@ export function paginasDoGrid(trechos: readonly Trecho[], maximo = MAXIMO_DE_PAG
 const IDS_DOS_FORMATOS = FORMATOS.map((f) => f.id);
 
 /** O pedido à IA: uma regra por linha, em JSON. */
-export function instrucoesDoGrid(paginas: readonly number[]): string {
-  const lista = FORMATOS.map((f) => `${f.id} (${f.nome}, ${String(f.largura).replace(".", ",")} × ${String(f.altura).replace(".", ",")} ${f.unidade})`).join("; ");
+/** O pedido à IA é sempre em português (os manuais e a conferência são); `t` só dá os nomes dos formatos. */
+export function instrucoesDoGrid(paginas: readonly number[], t: Tradutor): string {
+  const lista = FORMATOS.map((f) => `${f.id} (${textoDoFormato(f, t).nome}, ${String(f.largura).replace(".", ",")} × ${String(f.altura).replace(".", ",")} ${f.unidade})`).join("; ");
   return [
     "Você lê páginas de um manual de marca e transcreve as REGRAS DE GRID E DIAGRAMAÇÃO. Responda só com linhas JSON, uma por regra, nada mais.",
     `As páginas enviadas são, na ordem: ${paginas.join(", ")}.`,

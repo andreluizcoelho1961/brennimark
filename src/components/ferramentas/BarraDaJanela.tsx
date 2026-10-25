@@ -1,8 +1,10 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
 import {
-  CHAVE_DO_ARMAZENAMENTO, enderecoNormal, lerGeometria, mudouGeometria, NOMES_DAS_FERRAMENTAS, type FerramentaEmJanela,
+  CHAVE_DO_ARMAZENAMENTO, enderecoNormal, lerGeometria, mudouGeometria, type FerramentaEmJanela,
 } from "@/lib/ferramentas/janela";
 
 /**
@@ -16,6 +18,9 @@ import {
  * é por tempo, e só grava quando mudou de verdade.
  */
 export function BarraDaJanela({ ferramenta }: { ferramenta: FerramentaEmJanela }) {
+  const t = useTranslations("ferramentas.comum");
+  const lang = useLocale();
+  const idioma = idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE;
   useEffect(() => {
     const chave = CHAVE_DO_ARMAZENAMENTO(ferramenta);
     let ultima = null as ReturnType<typeof lerGeometria>;
@@ -37,13 +42,13 @@ export function BarraDaJanela({ ferramenta }: { ferramenta: FerramentaEmJanela }
       return;
     }
     // Sem a aba de origem (foi fechada, ou a janela veio de um link): abre na própria janela.
-    window.location.href = enderecoNormal(ferramenta);
+    window.location.href = enderecoNormal(ferramenta, idioma);
   }
 
   return (
     <div data-barra-da-janela className="fixed inset-x-0 top-0 z-30 flex h-[44px] items-center justify-between gap-3 border-b border-platform-border bg-platform-bg px-4">
       <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-platform-text-muted">
-        Brennimark <span className="text-platform-text">{NOMES_DAS_FERRAMENTAS[ferramenta]}</span>
+        Brennimark <span className="text-platform-text">{t(`janela.nomes.${ferramenta}`)}</span>
       </p>
       <button
         type="button"
@@ -51,7 +56,7 @@ export function BarraDaJanela({ ferramenta }: { ferramenta: FerramentaEmJanela }
         onClick={voltar}
         className="rounded-[var(--radius-control)] border border-platform-border px-3 py-1 text-[13px] text-platform-text hover:border-platform-text"
       >
-        Voltar à aba do site
+        {t("janela.voltar")}
       </button>
     </div>
   );

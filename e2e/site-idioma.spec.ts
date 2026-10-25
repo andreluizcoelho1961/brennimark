@@ -34,8 +34,8 @@ test("o Manifesto em português continua igual, e o botão leva ao inglês", asy
 });
 
 test("página sem tradução leva à equivalente em português, com o aviso nos dois idiomas", async ({ page }) => {
-  await page.goto("/en/tools/kit");
-  await expect(page).toHaveURL(/\/ferramentas\/kit\?idioma=indisponivel$/);
+  // Hoje todas as páginas do site têm versão em inglês; o aviso é o que uma página nova, ainda sem tradução, mostra.
+  await page.goto("/?idioma=indisponivel");
   const aviso = page.locator("[data-aviso-de-idioma]");
   await expect(aviso).toContainText("This page isn't available in English yet");
   await expect(aviso).toContainText("Esta página ainda não está disponível em inglês");
@@ -68,10 +68,6 @@ test("os redirecionamentos do idioma: status e destino, uma URL por página", as
   const b = await request.get("/pt-BR/vini", { maxRedirects: 0 });
   expect(b.status()).toBe(308);
   expect(b.headers()["location"]).toMatch(/\/vini$/);
-  // Sem tradução: provisório (307), porque a tradução vem depois.
-  const c = await request.get("/en/tools/kit", { maxRedirects: 0 });
-  expect(c.status()).toBe(307);
-  expect(c.headers()["location"]).toMatch(/\/ferramentas\/kit\?idioma=indisponivel$/);
   // O que não existe no site é 404, não redirecionamento.
   expect((await request.get("/en/nao-existe", { maxRedirects: 0 })).status()).toBe(404);
 });
@@ -212,4 +208,40 @@ test("a Central de ajuda em inglês: página, artigo, categoria e busca falam in
   await expect(page.locator('.ajuda-artigo a[href="/en/help/pessoas-e-acesso"]')).toBeVisible();
   await page.goto("/en/help/category/vini-max");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Vini Max");
+});
+
+test("as ferramentas em inglês: Cores, Grids e Kit, o link da janela e o cadastro falam inglês", async ({ page }) => {
+  await page.goto("/en/tools/colors");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("What color is this?");
+  await expect(page.locator("[data-cores-contraste]")).toContainText("Contrast");
+  await expect(page.locator("[data-cores-contraste]")).toContainText(/\d\.\d{2} : 1/);
+  await expect(page.getByRole("heading", { name: "Is it readable?" })).toBeVisible();
+
+  await page.goto("/en/tools/grids");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("The grid ready for InDesign");
+  await expect(page.getByText("Step 1", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-grids-formato] optgroup").first()).toHaveAttribute("label", "Print");
+  // O cadastro na hora de baixar: o diálogo, as opções e o texto de aceite no idioma, e a versão em inglês.
+  await page.context().clearCookies();
+  await page.reload();
+  await page.locator("[data-grids-baixar-idml]").click();
+  const dialogo = page.locator("[data-cadastro]");
+  await expect(dialogo).toContainText("To download, a quick sign-up");
+  await expect(dialogo).toContainText("I want to receive Brennimark emails");
+  await expect(dialogo.locator("option", { hasText: "Art director" })).toHaveCount(1);
+  await expect(dialogo.locator("option", { hasText: "I'd rather not say" }).first()).toHaveCount(1);
+
+  await page.goto("/en/tools/kit");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Every size of your logo, in one click");
+  await expect(page.getByRole("button", { name: "Open in a window" })).toBeVisible();
+  await expect(page.locator('a[href="/en/tools/window/kit"]')).toHaveCount(0); // a janela abre por script, não por link
+});
+
+test("as ferramentas em português seguem iguais", async ({ page }) => {
+  await page.goto("/ferramentas/cores");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Que cor é essa?");
+  await expect(page.locator("[data-cores-contraste]")).toContainText(/\d,\d{2} : 1/);
+  await page.goto("/ferramentas/kit");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Todos os tamanhos do seu logo, num clique");
 });
