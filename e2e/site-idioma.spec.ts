@@ -250,6 +250,8 @@ test("a ponte do idioma: quem lê o site em inglês chega ao Assinar em inglês,
   await context.clearCookies();
   await page.goto("/en");
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  // O cookie é gravado quando a página termina de ligar (efeito do cliente): espera, como uma pessoa que lê antes de clicar.
+  await expect.poll(async () => (await context.cookies()).some((c) => c.name === "BRENNIMARK_IDIOMA" && c.value === "en")).toBe(true);
   await page.goto("/assinar");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Subscribe");
   await page.goto("/dev/assinar");
