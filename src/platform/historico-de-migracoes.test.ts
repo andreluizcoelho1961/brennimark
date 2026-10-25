@@ -74,6 +74,8 @@ const PENDENTES_ESPERADAS: string[] = [
   // Tour de demonstração, fatia 1 (17/10/2026): NÃO aplicada ao banco hospedado.
   // Sai daqui quando o André autorizar a aplicação e ela for carimbada.
   "tour_de_demonstracao",
+  // Tour de demonstração, visitante do servidor (25/10/2026): NÃO aplicada ao banco hospedado.
+  "tour_visitante_do_servidor",
   // `cadastros_confirmacao_por_email` saiu daqui em 18/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261018144415`;
   // impressão digital igual à do local (72 itens: colunas, constraints, índice,
