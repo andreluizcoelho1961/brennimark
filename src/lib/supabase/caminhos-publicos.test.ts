@@ -110,6 +110,9 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastro"), true);
   assert.equal(caminhoPublico("/api/cadastros"), false);
   assert.equal(caminhoPublico("/api/cadastro/qualquer"), false);
+  assert.equal(caminhoPublico("/api/demonstracao/entrar"), true);
+  assert.equal(caminhoPublico("/api/demonstracao/entrar/x"), false);
+  assert.equal(caminhoPublico("/api/demonstracao"), false);
   // A saída da lista (17/10/2026): a página por prefixo, a rota pelo caminho exato.
   assert.equal(caminhoPublico("/sair/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
   assert.equal(caminhoPublico("/sairx"), false);

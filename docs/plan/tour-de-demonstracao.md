@@ -106,3 +106,26 @@ pelo onboarding sem ganhar conta própria.
    IP + teto global. Recomendação: com Turnstile.
 3. Os números: 10 perguntas, 24 h, teto diário da conta Demonstração.
 4. Qual manual: o do Brennimark (recomendado) ou o da ACME.
+
+## 12. Revisão de 25/10/2026 — visitante criado pelo servidor, com cadastro
+
+André pediu cadastro (nome e e-mail, lista de interessados) e decidiu que o visitante é **criado por nós**,
+não login anônimo do Supabase. O que isso muda, em relação aos §4 a §11:
+
+- **Quem é visitante:** `app_metadata.tour = true` (só a API de administração escreve) **ou** login anônimo.
+  `user_metadata` nunca vale (o próprio usuário o edita). Critério único: `private.visitante_do_tour`.
+- **Não liga *Anonymous sign-ins*.** O servidor cria o usuário depois do captcha e do teto do dia; a superfície
+  do §11.5 (qualquer estranho com JWT `authenticated`) não existe. A prova do visitante sem vínculo
+  (`prova-do-visitante-sem-vinculo`, branch `fatia-demo/tour-entrada`) só importa se o login anônimo for ligado.
+- **Cadastro:** nome e e-mail vão a `cadastros_gratuitos` (origem `tour`), caixa de marketing separada e
+  desmarcada, duplo aceite como nas ferramentas. O usuário do Supabase leva e-mail sintético `.invalid`.
+- **Limites:** 2 perguntas por visitante; teto por dia de 200 entradas e 100 perguntas
+  (`demonstracao_uso_diario`); o teto devolve o gasto do visitante. Zero IA paga: a rota de IA do tour é gratuita (fatia 3).
+- **Banco:** `20261025120000_tour_visitante_do_servidor.sql` (+ `prova-do-visitante-do-servidor.sh`).
+- **Servidor (fatia 2):** `POST /api/demonstracao/entrar` (Turnstile → cadastro → usuário → `demonstracao_receber`
+  → sessão) e `GET /api/manutencao/demonstracao` (limpeza diária de vencidos e órfãos, `is_anonymous`/`tour`
+  conferido de novo antes de cada `deleteUser`).
+- **Fora do código, dependem do André:** Turnstile (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`,
+  `BRENNIMARK_TURNSTILE_SECRET`; sem segredo, em produção, a entrada recusa), regra de limite por IP no
+  firewall da Vercel para `/api/demonstracao/entrar`, e a marca do tour importada antes de ligar
+  `private.demonstracao_config.ativo`.
