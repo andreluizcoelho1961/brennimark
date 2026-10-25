@@ -2431,5 +2431,54 @@
       "semProva": "As soon as Stripe confirms the payment, your account is created. To create the password here, open this page in the same browser you used to buy — or use “Forgot your password?” on the sign-in screen, with the email you bought with.",
       "jaTem": "Already have access?"
     }
+  },
+  "cadastroPublico": {
+    "invalido": {
+      "titulo": "This link isn't valid.",
+      "texto": "Check that the address arrived in full. If you need help, write to the contact shown in the footer of the email."
+    },
+    "erro": "Couldn't do it right now. Try again in a moment.",
+    "confirmar": {
+      "metaTitulo": "Confirm your email",
+      "inicialTitulo": "Confirm your email",
+      "inicialTexto": "Click to confirm that you want to receive Brennimark's emails. Nothing happens until you click.",
+      "botao": "Confirm my email",
+      "enviando": "Confirming…",
+      "feitoTitulo": "Done, your email is confirmed.",
+      "feitoTexto": "From now on you receive Brennimark's emails. Every email carries a link to leave the list whenever you want.",
+      "naoAchouTitulo": "We couldn't confirm.",
+      "naoAchouTexto": "This sign-up no longer exists, or you left the list. If you want to receive the emails, tick the box again when you download a tool, and we will send another confirmation."
+    },
+    "sair": {
+      "metaTitulo": "Leave the list",
+      "titulo": "Leave Brennimark's list",
+      "texto": "Choose what you want. Nothing happens until you click.",
+      "pararTitulo": "Stop receiving emails",
+      "pararTexto": "You can still use the free tools.",
+      "pararBotao": "Stop receiving",
+      "enviando": "Sending…",
+      "apagarTitulo": "Delete my sign-up",
+      "apagarTexto": "We delete your name, your email and your answers. This can't be undone.",
+      "apagarDeVez": "Delete for good",
+      "cancelar": "Cancel",
+      "apagarBotao": "Delete my sign-up",
+      "feitoSairTitulo": "Done, you won't receive emails any more.",
+      "feitoSairTexto": "We keep your sign-up only as a record that you left. If you'd rather have it deleted, come back to this link and choose delete.",
+      "feitoApagarTitulo": "Your sign-up was deleted.",
+      "feitoApagarTexto": "We no longer keep your name, your email or your answers.",
+      "naoAchouTitulo": "This sign-up no longer exists.",
+      "naoAchouTexto": "If your sign-up was already deleted, there is nothing more to do. If you think this is a mistake, write to the contact in the footer of the email."
+    },
+    "naoEncontrada": {
+      "titulo": "This address doesn't exist",
+      "texto": "It may be an old link. The front door works out which brand you have access to.",
+      "botao": "Go to the manuals"
+    },
+    "esqueciSenha": {
+      "metaTitulo": "Forgot your password? · Brennimark"
+    },
+    "entrega": {
+      "metaTitulo": "File delivery"
+    }
   }
 }

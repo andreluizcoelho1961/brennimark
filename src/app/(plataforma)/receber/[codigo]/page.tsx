@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LocaleProvider } from "@/platform/locale-client";
-import { PRODUCT_LOCALE } from "@/platform/locale";
+import { getTranslations } from "next-intl/server";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { createServiceClient } from "@/lib/supabase/service";
 import { codigoValido, resumoDoCodigo } from "@/lib/links/links";
@@ -21,18 +22,18 @@ import { EntregaPublica, LinkIndisponivel } from "@/components/entrega/EntregaPu
  */
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Entrega de arquivos",
-  robots: { index: false, follow: false },
-  referrer: "no-referrer",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("cadastroPublico.entrega");
+  return { title: t("metaTitulo"), robots: { index: false, follow: false }, referrer: "no-referrer" };
+}
 
 /** 15 minutos: o bastante para olhar a página; a imagem não é o arquivo. */
 const VALIDADE_DE_EXIBICAO_S = 900;
 
 export default async function PaginaDaEntrega({ params }: { params: Promise<{ codigo: string }> }) {
   const { codigo } = await params;
-  return <LocaleProvider locale={PRODUCT_LOCALE}>{await conteudo(codigo)}</LocaleProvider>;
+  // Quem recebe o link (a gráfica, o fornecedor) lê no idioma do próprio navegador: o remetente não escolhe por ele.
+  return <LocaleProvider locale={await idiomaDaSessao()}>{await conteudo(codigo)}</LocaleProvider>;
 }
 
 async function conteudo(codigo: string) {

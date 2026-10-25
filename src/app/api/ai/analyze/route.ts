@@ -156,7 +156,7 @@ export async function POST(request: Request) {
     // com conhecimento geral, e o veredito sairia com a mesma confiança.
     if (!recuperacao.ok) return conhecimentoIndisponivel(isEnglish);
     trechos = recuperacao.trechos;
-    brandPrompt = brandPromptContext(portao.brand);
+    brandPrompt = brandPromptContext(portao.brand, isEnglish ? "en" : "pt-BR");
   } catch {
     return NextResponse.json({ error: "content_unavailable", message: isEnglish ? "Couldn't load the latest guidelines right now." : "Não foi possível carregar as diretrizes atualizadas agora." }, { status: 503 });
   }

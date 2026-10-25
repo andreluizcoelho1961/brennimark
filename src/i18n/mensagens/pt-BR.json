@@ -2431,5 +2431,54 @@
       "semProva": "Assim que o Stripe confirmar o pagamento, a sua conta é criada. Para criar a senha aqui, abra esta página no mesmo navegador em que fez a compra — ou use “Esqueci a senha” na tela de entrar, com o e-mail da compra.",
       "jaTem": "Já tem acesso?"
     }
+  },
+  "cadastroPublico": {
+    "invalido": {
+      "titulo": "Este link não é válido.",
+      "texto": "Confira se o endereço chegou inteiro. Se precisar de ajuda, escreva para o contato que aparece no rodapé do e-mail."
+    },
+    "erro": "Não foi possível agora. Tente de novo em instantes.",
+    "confirmar": {
+      "metaTitulo": "Confirmar o e-mail",
+      "inicialTitulo": "Confirme o seu e-mail",
+      "inicialTexto": "Clique para confirmar que você quer receber os e-mails do Brennimark. Nada acontece até você clicar.",
+      "botao": "Confirmar o meu e-mail",
+      "enviando": "Confirmando…",
+      "feitoTitulo": "Pronto, o seu e-mail está confirmado.",
+      "feitoTexto": "A partir de agora você recebe os e-mails do Brennimark. Todo e-mail traz um link para sair da lista quando quiser.",
+      "naoAchouTitulo": "Não foi possível confirmar.",
+      "naoAchouTexto": "Este cadastro não existe mais, ou você saiu da lista. Se quiser receber os e-mails, marque a caixa de novo ao baixar uma ferramenta, e enviaremos outra confirmação."
+    },
+    "sair": {
+      "metaTitulo": "Sair da lista",
+      "titulo": "Sair da lista do Brennimark",
+      "texto": "Escolha o que você quer. Nada acontece até você clicar.",
+      "pararTitulo": "Parar de receber e-mails",
+      "pararTexto": "Você continua podendo usar as ferramentas gratuitas.",
+      "pararBotao": "Parar de receber",
+      "enviando": "Enviando…",
+      "apagarTitulo": "Apagar o meu cadastro",
+      "apagarTexto": "Apagamos o seu nome, o seu e-mail e as suas respostas. Não dá para desfazer.",
+      "apagarDeVez": "Apagar de vez",
+      "cancelar": "Cancelar",
+      "apagarBotao": "Apagar o meu cadastro",
+      "feitoSairTitulo": "Pronto, você não vai mais receber e-mails.",
+      "feitoSairTexto": "Mantemos o seu cadastro só como registro de que você saiu. Se preferir que ele seja apagado, volte a este link e escolha apagar.",
+      "feitoApagarTitulo": "O seu cadastro foi apagado.",
+      "feitoApagarTexto": "Não guardamos mais o seu nome, o seu e-mail nem as suas respostas.",
+      "naoAchouTitulo": "Este cadastro não existe mais.",
+      "naoAchouTexto": "Se o seu cadastro já foi apagado, não há mais nada a fazer. Se acha que é um engano, escreva para o contato do rodapé do e-mail."
+    },
+    "naoEncontrada": {
+      "titulo": "Este endereço não existe",
+      "texto": "Pode ser um link antigo. A porta de entrada resolve para qual marca você tem acesso.",
+      "botao": "Ir para os manuais"
+    },
+    "esqueciSenha": {
+      "metaTitulo": "Esqueci a senha · Brennimark"
+    },
+    "entrega": {
+      "metaTitulo": "Entrega de arquivos"
+    }
   }
 }
