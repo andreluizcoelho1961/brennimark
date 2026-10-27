@@ -433,6 +433,73 @@ begin
     pg_temp.chama_como('anon', format('select count(*)::text from public.demonstracao_estado(%L)', m.t2)));
 end $$;
 
+-- ═══ L. A marca do tour escolhida pelo idioma ═══════════════════════════════
+do $$
+declare m mundo%rowtype; en uuid; outra_conta uuid; marca_de_fora uuid;
+  u1 uuid := 'd1d1d1d1-0000-4000-8000-0000000000d1';
+  u2 uuid := 'd1d1d1d1-0000-4000-8000-0000000000d2';
+  u3 uuid := 'd1d1d1d1-0000-4000-8000-0000000000d3';
+  u4 uuid := 'd1d1d1d1-0000-4000-8000-0000000000d4';
+  dono_b uuid := 'd1d1d1d1-0000-4000-8000-00000000000b';
+begin
+  select * into m from mundo;
+  -- Sem a vaga cheia do bloco C atrapalhar.
+  update private.demonstracao_config set teto_entradas_dia = 1000;
+  perform pg_temp.entrar_tour(u1); perform pg_temp.entrar_tour(u2);
+  perform pg_temp.entrar_tour(u3); perform pg_temp.entrar_tour(u4);
+
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal)
+  values (m.conta_a, 'vs-tour-en', 'Marca do Tour EN', 'T', 'x', 'en', '{}','{}','{}','{}','{}') returning id into en;
+
+  -- Sem marca em inglês configurada, todos veem a em português.
+  perform pg_temp.registrar('L1 sem marca em inglês, o inglês cai na marca em português', 'vs-tour',
+    (select marca_key from public.demonstracao_receber(u1, 'Ann', 'ann@local.test', 'en')));
+
+  update private.demonstracao_config set brand_id_en = en;
+
+  perform pg_temp.registrar('L2 com a marca em inglês, quem vem em inglês recebe a em inglês', 'vs-tour-en',
+    (select marca_key from public.demonstracao_receber(u2, 'Bob', 'bob@local.test', 'en')));
+  perform pg_temp.registrar('L3 e só ela: um vínculo, `consultar`', 'vs-tour-en|{consultar}|1',
+    (select b.key || '|' || bm.capacidades::text || '|' || (select count(*) from public.brand_members x where x.user_id = u2)
+       from public.brand_members bm join public.brands b on b.id = bm.brand_id where bm.user_id = u2));
+  perform pg_temp.registrar('L4 quem vem em português recebe a em português', 'vs-tour',
+    (select marca_key from public.demonstracao_receber(u3, 'Cris', 'cris@local.test', 'pt-BR')));
+  perform pg_temp.registrar('L5 idioma desconhecido cai na marca em português', 'vs-tour',
+    (select marca_key from public.demonstracao_receber(u4, 'Dan', 'dan@local.test', 'xx')));
+  perform pg_temp.registrar('L6 o destino devolve a conta do tour', 'true',
+    (select (workspace_id = m.conta_a)::text from public.demonstracao_receber(u2, 'Bob', 'bob@local.test', 'en')));
+  perform pg_temp.entrar_tour('d1d1d1d1-0000-4000-8000-0000000000d5');
+  perform public.demonstracao_entrar('d1d1d1d1-0000-4000-8000-0000000000d5');
+  perform pg_temp.registrar('L7 o contrato antigo de `demonstracao_entrar` vincula à marca em português', 'vs-tour',
+    (select b.key from public.brand_members bm join public.brands b on b.id = bm.brand_id
+      where bm.user_id = 'd1d1d1d1-0000-4000-8000-0000000000d5'));
+
+  -- Negativos: marca de fora, marca repetida, marca apagada.
+  select id into outra_conta from public.workspaces where name = 'Outra Conta da Prova 2' limit 1;
+  if outra_conta is null then
+    outra_conta := private.abrir_conta_de_assinatura('Outra Conta da Prova 2', 'vs-dono@local.test', m.dono_a);
+  end if;
+  insert into public.brands (workspace_id, key, name, short_name, descriptor, language, metadata, navigation, theme, ai, legal)
+  values (outra_conta, 'vs-fora', 'Marca de Fora', 'F', 'x', 'en', '{}','{}','{}','{}','{}') returning id into marca_de_fora;
+
+  perform pg_temp.registrar('L8 marca em inglês de OUTRA conta barra pela chave composta', 'demonstracao_config_marca_en_fkey',
+    pg_temp.constraint_de(format('update private.demonstracao_config set brand_id_en = %L', marca_de_fora)));
+  perform pg_temp.registrar('L9 a mesma marca nos dois idiomas barra', 'demonstracao_config_marcas_distintas',
+    pg_temp.constraint_de(format('update private.demonstracao_config set brand_id_en = brand_id')));
+  perform pg_temp.registrar('L10 a função interna recusa marca que não é do tour', 'marca_fora_do_tour',
+    pg_temp.msg_de('postgres', format('select private.demonstracao_vincular(%L, %L)::text', u1, marca_de_fora)));
+  perform pg_temp.registrar('L11 o visitante não chama a função interna', '42501',
+    pg_temp.chama_como('authenticated', format('select private.demonstracao_vincular(%L, %L)::text', u1, en)));
+  perform pg_temp.registrar('L12 nem `anon`', '42501',
+    pg_temp.chama_como('anon', format('select private.demonstracao_vincular(%L, %L)::text', u1, en)));
+
+  delete from public.brands where id = en;
+  perform pg_temp.registrar('L13 apagada a marca em inglês, a configuração sobrevive com ela nula', '(nulo)',
+    (select coalesce(brand_id_en::text, '(nulo)') from private.demonstracao_config));
+  perform pg_temp.registrar('L14 e o tour continua ativo, sempre na marca em português', 'vs-tour',
+    (select marca_key from public.demonstracao_receber(u1, 'Eva', 'eva@local.test', 'en')));
+end $$;
+
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido
 from resultado order by ordem;
 
