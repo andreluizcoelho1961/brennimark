@@ -96,3 +96,13 @@ test("a rota de estado não entrega nada a quem não é visitante do tour", asyn
   expect(r.status()).toBe(200);
   expect(await r.json()).toEqual({ visitante: false });
 });
+
+test("o site oferece o tour: botão na home, nos dois idiomas, levando à porta", async ({ page }) => {
+  await page.goto("/");
+  const hero = page.locator('[data-tour-botao="hero"]');
+  await expect(hero).toContainText("Faça um tour");
+  await expect(hero).toHaveAttribute("href", "/demonstracao");
+  await page.goto("/en");
+  await expect(page.locator('[data-tour-botao="hero"]')).toContainText("Take a tour");
+  await expect(page.locator('[data-tour-botao="fecho"]')).toHaveAttribute("href", "/demonstracao");
+});

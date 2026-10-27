@@ -103,7 +103,8 @@
       "dialogoEndereco": "‹sales email to be defined›",
       "dialogoPrototipo": "Prototype: the contact address doesn't exist yet.",
       "entrar": "Sign in",
-      "abrirPlataforma": "Open the platform"
+      "abrirPlataforma": "Open the platform",
+      "tour": "Take a tour"
     },
     "rodape": {
       "manifesto": "Manifesto",
@@ -1003,7 +1004,8 @@
           "texto": "Every question the manual leaves unanswered becomes a notice. The agency writes the missing guidance, someone approves it, and it starts to apply to the team and to the assistant, without redoing the PDF.",
           "link": "Rules beyond the manual"
         }
-      }
+      },
+      "fazerUmTour": "Take a tour"
     },
     "homeTelas": {
       "a_imagem_gerada_com_este": "The image generated with this prompt",
