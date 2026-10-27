@@ -394,6 +394,45 @@ begin
     pg_temp.constraint_de($q$update public.demonstracao_uso_diario set perguntas = -1$q$));
 end $$;
 
+-- ═══ K. Devolver a pergunta que falhou, e o estado ══════════════════════════
+do $$
+declare m mundo%rowtype;
+begin
+  select * into m from mundo;
+  perform pg_temp.registrar('K1 o estado diz quantas fez e de quantas', '1/2',
+    (select feitas || '/' || limite from public.demonstracao_estado(m.t2)));
+  perform pg_temp.registrar('K2 o estado traz até quando vale a sessão', 'true',
+    (select (expira_em > now())::text from public.demonstracao_estado(m.t2)));
+  perform pg_temp.registrar('K3 sem sessão, o estado vem vazio', '0',
+    (select count(*)::text from public.demonstracao_estado(gen_random_uuid())));
+
+  perform public.demonstracao_devolver_pergunta(m.t2);
+  perform pg_temp.registrar('K4 devolver desfaz o gasto do visitante', '0',
+    (select perguntas_feitas::text from public.demonstracao_visitantes where user_id = m.t2));
+  perform pg_temp.registrar('K5 e o gasto do teto do dia', '2',
+    (select perguntas::text from public.demonstracao_uso_diario));
+
+  perform public.demonstracao_devolver_pergunta(m.t2);
+  perform pg_temp.registrar('K6 devolver de novo NÃO passa de zero', '0',
+    (select perguntas_feitas::text from public.demonstracao_visitantes where user_id = m.t2));
+  perform pg_temp.registrar('K7 e não desconta o teto do dia outra vez', '2',
+    (select perguntas::text from public.demonstracao_uso_diario));
+
+  perform pg_temp.registrar('K8 a pergunta devolvida pode ser gasta de novo', 'ok', public.demonstracao_gastar_pergunta(m.t2));
+  perform public.demonstracao_devolver_pergunta(gen_random_uuid());
+  perform pg_temp.registrar('K9 devolver a de um visitante inexistente não faz nada nem erra (teto do dia segue 3)', '3',
+    (select perguntas::text from public.demonstracao_uso_diario));
+
+  perform pg_temp.registrar('K10 o visitante não devolve a própria pergunta (burlaria o limite)', '42501',
+    pg_temp.chama_como('authenticated', format('select public.demonstracao_devolver_pergunta(%L)::text', m.t2)));
+  perform pg_temp.registrar('K11 nem `anon`', '42501',
+    pg_temp.chama_como('anon', format('select public.demonstracao_devolver_pergunta(%L)::text', m.t2)));
+  perform pg_temp.registrar('K12 o visitante não lê o estado pela função', '42501',
+    pg_temp.chama_como('authenticated', format('select count(*)::text from public.demonstracao_estado(%L)', m.t2)));
+  perform pg_temp.registrar('K13 nem `anon`', '42501',
+    pg_temp.chama_como('anon', format('select count(*)::text from public.demonstracao_estado(%L)', m.t2)));
+end $$;
+
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido
 from resultado order by ordem;
 

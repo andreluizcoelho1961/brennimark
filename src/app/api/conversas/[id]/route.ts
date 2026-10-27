@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   const isEnglish = inEnglish(await idiomaDaSessao());
   const id = idDeConversa((await params).id);
   if (!id) return naoEncontrada(isEnglish);
-  const portao = await portaoDeIA(request, "chat");
+  const portao = await portaoDeIA(request, "chat", { visitanteDoTour: "permitir" });
   if (!portao.ok) return portao.resposta;
 
   const { data: conversa } = await portao.auth.supabase

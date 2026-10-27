@@ -20,6 +20,7 @@ import { lerPaleta, trechosDaFicha } from "@/lib/paleta/paleta";
 import { lerTipografia, trechosDaTipografia } from "@/lib/tipografia/tipografia";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
+import { ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDoLimite } from "@/lib/demonstracao/visitante";
 import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
@@ -91,6 +92,14 @@ export async function POST(request: Request) {
   // O motivo de parada que o provedor informa, preenchido no despacho e lido
   // no fim do fluxo. Promessas do SDK: só resolvem quando o texto acaba.
   let fimDoProvedor: { unificado: PromiseLike<string>; bruto: PromiseLike<string | undefined> } | null = null;
+  // O visitante do tour cuja pergunta foi cobrada e ainda pode ser devolvida (a resposta não começou).
+  let perguntaDoTourGasta: string | null = null;
+  const devolverPerguntaDoTour = async () => {
+    if (!perguntaDoTourGasta) return;
+    const quem = perguntaDoTourGasta;
+    perguntaDoTourGasta = null;
+    await createServiceClient().rpc("demonstracao_devolver_pergunta", { p_user: quem }).then(undefined, () => undefined);
+  };
   try {
     /*
      * O portão do G1, no servidor.
@@ -100,9 +109,28 @@ export async function POST(request: Request) {
      * esconde o link de quem não pode — mas esconder um link não fecha a rota,
      * e quem souber a URL chegava aqui do mesmo jeito.
      */
-    const portao = await portaoDeIA(request, "chat");
+    const portao = await portaoDeIA(request, "chat", { visitanteDoTour: "permitir" });
     if (!portao.ok) return portao.resposta;
     brandPrompt = brandPromptContext(portao.brand, isEnglish ? "en" : "pt-BR");
+
+    /*
+     * O contador do tour (25/10/2026). O visitante do tour tem 2 perguntas e o
+     * tour inteiro tem um teto por dia; a cobrança é do BANCO, numa instrução
+     * atômica, ANTES de qualquer trabalho caro (busca, manual, provedor). Se a
+     * resposta nem chega a começar, a pergunta é devolvida: quem não recebeu
+     * nada não perde nada. Depois da primeira palavra, não se devolve.
+     */
+    if (ehVisitanteDoTour(portao.auth.user)) {
+      const gasto = await createServiceClient().rpc("demonstracao_gastar_pergunta", { p_user: portao.auth.user.id });
+      const motivo = gasto.error ? "desconhecido" : motivoDoContador(gasto.data);
+      if (motivo !== "ok") {
+        return NextResponse.json(
+          { error: "tour_limite", motivo, message: textoDoLimite(motivo, isEnglish) },
+          { status: statusDoLimite(motivo) },
+        );
+      }
+      perguntaDoTourGasta = portao.auth.user.id;
+    }
     // O cliente PODE enviar o próprio execution_id (torna um retry de rede
     // idempotente ponta a ponta, e é o identificador comum entre a
     // requisição, a reserva e o ledger); sem ele, um novo é gerado aqui —
@@ -128,7 +156,7 @@ export async function POST(request: Request) {
     );
     // A falha da busca interrompe AQUI, antes de resolver o roteamento e antes
     // de qualquer chamada ao provedor.
-    if (!recuperacao.ok) return conhecimentoIndisponivel(isEnglish);
+    if (!recuperacao.ok) { await devolverPerguntaDoTour(); return conhecimentoIndisponivel(isEnglish); }
     trechos = recuperacao.trechos;
     const routing = await resolveChatRouting(portao.auth.workspaceId);
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
@@ -138,6 +166,7 @@ export async function POST(request: Request) {
     // mensagem que diz a quem pedir.
     if (routing.attempts.length === 0) {
       const { code, message } = semProvedorConfigurado(isEnglish);
+      await devolverPerguntaDoTour();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     // A fila inteira: principal e reserva. A reserva abaixo é da PRIMEIRA;
@@ -206,6 +235,7 @@ export async function POST(request: Request) {
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {
+      await devolverPerguntaDoTour();
       return NextResponse.json(
         { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) },
         { status: 503 },
@@ -260,6 +290,10 @@ export async function POST(request: Request) {
         return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result), caracteresDeEntrada };
       },
     });
+
+    // A primeira palavra chegou: a pergunta do tour está gasta de verdade, nada mais a devolve.
+    const visitanteDoTour = perguntaDoTourGasta;
+    perguntaDoTourGasta = null;
 
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
@@ -338,11 +372,17 @@ export async function POST(request: Request) {
     // administra consegue rastrear uma execução específica sem precisar de
     // outro id.
     response.headers.set("X-AI-Execution-Id", executionId);
+    // Quantas perguntas o visitante do tour ainda tem (a faixa do tour mostra "1 de 2").
+    if (visitanteDoTour) {
+      const estado = lerEstadoDoTour((await createServiceClient().rpc("demonstracao_estado", { p_user: visitanteDoTour })).data);
+      if (estado) response.headers.set("X-Tour-Perguntas-Restantes", String(estado.restantes));
+    }
     // As páginas dos trechos entregues ao modelo, para a citação levar ao PDF
     // (ver `lib/ai/paginas-citadas.ts`: a página nunca é pedida ao modelo).
     response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas([...ficha, ...(manual.length > 0 ? manual : trechos)])));
     return response;
   } catch (error) {
+    await devolverPerguntaDoTour();
     // executarComOrcamento já libera a reserva antes de repassar o erro —
     // este catch cobre tanto as falhas anteriores a ela (portão, busca,
     // roteamento) quanto o que ela deixa passar.

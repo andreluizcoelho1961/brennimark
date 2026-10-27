@@ -104,3 +104,6 @@
 20261021171123 licencas_do_fonts
 20261021204259 envios_de_email
 20261024000900 idioma_da_interface
+20261025212445 tour_de_demonstracao
+20261025212511 tour_visitante_do_servidor
+20261025212520 tour_devolver_e_estado
