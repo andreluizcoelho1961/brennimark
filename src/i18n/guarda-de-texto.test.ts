@@ -28,6 +28,7 @@ const MIGRADAS: string[] = [
   "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/not-found.tsx",
   "src/components/acesso/PedidoDeNovaSenha.tsx",
   "src/components/acesso/NovaSenha.tsx",
+  "src/components/demonstracao/EntradaNoTour.tsx",
   "src/components/ajuda/AjudaDaMoldura.tsx",
   "src/components/ProvedorDeTraducao.tsx",
   "src/components/IdiomaDaSessao.tsx",

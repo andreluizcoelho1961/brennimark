@@ -62,10 +62,10 @@ export function statusDoLimite(motivo: MotivoDoLimite): number {
 }
 
 /** O estado que a faixa do tour mostra ("1 de 2"). `null` se o banco não devolveu a forma esperada. */
-export function lerEstadoDoTour(data: unknown): { feitas: number; limite: number; restantes: number } | null {
+export function lerEstadoDoTour(data: unknown): { feitas: number; limite: number; restantes: number; expiraEm: string | null } | null {
   const linha = Array.isArray(data) ? data[0] : data;
   if (!linha || typeof linha !== "object") return null;
-  const { feitas, limite } = linha as { feitas?: unknown; limite?: unknown };
+  const { feitas, limite, expira_em: expiraEm } = linha as { feitas?: unknown; limite?: unknown; expira_em?: unknown };
   if (typeof feitas !== "number" || typeof limite !== "number") return null;
-  return { feitas, limite, restantes: Math.max(0, limite - feitas) };
+  return { feitas, limite, restantes: Math.max(0, limite - feitas), expiraEm: typeof expiraEm === "string" ? expiraEm : null };
 }

@@ -110,6 +110,8 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastro"), true);
   assert.equal(caminhoPublico("/api/cadastros"), false);
   assert.equal(caminhoPublico("/api/cadastro/qualquer"), false);
+  assert.equal(caminhoPublico("/demonstracao"), true);
+  assert.equal(caminhoPublico("/demonstracao/x"), false);
   assert.equal(caminhoPublico("/api/demonstracao/entrar"), true);
   assert.equal(caminhoPublico("/api/demonstracao/entrar/x"), false);
   assert.equal(caminhoPublico("/api/demonstracao"), false);

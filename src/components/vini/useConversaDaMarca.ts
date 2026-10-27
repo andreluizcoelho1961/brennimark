@@ -99,6 +99,8 @@ export function useConversaDaMarca(obterConversa?: () => string) {
         signal: controle.signal,
       });
 
+      // A faixa do tour (visitante da demonstração) confere quantas perguntas restam; para quem assina, não faz nada.
+      window.dispatchEvent(new Event("bm-tour-atualizar"));
       if (!resposta.ok || !resposta.body) {
         const dados = await resposta.json().catch(() => null);
         throw new Error(dados?.message ?? (isEnglish ? "Couldn't reach the assistant." : "Não foi possível consultar o assistente."));

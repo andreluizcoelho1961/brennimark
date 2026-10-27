@@ -1,0 +1,59 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
+import { useIsEnglish } from "@/platform/locale-client";
+
+/** O Vini avisa a faixa que uma pergunta foi feita (ou recusada): ela pergunta o estado de novo. */
+export const EVENTO_DO_TOUR = "bm-tour-atualizar";
+
+type Estado = { restantes: number; expiraEm: string | null };
+
+async function lerEstado(): Promise<Estado | null> {
+  const r = await fetch("/api/demonstracao/estado", { cache: "no-store" }).catch(() => null);
+  const d = r?.ok ? await r.json().catch(() => null) as { visitante?: boolean; restantes?: number; expiraEm?: string | null } | null : null;
+  return d?.visitante && typeof d.restantes === "number" ? { restantes: d.restantes, expiraEm: d.expiraEm ?? null } : null;
+}
+
+/**
+ * A faixa do tour na moldura (25/10/2026): só aparece para o visitante do tour
+ * (a rota diz quem é) e mostra quantas perguntas ao Vini ainda restam. Quem
+ * assina nunca a vê. O caminho para assinar está nela.
+ */
+export function FaixaDoTour() {
+  // Sem `useTranslations`: a faixa mora na moldura, que nem sempre tem o provedor de traduções
+  // (só as páginas de manual têm). Mesmo padrão do aviso de cobrança.
+  const isEnglish = useIsEnglish();
+  const t = (en: string, pt: string) => (isEnglish ? en : pt);
+  const [estado, setEstado] = useState<Estado | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    const atualizar = () => { void lerEstado().then((e) => { if (!cancelado) setEstado(e); }); };
+    atualizar();
+    window.addEventListener(EVENTO_DO_TOUR, atualizar);
+    return () => { cancelado = true; window.removeEventListener(EVENTO_DO_TOUR, atualizar); };
+  }, []);
+
+  if (!estado) return null;
+  const quando = estado.expiraEm
+    ? new Intl.DateTimeFormat(localeDeFormato(isEnglish), { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }).format(new Date(estado.expiraEm))
+    : null;
+
+  const perguntas = estado.restantes === 0
+    ? t("Your questions to Vini are used up", "Suas perguntas ao Vini acabaram")
+    : estado.restantes === 1
+      ? t("1 question to Vini left", "Resta 1 pergunta ao Vini")
+      : t(`${estado.restantes} questions to Vini left`, `Restam ${estado.restantes} perguntas ao Vini`);
+
+  return (
+    <div data-faixa-do-tour role="status"
+      className="mx-auto mb-3 flex max-w-[1200px] flex-wrap items-center gap-x-4 gap-y-1 border-l-2 border-platform-signal bg-platform-panel px-4 py-2 text-sm text-platform-text">
+      <span className="font-bold">{t("You're in the demo tour", "Você está no tour de demonstração")}</span>
+      <span data-faixa-do-tour-perguntas>{perguntas}</span>
+      {quando && <span className="text-platform-text-muted">{t(`The tour is valid until ${quando}.`, `O tour vale até ${quando}.`)}</span>}
+      <Link href="/assinar" className="underline">{t("Subscribe to Brennimark", "Assine o Brennimark")}</Link>
+    </div>
+  );
+}

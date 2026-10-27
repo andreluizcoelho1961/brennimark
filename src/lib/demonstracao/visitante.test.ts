@@ -31,7 +31,7 @@ test("todo motivo tem texto nos dois idiomas e um status coerente", () => {
 });
 
 test("o estado vira restantes, nunca negativo, e forma estranha vira nulo", () => {
-  assert.deepEqual(lerEstadoDoTour([{ feitas: 1, limite: 2, expira_em: "x" }]), { feitas: 1, limite: 2, restantes: 1 });
-  assert.deepEqual(lerEstadoDoTour({ feitas: 3, limite: 2 }), { feitas: 3, limite: 2, restantes: 0 });
+  assert.deepEqual(lerEstadoDoTour([{ feitas: 1, limite: 2, expira_em: "2026-10-28T10:00:00Z" }]), { feitas: 1, limite: 2, restantes: 1, expiraEm: "2026-10-28T10:00:00Z" });
+  assert.deepEqual(lerEstadoDoTour({ feitas: 3, limite: 2 }), { feitas: 3, limite: 2, restantes: 0, expiraEm: null });
   for (const ruim of [null, undefined, [], [{}], [{ feitas: "1", limite: 2 }], "x"]) assert.equal(lerEstadoDoTour(ruim), null, JSON.stringify(ruim));
 });

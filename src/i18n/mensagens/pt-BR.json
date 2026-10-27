@@ -2480,5 +2480,26 @@
     "entrega": {
       "metaTitulo": "Entrega de arquivos"
     }
+  },
+  "demonstracao": {
+    "metaTitulo": "Faça um tour | Brennimark",
+    "kicker": "Tour de demonstração",
+    "titulo": "Conheça o Brennimark por dentro",
+    "texto": "Entre num manual de demonstração, converse com o Vini e baixe o logo. Não precisa de conta: só o seu nome e e-mail.",
+    "item1": "Leia o manual de uma marca de exemplo, com índice e busca.",
+    "item2": "Pergunte ao Vini: são 2 perguntas no tour.",
+    "item3": "Veja a paleta e as fontes, e baixe logos e fotos.",
+    "nome": "Seu nome",
+    "email": "Seu e-mail",
+    "emailPlaceholder": "voce@empresa.com",
+    "enviar": "Entrar no tour",
+    "enviando": "Abrindo o tour…",
+    "privacidade": "As perguntas ao Vini ficam guardadas por até 24 horas. O endereço IP é registrado por 6 meses, como a lei exige. Veja a <link>política de privacidade</link>.",
+    "jaAssina": "Já assina?",
+    "entrar": "Entrar",
+    "captchaFalhou": "Não foi possível carregar a verificação. Recarregue a página e tente de novo.",
+    "captchaPendente": "Aguarde a verificação terminar.",
+    "erroGeral": "Não foi possível abrir o tour agora. Tente de novo.",
+    "indisponivel": "O tour não está disponível agora. Tente de novo em instantes."
   }
 }
