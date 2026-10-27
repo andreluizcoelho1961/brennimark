@@ -2480,5 +2480,26 @@
     "entrega": {
       "metaTitulo": "File delivery"
     }
+  },
+  "demonstracao": {
+    "metaTitulo": "Take a tour | Brennimark",
+    "kicker": "Demo tour",
+    "titulo": "See Brennimark from the inside",
+    "texto": "Step into a demo manual, talk to Vini and download the logo. No account needed: just your name and email.",
+    "item1": "Read the manual of a sample brand, with index and search.",
+    "item2": "Ask Vini: you get 2 questions in the tour.",
+    "item3": "See the palette and fonts, and download logos and photos.",
+    "nome": "Your name",
+    "email": "Your email",
+    "emailPlaceholder": "you@company.com",
+    "enviar": "Start the tour",
+    "enviando": "Opening the tour…",
+    "privacidade": "Your questions to Vini are kept for up to 24 hours. Your IP address is logged for 6 months, as the law requires. See the <link>privacy policy</link>.",
+    "jaAssina": "Already subscribed?",
+    "entrar": "Sign in",
+    "captchaFalhou": "We couldn't load the verification. Reload the page and try again.",
+    "captchaPendente": "Wait for the verification to finish.",
+    "erroGeral": "We couldn't open the tour right now. Please try again.",
+    "indisponivel": "The tour isn't available right now. Please try again shortly."
   }
 }

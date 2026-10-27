@@ -101,7 +101,7 @@ export const CAMINHOS_PUBLICOS = ["/login", "/auth/callback", "/api/manutencao/"
 /** As ferramentas gratuitas do site: páginas estáticas, no idioma do endereço. */
 export const FERRAMENTAS_DO_SITE = ["/ferramentas/kit", "/ferramentas/cores", "/ferramentas/grids", "/ferramentas/janela/kit", "/ferramentas/janela/cores", "/ferramentas/janela/grids"] as const;
 
-export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", ...FERRAMENTAS_DO_SITE, "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar", "/api/idioma", "/api/demonstracao/entrar"]);
+export const CAMINHOS_PUBLICOS_EXATOS = new Set(["/api/cobranca/stripe", "/assinar", "/assinar/obrigado", "/api/cobranca/checkout", "/api/cobranca/senha", "/esqueci-senha", "/api/conta/esqueci-senha", ...FERRAMENTAS_DO_SITE, "/api/cadastro", "/api/cadastro/saida", "/api/cadastro/confirmar", "/api/idioma", "/demonstracao", "/api/demonstracao/entrar"]);
 
 /**
  * O endereço é do SITE público — o que mora em `app/[lang]`?
