@@ -103,7 +103,8 @@
       "dialogoEndereco": "‹e-mail comercial a definir›",
       "dialogoPrototipo": "Protótipo: o endereço de contato ainda não existe.",
       "entrar": "Entrar",
-      "abrirPlataforma": "Abrir a plataforma"
+      "abrirPlataforma": "Abrir a plataforma",
+      "tour": "Faça um tour"
     },
     "rodape": {
       "manifesto": "Manifesto",
@@ -1003,7 +1004,8 @@
           "texto": "Toda dúvida sem resposta no manual vira um aviso. A agência escreve a orientação que faltava, alguém aprova, e ela passa a valer para a equipe e para o assistente, sem refazer o PDF.",
           "link": "Regras além do manual"
         }
-      }
+      },
+      "fazerUmTour": "Faça um tour"
     },
     "homeTelas": {
       "a_imagem_gerada_com_este": "A imagem gerada com este prompt",

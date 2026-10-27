@@ -132,6 +132,7 @@ function MenuDoCelular({ idioma, t, paginas }: { idioma: IdiomaDoSite; t: Tradut
         <button className="btn" type="button" data-open="dlg-demo">
           {t("agendarUma")} <span className="arrow" aria-hidden="true">↗</span>
         </button>
+        <Link className="btn btn--ghost" href="/demonstracao" prefetch={false} data-tour-botao="menu">{t("tour")}</Link>
         <EntrarOuAbrir className="btn btn--ghost" />
       </div>
     </div>

@@ -68,6 +68,7 @@ export async function SecoesDaHome() {
             <p className="hero-lede rise-2"><strong>{t("menos_tempo_procurando_mais_seguranca")}</strong>{" "}{t("o_manual_os_arquivos_e")}</p>
             <div className="actions rise-2">
               <button className="btn" type="button" data-open="dlg-demo">{t("agendar_uma_demonstracao")}{" "}<span className="arrow" aria-hidden="true">↗</span></button>
+              <Link className="btn btn--ghost" href="/demonstracao" prefetch={false} data-tour-botao="hero">{t("fazerUmTour")}{" "}<span className="arrow" aria-hidden="true">→</span></Link>
               <Link className="btn btn--ghost" href={rota("/#plataforma")}>{t("ver_a_plataforma_por_dentro")}{" "}<span className="arrow" aria-hidden="true">→</span></Link>
             </div>
           </div>
@@ -294,6 +295,7 @@ export async function SecoesDaHome() {
             <p className="forge">{t("uma_marca_e_forjada_com")}</p>
             <div className="actions">
               <button className="btn" type="button" data-open="dlg-demo">{t("agendar_uma_demonstracao")}{" "}<span className="arrow" aria-hidden="true">↗</span></button>
+              <Link className="btn btn--ghost" href="/demonstracao" prefetch={false} data-tour-botao="fecho">{t("fazerUmTour")}{" "}<span className="arrow" aria-hidden="true">→</span></Link>
               <Link className="btn btn--ghost" href={rota("/#plataforma")}>{t("ver_a_plataforma")}{" "}<span className="arrow" aria-hidden="true">→</span></Link>
             </div>
             <footer className="site-foot">

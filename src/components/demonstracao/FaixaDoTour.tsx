@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { localeDeFormato } from "@/platform/locale";
+import { CHAVE_DE_VISTO, jaFoiVisto } from "@/lib/demonstracao/passos-do-tour";
+import { TourGuiado } from "./TourGuiado";
 import { useIsEnglish } from "@/platform/locale-client";
 
 /** O Vini avisa a faixa que uma pergunta foi feita (ou recusada): ela pergunta o estado de novo. */
@@ -27,11 +29,19 @@ export function FaixaDoTour() {
   const isEnglish = useIsEnglish();
   const t = (en: string, pt: string) => (isEnglish ? en : pt);
   const [estado, setEstado] = useState<Estado | null>(null);
+  const [guiado, setGuiado] = useState(false);
 
   useEffect(() => {
     let cancelado = false;
     const atualizar = () => { void lerEstado().then((e) => { if (!cancelado) setEstado(e); }); };
     atualizar();
+    // A primeira visita abre o tour guiado; depois, só pelo botão da faixa. Guardar é conveniência: sem armazenamento, ele abre de novo.
+    void lerEstado().then((e) => {
+      if (cancelado || !e) return;
+      let visto = false;
+      try { visto = jaFoiVisto(window.localStorage.getItem(CHAVE_DE_VISTO)); } catch { /* sem armazenamento */ }
+      if (!visto) setGuiado(true);
+    });
     window.addEventListener(EVENTO_DO_TOUR, atualizar);
     return () => { cancelado = true; window.removeEventListener(EVENTO_DO_TOUR, atualizar); };
   }, []);
@@ -53,7 +63,14 @@ export function FaixaDoTour() {
       <span className="font-bold">{t("You're in the demo tour", "Você está no tour de demonstração")}</span>
       <span data-faixa-do-tour-perguntas>{perguntas}</span>
       {quando && <span className="text-platform-text-muted">{t(`The tour is valid until ${quando}.`, `O tour vale até ${quando}.`)}</span>}
+      <button type="button" data-tour-reabrir onClick={() => setGuiado(true)} className="underline">{t("Guided tour", "Tour guiado")}</button>
       <Link href="/assinar" className="underline">{t("Subscribe to Brennimark", "Assine o Brennimark")}</Link>
+      {guiado && (
+        <TourGuiado ingles={isEnglish} aoFechar={() => {
+          setGuiado(false);
+          try { window.localStorage.setItem(CHAVE_DE_VISTO, "1"); } catch { /* sem armazenamento */ }
+        }} />
+      )}
     </div>
   );
 }
