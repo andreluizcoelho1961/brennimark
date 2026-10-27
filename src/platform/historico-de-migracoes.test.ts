@@ -71,13 +71,12 @@ const PENDENTES_ESPERADAS: string[] = [
   // à do local (48 itens: colunas, constraints, índices, RLS, privilégios de
   // anon/authenticated e as 6 funções, com corpo e acesso), fora os privilégios
   // padrão da `service_role` no hospedado.
-  // Tour de demonstração, fatia 1 (17/10/2026): NÃO aplicada ao banco hospedado.
-  // Sai daqui quando o André autorizar a aplicação e ela for carimbada.
-  "tour_de_demonstracao",
-  // Tour de demonstração, visitante do servidor (25/10/2026): NÃO aplicada ao banco hospedado.
-  "tour_visitante_do_servidor",
-  // Tour de demonstração, perguntas devolvidas e estado (25/10/2026): NÃO aplicada ao banco hospedado.
-  "tour_devolver_e_estado",
+  // As três migrations do tour de demonstração saíram daqui em 25/10/2026: aplicadas
+  // ao banco hospedado com autorização nominal do André, carimbadas `20261025212445`
+  // (tour_de_demonstracao), `20261025212511` (tour_visitante_do_servidor) e
+  // `20261025212520` (tour_devolver_e_estado). Impressão digital igual à do local
+  // (50 itens: colunas, constraints, índices, política, RLS e as 9 funções, com corpo e
+  // acesso), fora os privilégios padrão da `service_role` no hospedado.
   // `cadastros_confirmacao_por_email` saiu daqui em 18/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261018144415`;
   // impressão digital igual à do local (72 itens: colunas, constraints, índice,

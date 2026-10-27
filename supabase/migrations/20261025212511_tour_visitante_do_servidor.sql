@@ -1,5 +1,5 @@
 -- Tour de demonstração — o visitante criado pelo servidor, com cadastro e tetos.
--- Decisão de André em 25/10/2026. Complementa 20261018100000_tour_de_demonstracao.sql
+-- Decisão de André em 25/10/2026. Complementa 20261025212445_tour_de_demonstracao.sql
 -- (que o desenho de 17/10 escreveu para login anônimo do Supabase) sem reescrevê-la.
 --
 -- O que muda em relação ao desenho de 17/10:

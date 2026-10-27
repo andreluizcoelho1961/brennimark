@@ -121,7 +121,7 @@ não login anônimo do Supabase. O que isso muda, em relação aos §4 a §11:
   desmarcada, duplo aceite como nas ferramentas. O usuário do Supabase leva e-mail sintético `.invalid`.
 - **Limites:** 2 perguntas por visitante; teto por dia de 200 entradas e 100 perguntas
   (`demonstracao_uso_diario`); o teto devolve o gasto do visitante. Zero IA paga: a rota de IA do tour é gratuita (fatia 3).
-- **Banco:** `20261025120000_tour_visitante_do_servidor.sql` (+ `prova-do-visitante-do-servidor.sh`).
+- **Banco:** `20261025212511_tour_visitante_do_servidor.sql` (+ `prova-do-visitante-do-servidor.sh`).
 - **Servidor (fatia 2):** `POST /api/demonstracao/entrar` (Turnstile → cadastro → usuário → `demonstracao_receber`
   → sessão) e `GET /api/manutencao/demonstracao` (limpeza diária de vencidos e órfãos, `is_anonymous`/`tour`
   conferido de novo antes de cada `deleteUser`).
