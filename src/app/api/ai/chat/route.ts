@@ -373,9 +373,12 @@ export async function POST(request: Request) {
     // outro id.
     response.headers.set("X-AI-Execution-Id", executionId);
     // Quantas perguntas o visitante do tour ainda tem (a faixa do tour mostra "1 de 2").
+    // É só aviso: a resposta já começou e a pergunta está gasta; falhar aqui não pode derrubá-la.
     if (visitanteDoTour) {
-      const estado = lerEstadoDoTour((await createServiceClient().rpc("demonstracao_estado", { p_user: visitanteDoTour })).data);
-      if (estado) response.headers.set("X-Tour-Perguntas-Restantes", String(estado.restantes));
+      try {
+        const estado = lerEstadoDoTour((await createServiceClient().rpc("demonstracao_estado", { p_user: visitanteDoTour })).data);
+        if (estado) response.headers.set("X-Tour-Perguntas-Restantes", String(estado.restantes));
+      } catch { /* a faixa confere de novo na próxima pergunta */ }
     }
     // As páginas dos trechos entregues ao modelo, para a citação levar ao PDF
     // (ver `lib/ai/paginas-citadas.ts`: a página nunca é pedida ao modelo).

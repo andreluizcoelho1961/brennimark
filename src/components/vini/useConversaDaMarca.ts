@@ -5,6 +5,7 @@ import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { useIsEnglish } from "@/platform/locale-client";
 import { CABECALHO_DE_PAGINAS, decodificarMapa, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { avisoDeInterrupcao, separarFim } from "@/lib/ai/fim-da-resposta";
+import { EVENTO_DO_TOUR } from "@/lib/demonstracao/passos-do-tour";
 
 /**
  * A conversa com o Vini — pedir, receber em fluxo, interromper, tentar de novo.
@@ -99,8 +100,10 @@ export function useConversaDaMarca(obterConversa?: () => string) {
         signal: controle.signal,
       });
 
-      // A faixa do tour (visitante da demonstração) confere quantas perguntas restam; para quem assina, não faz nada.
-      window.dispatchEvent(new Event("bm-tour-atualizar"));
+      // A faixa do tour confere quantas perguntas restam, só quando a resposta é do tour (o cabeçalho de contagem ou a recusa do limite).
+      if (resposta.headers.has("X-Tour-Perguntas-Restantes") || resposta.status === 403 || resposta.status === 429) {
+        window.dispatchEvent(new Event(EVENTO_DO_TOUR));
+      }
       if (!resposta.ok || !resposta.body) {
         const dados = await resposta.json().catch(() => null);
         throw new Error(dados?.message ?? (isEnglish ? "Couldn't reach the assistant." : "Não foi possível consultar o assistente."));

@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { localeDeFormato } from "@/platform/locale";
-import { CHAVE_DE_VISTO, jaFoiVisto } from "@/lib/demonstracao/passos-do-tour";
+import { CHAVE_DE_VISTO, EVENTO_DO_TOUR, jaFoiVisto } from "@/lib/demonstracao/passos-do-tour";
 import { TourGuiado } from "./TourGuiado";
 import { useIsEnglish } from "@/platform/locale-client";
-
-/** O Vini avisa a faixa que uma pergunta foi feita (ou recusada): ela pergunta o estado de novo. */
-export const EVENTO_DO_TOUR = "bm-tour-atualizar";
 
 type Estado = { restantes: number; expiraEm: string | null };
 
@@ -33,17 +30,21 @@ export function FaixaDoTour() {
 
   useEffect(() => {
     let cancelado = false;
-    const atualizar = () => { void lerEstado().then((e) => { if (!cancelado) setEstado(e); }); };
-    atualizar();
-    // A primeira visita abre o tour guiado; depois, só pelo botão da faixa. Guardar é conveniência: sem armazenamento, ele abre de novo.
-    void lerEstado().then((e) => {
-      if (cancelado || !e) return;
-      let visto = false;
-      try { visto = jaFoiVisto(window.localStorage.getItem(CHAVE_DE_VISTO)); } catch { /* sem armazenamento */ }
-      if (!visto) setGuiado(true);
-    });
-    window.addEventListener(EVENTO_DO_TOUR, atualizar);
-    return () => { cancelado = true; window.removeEventListener(EVENTO_DO_TOUR, atualizar); };
+    const atualizar = (primeira = false) => {
+      void lerEstado().then((e) => {
+        if (cancelado) return;
+        setEstado(e);
+        if (!primeira || !e) return;
+        // A primeira visita abre o tour guiado; depois, só pelo botão da faixa. Guardar é conveniência: sem armazenamento, ele abre de novo.
+        let visto = false;
+        try { visto = jaFoiVisto(window.localStorage.getItem(CHAVE_DE_VISTO)); } catch { /* sem armazenamento */ }
+        if (!visto) setGuiado(true);
+      });
+    };
+    atualizar(true);
+    const aoAtualizar = () => atualizar();
+    window.addEventListener(EVENTO_DO_TOUR, aoAtualizar);
+    return () => { cancelado = true; window.removeEventListener(EVENTO_DO_TOUR, aoAtualizar); };
   }, []);
 
   if (!estado) return null;
