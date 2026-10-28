@@ -164,6 +164,9 @@ export const PASSOS_DO_TOUR: readonly Passo[] = [
 
 export const CHAVE_DE_VISTO = "bm-tour-guiado-visto";
 
+/** O Vini avisa a faixa do tour que uma pergunta foi feita (ou recusada): ela pergunta o estado de novo. */
+export const EVENTO_DO_TOUR = "bm-tour-atualizar";
+
 export function proximoPasso(atual: number, total: number): number | "fim" {
   return atual + 1 >= total ? "fim" : atual + 1;
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { segredoDoCronConfere } from "@/lib/assets/limpeza-de-orfaos";
 import { rodarLimpezaDoTour } from "@/lib/demonstracao/limpeza";
+import { ehVisitanteDoTour } from "@/lib/demonstracao/visitante";
 
 /**
  * A limpeza diária do tour — chamada pelo Vercel Cron (`vercel.json`). A
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
     async ehDoTour(userId) {
       const { data, error } = await servico.auth.admin.getUserById(userId);
       if (error || !data.user) return false;
-      return data.user.app_metadata?.tour === true || data.user.is_anonymous === true;
+      return ehVisitanteDoTour(data.user);
     },
     async apagar(userId) {
       const { error } = await servico.auth.admin.deleteUser(userId);
