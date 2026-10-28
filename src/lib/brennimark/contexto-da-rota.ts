@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { resolveWorkspaceContext, type WorkspaceContext } from "./workspace-context";
 import type { Alvo } from "./selecao";
 import { podeUsar, type Utilidade } from "../ai/permissao";
-import { ehVisitanteDoTour } from "../demonstracao/visitante";
+import { ehVisitanteDoTour, textoDeAssinante } from "../demonstracao/visitante";
+import { idiomaDaSessao } from "../idioma-da-sessao";
+import { inEnglish } from "../../platform/locale";
 import { getBrennimarkAuthContext, resolverWorkspaceAtivo, type BrennimarkAuthContext } from "./server";
 
 /**
@@ -221,7 +223,7 @@ export async function portaoDeIA(
    * rota de IA nova nascer fechada ao visitante.
    */
   if (ehVisitanteDoTour(auth.user) && opcoes.visitanteDoTour !== "permitir") {
-    return { ok: false, resposta: NextResponse.json({ error: "tour_sem_ia" }, { status: 403 }) };
+    return { ok: false, resposta: NextResponse.json({ error: "tour_sem_ia", message: textoDeAssinante(inEnglish(await idiomaDaSessao())) }, { status: 403 }) };
   }
   if (!contexto.brand) {
     return { ok: false, resposta: NextResponse.json({ error: "no_brand" }, { status: 409 }) };

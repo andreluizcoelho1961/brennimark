@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { PASSOS_DO_TOUR, passoAnterior, posicaoDoBalao, proximoPasso, type Posicao, type Retangulo } from "@/lib/demonstracao/passos-do-tour";
 
@@ -15,6 +16,18 @@ import { PASSOS_DO_TOUR, passoAnterior, posicaoDoBalao, proximoPasso, type Posic
  */
 const LARGURA = 320;
 const ALTURA_ESTIMADA = 190;
+
+/**
+ * Deixa a janela do Vini como o passo precisa: aberta nos passos dos controles
+ * dele, recolhida nos que vêm depois (o balão do centro não pode ficar por cima
+ * dela). O mesmo botão do Vini abre e recolhe.
+ */
+function prepararATela(prepara?: "abrir-vini" | "fechar-vini") {
+  if (!prepara) return;
+  const aberta = Boolean(document.querySelector("[data-vini-janela]"));
+  if ((prepara === "abrir-vini") === aberta) return;
+  document.querySelector<HTMLElement>("[data-botao-do-vini]")?.click();
+}
 
 function medir(seletor?: string): Retangulo | null {
   if (!seletor) return null;
@@ -31,6 +44,7 @@ export function TourGuiado({ ingles, aoFechar }: { ingles: boolean; aoFechar: ()
   const [indice, setIndice] = useState(0);
   const [alvo, setAlvo] = useState<Retangulo | null>(null);
   const [posicao, setPosicao] = useState<Posicao>({ topo: 80, esquerda: 80, modo: "centro" });
+  const router = useRouter();
   const balao = useRef<HTMLDivElement>(null);
   const botao = useRef<HTMLButtonElement>(null);
   const passo = PASSOS_DO_TOUR[indice];
@@ -39,13 +53,22 @@ export function TourGuiado({ ingles, aoFechar }: { ingles: boolean; aoFechar: ()
     const recalcular = () => {
       const r = medir(passo.seletor);
       setAlvo(r);
+      const ancora = passo.ancora ? medir(passo.ancora) : null;
       const caixa = balao.current?.getBoundingClientRect();
-      setPosicao(posicaoDoBalao(r, { largura: window.innerWidth, altura: window.innerHeight }, { largura: caixa?.width ?? LARGURA, altura: caixa?.height ?? ALTURA_ESTIMADA }));
+      setPosicao(posicaoDoBalao(r, { largura: window.innerWidth, altura: window.innerHeight }, { largura: caixa?.width ?? LARGURA, altura: caixa?.height ?? ALTURA_ESTIMADA }, ancora));
     };
+    prepararATela(passo.prepara);
     const raf = window.requestAnimationFrame(recalcular);
+    // A janela do Vini leva um instante para abrir e assentar: mede de novo depois dela.
+    const depois = passo.prepara ? window.setTimeout(recalcular, 350) : undefined;
     window.addEventListener("resize", recalcular);
     window.addEventListener("scroll", recalcular, true);
-    return () => { window.cancelAnimationFrame(raf); window.removeEventListener("resize", recalcular); window.removeEventListener("scroll", recalcular, true); };
+    return () => {
+      window.cancelAnimationFrame(raf);
+      if (depois !== undefined) window.clearTimeout(depois);
+      window.removeEventListener("resize", recalcular);
+      window.removeEventListener("scroll", recalcular, true);
+    };
   }, [passo]);
 
   useEffect(() => { botao.current?.focus({ preventScroll: true }); }, [indice]);
@@ -57,6 +80,12 @@ export function TourGuiado({ ingles, aoFechar }: { ingles: boolean; aoFechar: ()
   }, [aoFechar]);
 
   const ultimo = indice === PASSOS_DO_TOUR.length - 1;
+  // O destino sai do próprio elemento apontado (um link da coluna): nada de endereço escrito aqui.
+  const abrirFerramenta = () => {
+    const href = passo.seletor ? document.querySelector<HTMLAnchorElement>(passo.seletor)?.getAttribute("href") : null;
+    aoFechar();
+    if (href) router.push(href);
+  };
   const avancar = () => { const p = proximoPasso(indice, PASSOS_DO_TOUR.length); if (p === "fim") aoFechar(); else setIndice(p); };
   const botaoBase = "border border-platform-border px-3 py-1.5 font-display text-[11px] font-bold uppercase tracking-wide text-platform-text hover:bg-platform-text hover:text-platform-bg";
 
@@ -72,6 +101,16 @@ export function TourGuiado({ ingles, aoFechar }: { ingles: boolean; aoFechar: ()
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-platform-text-muted">{indice + 1} / {PASSOS_DO_TOUR.length}</p>
         <h2 className="mt-1 font-display text-lg font-black uppercase leading-tight">{passo.titulo[lg]}</h2>
         <p className="mt-2 text-sm leading-relaxed text-platform-text-muted">{passo.texto[lg]}</p>
+        {passo.itens && (
+          <ul className="mt-2 flex flex-col gap-1.5 text-sm text-platform-text">
+            {passo.itens[lg].map((item) => <li key={item}>— {item}</li>)}
+          </ul>
+        )}
+        {passo.abrir && alvo && (
+          <button type="button" data-tour-abrir onClick={abrirFerramenta} className="mt-3 text-sm underline">
+            {t("Open this tool", "Abrir esta ferramenta")}
+          </button>
+        )}
         {ultimo && <Link href="/assinar" className="mt-3 inline-block underline">{t("Subscribe to Brennimark", "Assine o Brennimark")}</Link>}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <button type="button" data-tour-pular onClick={aoFechar} className="text-xs text-platform-text-muted underline">

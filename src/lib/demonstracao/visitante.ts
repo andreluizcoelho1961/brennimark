@@ -69,3 +69,10 @@ export function lerEstadoDoTour(data: unknown): { feitas: number; limite: number
   if (typeof feitas !== "number" || typeof limite !== "number") return null;
   return { feitas, limite, restantes: Math.max(0, limite - feitas), expiraEm: typeof expiraEm === "string" ? expiraEm : null };
 }
+
+/** O que o visitante lê quando tenta o que é de assinante (prompts, avaliação de peça): explica, não só recusa. */
+export function textoDeAssinante(ingles: boolean): string {
+  return ingles
+    ? "This feature is for subscribers. In the tour you can see how it works; when you subscribe, you use it with your own brand's manual."
+    : "Esta função é para assinantes. No tour você vê como ela funciona; ao assinar, usa com o manual da sua marca.";
+}
