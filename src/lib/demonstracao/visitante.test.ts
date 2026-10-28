@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDoLimite, type MotivoDoLimite } from "./visitante";
+import { ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDeAssinante, textoDoLimite, type MotivoDoLimite } from "./visitante";
 
 test("visitante: app_metadata.tour ou login anônimo; user_metadata e conta comum não", () => {
   assert.equal(ehVisitanteDoTour({ app_metadata: { tour: true } }), true);
@@ -34,4 +34,10 @@ test("o estado vira restantes, nunca negativo, e forma estranha vira nulo", () =
   assert.deepEqual(lerEstadoDoTour([{ feitas: 1, limite: 2, expira_em: "2026-10-28T10:00:00Z" }]), { feitas: 1, limite: 2, restantes: 1, expiraEm: "2026-10-28T10:00:00Z" });
   assert.deepEqual(lerEstadoDoTour({ feitas: 3, limite: 2 }), { feitas: 3, limite: 2, restantes: 0, expiraEm: null });
   for (const ruim of [null, undefined, [], [{}], [{ feitas: "1", limite: 2 }], "x"]) assert.equal(lerEstadoDoTour(ruim), null, JSON.stringify(ruim));
+});
+
+test("o texto de assinante existe nos dois idiomas e diz que dá para ver como funciona", () => {
+  assert.match(textoDeAssinante(false), /assinantes/);
+  assert.match(textoDeAssinante(true), /subscribers/);
+  assert.doesNotMatch(textoDeAssinante(true), /tour_sem_ia/);
 });
