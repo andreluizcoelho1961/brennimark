@@ -2352,7 +2352,7 @@
     },
     "confirmacaoDaLista": {
       "p1": "Você pediu para receber e-mails do Brennimark, com novidades e conteúdo para quem trabalha com marcas.",
-      "p2": "Para confirmar que este e-mail é seu, clique no botão abaixo. Sem a confirmação, não enviamos nada.",
+      "p2": "Para confirmar que este e-mail é seu, são dois passos: clique no botão abaixo e, na página que abrir, clique em \"Confirmar o meu e-mail\". Sem a confirmação, não enviamos nada.",
       "fim": "Se não foi você, ignore esta mensagem: nada será enviado. Para apagar o seu cadastro, use {link}",
       "confirmar": "Confirmar: {link}",
       "assunto": "Confirme o seu e-mail no Brennimark",
@@ -2443,7 +2443,7 @@
     "confirmar": {
       "metaTitulo": "Confirmar o e-mail",
       "inicialTitulo": "Confirme o seu e-mail",
-      "inicialTexto": "Clique para confirmar que você quer receber os e-mails do Brennimark. Nada acontece até você clicar.",
+      "inicialTexto": "Último passo: clique no botão abaixo para confirmar que você quer receber os e-mails do Brennimark. Nada acontece até você clicar.",
       "botao": "Confirmar o meu e-mail",
       "enviando": "Confirmando…",
       "feitoTitulo": "Pronto, o seu e-mail está confirmado.",
