@@ -111,7 +111,12 @@ export function TourGuiado({ ingles, aoFechar }: { ingles: boolean; aoFechar: ()
             {t("Open this tool", "Abrir esta ferramenta")}
           </button>
         )}
-        {ultimo && <Link href="/assinar" className="mt-3 inline-block underline">{t("Subscribe to Brennimark", "Assine o Brennimark")}</Link>}
+        {ultimo && (
+          <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Link href="/assinar" className="underline">{t("Subscribe to Brennimark", "Assine o Brennimark")}</Link>
+            <Link href={ingles ? "/en" : "/"} data-tour-voltar-ao-site className="underline">{t("Back to the site", "Voltar ao site")}</Link>
+          </p>
+        )}
         <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
           <button type="button" data-tour-pular onClick={aoFechar} className="text-xs text-platform-text-muted underline">
             {ultimo ? t("Keep exploring", "Continuar explorando") : t("Skip", "Pular")}

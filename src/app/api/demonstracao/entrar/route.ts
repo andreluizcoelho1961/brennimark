@@ -44,6 +44,11 @@ export async function POST(request: Request) {
   if (bruto.length > TETO_DO_CORPO) return NextResponse.json({ message: idioma === "en" ? "Request too large." : "Pedido grande demais." }, { status: 413 });
   if (pedidoBruto.website) return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 
+  // Já há sessão (visitante que voltou do site, ou conta de verdade): não cria outro visitante, que
+  // daria outra cota de perguntas ou trocaria a sessão de quem tem conta. Segue para o manual.
+  const { data: { user: logado } } = await (await createClient()).auth.getUser();
+  if (logado) return NextResponse.json({ ok: true, destino: "/docs", jaTinhaSessao: true }, { headers: { "Cache-Control": "no-store" } });
+
   const lido = lerPedidoDeEntrada(corpo);
   if (!lido.ok) return NextResponse.json({ message: lido.mensagem, campo: lido.campo }, { status: 400, headers: { "Cache-Control": "no-store" } });
   const { dados: d, token } = lido.pedido;

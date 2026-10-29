@@ -66,6 +66,7 @@ export function FaixaDoTour() {
       {quando && <span className="text-platform-text-muted">{t(`The tour is valid until ${quando}.`, `O tour vale até ${quando}.`)}</span>}
       <button type="button" data-tour-reabrir onClick={() => setGuiado(true)} className="underline">{t("Guided tour", "Tour guiado")}</button>
       <Link href="/assinar" className="underline">{t("Subscribe to Brennimark", "Assine o Brennimark")}</Link>
+      <Link href={isEnglish ? "/en" : "/"} data-tour-voltar-ao-site className="underline">{t("Back to the site", "Voltar ao site")}</Link>
       {guiado && (
         <TourGuiado ingles={isEnglish} aoFechar={() => {
           setGuiado(false);

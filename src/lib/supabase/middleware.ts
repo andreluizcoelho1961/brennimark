@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { COOKIE_DO_ACESSO, ipDoPedido, marcaDoAcesso, precisaRegistrar } from "@/lib/conformidade/registro-de-acesso";
 import { createServiceClient } from "@/lib/supabase/service";
+import { homeLevaAoProduto } from "@/lib/demonstracao/visitante";
 
 export async function updateSession(request: NextRequest, evento?: NextFetchEvent) {
   // O idioma do site vem do endereço (fatia 5): `/pt-BR/...` direto volta ao
@@ -112,8 +113,9 @@ export async function updateSession(request: NextRequest, evento?: NextFetchEven
 
   // A home é o site, para quem ainda não entrou. Quem já entrou vai direto ao
   // produto, como era antes de o site existir — e todo link interno que aponta
-  // para "/" continua levando à plataforma.
-  if (user && request.nextUrl.pathname === "/") {
+  // para "/" continua levando à plataforma. O visitante do tour fica de fora: ele só está de visita
+  // e precisa poder voltar ao site (29/10/2026).
+  if (homeLevaAoProduto(user) && request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone();
     url.pathname = DESTINO_PADRAO;
     url.search = "";

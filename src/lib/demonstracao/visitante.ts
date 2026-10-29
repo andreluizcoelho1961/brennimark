@@ -18,6 +18,15 @@ export function ehVisitanteDoTour(usuario: UsuarioDoTour | null | undefined): bo
   return usuario.app_metadata?.tour === true || usuario.is_anonymous === true;
 }
 
+/**
+ * A home (`/`) é o site para quem não entrou, e leva ao produto para quem entrou. O visitante do tour
+ * ENTROU (tem sessão), mas está de visita: ao terminar o tour ele precisa conseguir voltar ao site
+ * para decidir se assina. Só quem tem conta de verdade vai da home direto ao produto.
+ */
+export function homeLevaAoProduto(usuario: UsuarioDoTour | null | undefined): boolean {
+  return Boolean(usuario) && !ehVisitanteDoTour(usuario);
+}
+
 export type MotivoDoLimite = "esgotado" | "expirado" | "inativo" | "teto_do_dia" | "desconhecido";
 
 /** O banco devolve o motivo em texto; qualquer outra coisa vale como o mais restritivo. */

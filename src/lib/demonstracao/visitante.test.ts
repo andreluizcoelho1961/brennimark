@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDeAssinante, textoDoLimite, type MotivoDoLimite } from "./visitante";
+import {
+  homeLevaAoProduto, ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDeAssinante, textoDoLimite, type MotivoDoLimite } from "./visitante";
 
 test("visitante: app_metadata.tour ou login anônimo; user_metadata e conta comum não", () => {
   assert.equal(ehVisitanteDoTour({ app_metadata: { tour: true } }), true);
@@ -40,4 +41,15 @@ test("o texto de assinante existe nos dois idiomas e diz que dá para ver como f
   assert.match(textoDeAssinante(false), /assinantes/);
   assert.match(textoDeAssinante(true), /subscribers/);
   assert.doesNotMatch(textoDeAssinante(true), /tour_sem_ia/);
+});
+
+test("a home leva ao produto quem tem conta; o visitante do tour e quem não entrou ficam no site", () => {
+  assert.equal(homeLevaAoProduto({ app_metadata: {}, is_anonymous: false }), true);
+  assert.equal(homeLevaAoProduto({ app_metadata: { provider: "email" } }), true);
+  assert.equal(homeLevaAoProduto({ app_metadata: { tour: true } }), false);
+  assert.equal(homeLevaAoProduto({ is_anonymous: true }), false);
+  assert.equal(homeLevaAoProduto(null), false);
+  assert.equal(homeLevaAoProduto(undefined), false);
+  // user_metadata nunca vale: a armadilha de conta real com `tour: true` no cadastro continua levando ao produto.
+  assert.equal(homeLevaAoProduto({ app_metadata: {}, ...({ user_metadata: { tour: true } } as object) }), true);
 });
