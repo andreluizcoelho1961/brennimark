@@ -1,12 +1,13 @@
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaRegistros from "../imagens/telas/registros.webp";
 import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** Empresas — `/empresas` e `/en/companies`. Texto do protótipo de 29/09/2026 (autoria do André); o inglês está em `site.empresas`. */
 export async function ConteudoEmpresas() {
+  const tel = telas(await getLocale());
   const t = await getTranslations("site.empresas");
   const paginas = await getTranslations("site.paginas");
   const rel = await getTranslations("site.relacionados");
@@ -22,7 +23,7 @@ export async function ConteudoEmpresas() {
       <p className="pg-lead">{t("lead")}</p>
       <div className="pg-actions"><BotaoDemonstracao /><LinkVerPlanos /></div>
       </div>
-      <Captura src={telaRegistros} alt={t("imagemAlt")} />
+      <Captura src={tel.registros} alt={t("imagemAlt")} />
       </div>
       </section>
 

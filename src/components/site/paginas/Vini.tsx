@@ -3,14 +3,14 @@ import vini from "../imagens/vini.webp";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaRevisao from "../imagens/telas/revisao.webp";
-import telaPrompt from "../imagens/telas/prompt.webp";
 import fotoDoPrompt from "../imagens/telas/prompt-resultado.webp";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** Vini Max — `/vini`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export async function ConteudoVini() {
+  const tel = telas(await getLocale());
   const t = await getTranslations("site.vini");
   const c = await getTranslations("site.comum");
   const paginas = await getTranslations("site.paginas");
@@ -66,7 +66,7 @@ export async function ConteudoVini() {
       <p className="body">{t("ele_compara_as_cores_com")}</p>
       <ul className="ticks"><li>{t("achados_com_a_orientacao_e")}</li><li>{t("marcacao_sobre_a_peca")}</li><li>{t("sugestao_de_correcao_para_voce")}</li></ul>
       </div>
-      <Captura src={telaRevisao} alt={t("a_revisao_de_uma_peca")} />
+      <Captura src={tel.revisao} alt={t("a_revisao_de_uma_peca")} />
       </div>
 
       <div className="feat-row">
@@ -77,7 +77,7 @@ export async function ConteudoVini() {
       <ul className="ticks"><li>{t("a_ideia_e_sua_a")}</li><li>{t("rascunho_fica_fora_do_prompt")}</li><li>{t("a_fonte_de_cada_linha")}</li></ul>
       </div>
       <div className="prompt-par">
-      <Captura src={telaPrompt} alt={t("o_assistente_monta_o_prompt")} />
+      <Captura src={tel.prompt} alt={t("o_assistente_monta_o_prompt")} />
       <figure className="resultado resultado--pagina">
         <Image src={fotoDoPrompt} alt={t("fotografia_gerada_por_ia_a")} sizes="(max-width: 767px) 60vw, 22vw" />
         <figcaption><b>{t("a_imagem_gerada_com_este")}</b>{t("fora_do_brennimark_voce_revisa")}</figcaption>

@@ -3,16 +3,15 @@ import { BlocosDeEntrega } from "./Entrega";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaItemLogotipo from "../imagens/telas/item-logotipo.webp";
-import telaMateriais from "../imagens/telas/materiais.webp";
-import telaBanco from "../imagens/telas/banco-de-imagens.webp";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 import { caminhoDoSite } from "@/lib/site/idiomas";
 import { idiomaDoSiteAtual } from "@/lib/site/idioma-atual";
 import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** Materiais da marca — `/materiais`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export async function ConteudoMateriais() {
+  const tel = telas(await getLocale());
   const idioma = await idiomaDoSiteAtual();
   const rota = (caminhoPt: string) => caminhoDoSite(idioma, caminhoPt);
   const t = await getTranslations("site.materiais");
@@ -32,7 +31,7 @@ export async function ConteudoMateriais() {
       <LinkVerPlanos />
       </div>
       </div>
-      <Captura src={telaMateriais} alt={t("materiais_da_marca_a_lista")} />
+      <Captura src={tel.materiais} alt={t("materiais_da_marca_a_lista")} />
       </div>
       </section>
 
@@ -76,7 +75,7 @@ export async function ConteudoMateriais() {
       <p className="body">{t("cada_item_tem_as_suas")}</p>
       <ul className="ticks"><li>{t("versoes_para_fundo_claro_e")}</li><li>{t("o_que_pode_e_o")}</li><li>{t("a_citacao_abre_o_manual")}</li></ul>
       </div>
-      <Captura src={telaItemLogotipo} alt={t("a_pagina_de_um_item")} />
+      <Captura src={tel.itemLogotipo} alt={t("a_pagina_de_um_item")} />
       </div>
 
       <div className="feat-row">
@@ -101,7 +100,7 @@ export async function ConteudoMateriais() {
       <p className="body">{t("albuns_por_assunto_com_miniaturas")}</p>
       <ul className="ticks"><li>{t("albuns_criados_pela_agencia")}</li><li>{t("ampliacao_antes_de_baixar")}</li><li>{t("varias_fotos_num_pacote")}</li></ul>
       </div>
-      <Captura src={telaBanco} alt={t("banco_de_imagens_da_marca")} />
+      <Captura src={tel.bancoDeImagens} alt={t("banco_de_imagens_da_marca")} />
       </div>
 
       <div className="feat-row">
