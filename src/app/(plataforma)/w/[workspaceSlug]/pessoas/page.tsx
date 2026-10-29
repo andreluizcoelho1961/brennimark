@@ -31,16 +31,20 @@ export default async function PessoasPage({
   // diferente confirmaria a existência da conta para quem está sondando.
   if (!conta || conta.papel !== "owner") redirect("/docs");
 
+  // O idioma da SESSÃO: com a interface em inglês, o título e a explicação saem em inglês.
+  const en = contexto.locale === "en";
+
   return (
     <MolduraDaConta contexto={contexto} contaSlug={conta.slug}>
       <div className="px-[var(--space-shell-5)] py-[var(--space-shell-6)]">
         <div className="mx-auto max-w-[68rem]">
           <h1 className="font-display text-2xl font-black uppercase text-platform-text">
-            Pessoas e acesso
+            {en ? "People & access" : "Pessoas e acesso"}
           </h1>
           <p className="mt-3 max-w-[46rem] text-sm leading-relaxed text-platform-text-muted">
-            Quem trabalha nas marcas de {conta.nome}, e em quais. Esta lista é sua: ninguém fora da
-            conta a enxerga.
+            {en
+              ? `Who works on ${conta.nome}'s brands, and on which ones. This list is yours: nobody outside the account sees it.`
+              : `Quem trabalha nas marcas de ${conta.nome}, e em quais. Esta lista é sua: ninguém fora da conta a enxerga.`}
           </p>
           <div className="mt-8">
             <PessoasEAcesso />

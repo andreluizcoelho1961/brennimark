@@ -26,14 +26,18 @@ export default async function RegistrosPage({
   // Não participa, ou não administra: a mesma saída para os dois.
   if (!conta || conta.papel !== "owner") redirect("/docs");
 
+  // O idioma da SESSÃO, não o padrão do produto.
+  const en = contexto.locale === "en";
+
   return (
     <MolduraDaConta contexto={contexto} contaSlug={conta.slug}>
       <div className="px-[var(--space-shell-5)] py-[var(--space-shell-6)]">
         <div className="mx-auto max-w-[68rem]">
-          <h1 className="font-display text-2xl font-black uppercase text-platform-text">Registros</h1>
+          <h1 className="font-display text-2xl font-black uppercase text-platform-text">{en ? "Records" : "Registros"}</h1>
           <p className="mt-3 max-w-[46rem] text-sm leading-relaxed text-platform-text-muted">
-            O que aconteceu nas marcas de {conta.nome}: quem baixou, quem recebeu acesso, o que mudou no
-            manual. Nada aqui se apaga, e ninguém fora da conta enxerga.
+            {en
+              ? `What happened on ${conta.nome}'s brands: who downloaded, who was given access, what changed in the manual. Nothing here is deleted, and nobody outside the account can see it.`
+              : `O que aconteceu nas marcas de ${conta.nome}: quem baixou, quem recebeu acesso, o que mudou no manual. Nada aqui se apaga, e ninguém fora da conta enxerga.`}
           </p>
           <div className="mt-8">
             <Registros marcas={conta.marcas.map((m) => ({ id: m.id, nome: m.nome }))} />

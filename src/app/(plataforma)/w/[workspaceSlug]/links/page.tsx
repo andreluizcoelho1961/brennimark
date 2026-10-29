@@ -34,15 +34,18 @@ export default async function LinksPage({
   const arquivos = (busca.arquivos ?? "").split(",").filter((a) => /^[0-9a-f-]{36}$/i.test(a)).slice(0, 60);
   const inicial = busca.marca ? { marca: busca.marca, arquivos } : undefined;
 
+  // O idioma da SESSÃO, não o padrão do produto.
+  const en = contexto.locale === "en";
+
   return (
     <MolduraDaConta contexto={contexto} contaSlug={conta.slug}>
       <div className="px-[var(--space-shell-5)] py-[var(--space-shell-6)]">
         <div className="mx-auto max-w-[68rem]">
-          <h1 className="font-display text-2xl font-black uppercase text-platform-text">Links de entrega</h1>
+          <h1 className="font-display text-2xl font-black uppercase text-platform-text">{en ? "Delivery links" : "Links de entrega"}</h1>
           <p className="mt-3 max-w-[46rem] text-sm leading-relaxed text-platform-text-muted">
-            Arquivos das marcas de {conta.nome} para quem não tem conta — a gráfica de um job, um fornecedor
-            pontual. Cada link tem prazo, entrega só o que foi escolhido, leva junto as páginas do manual que regem
-            cada arquivo e registra quem baixou.
+            {en
+              ? `Files from ${conta.nome}'s brands for people without an account — the printer for a job, a one-off supplier. Each link has an expiry, delivers only what was chosen, carries the manual pages that govern each file, and records who downloaded.`
+              : `Arquivos das marcas de ${conta.nome} para quem não tem conta — a gráfica de um job, um fornecedor pontual. Cada link tem prazo, entrega só o que foi escolhido, leva junto as páginas do manual que regem cada arquivo e registra quem baixou.`}
           </p>
           <div className="mt-8">
             <LinksDeEntrega marcas={conta.marcas.map((m) => ({ id: m.id, nome: m.nome, chave: m.key }))} inicial={inicial} />

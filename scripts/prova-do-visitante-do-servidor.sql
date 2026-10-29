@@ -500,6 +500,21 @@ begin
     (select marca_key from public.demonstracao_receber(u1, 'Eva', 'eva@local.test', 'en')));
 end $$;
 
+-- ─── K. "Pessoas e acesso" não lista visitante do tour (29/10/2026) ──────────
+do $$
+declare m mundo;
+begin
+  select * into m from mundo;
+  perform pg_temp.registrar('K1 o visitante recebido é membro da conta (o caso existe de fato)', 'true',
+    (select (count(*) >= 1)::text from public.workspace_members wm where wm.workspace_id = m.conta_a and wm.user_id = m.t1));
+  perform pg_temp.registrar('K2 a lista de pessoas da conta traz só o dono, nenhum visitante', '1',
+    pg_temp.como(m.dono_a, format('select count(*)::text from public.pessoas_da_conta(%L)', m.conta_a)));
+  perform pg_temp.registrar('K3 e quem aparece é o dono', 'vs-dono@local.test',
+    pg_temp.como(m.dono_a, format('select email from public.pessoas_da_conta(%L) limit 1', m.conta_a)));
+  perform pg_temp.registrar('K4 quem não administra continua recusado (42501)', '42501',
+    pg_temp.como(m.real, format('select count(*)::text from public.pessoas_da_conta(%L)', m.conta_a)));
+end $$;
+
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido
 from resultado order by ordem;
 
