@@ -108,3 +108,4 @@
 20261025212511 tour_visitante_do_servidor
 20261025212520 tour_devolver_e_estado
 20261027223054 tour_marca_por_idioma
+20261029130404 email_marketing_idioma_do_destinatario
