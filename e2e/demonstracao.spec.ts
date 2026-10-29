@@ -106,3 +106,24 @@ test("o site oferece o tour: botão na home, nos dois idiomas, levando à porta"
   await expect(page.locator('[data-tour-botao="hero"]')).toContainText("Take a tour");
   await expect(page.locator('[data-tour-botao="fecho"]')).toHaveAttribute("href", "/demonstracao");
 });
+
+test("o visitante do tour sempre tem como voltar ao site: na faixa e no último passo do tour guiado", async ({ page }) => {
+  await page.route("**/api/demonstracao/estado", (rota) => rota.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({ visitante: true, restantes: 1, feitas: 1, limite: 2, expiraEm: null }),
+  }));
+  await page.goto("/dev/moldura");
+  const faixa = page.locator("[data-faixa-do-tour]");
+  await expect(faixa).toBeVisible();
+  await expect(faixa.locator("[data-tour-voltar-ao-site]")).toHaveAttribute("href", "/");
+
+  // O tour guiado abre sozinho na primeira visita; no último passo, o link de voltar está ao lado do de assinar.
+  const guiado = page.locator("[data-tour-guiado]");
+  await expect(guiado).toBeVisible();
+  for (let i = 0; i < 20 && (await guiado.getAttribute("data-passo")) !== "fim"; i += 1) {
+    await guiado.locator("[data-tour-proximo]").click();
+  }
+  await expect(guiado).toHaveAttribute("data-passo", "fim");
+  await expect(guiado.locator('a[href="/assinar"]')).toBeVisible();
+  await expect(guiado.locator("[data-tour-voltar-ao-site]")).toHaveAttribute("href", "/");
+});
