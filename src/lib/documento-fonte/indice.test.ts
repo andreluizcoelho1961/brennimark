@@ -62,7 +62,7 @@ test("Apple: um índice bom passa inteiro", () => {
 });
 
 test("títulos genéricos, um a um", () => {
-  for (const t of ["SECTION 1", "Seção Padrão", "Páginas 9–16", "Página 12", "Page 4", "Capítulo 3", "12", "Sumário", "Contents", " "]) {
+  for (const t of ["SECTION 1", "Seção Padrão", "Páginas 9–16", "Página 12", "Page 4", "Pages 9–16", "Pages 1–5, 9", "Capítulo 3", "12", "Sumário", "Contents", " "]) {
     assert.equal(ehTituloGenerico(t), true, `deveria ser genérico: ${t}`);
   }
   for (const t of ["Cores", "Usos incorretos", "Logotipo", "Área de respiro", "1. Diretrizes institucionais"]) {
