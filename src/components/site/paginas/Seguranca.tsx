@@ -1,12 +1,13 @@
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaPessoas from "../imagens/telas/pessoas.webp";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 import { BotaoDemonstracao, CartaoRelacionado, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** Segurança e privacidade — `/seguranca`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export async function ConteudoSeguranca() {
+  const tel = telas(await getLocale());
   const t = await getTranslations("site.seguranca");
   const c = await getTranslations("site.comum");
   const paginas = await getTranslations("site.paginas");
@@ -41,7 +42,7 @@ export async function ConteudoSeguranca() {
       <p className="body">{t("o_que_aparece_na_tela")}</p>
       <ul className="ticks"><li>{t("regras_de_acesso_em_cada")}</li><li>{t("testes_que_provam_que_a")}</li><li>{t("revisao_a_cada_mudanca")}</li></ul>
       </div>
-      <Captura src={telaPessoas} alt={t("pessoas_e_acesso_cada_pessoa")} />
+      <Captura src={tel.pessoas} alt={t("pessoas_e_acesso_cada_pessoa")} />
       </div>
 
       <div className="feat-row rev">

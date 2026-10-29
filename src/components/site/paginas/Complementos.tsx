@@ -3,11 +3,12 @@ import vini from "../imagens/vini.webp";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaComplementoEditor from "../imagens/telas/complemento-editor.webp";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 
 /** Complementos e lacunas: o que era a página `/complementos`, agora um bloco de outra página (22/10/2026). Texto do protótipo de 29/09/2026 (autoria do André). */
 export async function BlocosDeComplementos() {
+  const tel = telas(await getLocale());
   const t = await getTranslations("site.complementos");
   const c = await getTranslations("site.comum");
   return (
@@ -29,7 +30,7 @@ export async function BlocosDeComplementos() {
       <p className="body">{t("a_agencia_escreve_o_complemento")}</p>
       <ul className="ticks"><li>{t("editor_com_previa")}</li><li>{t("rascunho_revisao_e_publicado")}</li><li>{t("historico_de_cada_versao")}</li></ul>
       </div>
-      <Captura src={telaComplementoEditor} alt={t("o_editor_de_complemento_o")} />
+      <Captura src={tel.complementoEditor} alt={t("o_editor_de_complemento_o")} />
       </div>
 
       <div className="feat-row rev">

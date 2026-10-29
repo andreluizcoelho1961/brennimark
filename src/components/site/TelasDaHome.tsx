@@ -1,17 +1,9 @@
 import Image, { type StaticImageData } from "next/image";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "./telas";
 import type { CSSProperties, ReactNode } from "react";
 import vini from "./imagens/vini.webp";
-import telaManual from "./imagens/telas/manual.webp";
-import telaAssistente from "./imagens/telas/assistente.webp";
-import telaRevisao from "./imagens/telas/revisao.webp";
-import telaPrompt from "./imagens/telas/prompt.webp";
 import fotoDoPrompt from "./imagens/telas/prompt-resultado.webp";
-import telaMateriais from "./imagens/telas/materiais.webp";
-import telaLinksCriado from "./imagens/telas/links-criado.webp";
-import telaReceber from "./imagens/telas/receber.webp";
-import telaComplementos from "./imagens/telas/complementos.webp";
-import telaViniComplemento from "./imagens/telas/vini-complemento.webp";
 
 /**
  * As telas do tour da home (22/10/2026): capturas REAIS da plataforma, feitas
@@ -120,13 +112,16 @@ function Citacao({ rotulo, titulo, pagina, selo, tom }: { rotulo?: string; titul
 }
 
 export async function TelaManual() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
+  const en = idioma === "en";
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaManual}
+      src={tel.manual}
       alt={t("o_manual_do_brennimark_aberto")}
       destaques={[
-        { caixa: c(556, 8, 632, 48), n: 1, rotulo: t("indice_e_busca") },
+        { caixa: en ? c(596, 8, 738, 48) : c(556, 8, 632, 48), n: 1, rotulo: t("indice_e_busca") },
         { caixa: c(572, 136, 1262, 656), n: 2.5, rotulo: t("o_manual_como_o_estudio") },
         { caixa: c(158, 848, 480, 884), n: 4.5, rotulo: t("pagina_14_de_42") },
       ]}
@@ -135,48 +130,56 @@ export async function TelaManual() {
 }
 
 export async function TelaConsulta() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
+  const en = idioma === "en";
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaAssistente}
+      src={tel.assistente}
       alt={t("a_janela_do_assistente_sobre")}
       foco={{ caixa: c(975, 185, 1435, 825), n: 0.4 }}
       destaques={[
-        { caixa: c(996, 286, 1216, 316), n: 1, rotulo: t("a_pergunta") },
+        { caixa: en ? c(996, 286, 1400, 316) : c(996, 286, 1216, 316), n: 1, rotulo: t("a_pergunta") },
         { caixa: c(996, 350, 1412, 618), n: 2.8, rotulo: t("a_resposta_com_a_pagina") },
-        { caixa: c(1164, 428, 1360, 460), n: 4.6 },
+        { caixa: en ? c(1204, 424, 1370, 456) : c(1164, 428, 1360, 460), n: 4.6 },
       ]}
     />
   );
 }
 
 export async function TelaAnalise() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
+  const en = idioma === "en";
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaRevisao}
+      src={tel.revisao}
       alt={t("a_revisao_de_um_post")}
       destaques={[
-        { caixa: c(1018, 158, 1230, 276), n: 1, rotulo: t("a_peca_enviada") },
-        { caixa: c(836, 314, 944, 348), n: 2.6 },
-        { caixa: c(836, 420, 1410, 576), n: 3.8, rotulo: t("cada_achado_com_a_regra") },
+        { caixa: en ? c(1018, 158, 1230, 262) : c(1018, 158, 1230, 276), n: 1, rotulo: t("a_peca_enviada") },
+        { caixa: en ? c(836, 282, 950, 316) : c(836, 314, 944, 348), n: 2.6 },
+        { caixa: en ? c(836, 340, 1410, 726) : c(836, 420, 1410, 576), n: 3.8, rotulo: t("cada_achado_com_a_regra") },
       ]}
-      lupa={
+      lupa={en ? undefined : (
         <div className="lupa lupa-revisao passo" style={passo(6)} aria-hidden="true">
           <span className="selo-vermelho">{t("desalinhada")}</span>
           <p>{t("lupa_revisao")}{" "}
             <Citacao titulo={t("o_logotipo_nas_pecas")} pagina={t("pagina_abreviada", { n: 12 })} selo={t("pronto")} tom="ok" />.</p>
         </div>
-      }
+      )}
     />
   );
 }
 
 export async function TelaPrompt() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaPrompt}
+      src={tel.prompt}
       alt={t("o_assistente_monta_o_prompt")}
       destaques={[
         { caixa: c(836, 160, 1412, 436), n: 1.2, rotulo: t("o_prompt_com_as_regras") },
@@ -196,33 +199,39 @@ export async function TelaPrompt() {
 }
 
 export async function TelaMateriais() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
+  const en = idioma === "en";
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaMateriais}
+      src={tel.materiais}
       alt={t("materiais_da_marca_as_versoes")}
       destaques={[
         { caixa: c(164, 134, 262, 610), n: 1, rotulo: t("a_miniatura_de_cada_arquivo") },
-        { caixa: c(560, 6, 858, 50), n: 2.8, rotulo: t("busca_e_filtro_por_tipo") },
+        { caixa: en ? c(598, 6, 868, 50) : c(560, 6, 858, 50), n: 2.8, rotulo: t("busca_e_filtro_por_tipo") },
       ]}
     />
   );
 }
 
 export async function TelaEntrega() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
+  const en = idioma === "en";
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaLinksCriado}
+      src={tel.linksCriado}
       alt={t("links_de_entrega_um_link")}
-      foco={{ caixa: c(190, 230, 1310, 620), n: 0.4 }}
+      foco={{ caixa: en ? c(190, 215, 1310, 600) : c(190, 230, 1310, 620), n: 0.4 }}
       destaques={[
-        { caixa: c(200, 245, 1296, 442), n: 1, rotulo: t("o_link_aparece_uma_vez") },
-        { caixa: c(200, 500, 1296, 606), n: 3.2, rotulo: t("prazo_arquivos_e_downloads_registrados") },
+        { caixa: en ? c(200, 226, 1296, 418) : c(200, 245, 1296, 442), n: 1, rotulo: t("o_link_aparece_uma_vez") },
+        { caixa: en ? c(200, 452, 1296, 590) : c(200, 500, 1296, 606), n: 3.2, rotulo: t("prazo_arquivos_e_downloads_registrados") },
       ]}
       depois={{
         n: 5,
-        src: telaReceber,
+        src: tel.receber,
         alt: t("alt_entrega_receber"),
         foco: { caixa: c(268, 470, 1172, 895), n: 5.7 },
         destaques: [
@@ -235,10 +244,13 @@ export async function TelaEntrega() {
 }
 
 export async function TelaComplementos() {
+  const idioma = await getLocale();
+  const tel = telas(idioma);
+  const en = idioma === "en";
   const t = await getTranslations("site.homeTelas");
   return (
     <TelaReal
-      src={telaComplementos}
+      src={tel.complementos}
       foco={{ caixa: c(330, 270, 1160, 700), n: 0.4 }}
       alt={t("complementos_uma_regra_nova_sobre")}
       destaques={[
@@ -248,20 +260,21 @@ export async function TelaComplementos() {
       ]}
       depois={{
         n: 5,
-        src: telaViniComplemento,
+        src: tel.viniComplemento,
         alt: t("alt_vini_complemento"),
         destaques: [
-          { caixa: c(996, 350, 1412, 450), n: 5.8, rotulo: t("cita_a_regra_nova") },
+          { caixa: en ? c(996, 350, 1412, 600) : c(996, 350, 1412, 450), n: 5.8, rotulo: t("cita_a_regra_nova") },
         ],
       }}
-      lupa={
+      // A lupa é a resposta redesenhada, igual à da captura; a da captura em inglês é outra resposta, então ali ela não entra.
+      lupa={en ? undefined : (
         <div className="lupa lupa-vini passo" style={passo(7.6)} aria-hidden="true">
           <p>{t("lupa_vini_sim")}{" "}
             <Citacao rotulo={t("complemento")} titulo={t("o_logotipo_sobre_fotografia")} selo={t("pronto")} tom="ok" />.</p>
           <p>{t("lupa_vini_nao_cobre")}{" "}
             <Citacao titulo={t("o_logotipo_nas_pecas")} pagina={t("pagina_abreviada", { n: 12 })} selo={t("pronto")} tom="ok" />{t("mas_ha_um_complemento_especifico")}</p>
         </div>
-      }
+      )}
     />
   );
 }

@@ -1,13 +1,12 @@
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaPessoas from "../imagens/telas/pessoas.webp";
-import telaReceber from "../imagens/telas/receber.webp";
-import telaRegistros from "../imagens/telas/registros.webp";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 
 /** Entrega e acesso: o que era a página `/entrega`, agora um bloco de outra página (22/10/2026). Texto do protótipo de 29/09/2026 (autoria do André). */
 export async function BlocosDeEntrega() {
+  const tel = telas(await getLocale());
   const t = await getTranslations("site.entrega");
   const c = await getTranslations("site.comum");
   return (
@@ -29,7 +28,7 @@ export async function BlocosDeEntrega() {
       <p className="body">{t("escolha_os_materiais_e_o")}</p>
       <ul className="ticks"><li>{t("prazo_de_validade")}</li><li>{t("sem_criar_conta_para_o")}</li><li>{t("a_fonte_fica_de_fora")}</li></ul>
       </div>
-      <Captura src={telaReceber} alt={t("a_pagina_que_a_grafica")} />
+      <Captura src={tel.receber} alt={t("a_pagina_que_a_grafica")} />
       </div>
 
       <div className="feat-row rev">
@@ -39,7 +38,7 @@ export async function BlocosDeEntrega() {
       <p className="body">{t("envios_e_downloads_ficam_no")}</p>
       <ul className="ticks"><li>{t("downloads_e_envios_num_so")}</li><li>{t("filtro_por_marca_pessoa_e")}</li><li>{t("exportavel")}</li></ul>
       </div>
-      <Captura src={telaRegistros} alt={t("os_registros_quem_baixou_qual")} />
+      <Captura src={tel.registros} alt={t("os_registros_quem_baixou_qual")} />
       </div>
 
       <div className="feat-row">
@@ -49,7 +48,7 @@ export async function BlocosDeEntrega() {
       <p className="body">{t("uma_agencia_com_vinte_marcas")}</p>
       <ul className="ticks"><li>{t("quem_gere_publica_e_aprova")}</li><li>{t("quem_consulta_le_baixa_e")}</li><li>{t("mude_o_papel_quando_quiser")}</li></ul>
       </div>
-      <Captura src={telaPessoas} alt={t("pessoas_e_acesso_cada_pessoa")} />
+      <Captura src={tel.pessoas} alt={t("pessoas_e_acesso_cada_pessoa")} />
       </div>
       </div>
       </section>

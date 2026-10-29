@@ -2,13 +2,13 @@ import { BlocosDeComplementos } from "./Complementos";
 import { Losango } from "../Losango";
 import { Titulo } from "../Titulo";
 import { Captura } from "../Captura";
-import telaManualBusca from "../imagens/telas/manual-busca.webp";
-import telaManualIndice from "../imagens/telas/manual-indice.webp";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { telas } from "../telas";
 import { BotaoDemonstracao, CartaoRelacionado, CitacaoFicticia, FaixaDaMarca, LinkVerPlanos, Trilha } from "../comum";
 
 /** O manual em PDF — `/manual`. Texto do protótipo de 29/09/2026, sem edição (autoria do André). */
 export async function ConteudoManual() {
+  const tel = telas(await getLocale());
   const t = await getTranslations("site.manual");
   const c = await getTranslations("site.comum");
   const paginas = await getTranslations("site.paginas");
@@ -23,7 +23,7 @@ export async function ConteudoManual() {
       <p className="pg-lead">{t("suba_o_pdf_e_a")}</p>
       <div className="pg-actions"><BotaoDemonstracao /><LinkVerPlanos /></div>
       </div>
-      <Captura src={telaManualIndice} alt={t("o_manual_aberto_na_plataforma")} />
+      <Captura src={tel.manualIndice} alt={t("o_manual_aberto_na_plataforma")} />
       </div>
       </section>
 
@@ -67,7 +67,7 @@ export async function ConteudoManual() {
       <p className="body">{t("a_busca_percorre_o_texto")}</p>
       <ul className="ticks"><li>{t("busca_no_texto_de_todas")}</li><li>{t("trecho_com_a_palavra_marcada")}</li><li>{t("clique_e_o_manual_abre")}</li></ul>
       </div>
-      <Captura src={telaManualBusca} alt={t("a_busca_no_manual_a")} />
+      <Captura src={tel.manualBusca} alt={t("a_busca_no_manual_a")} />
       </div>
       </div>
       </section>
