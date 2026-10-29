@@ -5,7 +5,8 @@ import { lerMotivo } from "@/lib/console/ia";
 import { EMPRESA, ENDERECO_COMPLETO } from "@/lib/site/empresa";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { dataPorExtenso, mensagemDeMarketing } from "@/lib/email/mensagens";
-import { campanhaDe, personalizar, type Campanha } from "@/lib/email/campanhas";
+import { campanhaDe, idiomaDoDestinatario, personalizar, textoDaCampanha, type Campanha, type Idioma } from "@/lib/email/campanhas";
+import { caminhoDoSite } from "@/lib/site/idiomas";
 import { cabecalhosDeSaida, lerAcaoDeEmail } from "@/lib/email/marketing";
 
 /**
@@ -39,16 +40,24 @@ function traduzir(error: ErroDoBanco): NextResponse | null {
   return RECUSA("Não foi possível concluir. Tente de novo.", 500);
 }
 
-/** O e-mail pronto de uma pessoa: texto da campanha, rodapé legal e links dela. */
-function montar(campanha: Campanha, pessoa: { nome: string; token: string; aceiteEm: string | null }, t: Awaited<ReturnType<typeof tradutorDoEmail>>) {
+type Tradutores = Record<Idioma, Awaited<ReturnType<typeof tradutorDoEmail>>>;
+
+/**
+ * O e-mail pronto de uma pessoa, TODO no idioma dela: texto da campanha, rodapé legal,
+ * data do aceite e o endereço do botão e da política (o site em inglês para quem se
+ * cadastrou em inglês). `/sair/` é da plataforma e fala os dois idiomas pela sessão.
+ */
+function montar(campanha: Campanha, idioma: Idioma, pessoa: { nome: string; token: string; aceiteEm: string | null }, tradutores: Tradutores) {
   const site = EMPRESA.site;
+  const t = tradutores[idioma];
+  const texto = textoDaCampanha(campanha, idioma);
   const mensagem = mensagemDeMarketing({
-    assunto: campanha.assunto,
-    paragrafos: campanha.paragrafos.map((p) => personalizar(p, pessoa.nome)),
-    botao: campanha.botao ? { rotulo: campanha.botao.rotulo, link: `${site}${campanha.botao.caminho}` } : undefined,
+    assunto: texto.assunto,
+    paragrafos: texto.paragrafos.map((p) => personalizar(p, pessoa.nome)),
+    botao: texto.botao ? { rotulo: texto.botao.rotulo, link: `${site}${caminhoDoSite(idioma, texto.botao.caminho)}` } : undefined,
     quando: pessoa.aceiteEm ? dataPorExtenso(pessoa.aceiteEm, t) : t("marketing.dataAnterior"),
     linkDeSair: `${site}/sair/${pessoa.token}`,
-    linkDaPolitica: `${site}/privacidade`,
+    linkDaPolitica: `${site}${caminhoDoSite(idioma, "/privacidade")}`,
     empresa: { nome: EMPRESA.nome, cnpj: EMPRESA.cnpj, endereco: ENDERECO_COMPLETO },
   }, t);
   return { mensagem, opcoes: { replyTo: EMPRESA.email, headers: cabecalhosDeSaida(`${site}/api/sair/${pessoa.token}`) } };
@@ -62,9 +71,8 @@ export async function POST(request: Request) {
   if (!lida.ok) return RECUSA(lida.motivo);
   const acao = lida.acao;
   const campanha = campanhaDe(acao.campanha) as Campanha;
-  // As campanhas são escritas em português e o Console é só em português: o rodapé também.
-  // (O idioma de CADA destinatário ainda não é lido da lista; ver a decisão pendente com o André.)
-  const tPt = await tradutorDoEmail("pt-BR");
+  // O Console é em português, mas cada e-mail sai no idioma de QUEM RECEBE (texto e rodapé).
+  const tradutores: Tradutores = { "pt-BR": await tradutorDoEmail("pt-BR"), en: await tradutorDoEmail("en") };
 
   const supabase = await createClient();
 
@@ -88,7 +96,7 @@ export async function POST(request: Request) {
     if (!para) return RECUSA("Não achei o seu e-mail de login.");
     // O teste leva o rótulo no assunto e um endereço de saída que não existe: o link
     // do rodapé não apaga cadastro nenhum.
-    const { mensagem, opcoes } = montar(campanha, { nome: "", token: "00000000-0000-4000-8000-000000000000", aceiteEm: null }, tPt);
+    const { mensagem, opcoes } = montar(campanha, acao.idioma, { nome: "", token: "00000000-0000-4000-8000-000000000000", aceiteEm: null }, tradutores);
     const envio = await enviarEmail(para, { ...mensagem, assunto: `[TESTE] ${mensagem.assunto}` }, opcoes);
     if (!envio.ok) return RECUSA("O serviço de e-mail não aceitou o envio. Tente de novo.", 502);
     return NextResponse.json({ ok: true, para }, SEM_CACHE);
@@ -103,12 +111,12 @@ export async function POST(request: Request) {
   const resposta = traduzir(error);
   if (resposta) return resposta;
 
-  const escolhidos = (data ?? []) as { cadastro_id: string; email: string; nome: string; token: string; aceite_em: string | null }[];
+  const escolhidos = (data ?? []) as { cadastro_id: string; email: string; nome: string; token: string; aceite_em: string | null; idioma?: string }[];
   let enviados = 0;
   let falhas = 0;
   for (const [i, p] of escolhidos.entries()) {
     if (i > 0) await espera(PAUSA_ENTRE_ENVIOS_MS);
-    const { mensagem, opcoes } = montar(campanha, { nome: p.nome, token: p.token, aceiteEm: p.aceite_em }, tPt);
+    const { mensagem, opcoes } = montar(campanha, idiomaDoDestinatario(p.idioma), { nome: p.nome, token: p.token, aceiteEm: p.aceite_em }, tradutores);
     const envio = await enviarEmail(p.email, mensagem, opcoes);
     const { error: erroDeMarca } = await supabase.rpc("console_email_marcar", {
       p_campanha: acao.campanha, p_cadastro_id: p.cadastro_id, p_enviado: envio.ok,

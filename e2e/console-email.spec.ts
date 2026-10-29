@@ -59,7 +59,17 @@ test("o teste vai para o e-mail de quem está logado, sem pedir motivo", async (
 
   await page.getByRole("button", { name: "Enviar teste para mim" }).click();
   await expect(page.locator("[data-aviso=ok]")).toContainText("andre@exemplo.test");
-  expect(pedidos.filter((p) => p.acao === "teste")).toEqual([{ acao: "teste", campanha: "convite-fonts-beta" }]);
+  expect(pedidos.filter((p) => p.acao === "teste")).toEqual([{ acao: "teste", campanha: "convite-fonts-beta", idioma: "pt-BR" }]);
+});
+
+test("o teste em inglês pede o idioma en", async ({ page }) => {
+  const pedidos: Pedido[] = [];
+  await fingir(page, pedidos);
+  await page.goto("/dev/console-email");
+
+  await page.getByRole("button", { name: "Enviar teste em inglês" }).click();
+  await expect(page.locator("[data-aviso=ok]")).toContainText("andre@exemplo.test");
+  expect(pedidos.filter((p) => p.acao === "teste")).toEqual([{ acao: "teste", campanha: "convite-fonts-beta", idioma: "en" }]);
 });
 
 test("enviar exige motivo e um segundo clique, e manda a quantidade escolhida", async ({ page }) => {
