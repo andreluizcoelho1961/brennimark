@@ -2352,7 +2352,7 @@
     },
     "confirmacaoDaLista": {
       "p1": "You asked to receive emails from Brennimark, with news and content for people who work with brands.",
-      "p2": "To confirm that this email address is yours, click the button below. Without the confirmation, we send nothing.",
+      "p2": "To confirm that this email address is yours, there are two steps: click the button below and, on the page that opens, click \"Confirm my email\". Without the confirmation, we send nothing.",
       "fim": "If this wasn't you, ignore this message: nothing will be sent. To delete your sign-up, use {link}",
       "confirmar": "Confirm: {link}",
       "assunto": "Confirm your email on Brennimark",
@@ -2443,7 +2443,7 @@
     "confirmar": {
       "metaTitulo": "Confirm your email",
       "inicialTitulo": "Confirm your email",
-      "inicialTexto": "Click to confirm that you want to receive Brennimark's emails. Nothing happens until you click.",
+      "inicialTexto": "Last step: click the button below to confirm that you want to receive Brennimark's emails. Nothing happens until you click.",
       "botao": "Confirm my email",
       "enviando": "Confirming…",
       "feitoTitulo": "Done, your email is confirmed.",

@@ -149,3 +149,17 @@ test("em inglês: assunto, corpo, data, botão e rodapé saem no idioma, sem sob
   assert.match(m.html, /Leave the list or delete my sign-up/);
   for (const msg of [r, c, refund, x, l, m]) assert.doesNotMatch(msg.texto, /\b(você|conta|assinatura|Entrar)\b/i, msg.assunto);
 });
+
+test("o e-mail de confirmação avisa dos dois passos e cita o rótulo exato do botão da página (pt e en)", () => {
+  // O segundo passo é um botão na página que o link abre (POST, nunca GET: antivírus não confirmam por você).
+  // Se alguém trocar o rótulo da página, a frase do e-mail tem que acompanhar.
+  for (const idioma of ["pt-BR", "en"] as const) {
+    const tradutor = idioma === "en" ? en : pt;
+    const pagina = tradutorDeTeste("cadastroPublico", idioma);
+    const m = confirmacaoBase({ link: "https://x.test/confirmar/abc", linkDeSair: "https://x.test/sair/abc" }, tradutor);
+    const botaoDaPagina = pagina("confirmar.botao");
+    assert.ok(m.texto.includes(`"${botaoDaPagina}"`), `${idioma}: o e-mail não cita o botão da página (${botaoDaPagina})`);
+    assert.match(m.texto, idioma === "en" ? /two steps/i : /dois passos/i);
+    assert.match(pagina("confirmar.inicialTexto"), idioma === "en" ? /Last step/ : /Último passo/);
+  }
+});
