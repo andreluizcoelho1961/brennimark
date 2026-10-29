@@ -1,7 +1,6 @@
 import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
 import { AssetLibrary } from "@/components/assets/AssetLibrary";
 import { CatalogoDeMateriais } from "@/components/materiais/Materiais";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
 
 /**
  * Materiais da marca — fatia 5.
@@ -22,7 +21,8 @@ export default async function PaginaDeMateriais({
   // APARECE. Sem contexto pronto, nada de gerenciar — e a página não vira 404.
   const contexto = await resolveWorkspaceContext(await params);
   const administra = contexto.access === "ready" && contexto.capabilities.includes("administrar");
-  const en = inEnglish(PRODUCT_LOCALE);
+  // O idioma da SESSÃO (cookie, perfil, navegador), não o padrão do produto: com a interface em inglês, o texto tem que sair em inglês.
+  const en = contexto.locale === "en";
 
   return (
     <div>

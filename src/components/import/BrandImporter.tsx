@@ -158,6 +158,7 @@ export function BrandImporter({
         outline: documento.outline,
         repetidos,
         removidosAntes: removidosPorPosicao(documento.paginas, porPosicao),
+        idioma: isEnglish ? "en" : "pt-BR",
       });
 
       setHash(documento.sha256);
@@ -211,7 +212,7 @@ export function BrandImporter({
     } finally {
       setLendo(false);
     }
-  }, [nome, t, limites]);
+  }, [nome, t, limites, isEnglish]);
 
   /**
    * O PDF escolhido ANTES de a página ligar (15/10/2026). Numa conexão lenta,
