@@ -57,7 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
-  "pessoas_sem_visitantes_do_tour",
+  // `pessoas_sem_visitantes_do_tour` saiu daqui em 29/10/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20261029145030`; impressão digital igual à
+  // do local (corpo da função, SECURITY DEFINER, search_path vazio e privilégios).
   // `email_marketing_idioma_do_destinatario` saiu daqui em 29/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261029130404`; impressão digital
   // igual à do local (corpo da função, SECURITY DEFINER, search_path vazio e privilégios:
