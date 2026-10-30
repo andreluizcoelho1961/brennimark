@@ -57,6 +57,10 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // Pendente: coluna `finalidade` em `brand_asset_downloads` (30/10/2026). Só vai ao banco
+  // hospedado com autorização nominal do André; ao aplicar, sai daqui e entra em
+  // `historico-remoto.txt` com o carimbo que o banco der.
+  "download_finalidade",
   // `pessoas_sem_visitantes_do_tour` saiu daqui em 29/10/2026: aplicada ao banco hospedado
   // com autorização nominal do André, carimbada `20261029145030`; impressão digital igual à
   // do local (corpo da função, SECURITY DEFINER, search_path vazio e privilégios).

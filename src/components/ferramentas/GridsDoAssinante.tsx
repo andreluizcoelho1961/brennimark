@@ -115,7 +115,7 @@ export function GridsDoAssinante() {
     if (!pronto) {
       pronto = (async () => {
         const r = await fetch(comAlvo("/api/assets/kit", alvo), {
-          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemId: v.itemId, ids: [v.id] }),
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ itemId: v.itemId, ids: [v.id], finalidade: "previa" }),
         });
         const corpo = await r.json().catch(() => ({}));
         const url = corpo?.arquivos?.[0]?.url as string | undefined;
