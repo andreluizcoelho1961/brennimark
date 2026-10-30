@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useIsEnglish } from "@/platform/locale-client";
 import { useStatusLabels } from "@/platform/brand-vocabulary-client";
-import { destinoDaCitacao } from "@/lib/ai/paginas-citadas";
+import { destinoDaCitacao, tituloJaDizAsPaginas } from "@/lib/ai/paginas-citadas";
 import type { RegraResumida } from "@/lib/ai/copiloto";
 import type { DocStatus } from "@/content/docs";
 import type { useCopilotoDePrompt } from "./useCopilotoDePrompt";
@@ -42,7 +42,7 @@ export function PainelDoPrompt({
         }}
         className="border-b border-platform-border text-platform-text hover:border-platform-signal"
       >
-        {regra.titulo}{pagina ? <span className="text-platform-text-muted"> · p. {pagina}</span> : null}
+        {regra.titulo}{pagina && !tituloJaDizAsPaginas(regra.titulo) ? <span className="text-platform-text-muted"> · p. {pagina}</span> : null}
       </a>
     );
   }
