@@ -105,10 +105,24 @@ export function paginaTraduzida(idioma: IdiomaDoSite, caminhoPt: string): boolea
   return permitidas.has(primeiro);
 }
 
-/** O mesmo endereço no outro idioma, para o botão de idioma do cabeçalho. */
+/**
+ * O mesmo endereço no outro idioma, para o botão de idioma do cabeçalho.
+ *
+ * Aceita o endereço PÚBLICO (`/ajuda`, `/en/help`) e o INTERNO que o `proxy`
+ * reescreve (`/pt-BR/ajuda`, `/en/ajuda`): na Vercel o cliente lê o interno, e
+ * só o público funcionava — o botão levava a `/en/pt-BR/...`, um 404.
+ */
 export function caminhoNoOutroIdioma(atual: string, destino: IdiomaDoSite): string {
   const { corpo, resto } = separar(atual);
   const ehEn = corpo === "/en" || corpo.startsWith("/en/");
-  const pt = ehEn ? (caminhoPtDeOutroIdioma("en", corpo.slice(3) || "/") ?? "/") : corpo;
+  const ehPtInterno = corpo === "/pt-BR" || corpo.startsWith("/pt-BR/");
+  let pt: string;
+  if (ehEn) {
+    const semPrefixo = corpo.slice(3) || "/";
+    // Fora do mapa, o segmento já é o nome da pasta em português (`/en/ajuda`).
+    pt = caminhoPtDeOutroIdioma("en", semPrefixo) ?? semPrefixo;
+  } else {
+    pt = ehPtInterno ? corpo.slice(6) || "/" : corpo;
+  }
   return `${caminhoDoSite(destino, pt)}${resto}`;
 }
