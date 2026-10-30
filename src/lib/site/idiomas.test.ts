@@ -55,4 +55,10 @@ test("o botão de idioma leva à mesma página no outro idioma", () => {
   assert.equal(caminhoNoOutroIdioma("/en/agencies", "pt-BR"), "/agencias");
   assert.equal(caminhoNoOutroIdioma("/en", "pt-BR"), "/");
   assert.equal(caminhoNoOutroIdioma("/en/help/category/x", "pt-BR"), "/ajuda/categoria/x");
+  // O endereço interno reescrito pelo proxy, que é o que o cliente lê na Vercel.
+  assert.equal(caminhoNoOutroIdioma("/pt-BR/manual", "en"), "/en/manual");
+  assert.equal(caminhoNoOutroIdioma("/pt-BR", "en"), "/en");
+  assert.equal(caminhoNoOutroIdioma("/pt-BR/ajuda/primeiros-passos", "en"), "/en/help/primeiros-passos");
+  assert.equal(caminhoNoOutroIdioma("/en/ajuda", "pt-BR"), "/ajuda");
+  assert.equal(caminhoNoOutroIdioma("/en/ferramentas/kit", "pt-BR"), "/ferramentas/kit");
 });
