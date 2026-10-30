@@ -4,7 +4,7 @@ import { Fragment, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { parseBrandCitations } from "@/lib/ai/citations";
 import { blocosDeMarkdown, enfases, envolvidoEmEnfase } from "@/lib/ai/markdown-leve";
-import { destinoDaCitacao, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
+import { destinoDaCitacao, tituloJaDizAsPaginas, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { useStatusLabels } from "@/platform/brand-vocabulary-client";
 import { useIsEnglish } from "@/platform/locale-client";
 import type { DocStatus } from "@/content/docs";
@@ -72,13 +72,15 @@ export function RespostaDoVini({
           title={destino.complemento
             ? (isEnglish ? "Open the supplement" : "Abrir o complemento")
             : destino.pagina
-              ? (isEnglish ? `Open the manual at page ${destino.pagina}` : `Abrir o manual na página ${destino.pagina}`)
+              ? tituloJaDizAsPaginas(parte.title)
+                ? (isEnglish ? `Open the manual at page ${destino.pagina}, where this section starts` : `Abrir o manual na página ${destino.pagina}, onde este trecho começa`)
+                : (isEnglish ? `Open the manual at page ${destino.pagina}` : `Abrir o manual na página ${destino.pagina}`)
               : (isEnglish ? "Open the manual" : "Abrir o manual")}
           className="mx-0.5 inline-flex flex-wrap items-baseline gap-1 border-b border-platform-border font-medium text-platform-text transition-colors hover:border-platform-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
         >
           {destino.complemento && <span className="text-platform-text-muted">{isEnglish ? "Supplement:" : "Complemento:"}</span>}
           <span>{parte.title}</span>
-          {destino.pagina && <span className="text-platform-text-muted">{isEnglish ? "p." : "p."} {destino.pagina}</span>}
+          {destino.pagina && !tituloJaDizAsPaginas(parte.title) && <span className="text-platform-text-muted">{isEnglish ? "p." : "p."} {destino.pagina}</span>}
           <span className={`font-display text-[9px] font-bold uppercase tracking-wide ${parte.statusKey ? COR_DO_ESTADO[parte.statusKey] : "text-platform-text-muted"}`}>
             {parte.status}
           </span>

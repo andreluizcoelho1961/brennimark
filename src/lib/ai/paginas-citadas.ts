@@ -78,3 +78,13 @@ export function destinoDaCitacao(
     ? { href: manual, pagina: null }
     : { href: `${manual}?pagina=${pagina}&ir=${encodeURIComponent(pedido)}`, pagina };
 }
+
+/**
+ * O título de uma seção que não tem nome ("Páginas 9–16" / "Pages 9–16") já diz
+ * as páginas dela. Somar "p. 9" ao lado parece a página exata da regra, e é só
+ * onde o trecho começa — a regra pode estar na 10. Quem tem esse título mostra
+ * o intervalo e abre na primeira página dele.
+ */
+export function tituloJaDizAsPaginas(titulo: string): boolean {
+  return /^(?:Páginas|Pages)\s+\d/i.test(titulo.trim());
+}
