@@ -176,6 +176,53 @@ begin
     ('nem quem administra reescreve o registro', '42501', mudar, mudar = '42501');
 end $$;
 
+-- ─── 3b. Finalidade (30/10/2026) ────────────────────────────────────────────
+-- O Kit lê o original para desenhar: a linha nasce `previa`. O que já existia
+-- e o que não declara nada continua `download`, e valor fora dos dois é barrado
+-- pela constraint de NOME EXATO.
+do $$
+declare m record; padrao text; gravada text; estado text; nome text; proprio uuid;
+begin
+  select * into m from mundo;
+
+  -- Asset só deste caso: o caso seguinte conta as linhas de `fonte_um`, e dado
+  -- compartilhado entre casos é o que produz falso positivo.
+  insert into public.brand_assets (workspace_id, brand_id, label, description, item_id,
+                                   storage_path, file_name, mime_type, size_bytes, status, created_by)
+  values (m.conta, m.marca_um, 'Logo da Um', '', pg_temp.item_de_prova(m.conta, m.marca_um, m.dona),
+          m.conta::text||'/'||m.marca_um::text||'/logo-um.svg', 'logo-um.svg', 'image/svg+xml', 100, 'ready', m.dona)
+  returning id into proprio;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.le, 'role', 'authenticated')::text, true);
+  insert into public.brand_asset_downloads (asset_id, brand_id, workspace_id, pessoa_email, asset_label, file_name)
+  values (proprio, m.marca_um, m.conta, 'x', 'x', 'x');
+  insert into public.brand_asset_downloads (asset_id, brand_id, workspace_id, pessoa_email, asset_label, file_name, finalidade)
+  values (proprio, m.marca_um, m.conta, 'x', 'x', 'x', 'previa');
+  reset role;
+  select finalidade into padrao from public.brand_asset_downloads
+   where asset_id = proprio and finalidade = 'download' order by created_at desc limit 1;
+  select finalidade into gravada from public.brand_asset_downloads
+   where asset_id = proprio and finalidade = 'previa' order by created_at desc limit 1;
+
+  set local role authenticated;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.le, 'role', 'authenticated')::text, true);
+  begin
+    insert into public.brand_asset_downloads (asset_id, brand_id, workspace_id, pessoa_email, asset_label, file_name, finalidade)
+    values (proprio, m.marca_um, m.conta, 'x', 'x', 'x', 'outra-coisa');
+    estado := 'REGISTROU';
+  exception when others then
+    get stacked diagnostics estado = returned_sqlstate, nome = constraint_name;
+  end;
+  reset role;
+
+  insert into resultado (caso, esperado, obtido, passou) values
+    ('sem declarar nada, a linha e download', 'download', coalesce(padrao,'(nada)'), padrao = 'download'),
+    ('a previa do kit grava previa', 'previa', coalesce(gravada,'(nada)'), gravada = 'previa'),
+    ('finalidade fora dos dois valores e barrada', '23514', estado, estado = '23514'),
+    ('e pela constraint certa', 'brand_asset_downloads_finalidade_check', coalesce(nome,'(nenhuma)'), nome = 'brand_asset_downloads_finalidade_check');
+end $$;
+
 -- ─── 4. O registro sobrevive ao arquivo ────────────────────────────────────
 do $$
 declare m record; sobrou integer; rotulo text; estado text;

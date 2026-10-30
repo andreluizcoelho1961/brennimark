@@ -84,6 +84,8 @@ export type LinhaDeDownload = {
   tipo: "material" | "manual" | "link";
   /** Só em `link`: o nome do link por onde o arquivo saiu. */
   via?: string;
+  /** Só em `material`: `previa` é o original que o Kit ou os Grids leram para desenhar; nada foi baixado para guardar. */
+  previa?: boolean;
   marca: string;
   pessoa: string;
   /** O que foi baixado, como estava rotulado na hora. */

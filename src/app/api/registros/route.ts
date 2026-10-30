@@ -49,7 +49,7 @@ async function nomesDasMarcas(supabase: SupabaseClient, workspaceId: string): Pr
 
 async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>, isEnglish: boolean) {
   let materiais = supabase.from("brand_asset_downloads")
-    .select("id, brand_id, pessoa_email, asset_label, file_name, created_at")
+    .select("id, brand_id, pessoa_email, asset_label, file_name, finalidade, created_at")
     .eq("workspace_id", workspaceId);
   let manual = supabase.from("downloads_do_manual")
     .select("id, brand_id, pessoa_email, file_name, created_at")
@@ -79,6 +79,7 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
   const deMateriais: LinhaDeDownload[] = (a.data ?? []).map((l) => ({
     id: l.id, tipo: "material", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),
     oque: l.asset_label, arquivo: l.file_name, quando: l.created_at,
+    ...(l.finalidade === "previa" ? { previa: true } : {}),
   }));
   const doManual: LinhaDeDownload[] = (b.data ?? []).map((l) => ({
     id: l.id, tipo: "manual", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),

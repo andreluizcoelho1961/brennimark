@@ -4,7 +4,7 @@ import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { liberarKit } from "@/lib/assets/liberar-kit";
-import { MAXIMO_DO_KIT } from "@/lib/assets/kit";
+import { MAXIMO_DO_KIT, finalidadeDoDownload } from "@/lib/assets/kit";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { Eixos } from "@/lib/assets/eixos";
 
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
   const corpo = await request.json().catch(() => null);
   const itemId = typeof corpo?.itemId === "string" ? corpo.itemId : "";
   const ids = Array.isArray(corpo?.ids) ? (corpo.ids as unknown[]).filter((i): i is string => typeof i === "string") : null;
+  const finalidade = finalidadeDoDownload(corpo?.finalidade, ids);
   if (!itemId) return NextResponse.json({ message: isEnglish ? "Choose an item." : "Escolha um item." }, { status: 400 });
   // Seleção acima do máximo é recusada já aqui, com o número que a pessoa
   // escolheu — antes, os ids eram cortados em silêncio (200, depois 60).
@@ -86,11 +87,14 @@ export async function POST(request: Request) {
     },
     registrar: async (idsDoKit) => {
       // Uma linha por arquivo: o registro diz o que cada pessoa levou, e não
-      // "um kit". Pessoa, e-mail, marca e nome do arquivo vêm do banco.
+      // "um kit". Pessoa, e-mail, marca e nome do arquivo vêm do banco. A
+      // `finalidade` distingue o original que a ferramenta lê para desenhar
+      // (`previa`) do que a pessoa levou (`download`): a linha nasce nos dois
+      // casos, porque em ambos o endereço existiu.
       const { error } = await auth.supabase.from("brand_asset_downloads").insert(
         idsDoKit.map((id) => ({
           asset_id: id, brand_id: brandId, workspace_id: workspaceId,
-          pessoa: auth.user.id, pessoa_email: "", asset_label: "", file_name: "",
+          pessoa: auth.user.id, pessoa_email: "", asset_label: "", file_name: "", finalidade,
         })),
       );
       return !error;
