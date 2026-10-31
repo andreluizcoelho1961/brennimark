@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { abrirAdministracao } from "./abrir-administracao";
 
 /**
  * A tipografia da marca, na administração (14/10/2026).
@@ -18,7 +19,7 @@ const TITULO = "f0000000-0000-4000-8000-000000000001";
 const TEXTO = "f0000000-0000-4000-8000-000000000002";
 
 test("a ficha mostra cada uso, a fonte, as medidas e a situação", async ({ page }) => {
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const s = secao(page);
   await expect(s.locator("[data-resumo-da-tipografia]")).toHaveText(
     "3 fontes · 1 aprovada, 2 em rascunho · sem fonte: Subtítulo, Destaque, Apoio",
@@ -40,12 +41,12 @@ test("a ficha mostra cada uso, a fonte, as medidas e a situação", async ({ pag
 });
 
 test("quem edita e não aprova não vê Aprovar; quem aprova e não edita só aprova", async ({ page }) => {
-  await page.goto("/dev/admin-panel?papel=editora");
+  await abrirAdministracao(page, "/dev/admin-panel?papel=editora");
   await expect(secao(page).locator("[data-adicionar-fonte]")).toBeVisible();
   await expect(secao(page).locator("[data-leitura-da-tipografia]")).toBeVisible();
   await expect(secao(page).locator("[data-aprovar-fonte]")).toHaveCount(0);
 
-  await page.goto("/dev/admin-panel?papel=aprovadora");
+  await abrirAdministracao(page, "/dev/admin-panel?papel=aprovadora");
   const s = secao(page);
   await expect(s.locator("[data-adicionar-fonte]")).toHaveCount(0);
   await expect(s.locator("[data-editar-fonte]")).toHaveCount(0);
@@ -62,7 +63,7 @@ test("aprovar manda o id e a fonte vira aprovada", async ({ page }) => {
       json: { aprovadas: [{ id: TEXTO, uso: "texto", segmento: "", familia: "Inter", estilo: "Regular", postscript: null, substituta: "Arial", corpo: 9.5, entrelinha: 12, espacejamento: null, caixaAlta: null, descricao: "", pagina: 30, ordem: 1, origem: "ia", status: "ready", aprovadoEm: "2026-10-14T13:00:00.000Z" }] },
     });
   });
-  await page.goto("/dev/admin-panel?papel=aprovadora");
+  await abrirAdministracao(page, "/dev/admin-panel?papel=aprovadora");
   const s = secao(page);
   const texto = s.locator(`[data-fonte-da-marca="${TEXTO}"]`);
   await texto.locator("[data-aprovar-fonte]").click();
@@ -81,7 +82,7 @@ test("adicionar uma fonte manda os campos, começa no primeiro uso vazio e entra
       json: { fonte: { id: "f0000000-0000-4000-8000-000000000009", uso: "subtitulo", segmento: "", familia: "Inter", estilo: "Semi Bold", postscript: null, substituta: null, corpo: 18, entrelinha: null, espacejamento: null, caixaAlta: null, descricao: "", pagina: 30, ordem: 3, origem: "pessoa", status: "draft", aprovadoEm: null } },
     });
   });
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const s = secao(page);
   await s.locator("[data-adicionar-fonte]").click();
   const f = s.locator("[data-formulario-da-fonte]");
@@ -104,7 +105,7 @@ test("editar não deixa trocar o uso, e a recusa do servidor aparece com o formu
     if (rota.request().method() !== "PATCH") return rota.fallback();
     await rota.fulfill({ status: 400, json: { message: "O nome PostScript não tem espaço: letras, números e hífen, como BradescoSans-Bold." } });
   });
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const s = secao(page);
   await s.locator(`[data-fonte-da-marca="${TITULO}"] [data-editar-fonte]`).click();
   const f = s.locator("[data-formulario-da-fonte]");
@@ -131,7 +132,7 @@ test("ler do manual manda as páginas, e as fontes lidas entram marcadas como da
       },
     });
   });
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const s = secao(page);
   await s.getByLabel("Páginas de tipografia (opcional)").fill("30, 31");
   await s.locator("[data-ler-tipografia]").click();
@@ -152,7 +153,7 @@ test("leitura recusada ou cortada diz o que aconteceu, e os botões voltam", asy
       ? rota.fulfill({ status: 429, json: { error: "leitura_recente", message: "A IA já procurou a tipografia nas últimas 24 horas. Para ler de novo agora, digite as páginas de tipografia." } })
       : rota.fulfill({ status: 200, json: { encontradas: 0, lidas: 0, repetidas: 0, paginas: [30], cortada: true, semImagem: [] } });
   });
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   const s = secao(page);
   await s.locator("[data-ler-tipografia]").click();
   await expect(s.getByRole("status")).toContainText("últimas 24 horas");
