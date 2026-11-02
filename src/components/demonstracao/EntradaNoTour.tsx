@@ -121,8 +121,9 @@ export function EntradaNoTour() {
           <input data-tour-email type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder={t("emailPlaceholder")} autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={campo} />
         </label>
-        {/* A isca de robô: pessoa nenhuma vê nem preenche. */}
-        <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)}
+        {/* A isca de robô: pessoa nenhuma vê nem preenche. Sem `name`: com ele (`website`) o preenchimento
+            automático do navegador a enchia, e o servidor tratava a pessoa como robô (02/11/2026). */}
+        <input type="text" data-tour-isca tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)}
           style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
         <label className="flex items-start gap-3 text-xs leading-relaxed text-platform-text-muted">
           <input data-tour-aceite type="checkbox" className="mt-0.5" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />

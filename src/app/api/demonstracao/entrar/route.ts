@@ -42,7 +42,11 @@ export async function POST(request: Request) {
     NextResponse.json({ message: textoDaRecusa(chave, idioma), ...extra }, { status, headers: { "Cache-Control": "no-store" } });
 
   if (bruto.length > TETO_DO_CORPO) return NextResponse.json({ message: idioma === "en" ? "Request too large." : "Pedido grande demais." }, { status: 413 });
-  if (pedidoBruto.website) return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  if (pedidoBruto.website) {
+    // Silêncio para o robô, mas não para nós: foi esta isca disparando sem querer que barrou o tour em 02/11/2026.
+    console.error(JSON.stringify({ level: "warn", msg: "tour_isca_preenchida" }));
+    return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  }
 
   // Já há sessão (visitante que voltou do site, ou conta de verdade): não cria outro visitante, que
   // daria outra cota de perguntas ou trocaria a sessão de quem tem conta. Segue para o manual.
