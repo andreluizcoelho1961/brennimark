@@ -101,10 +101,29 @@ test("o site oferece o tour: botão na home, nos dois idiomas, levando à porta"
   await page.goto("/");
   const hero = page.locator('[data-tour-botao="hero"]');
   await expect(hero).toContainText("Faça um tour");
-  await expect(hero).toHaveAttribute("href", "/demonstracao");
+  await expect(hero).toHaveAttribute("href", "/api/demonstracao/idioma?l=pt-BR");
   await page.goto("/en");
   await expect(page.locator('[data-tour-botao="hero"]')).toContainText("Take a tour");
-  await expect(page.locator('[data-tour-botao="fecho"]')).toHaveAttribute("href", "/demonstracao");
+  await expect(page.locator('[data-tour-botao="fecho"]')).toHaveAttribute("href", "/api/demonstracao/idioma?l=en");
+});
+
+test("quem lê o site num idioma entra no tour nesse idioma, mesmo com o navegador no outro", async ({ browser }) => {
+  for (const [caminho, locale, esperado] of [["/", "en-US", "Entrar no tour"], ["/en", "pt-BR", "Start the tour"]] as const) {
+    const contexto = await browser.newContext({ locale });
+    const pagina = await contexto.newPage();
+    await pagina.goto(caminho);
+    await pagina.locator('[data-tour-botao="hero"]').click();
+    await expect(pagina).toHaveURL(/\/demonstracao$/);
+    await expect(pagina.locator("[data-tour-enviar]")).toContainText(esperado);
+    await contexto.close();
+  }
+});
+
+test("a ponte do tour só grava idioma conhecido e só vai para a porta", async ({ request }) => {
+  const r = await request.get("/api/demonstracao/idioma?l=klingon&destino=https://exemplo.com", { maxRedirects: 0 });
+  expect(r.status()).toBe(303);
+  expect(new URL(r.headers()["location"]).pathname).toBe("/demonstracao");
+  expect(r.headers()["set-cookie"]).toContain("BRENNIMARK_IDIOMA=pt-BR");
 });
 
 test("o visitante do tour sempre tem como voltar ao site: na faixa e no último passo do tour guiado", async ({ page }) => {
