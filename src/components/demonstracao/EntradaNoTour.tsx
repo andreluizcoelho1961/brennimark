@@ -37,7 +37,6 @@ export function EntradaNoTour() {
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [aceite, setAceite] = useState(false);
-  const [website, setWebsite] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [captchaFalhou, setCaptchaFalhou] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -83,7 +82,7 @@ export function EntradaNoTour() {
     setErro(null);
     const r = await fetch("/api/demonstracao/entrar", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, aceiteMarketing: aceite, idioma, token, website }),
+      body: JSON.stringify({ nome, email, aceiteMarketing: aceite, idioma, token }),
     }).catch(() => null);
     const dados = await r?.json().catch(() => null) as { ok?: boolean; destino?: string; message?: string } | null;
     if (r?.ok && dados?.destino) {
@@ -121,10 +120,6 @@ export function EntradaNoTour() {
           <input data-tour-email type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
             placeholder={t("emailPlaceholder")} autoComplete="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} className={campo} />
         </label>
-        {/* A isca de robô: pessoa nenhuma vê nem preenche. Sem `name`: com ele (`website`) o preenchimento
-            automático do navegador a enchia, e o servidor tratava a pessoa como robô (02/11/2026). */}
-        <input type="text" data-tour-isca tabIndex={-1} autoComplete="off" aria-hidden="true" value={website} onChange={(e) => setWebsite(e.target.value)}
-          style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }} />
         <label className="flex items-start gap-3 text-xs leading-relaxed text-platform-text-muted">
           <input data-tour-aceite type="checkbox" className="mt-0.5" checked={aceite} onChange={(e) => setAceite(e.target.checked)} />
           <span>{ACEITES[idioma].texto}</span>
