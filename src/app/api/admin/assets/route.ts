@@ -115,6 +115,9 @@ export async function POST(request: Request) {
     storage_path: path, file_name: envio.fileName, mime_type: envio.mimeType,
     size_bytes: tamanhoReal, status: "ready", created_by: context.auth.user.id,
     miniatura_path: miniaturaPath,
+    // A versão do termo aceita no envio da fonte. Quem aceitou e quando, o
+    // BANCO carimba a partir da sessão.
+    ...(envio.termoVersao ? { termo_versao: envio.termoVersao } : {}),
   });
   if (error) {
     // Registro duplicado: o arquivo já pertence ao pedido que registrou
@@ -235,6 +238,35 @@ export async function PATCH(request: Request) {
   if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can change assets." : "Apenas o proprietário pode alterar assets." }, { status: 403 });
   const input = await request.json().catch(() => null);
   const id = typeof input?.id === "string" ? input.id : "";
+
+  /*
+   * RETIRAR uma fonte a pedido da fundição (03/11/2026, ADR-0007 §3, condição
+   * 3). Quem decide é o banco: só quem ADMINISTRA a marca altera `retirada_em`
+   * (`brand_assets_retirada_so_admin`). Retirada é registrada, não apagada: o
+   * arquivo deixa de ser servido, e quem já baixou continua no registro de
+   * downloads — é com ele que se avisa quem recebeu.
+   */
+  if (input && input.retirar === true) {
+    const motivo = typeof input.motivo === "string" ? input.motivo.trim() : "";
+    if (!id || !motivo || motivo.length > 500) {
+      return NextResponse.json({ message: isEnglish ? "Say why the font is being withdrawn (up to 500 characters)." : "Diga por que a fonte está sendo retirada (até 500 caracteres)." }, { status: 400 });
+    }
+    const { data: fonte } = await context.auth.supabase.from("brand_assets")
+      .select("id, item:brand_asset_items!inner(tipo)").eq("id", id).eq("brand_id", context.brandId).maybeSingle();
+    const tipoDoItem = (fonte?.item as unknown as { tipo?: string } | null)?.tipo;
+    if (!fonte || tipoDoItem !== "fonte") {
+      return NextResponse.json({ message: isEnglish ? "Only fonts can be withdrawn." : "Só fonte pode ser retirada." }, { status: 404 });
+    }
+    const { error: erroDaRetirada } = await context.auth.supabase.from("brand_assets")
+      .update({ retirada_em: new Date().toISOString(), retirada_motivo: motivo })
+      .eq("id", id).eq("brand_id", context.brandId).is("retirada_em", null);
+    if (erroDaRetirada) {
+      return NextResponse.json({ message: erroDaRetirada.code === "42501"
+        ? (isEnglish ? "Only whoever administers the brand can withdraw a font." : "Só quem administra a marca pode retirar uma fonte.")
+        : (isEnglish ? "Couldn't withdraw the font." : "Não foi possível retirar a fonte.") }, { status: erroDaRetirada.code === "42501" ? 403 : 500 });
+    }
+    return NextResponse.json({ ok: true, retirada: true });
+  }
 
   /*
    * Corrigir o nome exibido e a descrição (22/10/2026, pedido do André): errar

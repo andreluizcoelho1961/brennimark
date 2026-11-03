@@ -10,6 +10,7 @@ import { useEncaixeDaBarra, useTelaLarga } from "@/components/documento-fonte/Mo
 import { ehDoBanco, formatoDoArquivo, rotulo, TIPOS_DE_ITEM, type TipoDeItem } from "@/lib/assets/eixos";
 import { lerPaginasDigitadas, type CitacaoDaRegra } from "@/lib/assets/regra";
 import { FalhaDoKit, montarZip, salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import { frasesDaLicenca, type LicencaDoItem } from "@/lib/assets/fonte";
 
 /**
  * Materiais da marca — fatia 5 do plano da interface.
@@ -31,8 +32,14 @@ type Eixos = { hierarquia: string | null; lockup: string | null; cor: string | n
 export type Variante = {
   id: string; itemId: string; label: string; file_name: string; mime_type: string; size_bytes: number;
   created_at: string; baixavel: boolean; descontinuadoEm: string | null; eixos: Eixos; miniatura: string | null;
+  /** Fonte retirada a pedido da fundição (ADR-0007 §3): não se serve mais. */
+  retiradaEm?: string | null;
 };
-export type ItemDoCatalogo = { id: string; tipo: TipoDeItem; nome: string; descricao: string; ordem: number; regra: CitacaoDaRegra[] };
+export type ItemDoCatalogo = {
+  id: string; tipo: TipoDeItem; nome: string; descricao: string; ordem: number; regra: CitacaoDaRegra[];
+  /** Só em item de fonte: a licença dita pelo assinante, mostrada na hora de baixar. */
+  licenca?: LicencaDoItem | null;
+};
 type Manual = { id: string; paginas: number } | null;
 
 function useT(): T {
@@ -132,6 +139,42 @@ function CitacaoDaRegraLink({ t, citacao }: { t: T; citacao: CitacaoDaRegra }) {
   );
 }
 
+/**
+ * Pede à rota do kit (que REGISTRA antes de assinar), busca os arquivos e salva
+ * o ZIP. Um pedido por item, ou `{ marca: true }` para tudo o que está em uso.
+ * Quem chama recebe o erro já dito em frase.
+ */
+async function baixarKitDaRota(
+  endereco: string, corpo: Record<string, unknown>, t: T, avanco: (texto: string) => void,
+): Promise<string> {
+  try {
+    const resposta = await fetch(endereco, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) throw new Error(dados.message ?? t("Não foi possível preparar o kit.", "Couldn't prepare the kit."));
+    const zip = await montarZip(dados.arquivos, (prontos, total) => avanco(t(`Baixando ${prontos} de ${total}…`, `Downloading ${prontos} of ${total}…`)),
+      undefined, dados.extras);
+    salvarArquivo(zip, dados.nome);
+    return "";
+  } catch (e) {
+    return e instanceof FalhaDoKit
+      ? t(`Um arquivo do kit não veio (${e.caminho}); nada foi salvo pela metade. Tente de novo.`, `A kit file didn't arrive (${e.caminho}); nothing was saved half-done. Try again.`)
+      : e instanceof Error ? e.message : t("Não foi possível baixar.", "Couldn't download.");
+  }
+}
+
+/** A licença da fonte, dita no item e posta ao lado do botão de baixar (ADR-0007 §3.3). */
+function LicencaDaFonte({ t, licenca, en }: { t: T; licenca: LicencaDoItem | null | undefined; en: boolean }) {
+  return (
+    <section data-licenca-da-fonte aria-labelledby="licenca-titulo" className="border-l-2 border-platform-border pl-[var(--space-shell-3)]">
+      <h2 id="licenca-titulo" className="font-display text-[10px] font-bold uppercase tracking-[0.14em] text-platform-text-muted">{t("Licença da fonte", "Font license")}</h2>
+      {licenca
+        ? <ul className="mt-2 space-y-1 text-[12px] leading-snug">{frasesDaLicenca(licenca, en).map((f) => <li key={f}>{f}</li>)}</ul>
+        : <p className="mt-2 text-[12px] text-platform-text-muted">{t("A licença desta fonte não foi informada.", "This font's license wasn't provided.")}</p>}
+      <p className="mt-2 text-[12px] text-platform-text-muted">{t("Instale no computador: no Mac, duplo clique e “Instalar fonte”; no Windows, botão direito e “Instalar”.", "Install it on your computer: on Mac, double-click and “Install Font”; on Windows, right-click and “Install”.")}</p>
+    </section>
+  );
+}
+
 // ─── Catálogo ───────────────────────────────────────────────────────────────
 
 export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
@@ -147,6 +190,16 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
   const [tipo, setTipo] = useState<TipoDeItem | "">("");
   const encaixe = useEncaixeDaBarra();
   const telaLarga = useTelaLarga();
+  const [baixandoTudo, setBaixandoTudo] = useState("");
+  const [avisoDeTudo, setAvisoDeTudo] = useState("");
+
+  async function baixarTudo() {
+    setAvisoDeTudo("");
+    setBaixandoTudo(t("Preparando o kit…", "Preparing the kit…"));
+    const erroDoKit = await baixarKitDaRota(comAlvo("/api/assets/kit", alvo), { marca: true }, t, setBaixandoTudo);
+    setBaixandoTudo("");
+    setAvisoDeTudo(erroDoKit);
+  }
 
   const emUsoPorItem = useMemo(() => {
     const mapa = new Map<string, Variante[]>();
@@ -192,6 +245,19 @@ export function CatalogoDeMateriais({ podeGerenciar, raiz }: {
           M · {String(itens.length - albuns.length).padStart(2, "0")} {t(itens.length - albuns.length === 1 ? "item" : "itens", itens.length - albuns.length === 1 ? "item" : "items")}
         </span>
       </header>
+
+      {!carregando && !erro && itens.some((i) => !ehDoBanco(i.tipo)) && (
+        <div className="mt-[var(--space-shell-3)] flex flex-wrap items-center gap-[var(--space-shell-3)] border-b border-platform-border pb-[var(--space-shell-3)]">
+          <button type="button" data-baixar-tudo-da-marca disabled={Boolean(baixandoTudo)} onClick={() => void baixarTudo()}
+            className="flex min-h-10 items-center justify-center rounded-[var(--radius-control)] bg-platform-text px-[var(--space-shell-4)] text-[14px] font-semibold text-platform-bg hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40">
+            {baixandoTudo || t("Baixar todos os materiais da marca (ZIP)", "Download all brand materials (ZIP)")}
+          </button>
+          <span className="text-[12px] text-platform-text-muted">
+            {t("Logos, ícones, paletas, gabaritos e fontes, em pastas, com a licença das fontes. Fotos ficam no Banco de imagens.", "Logos, icons, palettes, templates and fonts, in folders, with the fonts' license. Photos live in the Image bank.")}
+          </span>
+          {avisoDeTudo && <p role="alert" data-aviso-de-tudo className="basis-full text-[12px] text-platform-text">{avisoDeTudo}</p>}
+        </div>
+      )}
 
       {carregando && <p className="py-[var(--space-shell-5)] text-[13px] text-platform-text-muted">{t("Carregando…", "Loading…")}</p>}
       {erro && <p role="alert" className="py-[var(--space-shell-5)] text-[13px]">{erro}</p>}
@@ -278,23 +344,9 @@ export function PaginaDoItem({ itemId, podeEditar, raiz, linkDeEntrega }: { item
       return;
     }
     setBaixando(t("Preparando o kit…", "Preparing the kit…"));
-    try {
-      const resposta = await fetch(comAlvo("/api/assets/kit", alvo), {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ids ? { itemId, ids } : { itemId }),
-      });
-      const dados = await resposta.json().catch(() => ({}));
-      if (!resposta.ok) throw new Error(dados.message ?? t("Não foi possível preparar o kit.", "Couldn't prepare the kit."));
-      const zip = await montarZip(dados.arquivos, (prontos, total) =>
-        setBaixando(t(`Baixando ${prontos} de ${total}…`, `Downloading ${prontos} of ${total}…`)));
-      salvarArquivo(zip, dados.nome);
-    } catch (e) {
-      setAviso(e instanceof FalhaDoKit
-        ? t(`Um arquivo do kit não veio (${e.caminho}); nada foi salvo pela metade. Tente de novo.`, `A kit file didn't arrive (${e.caminho}); nothing was saved half-done. Try again.`)
-        : e instanceof Error ? e.message : t("Não foi possível baixar.", "Couldn't download."));
-    } finally {
-      setBaixando("");
-    }
+    const erroDoKit = await baixarKitDaRota(comAlvo("/api/assets/kit", alvo), ids ? { itemId, ids } : { itemId }, t, setBaixando);
+    setAviso(erroDoKit);
+    setBaixando("");
   }
 
   if (carregando) return <p className="p-[var(--space-shell-5)] text-[13px] text-platform-text-muted">{t("Carregando…", "Loading…")}</p>;
@@ -339,6 +391,12 @@ export function PaginaDoItem({ itemId, podeEditar, raiz, linkDeEntrega }: { item
             {podeEditar && <EditorDaRegra t={t} itemId={item.id} atuais={item.regra.map((c) => c.pagina)} manual={manual} aoSalvar={recarregar} />}
           </section>
 
+          {item.tipo === "fonte" && <LicencaDaFonte t={t} licenca={item.licenca} en={en} />}
+          {doItem.some((v) => v.retiradaEm) && (
+            <p role="status" data-fonte-retirada className="text-[12px] text-platform-warning">
+              {t("Uma ou mais fontes deste item foram retiradas a pedido da fundição e não estão mais disponíveis.", "One or more fonts in this item were withdrawn at the foundry's request and are no longer available.")}
+            </p>
+          )}
           {/*
             Um arquivo em uso baixa DIRETO, pela rota que registra — sem ZIP
             (spec §5-A.1). O botão já dizia "Baixar o arquivo" e entregava um
@@ -347,9 +405,11 @@ export function PaginaDoItem({ itemId, podeEditar, raiz, linkDeEntrega }: { item
           <button type="button" data-baixar-kit disabled={emUso.length === 0 || Boolean(baixando)}
             onClick={() => void baixar(emUso.length === 1 ? [emUso[0].id] : null)}
             className="flex min-h-11 items-center justify-center rounded-[var(--radius-control)] bg-platform-text px-[var(--space-shell-4)] text-[14px] font-semibold text-platform-bg hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus disabled:opacity-40">
-            {baixando || (emUso.length === 1
-              ? t("Baixar o arquivo", "Download the file")
-              : t(`Baixar kit · ${emUso.length} arquivos (ZIP)`, `Download kit · ${emUso.length} files (ZIP)`))}
+            {baixando || (item.tipo === "fonte"
+              ? (emUso.length === 1 ? t("Baixar a fonte", "Download the font") : t(`Baixar kit de fontes · ${emUso.length} estilos (ZIP)`, `Download font kit · ${emUso.length} styles (ZIP)`))
+              : emUso.length === 1
+                ? t("Baixar o arquivo", "Download the file")
+                : t(`Baixar kit · ${emUso.length} arquivos (ZIP)`, `Download kit · ${emUso.length} files (ZIP)`))}
           </button>
           {aviso && <p role="alert" data-aviso-do-kit className="text-[12px] text-platform-text">{aviso}</p>}
 

@@ -89,15 +89,19 @@ test("a substituição só oferece variantes do mesmo item", async ({ page }) =>
   await expect(envio.locator('select[name="substitui"]')).not.toContainText("Horizontal positivo");
 });
 
-test("fonte não pede arquivo antes do termo, e diz por quê", async ({ page }) => {
+test("fonte pede o termo aceito a cada envio, e o item diz a licença", async ({ page }) => {
   await comAcervo(page);
+  await page.route("**/api/assets/termo-de-fonte", (rota) =>
+    rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ versao: "1", texto: "Termo v1" }) }));
   await page.goto("/dev/biblioteca");
 
-  await expect(page.locator('[data-item="item-fonte"] [data-fonte-travada]')).toBeVisible();
+  // Desde 03/11/2026 a fonte é hospedada: não há mais trava, há o aceite do termo.
+  await expect(page.locator('[data-item="item-fonte"] [data-fonte-travada]')).toHaveCount(0);
   const envio = page.locator("[data-form-envio]");
   await envio.getByLabel("Item").selectOption("item-fonte");
-  await expect(envio.locator('input[type="file"]')).toHaveCount(0);
-  await expect(envio).toContainText(/termo de licença/);
+  await expect(envio.locator('input[type="file"]')).toHaveCount(1);
+  await expect(page.locator("[data-termo-de-fonte]")).toContainText("Termo v1");
+  await expect(page.locator('[data-item="item-fonte"] [data-licenca-do-item]')).toContainText(/Licença não informada/);
 });
 
 test("só item vazio oferece remoção", async ({ page }) => {

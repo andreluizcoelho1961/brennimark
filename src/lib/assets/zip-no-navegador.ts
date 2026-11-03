@@ -1,6 +1,6 @@
 "use client";
 
-import { zip, type Zippable } from "fflate";
+import { strToU8, zip, type Zippable } from "fflate";
 
 /**
  * Monta o ZIP do kit NO NAVEGADOR — fatia 5 (spec de Materiais §9).
@@ -26,8 +26,11 @@ export async function montarZip(
   arquivos: readonly { url: string; caminho: string }[],
   aoAvancar?: (prontos: number, total: number) => void,
   sinal?: AbortSignal,
+  /** Textos que vão no ZIP sem passar por endereço: o LEIA-ME de licença e instalação. */
+  extras?: readonly { caminho: string; texto: string }[],
 ): Promise<Blob> {
   const conteudo: Zippable = {};
+  for (const e of extras ?? []) conteudo[e.caminho] = [strToU8(e.texto), { level: 6 }];
   let proximo = 0;
   let prontos = 0;
 

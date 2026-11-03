@@ -29,11 +29,11 @@ export async function GET(request: Request) {
   // que vive em outro arquivo — e consultas viajam para outros arquivos.
   const [itensLidos, arquivosLidos] = await Promise.all([
     context.supabase.from("brand_asset_items")
-      .select("id, tipo, nome, descricao, ordem, regra_paginas")
+      .select("id, tipo, nome, descricao, ordem, regra_paginas, licenca_tipo, licenca_titular, licenca_como_obter")
       .eq("workspace_id", workspaceId).eq("brand_id", brandId)
       .order("ordem", { ascending: true }).order("created_at", { ascending: true }),
     context.supabase.from("brand_assets")
-      .select("id, item_id, label, description, storage_path, file_name, mime_type, size_bytes, status, created_at, descontinuado_em, substituido_por, hierarquia, lockup, cor, polaridade, espaco_de_cor, miniatura_path")
+      .select("id, item_id, label, description, storage_path, file_name, mime_type, size_bytes, status, created_at, descontinuado_em, substituido_por, hierarquia, lockup, cor, polaridade, espaco_de_cor, miniatura_path, retirada_em")
       .eq("workspace_id", workspaceId).eq("brand_id", brandId).order("created_at", { ascending: false }),
   ]);
   if (itensLidos.error || arquivosLidos.error) return NextResponse.json({ message: isEnglish ? "Couldn't load assets." : "Não foi possível carregar os assets." }, { status: 500 });
@@ -81,7 +81,9 @@ export async function GET(request: Request) {
        * fora da pasta desta marca é defeito de dado, e a tela não deve
        * oferecer um botão que a rota vai recusar.
        */
-      baixavel: pertenceAMarca(asset.storage_path, workspaceId, brandId),
+      // Fonte retirada (ADR-0007 §3, condição 3) não se serve mais, e a tela diz.
+      baixavel: pertenceAMarca(asset.storage_path, workspaceId, brandId) && !asset.retirada_em,
+      retiradaEm: asset.retirada_em ?? null,
       /*
        * Descontinuado vai junto, e não some da lista.
        *
@@ -109,6 +111,10 @@ export async function GET(request: Request) {
   const itens = (itensLidos.data ?? []).map((item) => ({
     id: item.id, tipo: item.tipo, nome: item.nome, descricao: item.descricao, ordem: item.ordem,
     regra: ((item.regra_paginas as number[] | null) ?? []).map((p) => citacoes.get(p)!),
+    // A licença da fonte, dita no item e mostrada na hora do download (§3.3).
+    licenca: item.licenca_tipo
+      ? { tipo: item.licenca_tipo as string, titular: (item.licenca_titular as string | null) ?? null, comoObter: (item.licenca_como_obter as string | null) ?? null }
+      : null,
   }));
   return NextResponse.json({ itens, assets, manual }, { headers: { "Cache-Control": "no-store" } });
 }
