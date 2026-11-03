@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 const TIPO_PELA_EXTENSAO: Record<string, string> = {
   svg: "image/svg+xml", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp",
   pdf: "application/pdf", ai: "application/pdf", eps: "application/postscript", zip: "application/zip",
-  otf: "font/otf", ttf: "font/ttf", woff: "font/woff", woff2: "font/woff2",
+  otf: "font/otf", ttf: "font/ttf", ttc: "font/collection", woff: "font/woff", woff2: "font/woff2",
 };
 async function tipoDoArquivo(arquivo: File): Promise<string> {
   const extensao = arquivo.name.split(".").pop()?.toLowerCase() ?? "";
@@ -25,14 +25,18 @@ async function tipoDoArquivo(arquivo: File): Promise<string> {
     const comeco = await arquivo.slice(0, 4).text().catch(() => "");
     return comeco === "%!PS" ? "application/postscript" : "application/pdf";
   }
+  // Fonte: o navegador declara tipos que variam (`application/x-font-ttf`,
+  // `font/sfnt`, vazio). O que vale é a extensão — o servidor confere os bytes.
+  if (extensao === "otf" || extensao === "ttf" || extensao === "ttc") return TIPO_PELA_EXTENSAO[extensao];
   if (arquivo.type && arquivo.type !== "application/octet-stream") return arquivo.type;
   return TIPO_PELA_EXTENSAO[extensao] ?? arquivo.type;
 }
-import { EIXOS, EIXOS_POR_TIPO, TIPOS_DE_ITEM, TIPOS_SEM_UPLOAD, colunasDoTipo, formatoDoArquivo, rotulo, type TipoDeItem } from "@/lib/assets/eixos";
+import { EIXOS, EIXOS_POR_TIPO, TIPOS_DE_ITEM, colunasDoTipo, formatoDoArquivo, rotulo, type TipoDeItem } from "@/lib/assets/eixos";
+import { LICENCAS, frasesDaLicenca, type LicencaDoItem } from "@/lib/assets/fonte";
 
 type Eixos = { hierarquia: string | null; lockup: string | null; cor: string | null; polaridade: string | null; espaco_de_cor: string | null };
-type Asset = { id: string; itemId: string; label: string; description: string; file_name: string; mime_type: string; size_bytes: number; status: string; created_at: string; baixavel: boolean; descontinuadoEm: string | null; substituidoPor: string | null; eixos: Eixos };
-type Item = { id: string; tipo: TipoDeItem; nome: string; descricao: string; ordem: number };
+type Asset = { id: string; itemId: string; label: string; description: string; file_name: string; mime_type: string; size_bytes: number; status: string; created_at: string; baixavel: boolean; descontinuadoEm: string | null; substituidoPor: string | null; retiradaEm?: string | null; eixos: Eixos };
+type Item = { id: string; tipo: TipoDeItem; nome: string; descricao: string; ordem: number; licenca?: LicencaDoItem | null };
 type Download = { id: string; assetId: string | null; pessoa: string; rotulo: string; arquivo: string; quando: string };
 function formatSize(bytes: number) { if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`; return `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
 
@@ -57,6 +61,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   const [ocupado, setOcupado] = useState<string | null>(null);
   // O asset ou item cujo nome está sendo corrigido, no lugar (22/10/2026).
   const [editando, setEditando] = useState<string | null>(null);
+  // Fonte (03/11/2026): o tipo do item novo decide se a licença é pedida; o
+  // termo vigente é lido quando a pessoa escolhe um item de fonte para enviar.
+  const [tipoNovo, setTipoNovo] = useState("");
+  const [editandoLicenca, setEditandoLicenca] = useState<string | null>(null);
+  const [termo, setTermo] = useState<{ versao: string; texto: string } | null>(null);
 
   // O aviso some sozinho: ele aparece fixo no pé da tela, perto de onde quer
   // que a pessoa tenha clicado, e não pode ficar cobrindo o acervo.
@@ -105,6 +114,18 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     else setMessage(data.message ?? (isEnglish ? "Couldn't load the download record." : "Não foi possível carregar o registro de downloads."));
   }
 
+  const tipoDoItemDoEnvio = itens.find((i) => i.id === itemDoEnvio)?.tipo;
+  useEffect(() => {
+    if (tipoDoItemDoEnvio !== "fonte" || termo) return;
+    let cancelado = false;
+    void (async () => {
+      const r = await fetch(comAlvo("/api/assets/termo-de-fonte", alvo), { cache: "no-store" }).catch(() => null);
+      const d = r ? await r.json().catch(() => ({})) : {};
+      if (!cancelado && r?.ok) setTermo({ versao: d.versao, texto: d.texto });
+    })();
+    return () => { cancelado = true; };
+  }, [tipoDoItemDoEnvio, termo, alvo]);
+
   async function upload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault(); setUploading(true); setMessage("");
     const form = event.currentTarget;
@@ -126,6 +147,8 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
       substitui: campos.get("substitui") ?? "", fileName: arquivo.name, mimeType: tipo, sizeBytes: arquivo.size,
     };
     for (const eixo of Object.keys(EIXOS)) metadados[eixo] = campos.get(eixo) ?? "";
+    // O aceite do termo é a cada envio de fonte; a versão aceita o servidor lê do banco.
+    metadados.termoAceito = campos.get("termo") === "on";
 
     setMessage(isEnglish ? "Preparing the upload…" : "Preparando o envio…");
     const preparo = await fetch(comAlvo("/api/admin/assets/envio", alvo), {
@@ -170,11 +193,47 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
     setOcupado("item-novo");
     const response = await fetch(comAlvo("/api/admin/assets/itens", alvo), {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tipo: dados.get("tipo"), nome: dados.get("nome"), descricao: dados.get("descricao") }),
+      body: JSON.stringify({
+        tipo: dados.get("tipo"), nome: dados.get("nome"), descricao: dados.get("descricao"),
+        ...(dados.get("tipo") === "fonte" ? { licencaTipo: dados.get("licencaTipo"), licencaTitular: dados.get("licencaTitular") ?? "", licencaComoObter: dados.get("licencaComoObter") ?? "" } : {}),
+      }),
     }).finally(() => setOcupado(null));
     const data = await response.json().catch(() => ({}));
     setMessage(response.ok ? (isEnglish ? "Item created. Now add its files." : "Item criado. Agora envie os arquivos dele.") : (data.message ?? (isEnglish ? "Couldn't create the item." : "Não foi possível criar o item.")));
-    if (response.ok) { form.reset(); setItemDoEnvio(data.item?.id ?? ""); await load(); }
+    if (response.ok) { form.reset(); setTipoNovo(""); setItemDoEnvio(data.item?.id ?? ""); await load(); }
+  }
+
+  async function salvarLicenca(event: React.FormEvent<HTMLFormElement>, item: Item) {
+    event.preventDefault();
+    const dados = new FormData(event.currentTarget);
+    setOcupado(item.id);
+    const response = await fetch(comAlvo("/api/admin/assets/itens", alvo), {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: item.id, nome: item.nome, descricao: item.descricao,
+        licencaTipo: dados.get("licencaTipo"), licencaTitular: dados.get("licencaTitular") ?? "", licencaComoObter: dados.get("licencaComoObter") ?? "",
+      }),
+    }).finally(() => setOcupado(null));
+    const data = await response.json().catch(() => ({}));
+    setMessage(response.ok ? (isEnglish ? "License saved." : "Licença salva.") : (data.message ?? (isEnglish ? "Couldn't save the license." : "Não foi possível salvar a licença.")));
+    if (response.ok) { setEditandoLicenca(null); await load(); }
+  }
+
+  /*
+   * Retirar uma fonte a pedido da fundição (ADR-0007 §3, condição 3): o
+   * arquivo deixa de ser servido e o motivo fica registrado. Quem já baixou
+   * continua no registro de downloads, que é com o que se avisa quem recebeu.
+   */
+  async function retirarFonte(id: string, label: string) {
+    const motivo = window.prompt(isEnglish
+      ? `Withdraw “${label}”? It stops being served to everyone. Say why (for example, the foundry asked):`
+      : `Retirar “${label}”? Ela deixa de ser entregue a todos. Diga o motivo (por exemplo, a fundição pediu):`);
+    if (!motivo || !motivo.trim()) return;
+    setOcupado(id);
+    const response = await fetch(comAlvo("/api/admin/assets", alvo), { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, retirar: true, motivo }) }).finally(() => setOcupado(null));
+    const data = await response.json().catch(() => ({}));
+    setMessage(response.ok ? (isEnglish ? "Font withdrawn. Check the download record to tell whoever received it." : "Fonte retirada. Veja o registro de downloads para avisar quem a recebeu.") : (data.message ?? (isEnglish ? "Couldn't withdraw the font." : "Não foi possível retirar a fonte.")));
+    if (response.ok) await load();
   }
 
   async function removerItem(id: string, nome: string) {
@@ -306,6 +365,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
             : <p className="text-platform-text">{asset.label}</p>}
           <p className="font-mono text-[11px] text-platform-text-muted">{asset.file_name} · {formatSize(asset.size_bytes)}</p>
           {asset.description && editando !== asset.id && <p className="mt-1 text-[12px] leading-relaxed text-platform-text-muted">{asset.description}</p>}
+          {asset.retiradaEm && (
+            <p data-fonte-retirada className="mt-2 border-l-2 border-platform-border pl-3 text-[12px] leading-relaxed text-platform-text-muted">
+              {isEnglish ? "Withdrawn — no longer served." : "Retirada — não é mais entregue."}
+            </p>
+          )}
           {/* A identificação que o item 10 exige: descontinuado é visível e
               DIZ por quê — quando o sucessor existe, ele é nomeado. */}
           {fora && (
@@ -327,6 +391,11 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
                 {isEnglish ? "Rename" : "Editar nome"}
               </button>
             )}
+            {canManage && tipo === "fonte" && !asset.retiradaEm && (
+              <button type="button" data-retirar-fonte onClick={() => retirarFonte(asset.id, asset.label)} disabled={ocupado === asset.id} aria-busy={ocupado === asset.id} className={botaoSecundario}>
+                {isEnglish ? "Withdraw (foundry request)" : "Retirar (pedido da fundição)"}
+              </button>
+            )}
             {canManage && !fora && (
               <button type="button" onClick={() => descontinuar(asset.id, asset.label)} disabled={ocupado === asset.id} aria-busy={ocupado === asset.id} className={botaoSecundario}>
                 {ocupado === asset.id ? (isEnglish ? "Discontinuing…" : "Descontinuando…") : (isEnglish ? "Discontinue" : "Descontinuar")}
@@ -345,6 +414,34 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
           </div>
         </td>
       </tr>
+    );
+  }
+
+  /** Os três campos da licença (ADR-0007 §3.3): tipo, titular e como obter. */
+  function camposDeLicenca(atual?: LicencaDoItem | null) {
+    return (
+      <>
+        <label><span className={rotuloDeCampo}>{isEnglish ? "License type" : "Tipo de licença"}</span>
+          <select name="licencaTipo" required defaultValue={atual?.tipo ?? ""} className={campo}>
+            <option value="" disabled>{isEnglish ? "Choose…" : "Escolha…"}</option>
+            {LICENCAS.map((l) => <option key={l} value={l}>{{ livre: isEnglish ? "Free (Google Fonts, SIL OFL)" : "Livre (Google Fonts, SIL OFL)", exclusiva: isEnglish ? "Exclusive, designed for the brand" : "Exclusiva, desenhada para a marca", comprada: isEnglish ? "Purchased from a foundry" : "Comprada de uma fundição" }[l]}</option>)}
+          </select>
+        </label>
+        <label><span className={rotuloDeCampo}>{isEnglish ? "License holder (optional)" : "Titular da licença (opcional)"}</span><input name="licencaTitular" maxLength={120} defaultValue={atual?.titular ?? ""} className={campo} /></label>
+        <label><span className={rotuloDeCampo}>{isEnglish ? "How to get your own license (optional)" : "Como obter licença própria (opcional)"}</span><input name="licencaComoObter" maxLength={500} defaultValue={atual?.comoObter ?? ""} className={campo} /></label>
+      </>
+    );
+  }
+
+  function formularioDeLicenca(item: Item) {
+    return (
+      <form onSubmit={(event) => salvarLicenca(event, item)} data-editar-licenca={item.id} className="grid max-w-[32rem] gap-3">
+        {camposDeLicenca(item.licenca)}
+        <div className="flex gap-2">
+          <button disabled={ocupado === item.id} className="bg-platform-signal px-3 py-1.5 font-display text-[10px] font-black uppercase text-platform-bg">{isEnglish ? "Save" : "Salvar"}</button>
+          <button type="button" onClick={() => setEditandoLicenca(null)} className={botaoSecundario}>{isEnglish ? "Cancel" : "Cancelar"}</button>
+        </div>
+      </form>
     );
   }
 
@@ -401,12 +498,17 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
             </button>
           )}
         </div>
-        {TIPOS_SEM_UPLOAD[item.tipo] === "exige-termo" && (
-          <p data-fonte-travada className="mt-4 border-l-2 border-platform-border pl-3 text-[12px] leading-relaxed text-platform-text-muted">
-            {isEnglish
-              ? "Font files are accepted only after the license term is signed by the subscriber."
-              : "Arquivos de fonte só são aceitos depois de o assinante assinar o termo de licença."}
-          </p>
+        {item.tipo === "fonte" && (
+          <div data-licenca-do-item className="mt-4 border-l-2 border-platform-border pl-3 text-[12px] leading-relaxed text-platform-text-muted">
+            {editandoLicenca === item.id
+              ? formularioDeLicenca(item)
+              : <>
+                  {item.licenca
+                    ? frasesDaLicenca(item.licenca, isEnglish).map((f) => <p key={f}>{f}</p>)
+                    : <p>{isEnglish ? "License not set. Say it before uploading a font." : "Licença não informada. Diga qual é antes de enviar uma fonte."}</p>}
+                  {canManage && <button type="button" onClick={() => setEditandoLicenca(item.id)} className={`${botaoSecundario} mt-2`}>{isEnglish ? "Edit license" : "Editar licença"}</button>}
+                </>}
+          </div>
         )}
         {emUso.length > 0
           ? matriz(item, emUso)
@@ -419,7 +521,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
   }
 
   const variantesEmUsoDoItem = assets.filter((asset) => asset.itemId === itemDoEnvio && !asset.descontinuadoEm);
-  const envioTravado = itemEscolhido ? Boolean(TIPOS_SEM_UPLOAD[itemEscolhido.tipo]) : false;
+  const envioDeFonte = itemEscolhido?.tipo === "fonte";
 
   return <div>
     {canManage && <div className="grid gap-4 lg:grid-cols-2">
@@ -428,13 +530,14 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
       <form onSubmit={criarItem} data-form-item className="grid content-start gap-4 border border-platform-border bg-platform-panel p-5">
         <h2 className="font-display text-xs font-black uppercase tracking-widest text-platform-text-muted">{isEnglish ? "New item" : "Novo item"}</h2>
         <label><span className={rotuloDeCampo}>{isEnglish ? "Type" : "Tipo"}</span>
-          <select name="tipo" required defaultValue="" className={campo}>
+          <select name="tipo" required defaultValue="" onChange={(e) => setTipoNovo(e.target.value)} className={campo}>
             <option value="" disabled>{isEnglish ? "Choose…" : "Escolha…"}</option>
             {TIPOS_DE_ITEM.map((tipo) => <option key={tipo} value={tipo}>{rotulo(tipo, isEnglish)}</option>)}
           </select>
         </label>
         <label><span className={rotuloDeCampo}>{isEnglish ? "Item name" : "Nome do item"}</span><input name="nome" required maxLength={120} className={campo} /></label>
         <label><span className={rotuloDeCampo}>{isEnglish ? "Description" : "Descrição"}</span><input name="descricao" maxLength={500} className={campo} /></label>
+        {tipoNovo === "fonte" && camposDeLicenca()}
         <div><button disabled={ocupado === "item-novo"} aria-busy={ocupado === "item-novo"} className="border border-platform-border px-5 py-3 font-display text-xs font-black uppercase text-platform-text">{ocupado === "item-novo" ? (isEnglish ? "Creating…" : "Criando…") : (isEnglish ? "Create item" : "Criar item")}</button></div>
       </form>
 
@@ -451,7 +554,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
           `required` — o navegador segura o envio antes de 25 MB subirem. Proibido
           não aparece: não há como mandar polaridade de paleta por esta tela.
         */}
-        {itemEscolhido && !envioTravado && colunasDoTipo(itemEscolhido.tipo).map((eixo) => {
+        {itemEscolhido && colunasDoTipo(itemEscolhido.tipo).map((eixo) => {
           const obrigatorio = EIXOS_POR_TIPO[itemEscolhido.tipo][eixo] === "obrigatorio";
           return (
             <label key={eixo}><span className={rotuloDeCampo}>{rotulo(eixo, isEnglish)}{obrigatorio ? "" : (isEnglish ? " (optional)" : " (opcional)")}</span>
@@ -462,9 +565,7 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
             </label>
           );
         })}
-        {envioTravado
-          ? <p className="md:col-span-2 text-sm leading-relaxed text-platform-text-muted">{isEnglish ? "Font files are accepted only after the license term is signed." : "Arquivo de fonte só é aceito depois de assinado o termo de licença."}</p>
-          : <>
+        {<>
               <label className="md:col-span-2"><span className={rotuloDeCampo}>{isEnglish ? "File name shown" : "Nome exibido"}</span><input name="label" required maxLength={120} className={campo} /></label>
               <label className="md:col-span-2"><span className={rotuloDeCampo}>{isEnglish ? "Description" : "Descrição"}</span><input name="description" maxLength={500} className={campo} /></label>
               {/*
@@ -473,7 +574,17 @@ export function AssetLibrary({ canManage = false }: { canManage?: boolean }) {
                 mesmo item — o banco recusa trocar um logo por um ícone.
               */}
               {variantesEmUsoDoItem.length > 0 && <label className="md:col-span-2"><span className={rotuloDeCampo}>{isEnglish ? "Replaces (optional)" : "Substitui (opcional)"}</span><select name="substitui" defaultValue="" className={campo}><option value="">{isEnglish ? "— nothing, this is a new file —" : "— nada, é um arquivo novo —"}</option>{variantesEmUsoDoItem.map((asset) => <option key={asset.id} value={asset.id}>{asset.label} · {asset.file_name}</option>)}</select></label>}
-              <label className="md:col-span-2"><span className={rotuloDeCampo}>{isEnglish ? "File — 25 MB max" : "Arquivo — máximo 25 MB"}</span><input name="file" type="file" required className="block w-full border border-platform-border bg-platform-bg p-3 text-sm text-platform-text-muted file:mr-4 file:border-0 file:bg-platform-signal file:px-4 file:py-2 file:font-display file:text-xs file:font-black file:uppercase file:text-platform-bg" /></label>
+              <label className="md:col-span-2"><span className={rotuloDeCampo}>{isEnglish ? "File — 25 MB max" : "Arquivo — máximo 25 MB"}</span><input name="file" type="file" required accept={envioDeFonte ? ".otf,.ttf,.ttc" : undefined} className="block w-full border border-platform-border bg-platform-bg p-3 text-sm text-platform-text-muted file:mr-4 file:border-0 file:bg-platform-signal file:px-4 file:py-2 file:font-display file:text-xs file:font-black file:uppercase file:text-platform-bg" /></label>
+              {envioDeFonte && (
+                <fieldset data-termo-de-fonte className="md:col-span-2 grid gap-2 border border-platform-border p-3">
+                  <legend className="px-1 text-xs font-bold uppercase text-platform-text-muted">{isEnglish ? "Font hosting terms" : "Termo de hospedagem de fonte"}{termo ? ` · v${termo.versao}` : ""}</legend>
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-platform-text-muted">{termo?.texto ?? (isEnglish ? "Loading the terms…" : "Carregando o termo…")}</pre>
+                  <label className="flex items-start gap-2 text-sm text-platform-text">
+                    <input type="checkbox" name="termo" required disabled={!termo} className="mt-1" />
+                    <span>{isEnglish ? "I have read the terms and I declare I can distribute this font to the people who work on this brand." : "Li o termo e declaro que posso distribuir esta fonte a quem trabalha nesta marca."}</span>
+                  </label>
+                </fieldset>
+              )}
               <div className="md:col-span-2"><button disabled={uploading || !itemEscolhido} className="bg-platform-signal px-5 py-3 font-display text-xs font-black uppercase text-platform-bg disabled:opacity-50">{uploading ? (isEnglish ? "Uploading…" : "Enviando…") : (isEnglish ? "Add file" : "Enviar arquivo")}</button></div>
             </>}
       </form>

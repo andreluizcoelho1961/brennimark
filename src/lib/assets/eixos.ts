@@ -47,11 +47,10 @@ export const EIXOS_POR_TIPO: Record<TipoDeItem, Record<Eixo, Exigencia>> = {
 /**
  * Tipos que ainda não aceitam arquivo, e por quê.
  *
- * A fonte existe no vocabulário e na tela, mas o upload é recusado até existir
- * o termo de licença assinado (ADR-0007 §3, condição 1). O banco recusa do
- * mesmo jeito — isto só faz a tela dizer o motivo antes de pedir o arquivo.
+ * Vazio desde 03/11/2026: a fonte passou a ser hospedada (ADR-0007 §3), com o
+ * termo aceito a cada envio. O mecanismo fica para o próximo tipo que precise.
  */
-export const TIPOS_SEM_UPLOAD: Partial<Record<TipoDeItem, "exige-termo">> = { fonte: "exige-termo" };
+export const TIPOS_SEM_UPLOAD: Partial<Record<TipoDeItem, "exige-termo">> = {};
 
 /** Foto e ilustração moram no Banco de imagens, e não na lista de Materiais. */
 export const TIPOS_DO_BANCO: readonly TipoDeItem[] = ["foto", "ilustracao"];
@@ -99,9 +98,11 @@ export function conferirEixos(tipo: TipoDeItem, eixos: Eixos): ResultadoDosEixos
  * frase inventada: devolve `null` e a rota diz a mensagem genérica.
  */
 export function motivoDaRecusa(textoDoErro: string | null | undefined):
-  | "exige-termo" | "eixos" | "item-de-outra-marca" | "substituto-de-outro-item" | "vocabulario" | null {
+  | "exige-termo" | "exige-licenca" | "formato-de-fonte" | "eixos" | "item-de-outra-marca" | "substituto-de-outro-item" | "vocabulario" | null {
   const texto = textoDoErro ?? "";
   if (/brand_assets_fonte_exige_termo|termo de licença/.test(texto)) return "exige-termo";
+  if (/brand_assets_fonte_exige_licenca/.test(texto)) return "exige-licenca";
+  if (/brand_assets_fonte_formato/.test(texto)) return "formato-de-fonte";
   if (/brand_assets_eixos_|espaco_de_cor_obrigatorio|exige hierarquia|exige cor|exige espaço|não se aplicam|eixos só do logo/.test(texto)) return "eixos";
   if (/brand_assets_item_fkey|item não existe nesta marca/.test(texto)) return "item-de-outra-marca";
   if (/substituto_do_mesmo_item|mesmo item/.test(texto)) return "substituto-de-outro-item";

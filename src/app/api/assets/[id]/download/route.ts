@@ -41,6 +41,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
       const { data, error } = await auth.supabase
         .from("brand_assets")
         .select("id, storage_path, file_name")
+        .is("retirada_em", null)
         .eq("id", id)
         .eq("workspace_id", workspaceId)
         .eq("brand_id", brandId)

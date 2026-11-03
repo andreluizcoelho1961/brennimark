@@ -33,6 +33,8 @@ export type DadosDoEnvio = {
   sizeBytes: number;
   eixos: Record<string, string | null>;
   substitui: string | null;
+  /** A versão do termo de fonte aceita neste envio; `null` fora da fonte. */
+  termoVersao: string | null;
   /** Até quando vale, em milissegundos desde 1970. */
   expira: number;
 };

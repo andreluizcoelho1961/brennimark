@@ -7,7 +7,7 @@ const QUEM = { userId: "u1", workspaceId: "w1", brandId: "b1" };
 const dados = (over: Partial<DadosDoEnvio> = {}): DadosDoEnvio => ({
   workspaceId: "w1", brandId: "b1", userId: "u1", itemId: "i1", caminho: "w1/b1/x-logo.eps",
   label: "Logo", description: "", fileName: "logo.eps", mimeType: "application/postscript", sizeBytes: 12_000_000,
-  eixos: { hierarquia: "principal" }, substitui: null, expira: 2_000, ...over,
+  eixos: { hierarquia: "principal" }, substitui: null, termoVersao: null, expira: 2_000, ...over,
 });
 
 test("a autorização assinada volta inteira, dentro do prazo, para a mesma pessoa", () => {
@@ -69,4 +69,13 @@ test("a rota de envio decide o descarte antes de apagar, quando o registro falha
   const bloco = fonte.slice(fonte.indexOf("if (error) {"), fonte.indexOf('if (error.code === "23505")'));
   assert.ok(bloco.indexOf("caminhosADescartar(") >= 0, "o bloco de falha do registro não usa caminhosADescartar");
   assert.doesNotMatch(bloco, /apagar\(miniaturaPath \? \[path, miniaturaPath\] : \[path\]\)/, "voltou a apagar o arquivo antes de olhar o motivo");
+});
+
+test("a versão do termo aceita viaja na autorização assinada, e adulterá-la invalida", () => {
+  const token = assinarEnvio(dados({ termoVersao: "1" }), CHAVE);
+  const lido = lerEnvio(token, CHAVE, QUEM, 1_000);
+  assert.ok(lido.ok && lido.dados.termoVersao === "1");
+  const [corpo, assinatura] = token.split(".");
+  const adulterado = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(corpo, "base64url").toString("utf8")), termoVersao: "99" }), "utf8").toString("base64url");
+  assert.deepEqual(lerEnvio(`${adulterado}.${assinatura}`, CHAVE, QUEM, 1_000), { ok: false, motivo: "assinatura" });
 });

@@ -46,8 +46,9 @@ test("foto entra sem eixo nenhum, e recusa eixo de cor", () => {
   assert.deepEqual(conferirEixos("foto", { ...vazio, cor: "colorido" }), { ok: false, motivo: "sobra", eixo: "cor" });
 });
 
-test("fonte não aceita arquivo antes do termo, com qualquer eixo", () => {
-  assert.deepEqual(conferirEixos("fonte", vazio), { ok: false, motivo: "exige-termo" });
+test("fonte entra sem eixo nenhum, e recusa qualquer eixo (o termo é conferido pelo banco)", () => {
+  assert.deepEqual(conferirEixos("fonte", vazio), { ok: true });
+  assert.deepEqual(conferirEixos("fonte", { ...vazio, cor: "colorido" }), { ok: false, motivo: "sobra", eixo: "cor" });
 });
 
 test("todo tipo do vocabulário tem regra", () => {
@@ -79,6 +80,8 @@ test("o formato vem da extensão, e sem extensão não se inventa", () => {
 
 test("a recusa do banco vira motivo; recusa desconhecida não vira frase inventada", () => {
   assert.equal(motivoDaRecusa('new row violates "brand_assets_fonte_exige_termo"'), "exige-termo");
+  assert.equal(motivoDaRecusa('violates "brand_assets_fonte_exige_licenca"'), "exige-licenca");
+  assert.equal(motivoDaRecusa('violates "brand_assets_fonte_formato"'), "formato-de-fonte");
   assert.equal(motivoDaRecusa("logo exige hierarquia, lockup, cor, polaridade e espaço de cor"), "eixos");
   assert.equal(motivoDaRecusa("o item não existe nesta marca"), "item-de-outra-marca");
   assert.equal(motivoDaRecusa("o substituto precisa ser do mesmo item"), "substituto-de-outro-item");

@@ -22,6 +22,7 @@ const MAGIC: Record<string, string[]> = {
   "application/zip": ["504b0304", "504b0506", "504b0708"],
   "application/postscript": ["25215053", "c5d0d3c6"],
   "font/otf": ["4f54544f"],
+  "font/collection": ["74746366"], // "ttcf"
   "font/ttf": ["00010000", "74727565"],
   "font/woff": ["774f4646"],
   "font/woff2": ["774f4632"],
