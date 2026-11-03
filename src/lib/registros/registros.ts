@@ -81,7 +81,7 @@ export function intervalo(f: Pick<Filtros, "de" | "ate" | "antes">): { desde: st
 export type LinhaDeDownload = {
   id: string;
   /** `link`: baixado por link de entrega (30/09/2026) — quem baixou se identificou sem conta. */
-  tipo: "material" | "manual" | "link";
+  tipo: "material" | "manual" | "paleta" | "link";
   /** Só em `link`: o nome do link por onde o arquivo saiu. */
   via?: string;
   /** Só em `material`: `previa` é o original que o Kit ou os Grids leram para desenhar; nada foi baixado para guardar. */

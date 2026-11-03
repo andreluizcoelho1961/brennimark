@@ -54,6 +54,9 @@ test("o contraste dá o veredito, e a área da marca convida a assinar", async (
 });
 
 test("clicar no print pega a cor exata; a cor entra no histórico e sobrevive a recarregar; o CSS sai com ela", async ({ page }) => {
+  // As cores pegas na tela são da pessoa, não da marca: exportar não chama o registro.
+  let registros = 0;
+  await page.route("**/api/cores/paleta/baixada", (r) => { registros += 1; return r.fulfill({ json: { ok: true } }); });
   await page.goto("/ferramentas/cores");
   await page.locator("[data-cores-print]").setInputFiles({ name: "print.png", mimeType: "image/png", buffer: pngDeUmaCor("#0B4F9E") });
   await page.locator("[data-cores-imagem]").click({ position: { x: 3, y: 3 } });
@@ -67,6 +70,7 @@ test("clicar no print pega a cor exata; a cor entra no histórico e sobrevive a 
   await page.locator("[data-cores-exportar=css]").click();
   const download = await baixando;
   expect(download.suggestedFilename()).toBe("cores-pegas.css");
+  expect(registros).toBe(0);
   expect(await readFile((await download.path())!, "utf8")).toContain(": #0B4F9E;");
 });
 
@@ -79,6 +83,8 @@ test("no assinante: é a cor da marca, com a página e o CMYK do manual; rascunh
       { nome: "Azul de apoio", hex: "#0B4F9E", status: "draft", pagina: 14, cmyk: null, pms: null, rgb: null },
     ],
   } }));
+  const registrados: unknown[] = [];
+  await page.route("**/api/cores/paleta/baixada", (r) => { registrados.push(r.request().postDataJSON()); return r.fulfill({ json: { ok: true } }); });
   await page.goto("/dev/cores-assinante");
   await page.locator("[data-cores-codigo]").fill("#FF4103");
   await page.locator("[data-cores-codigo]").press("Enter");
@@ -96,6 +102,23 @@ test("no assinante: é a cor da marca, com a página e o CMYK do manual; rascunh
   const css = await readFile((await (await baixando).path())!, "utf8");
   expect(css).toContain("--brasa: #FF4103;");
   expect(css).not.toContain("#0B4F9E");
+  // O clique grava o formato e quantas cores foram (as 2 aprovadas), antes do arquivo.
+  expect(registrados).toEqual([{ formato: "css", cores: 2 }]);
+});
+
+test("no assinante: se o download da paleta não puder ser registrado, nada é baixado e a tela diz por quê", async ({ page }) => {
+  await page.route("**/api/cores/paleta", (r) => r.fulfill({ json: {
+    marca: "Brennimark",
+    paleta: [{ nome: "Brasa", hex: "#FF4103", status: "ready", pagina: 13, cmyk: null, pms: null, rgb: null }],
+  } }));
+  await page.route("**/api/cores/paleta/baixada", (r) => r.fulfill({ status: 503, json: { message: "Não foi possível registrar o download, então ele não foi iniciado. Tente de novo." } }));
+  await page.goto("/dev/cores-assinante");
+  let baixou = false;
+  page.on("download", () => { baixou = true; });
+  await page.locator("[data-cores-exportar=ase]").click();
+  await expect(page.locator("[data-cores-erro-do-download]")).toContainText("não foi iniciado");
+  await page.waitForTimeout(500);
+  expect(baixou, "sem linha em Registros, o arquivo não sai").toBe(false);
 });
 
 test("sem conta-gotas de tela (Safari): o botão abre o seletor de cores do sistema, e a cor escolhida é medida", async ({ page }) => {

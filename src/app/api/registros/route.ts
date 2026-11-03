@@ -4,6 +4,7 @@ import { inEnglish } from "@/platform/locale";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { autenticacaoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { rotuloDaPessoa } from "@/lib/acesso/conta-removida";
+import { arquivoDaPaleta } from "@/lib/cores/download-da-paleta";
 import {
   LINHAS_POR_PAGINA, intervalo, lerFiltros, mesclarPorData, proximoCursor,
   type Filtros, type LinhaDeAcao, type LinhaDeAcesso, type LinhaDeDownload,
@@ -15,7 +16,7 @@ import {
  *
  * Quem vê o quê é decidido pelo BANCO. As três tabelas de registro só
  * entregam linhas das marcas em que a sessão tem `administrar`
- * (`brand_asset_downloads`, `downloads_do_manual`, `brand_access_log`); o
+ * (`brand_asset_downloads`, `downloads_do_manual`, `downloads_de_paleta`, `brand_access_log`); o
  * histórico de conteúdo, das que ela consulta. A rota filtra pela conta do
  * endereço e pelos filtros da tela — nunca autoriza nada por conta própria, e
  * não usa chave de serviço.
@@ -54,6 +55,9 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
   let manual = supabase.from("downloads_do_manual")
     .select("id, brand_id, pessoa_email, file_name, created_at")
     .eq("workspace_id", workspaceId);
+  let paleta = supabase.from("downloads_de_paleta")
+    .select("id, brand_id, pessoa_email, formato, created_at")
+    .eq("workspace_id", workspaceId);
   // Por link de entrega (30/09/2026): quem baixou não tem conta e se
   // identificou com nome e e-mail autodeclarados.
   let porLink = supabase.from("acessos_de_link")
@@ -62,20 +66,23 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
     .eq("evento", "baixou");
   materiais = aplicarFiltros(materiais, f);
   manual = aplicarFiltros(manual, f);
+  paleta = aplicarFiltros(paleta, f);
   porLink = aplicarFiltros(porLink, f);
   if (f.pessoa) {
     materiais = materiais.ilike("pessoa_email", `%${f.pessoa}%`);
     manual = manual.ilike("pessoa_email", `%${f.pessoa}%`);
+    paleta = paleta.ilike("pessoa_email", `%${f.pessoa}%`);
     // Mesmo cuidado dos acessos: `lerFiltros` só deixa passar caracteres
     // seguros, e o valor vai ENTRE ASPAS no filtro.
     porLink = porLink.or(`email.ilike."%${f.pessoa}%",nome.ilike."%${f.pessoa}%"`);
   }
-  const [a, b, c] = await Promise.all([
+  const [a, b, c, d] = await Promise.all([
     materiais.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
     manual.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
     porLink.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
+    paleta.order("created_at", { ascending: false }).limit(LINHAS_POR_PAGINA) as unknown as Promise<Consulta<Record<string, string>>>,
   ]);
-  if (a.error || b.error || c.error) return null;
+  if (a.error || b.error || c.error || d.error) return null;
   const deMateriais: LinhaDeDownload[] = (a.data ?? []).map((l) => ({
     id: l.id, tipo: "material", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),
     oque: l.asset_label, arquivo: l.file_name, quando: l.created_at,
@@ -85,11 +92,16 @@ async function downloads(supabase: SupabaseClient, workspaceId: string, f: Filtr
     id: l.id, tipo: "manual", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),
     oque: isEnglish ? "Manual (PDF)" : "Manual (PDF)", arquivo: l.file_name, quando: l.created_at,
   }));
+  const daPaleta: LinhaDeDownload[] = (d.data ?? []).map((l) => ({
+    id: l.id, tipo: "paleta", marca: marcas.get(l.brand_id) ?? "—", pessoa: rotuloDaPessoa(l.pessoa_email, isEnglish),
+    oque: `${isEnglish ? "Palette" : "Paleta"} (${l.formato.toUpperCase()})`,
+    arquivo: arquivoDaPaleta(marcas.get(l.brand_id) ?? "marca", l.formato), quando: l.created_at,
+  }));
   const deLinks: LinhaDeDownload[] = (c.data ?? []).map((l) => ({
     id: l.id, tipo: "link", via: l.link_nome, marca: marcas.get(l.brand_id) ?? "—",
     pessoa: `${l.nome} · ${l.email}`, oque: l.asset_label, arquivo: l.file_name, quando: l.created_at,
   }));
-  return mesclarPorData([deMateriais, doManual, deLinks]);
+  return mesclarPorData([deMateriais, doManual, daPaleta, deLinks]);
 }
 
 async function acessos(supabase: SupabaseClient, workspaceId: string, f: Filtros, marcas: Map<string, string>, isEnglish: boolean) {

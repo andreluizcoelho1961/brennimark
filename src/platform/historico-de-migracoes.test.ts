@@ -57,6 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `downloads_da_paleta` (03/11/2026): tabela de registro do download da paleta do Cores e
+  // a função de conta removida com uma linha a mais. Sai daqui quando for aplicada ao banco.
+  "downloads_da_paleta",
   // `download_finalidade` saiu daqui em 30/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261030211547`; coluna `finalidade` NOT NULL
   // default 'download', check `brand_asset_downloads_finalidade_check`, privilégios de
