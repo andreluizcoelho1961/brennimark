@@ -1702,6 +1702,7 @@
         },
         "assinante": {
           "erroAbrir": "Couldn't open Grids right now.",
+          "erroRegistrar": "The download couldn't be recorded, so it wasn't started. Try again.",
           "erroLogoBusca": "Couldn't fetch the logo from Materials.",
           "erroLogoAbrir": "Couldn't open the logo.",
           "manualSemRegras": "Brennimark read the manual and found no grid rules on the pages it looked at. Brennimark's proposal applies.",
@@ -2084,6 +2085,7 @@
         },
         "assinante": {
           "erroAbrir": "Couldn't open Kit right now.",
+          "erroRegistrar": "The download couldn't be recorded, so it wasn't started. Try again.",
           "erroBuscar": "Couldn't fetch the logo from Materials.",
           "erroVersao": "Couldn't open this version.",
           "manualSemRegras": "Kit read the manual and didn't find these rules on the pages it looked at.",

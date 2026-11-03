@@ -46,6 +46,11 @@ export type KitFixo = {
   seletorDeVersoes: ReactNode;
   /** A fonte da assinatura: a substituta aprovada do uso "texto" (14/10/2026). */
   fonteDaAssinatura?: { nome: string; origem: string } | null;
+  /**
+   * Chamada no clique em "Baixar", antes de montar o arquivo: registra o que a
+   * pessoa leva. Devolve "" se registrou, ou o motivo — e então nada é baixado.
+   */
+  aoBaixar?: () => Promise<string>;
 };
 
 const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
@@ -119,6 +124,9 @@ export function KitAvulso({ fixo }: { fixo?: KitFixo } = {}) {
 
   async function baixar(grupos: Grupo[]) {
     if (!escolhas) return;
+    setErro("");
+    const recusa = fixo?.aoBaixar ? await fixo.aoBaixar() : "";
+    if (recusa) { setErro(recusa); return; }
     setGerando({ prontos: 0, total: itensDoPacote(grupos, escolhas).length });
     try {
       const blob = await montarPacote(grupos, escolhas, nome.trim(), { ...dados, empresa: dados.empresa || nome, fonte: fixo?.fonteDaAssinatura ?? null }, (prontos, total) => setGerando({ prontos, total }), t);
