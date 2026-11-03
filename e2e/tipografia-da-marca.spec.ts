@@ -161,3 +161,19 @@ test("leitura recusada ou cortada diz o que aconteceu, e os botões voltam", asy
   await expect(s.getByRole("status")).toHaveText("A resposta da IA foi cortada antes de qualquer fonte. Rode de novo com menos páginas.");
   await expect(s.locator("[data-fonte-da-marca]")).toHaveCount(3);
 });
+
+test("a fonte que a marca tem em Materiais ganha 'Baixar esta fonte'; a que não tem, não", async ({ page }) => {
+  const sem = { hierarquia: null, lockup: null, cor: null, polaridade: null, espaco_de_cor: null };
+  await page.route("**/api/assets", (rota) => rota.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    itens: [{ id: "item-inter", tipo: "fonte", nome: "Inter", descricao: "", ordem: 0, regra: [], licenca: { tipo: "livre", titular: null, comoObter: null } }],
+    assets: [{ id: "f1", itemId: "item-inter", label: "Bold", description: "", file_name: "Inter-Bold.ttf", mime_type: "font/ttf", size_bytes: 1, status: "ready",
+      created_at: "2026-11-03T10:00:00Z", baixavel: true, descontinuadoEm: null, substituidoPor: null, eixos: sem, miniatura: null }],
+    manual: null,
+  }) }));
+  await page.goto("/dev/admin-panel");
+  const linhas = secao(page).locator("[data-fonte-da-marca]");
+  // Título e texto são Inter, que está hospedada; a legenda é IBM Plex Mono, que não.
+  await expect(linhas.nth(0).locator("[data-baixar-esta-fonte]")).toHaveAttribute("href", /\/docs\/biblioteca\/item-inter$/);
+  await expect(linhas.nth(1).locator("[data-baixar-esta-fonte]")).toHaveAttribute("href", /\/docs\/biblioteca\/item-inter$/);
+  await expect(linhas.nth(2).locator("[data-baixar-esta-fonte]")).toHaveCount(0);
+});
