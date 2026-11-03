@@ -8,6 +8,7 @@ import {
   paletaEmTexto, rgbParaCmyk, rgbParaHex, rgbParaHsb, simularDaltonismo, veredito, type CorDaMarca, type CorNomeada, type Daltonismo, type Papel,
 } from "@/lib/cores/cores";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import type { FormatoDaPaleta } from "@/lib/cores/download-da-paleta";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
 import { useCadastroParaBaixar } from "./CadastroParaBaixar";
@@ -36,6 +37,12 @@ export type MarcaDoCores = {
   nome: string;
   paleta: CorDaMarca[];
   linkDaPagina: (pagina: number) => string;
+  /**
+   * No clique de exportar a paleta APROVADA da marca (03/11/2026): registra o
+   * download antes de gerar o arquivo. Devolve "" se registrou, ou o motivo —
+   * e então nada é baixado.
+   */
+  aoBaixar?: (formato: FormatoDaPaleta, cores: number) => Promise<string>;
 };
 
 const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted";
@@ -62,6 +69,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
   const [cor, setCor] = useState("#FF4103");
   const [codigo, setCodigo] = useState("");
   const [erroDoCodigo, setErroDoCodigo] = useState("");
+  const [erroDoDownload, setErroDoDownload] = useState("");
   const [papel, setPapel] = useState<Papel>("couche");
   const [historico, setHistorico] = useState<string[]>([]);
   const [textoSobre, setTextoSobre] = useState<string>("#FFFFFF");
@@ -175,6 +183,18 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
   const paraExportar: CorNomeada[] = marca && marca.paleta.some((c) => c.status === "ready")
     ? marca.paleta.filter((c) => c.status === "ready").map((c) => ({ nome: c.nome, hex: c.hex }))
     : historico.map((h) => ({ nome: nomeDaCor(h, t), hex: h }));
+  // Só a paleta APROVADA da marca é do Registros; as cores que a pessoa pegou
+  // na tela são dela.
+  const paletaDaMarca = Boolean(marca && marca.paleta.some((c) => c.status === "ready"));
+  /** Registra o clique (paleta da marca) e só então gera o arquivo. */
+  const exportar = (formato: FormatoDaPaleta, gerar: () => void | Promise<void>) => pedir(async () => {
+    setErroDoDownload("");
+    if (paletaDaMarca && marca?.aoBaixar) {
+      const recusa = await marca.aoBaixar(formato, paraExportar.length);
+      if (recusa) { setErroDoDownload(recusa); return; }
+    }
+    await gerar();
+  });
   const baseDoArquivo = marca && marca.paleta.some((c) => c.status === "ready") ? `${t("arquivoPaleta")}-${marca.nome.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : t("arquivoPegas");
 
   const opcoesDeTexto: { hex: string; rotulo: string }[] = [
@@ -366,14 +386,15 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             {marca && marca.paleta.some((c) => c.status === "ready") ? t("levarPaleta") : t("levarPegas")}
           </span>
           <Exportar rotulo={t("ase")} dado="ase" desligado={paraExportar.length === 0}
-            aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmAse(paraExportar) as BlobPart], { type: "application/octet-stream" }), `${baseDoArquivo}.ase`))} />
+            aoClicar={() => exportar("ase", () => salvarArquivo(new Blob([paletaEmAse(paraExportar) as BlobPart], { type: "application/octet-stream" }), `${baseDoArquivo}.ase`))} />
           <Exportar rotulo="CSS" dado="css" desligado={paraExportar.length === 0}
-            aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmCss(paraExportar)], { type: "text/css" }), `${baseDoArquivo}.css`))} />
+            aoClicar={() => exportar("css", () => salvarArquivo(new Blob([paletaEmCss(paraExportar)], { type: "text/css" }), `${baseDoArquivo}.css`))} />
           <Exportar rotulo="JSON" dado="json" desligado={paraExportar.length === 0}
-            aoClicar={() => pedir(() => salvarArquivo(new Blob([paletaEmJson(paraExportar)], { type: "application/json" }), `${baseDoArquivo}.json`))} />
-          <Exportar rotulo="PNG" dado="png" desligado={paraExportar.length === 0} aoClicar={() => pedir(() => baixarPng(paraExportar, baseDoArquivo))} />
+            aoClicar={() => exportar("json", () => salvarArquivo(new Blob([paletaEmJson(paraExportar)], { type: "application/json" }), `${baseDoArquivo}.json`))} />
+          <Exportar rotulo="PNG" dado="png" desligado={paraExportar.length === 0} aoClicar={() => exportar("png", () => baixarPng(paraExportar, baseDoArquivo))} />
           <Copiar rotulo={t("copiarLista")} texto={paletaEmTexto(paraExportar)} desligado={paraExportar.length === 0} />
         </div>
+        {erroDoDownload && <p role="alert" data-cores-erro-do-download className="text-[12.5px] text-platform-text">{erroDoDownload}</p>}
       </section>
     </div>
   );

@@ -57,6 +57,11 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `downloads_da_paleta` saiu daqui em 03/11/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261103172241`; conferido depois: RLS ligada,
+  // duas policies (insert e select), `anon` sem privilégio, `authenticated` só com select e
+  // insert, as duas funções SECURITY DEFINER com search_path vazio e sem execute para
+  // anon/authenticated, e a função de conta removida com a linha nova.
   // `download_finalidade` saiu daqui em 30/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261030211547`; coluna `finalidade` NOT NULL
   // default 'download', check `brand_asset_downloads_finalidade_check`, privilégios de

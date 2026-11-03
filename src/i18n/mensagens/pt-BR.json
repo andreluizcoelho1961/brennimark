@@ -1243,6 +1243,7 @@
       },
       "assinante": {
         "erro": "Não foi possível ler a paleta agora.",
+        "erroRegistrar": "Não foi possível registrar o download, então ele não foi iniciado. Tente de novo.",
         "abrindo": "Abrindo as cores da marca…"
       },
       "nome": {
