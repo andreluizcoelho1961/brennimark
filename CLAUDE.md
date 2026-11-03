@@ -76,12 +76,17 @@ dizia o contrário ("não hospeda fonte licenciada de cliente algum"), e caiu po
 produto: quem trabalha na marca baixa o logo e tudo mais, e sem a fonte o texto renderiza errado no
 primeiro arquivo aberto. O que a hospedagem OBRIGA, e sem o que ela não se sustenta:
 
-- **termo assinado pelo assinante ANTES de ligar a hospedagem** — a responsabilidade pela licença é
-  dele, e sem texto assinado ela continua com quem serve o arquivo;
-- **aceite registrado no upload**, com autor e data;
+- **termo aceito pelo assinante ANTES de a fonte entrar** — a responsabilidade pela licença é dele, e
+  sem texto aceito ela continua com quem serve o arquivo. Desde 03/11/2026 o termo é uma versão
+  numerada (`versoes_do_termo_de_fonte`) e o aceite é **a cada envio**; a v1 ainda não passou por
+  advogado (ver `docs/plan/briefing-advogado-termo-de-fonte.md`);
+- **aceite registrado no upload**, com autor, data e versão (o banco carimba, não o pedido);
 - **servida só para download, a membro autenticado daquela marca** — nunca URL pública, nunca
-  webfont, sem hotlink e sem CDN;
-- **procedimento de retirada**, se uma foundry notificar.
+  webfont, sem hotlink e sem CDN, e **nunca em link de entrega**;
+- **procedimento de retirada** (`retirada_em`), se uma foundry notificar: só quem administra retira.
+
+Está no ar para todas as marcas (ADR-0007 §3.4): kit de fontes e "baixar todos os materiais da
+marca" em Materiais, e "Baixar esta fonte" na Tipografia.
 
 ## Honestidade editorial — não negociável
 

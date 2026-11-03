@@ -64,7 +64,7 @@ $pt$Termo de hospedagem de fonte — versão 1
 
 2. Responsabilidade. A responsabilidade pela licença da fonte é do assinante. O Brennimark guarda o arquivo e o entrega a quem a marca autorizou; não verifica nem garante a licença.
 
-3. Como a fonte é entregue. Só para download, a pessoas autenticadas que alcançam a marca, ou por link de entrega com prazo. Nunca por endereço público e nunca como webfont. Cada download fica registrado: quem baixou, quando e qual arquivo.
+3. Como a fonte é entregue. Só para download, a pessoas autenticadas que alcançam a marca. Nunca por endereço público e nunca como webfont. Cada download fica registrado: quem baixou, quando e qual arquivo.
 
 4. Licença que exige licença própria. Se a licença da fonte exigir licença de cada fornecedor, o assinante informa isso e como obtê-la, e o produto mostra essa informação a quem baixa.
 
@@ -77,7 +77,7 @@ $en$Font hosting terms — version 1
 
 2. Responsibility. The subscriber is responsible for the font license. Brennimark stores the file and delivers it to whoever the brand authorized; it does not verify or guarantee the license.
 
-3. How the font is delivered. Download only, to signed-in people who have access to the brand, or through a delivery link with an expiry date. Never at a public address and never as a webfont. Every download is recorded: who downloaded, when and which file.
+3. How the font is delivered. Download only, to signed-in people who have access to the brand. Never at a public address and never as a webfont. Every download is recorded: who downloaded, when and which file.
 
 4. A license that requires its own license. If the font license requires each supplier to hold their own, the subscriber says so and how to get it, and the product shows that information to whoever downloads.
 

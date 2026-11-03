@@ -159,6 +159,29 @@ Campo no item fonte — **tipo de licença, titular e como obter** — exibido *
 no mesmo lugar em que a regra aparece colada ao logo. Se a fonte exigir licença própria de cada
 fornecedor, o produto diz isso na hora de baixar, com o contato.
 
+### 3.4 Como as quatro condições são cumpridas (03/11/2026)
+
+André decidiu em 03/11/2026 que o download da fonte vale para **todas as marcas, desde o dia em que
+entra no ar**: sem a fonte, o designer, o prestador e a gráfica não trabalham na marca. Cada condição
+acima virou uma peça:
+
+1. **O termo existe** — é uma linha numerada de `versoes_do_termo_de_fonte`, com impressão digital do
+   texto. A versão 1 foi redigida sem advogado; a revisão jurídica entra como **versão 2** (linha
+   nova, nunca edição: cada aceite aponta para o texto que a pessoa viu).
+2. **Aceite no upload** — o aceite em caixa marcada, a cada envio de fonte, gravado na variante
+   (`termo_versao`, `termo_aceito_por`, `termo_aceito_em`). Quem aceitou e quando vêm da sessão, nunca do
+   pedido. **É a forma de "assinado" desta fase**; se o advogado exigir assinatura formal do contrato,
+   isso se soma, não substitui.
+3. **Retirada** — `retirada_em` e `retirada_motivo`; só quem administra a marca retira; a fonte retirada
+   deixa de sair em qualquer download, e o registro de quem baixou continua legível.
+4. **Só download, só a quem alcança a marca** — a rota do kit assina por 120 s com a chave de serviço e
+   registra antes. **A fonte não vai em link de entrega**: link é público, com nome e e-mail digitados.
+   O prestador sem login recebe acesso de consulta à marca.
+
+Aceitos no envio: OTF, TTF e TTC. Webfont (WOFF, WOFF2) é recusada pelo banco. O item de fonte exige o
+tipo de licença (livre, exclusiva ou comprada), titular e como obter, mostrados a quem baixa e no LEIA-ME
+do ZIP. Provas: `scripts/prova-fonte-hospedada.sh`.
+
 ## 4. A miniatura
 
 A proibição de conversão (item 13) é sobre **entrega**. A miniatura é prévia, e serve só para o
