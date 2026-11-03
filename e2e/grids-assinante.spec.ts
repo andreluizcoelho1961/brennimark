@@ -14,7 +14,7 @@ const REGRA_GERAL = { id: "rtodos", formato: "todos", variante: "", segmento: ""
 const VERSAO = { id: "v1", itemId: "i1", tipo: "logo", arquivo: "Acme Logo horizontal.svg", mime: "image/svg+xml", hierarquia: "principal", lockup: "horizontal", cor: "colorido", polaridade: "positivo", espacoDeCor: "rgb", rotulo: null, miniatura: null };
 
 async function fingir(page: Page, o: { regras?: unknown[]; versoes?: unknown[]; protecao?: number; tipografia?: unknown[]; fontesEmRascunho?: number } = {}) {
-  const chamadas = { ler: 0, aprovar: [] as string[][], guardar: [] as Record<string, unknown>[], baixados: 0 };
+  const chamadas = { ler: 0, aprovar: [] as string[][], guardar: [] as Record<string, unknown>[], baixados: 0, levados: [] as { itemId: string; ids: string[] }[], recusarRegistro: false };
   let regras = o.regras ?? [REGRA_A4, REGRA_GERAL];
   await page.route("**/api/grids/regras/ler", (r) => {
     chamadas.ler += 1;
@@ -41,6 +41,12 @@ async function fingir(page: Page, o: { regras?: unknown[]; versoes?: unknown[]; 
     } });
   });
   await page.route("**/api/assets/kit", (r) => {
+    const pedido = r.request().postDataJSON() as { finalidade?: string; itemId: string; ids: string[] };
+    if (pedido.finalidade === "download") {
+      if (chamadas.recusarRegistro) return r.fulfill({ status: 503, json: { message: "Não foi possível registrar o download, então ele não foi iniciado. Tente de novo." } });
+      chamadas.levados.push({ itemId: pedido.itemId, ids: pedido.ids });
+      return r.fulfill({ json: { nome: "kit.zip", arquivos: [] } });
+    }
     chamadas.baixados += 1;
     return r.fulfill({ json: { nome: "kit.zip", arquivos: [{ url: "https://storage.prova.test/logo.svg", caminho: "logo.svg" }] } });
   });
@@ -70,6 +76,7 @@ test("o grid vem do manual, a tela diz de onde, e o pacote leva logo, cores e es
   const baixando = page.waitForEvent("download");
   await page.locator("[data-grids-baixar-idml]").click();
   const download = await baixando;
+  expect(chamadas.levados, "o clique em Baixar registra o logo levado, como download").toEqual([{ itemId: VERSAO.itemId, ids: [VERSAO.id] }]);
   expect(download.suggestedFilename()).toBe("grid-acme-a4-colunas.zip");
   const zip = unzipSync(new Uint8Array(await readFile((await download.path())!)));
   expect(Object.keys(zip).sort()).toEqual(["LEIA-ME.txt", "Links/logo-acme-logo-horizontal.svg", "grid-acme-a4-colunas.idml"]);
@@ -223,4 +230,17 @@ test("o assinante tem a lista inteira de formatos e a desconstrução em camadas
   await orelha.press("Enter");
   await expect(page.locator("[data-grids-previa] text")).toHaveText(["Orelha (verso)", "Contracapa", "Lombada", "Capa", "Orelha (frente)"]);
   await expect(page.locator("[data-grids-sobreposto]")).toHaveCount(0);
+});
+
+test("se o download não puder ser registrado, nada é baixado e a tela diz por quê", async ({ page }) => {
+  const chamadas = await fingir(page);
+  chamadas.recusarRegistro = true;
+  await abrir(page);
+  await expect(page.locator("[data-grids-logo-previa] image")).toHaveCount(1);
+  let baixou = false;
+  page.on("download", () => { baixou = true; });
+  await page.locator("[data-grids-baixar-pdf]").click();
+  await expect(page.getByRole("alert").filter({ hasText: "não foi iniciado" })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(baixou, "sem linha em Registros, o arquivo não sai").toBe(false);
 });

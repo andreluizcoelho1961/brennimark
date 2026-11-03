@@ -15,6 +15,7 @@ import { montarPdf } from "@/lib/grids/pdf";
 import { formatar, type Escolhas } from "@/lib/grids/calcular";
 import { nomeDaVariante, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
 import { salvarArquivo } from "@/lib/assets/zip-no-navegador";
+import { registrarOQueLevou } from "@/lib/assets/registrar-o-que-levou";
 import type { FonteDaMarca } from "@/lib/tipografia/tipografia";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
@@ -188,6 +189,16 @@ export function GridsDoAssinante() {
     if (!estado) return null;
     const regras = estado.regras;
     const protecao = estado.regrasDoLogo.protecao;
+    // O clique em "Baixar" grava a linha de `download` ANTES de montar o PDF ou
+    // o pacote (que nascem no navegador). Sem registro, nada é baixado; o motivo
+    // aparece junto do logo, onde o erro da versão já aparece.
+    const registrarDownload = async () => {
+      const v = logo && estado.versoesDoLogo.find((x) => x.id === logo.id);
+      if (!v) return true;
+      const recusa = await registrarOQueLevou([{ id: v.id, itemId: v.itemId }], { endereco: comAlvo("/api/assets/kit", alvo), padrao: t("ui.assinante.erroRegistrar") });
+      setErroDoLogo(recusa);
+      return !recusa;
+    };
     const cantoDe = (f: Formato) => cantoEscolhido ?? cantoPadrao(f);
     const slug = estado.marca.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "marca";
     const slugDe = (texto: string) => texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -348,6 +359,7 @@ export function GridsDoAssinante() {
         );
       },
       baixar: async (c) => {
+        if (!(await registrarDownload())) return;
         setBaixando(true);
         try {
           const p = posicao(c);
@@ -376,6 +388,7 @@ export function GridsDoAssinante() {
       // O PDF igual ao InDesign (15/10/2026): o grid, o logo no canto e a área
       // de proteção; o logo vai como imagem nítida (o vetor está no .idml).
       baixarPdf: async (c) => {
+        if (!(await registrarDownload())) return;
         setBaixando(true);
         try {
           const p = posicao(c);

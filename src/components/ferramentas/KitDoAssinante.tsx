@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { carregarDesenho, type Desenho } from "@/lib/kit/desenhar-no-navegador";
+import { registrarOQueLevou } from "@/lib/assets/registrar-o-que-levou";
 import {
   PAPEIS, nomeDaVariante, opcoesDoPapel, type DesenhosDaMarca, type Papel, type VarianteDoKit,
 } from "@/lib/kit/materiais-do-kit";
@@ -206,6 +207,13 @@ export function KitDoAssinante() {
         fontes: { protecao: fonte(regra("area_de_protecao")), logo: fonte(regra("reducao_minima_logo")), simbolo: fonte(regra("reducao_minima_simbolo")) },
         coresDaMarca: estado.coresDaMarca,
         fonteDaAssinatura: estado.fonteDaAssinatura ?? null,
+        aoBaixar: () => {
+          const porId = new Map([...(versoes?.todas ?? []), ...PAPEIS.map((p) => versoes?.desenhos[p]).filter((v): v is VarianteDoKit => Boolean(v))].map((v) => [v.id, v]));
+          const levadas = PAPEIS.map((p) => (escolha?.[p] ? porId.get(escolha[p]!) : undefined))
+            .filter((v): v is VarianteDoKit => Boolean(v))
+            .map((v) => ({ id: v.id, itemId: v.itemId }));
+          return registrarOQueLevou(levadas, { endereco: comAlvo("/api/assets/kit", alvo), padrao: t("ui.assinante.erroRegistrar") });
+        },
         seletorDeVersoes: versoes && escolha && (
           <SeletorDeVersoes
             todas={versoes.todas} escolha={escolha} falhas={falhas} automatica={versoes.desenhos}

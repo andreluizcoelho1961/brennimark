@@ -1702,6 +1702,7 @@
         },
         "assinante": {
           "erroAbrir": "Não foi possível abrir os Grids agora.",
+          "erroRegistrar": "Não foi possível registrar o download, então ele não foi iniciado. Tente de novo.",
           "erroLogoBusca": "Não foi possível buscar o logo nos Materiais.",
           "erroLogoAbrir": "Não foi possível abrir o logo.",
           "manualSemRegras": "O Brennimark leu o manual e não encontrou regras de grid nas páginas que olhou. Vale a proposta do Brennimark.",
@@ -2084,6 +2085,7 @@
         },
         "assinante": {
           "erroAbrir": "Não foi possível abrir o Kit agora.",
+          "erroRegistrar": "Não foi possível registrar o download, então ele não foi iniciado. Tente de novo.",
           "erroBuscar": "Não foi possível buscar o logo nos Materiais.",
           "erroVersao": "Não foi possível abrir esta versão.",
           "manualSemRegras": "O Kit leu o manual e não encontrou essas regras nas páginas que olhou.",
