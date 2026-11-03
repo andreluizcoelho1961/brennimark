@@ -57,6 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `fonte_hospedada` (03/11/2026): termo de fonte versionado, licença no item, aceite e retirada
+  // na variante, e a trava da fonte no gatilho dos eixos. Sai daqui quando for aplicada ao banco.
+  "fonte_hospedada",
   // `downloads_da_paleta` saiu daqui em 03/11/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261103172241`; conferido depois: RLS ligada,
   // duas policies (insert e select), `anon` sem privilégio, `authenticated` só com select e
