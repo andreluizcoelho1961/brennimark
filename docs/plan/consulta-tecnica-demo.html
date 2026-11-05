@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta técnica — Brennimark</title>
+<style>
+:root{--bg:#f6f5f2;--panel:#fff;--ink:#1b1b1a;--mute:#6b6a66;--line:#e2e0da;--accent:#1b1b1a;--chip:#eceae4;--ok:#1f6b3a;--warn:#8a5a00;--code:#efede7}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141413;--panel:#1c1c1b;--ink:#ecebe7;--mute:#9a9892;--line:#2c2c2a;--accent:#ecebe7;--chip:#262625;--ok:#6fcf8f;--warn:#e0b050;--code:#242423}}
+:root[data-theme=dark]{--bg:#141413;--panel:#1c1c1b;--ink:#ecebe7;--mute:#9a9892;--line:#2c2c2a;--accent:#ecebe7;--chip:#262625;--ok:#6fcf8f;--warn:#e0b050;--code:#242423}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:20px 16px 80px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:14px}
+h1{font-size:20px;margin:0;font-weight:650}
+h1 small{display:block;font-weight:400;color:var(--mute);font-size:13px;margin-top:2px}
+button,input{font:inherit;color:inherit}
+.tools{display:flex;gap:8px;align-items:center}
+input[type=search]{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:220px}
+.theme{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;cursor:pointer}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}
+nav.tabs button{background:transparent;border:1px solid transparent;border-radius:999px;padding:7px 14px;cursor:pointer;color:var(--mute)}
+nav.tabs button[aria-selected=true]{background:var(--accent);color:var(--bg);font-weight:600}
+section.tab{display:none}section.tab.on{display:block}
+.lead{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.lead b{display:block;margin-bottom:2px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin:8px 0;overflow:hidden}
+summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;gap:10px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";color:var(--mute);width:12px;flex:none}
+details[open] summary::before{content:"–"}
+.body{padding:0 16px 14px 38px}
+.short{margin:0 0 8px;font-weight:600}
+.body p{margin:6px 0}.body ul{margin:6px 0 6px 18px;padding:0}.body li{margin:3px 0}
+code{background:var(--code);padding:1px 6px;border-radius:6px;font:13px ui-monospace,SFMono-Regular,Menlo,monospace}
+.chip{display:inline-block;background:var(--chip);border-radius:999px;padding:1px 9px;font-size:12px;color:var(--mute);margin-left:4px;font-weight:500}
+.ok{color:var(--ok)}.warn{color:var(--warn)}
+.hint{color:var(--mute);font-size:14px;margin:16px 0 4px}
+.empty{display:none;color:var(--mute);padding:12px}
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:8px 0}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{color:var(--mute);font-weight:600}
+@media print{nav.tabs,.tools{display:none}section.tab{display:block!important}details{break-inside:avoid}details>*{display:block}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Consulta técnica<small>Brennimark Fonts e plataforma · para a conversa com TI · funciona sem internet</small></h1>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Buscar (ex.: RLS, Vercel, SHA-256)" aria-label="Buscar">
+    <button class="theme" id="theme" type="button" aria-label="Alternar tema">Tema</button>
+  </div>
+</header>
+<nav class="tabs" role="tablist">
+  <button role="tab" data-tab="fonts" aria-selected="true">Fonts</button>
+  <button role="tab" data-tab="plataforma" aria-selected="false">Plataforma</button>
+  <button role="tab" data-tab="perguntas" aria-selected="false">Perguntas prováveis</button>
+  <button role="tab" data-tab="limites" aria-selected="false">O que não está pronto</button>
+</nav>
+
+<section class="tab on" id="fonts">
+  <div class="lead"><b>Em uma frase</b>Aplicativo de desktop local-first: catálogo em um arquivo SQLite no computador, fontes originais nunca alteradas, sem necessidade de internet nem de conta.</div>
+
+  <details><summary>Stack <span class="chip">Tauri 2 · Rust · React 19</span></summary><div class="body">
+    <p class="short">Shell Tauri 2, núcleo em Rust, interface em React 19 com TypeScript e Vite.</p>
+    <ul>
+      <li>A interface roda no WebView do sistema (WKWebView no macOS, WebView2 no Windows). Não embute Chromium, por isso o instalador tem ~5 MB.</li>
+      <li>O núcleo é um workspace Rust com quatro crates: <code>font-core</code> (catálogo, leitura de fontes, similaridade), <code>font-host</code> (ativação por sistema), <code>font-cli</code> e <code>font-ffi</code>.</li>
+      <li>A interface não tem SQL livre nem acesso aberto ao disco: só chama comandos tipados do Rust.</li>
+      <li>Testes: Rust (<code>cargo test</code>) e Vitest no front-end.</li>
+    </ul></div></details>
+
+  <details><summary>Catálogo <span class="chip">SQLite · SHA-256</span></summary><div class="body">
+    <p class="short">Um arquivo SQLite local é o índice; ele aponta para as fontes onde elas estão.</p>
+    <ul>
+      <li>SQLite embutido (<code>rusqlite</code>), com chaves estrangeiras ligadas e ~19 tabelas.</li>
+      <li><b>Identidade por conteúdo:</b> cada arquivo é identificado pelo SHA-256 dos bytes, independente do caminho. Assim duplicatas, cópias no Vault e kits se reconhecem.</li>
+      <li>Metadados tipográficos vêm do <code>ttf-parser</code> (TTF, OTF, TTC). Arquivo inválido é registrado com o erro, sem derrubar a importação.</li>
+      <li>O banco guarda caminhos absolutos. Se a pasta muda de lugar ou de usuário, o catálogo precisa reescrever os caminhos.</li>
+    </ul></div></details>
+
+  <details><summary>Ativar sem instalar <span class="chip">Core Text · GDI</span></summary><div class="body">
+    <p class="short">A fonte é registrada só para a sessão de login e some no logout. Nada é copiado para a pasta Fontes.</p>
+    <ul>
+      <li>macOS: Core Text com escopo de sessão (<code>kCTFontManagerScopeSession</code>).</li>
+      <li>Windows: <code>AddFontResourceExW</code> sem <code>FR_PRIVATE</code>, para que outros aplicativos da sessão a vejam. Nada vai ao registro.</li>
+      <li>Segurança: se o nome PostScript já estiver ativo no sistema, o app recusa e preserva a fonte existente.</li>
+      <li>Por isso o app deve ser fechado pelo menu: matar o processo deixa as fontes ativas até o logout.</li>
+    </ul></div></details>
+
+  <details><summary>Desempenho da biblioteca <span class="chip">carga sob demanda</span></summary><div class="body">
+    <p class="short">Cada cartão desenha com a fonte real, carregada só quando aparece na tela.</p>
+    <ul>
+      <li>As fontes chegam ao WebView por um protocolo próprio (<code>bf-font</code>), com política de segurança de conteúdo restritiva.</li>
+      <li>Orçamento de memória de 128 MB para fontes de cartão, com nova tentativa automática (1, 3 e 8 s) quando um pedido é recusado.</li>
+      <li>Medido: 3,3 mil fontes em SSD e 19 mil arquivos / 5,5 mil famílias em HD externo abrem na hora.</li>
+      <li>Limite conhecido: fontes enormes (coleções asiáticas de 50 a 180 MB) elevam a memória; no pior caso medido, ~670 MB.</li>
+    </ul></div></details>
+
+  <details><summary>Fontes parecidas <span class="chip">vetor de 78 valores</span></summary><div class="body">
+    <p class="short">Cada fonte recebe uma impressão digital numérica medida no próprio arquivo; parecidas são as de vetores próximos.</p>
+    <ul>
+      <li>Oito medidas globais (peso, largura, itálico, altura-x…) e sete por letra, em dez letras de referência: tinta, proporções, espessura de hastes e serifas.</li>
+      <li>O vetor é guardado no banco, então a busca é instantânea. Recalcula quando a versão do método muda.</li>
+      <li>Não usa IA nem rede: é geometria dos contornos.</li>
+    </ul></div></details>
+
+  <details><summary>Pastas vigiadas e Vault <span class="chip">notify</span></summary><div class="body">
+    <p class="short">O app observa pastas em tempo real e reescaneia ao abrir; o Vault é uma cópia gerenciada opcional.</p>
+    <ul>
+      <li>Observação de arquivos com o crate <code>notify</code>. Em teste, soltar uma fonte na pasta a fez entrar na biblioteca em menos de 6 s.</li>
+      <li>Vault: um objeto por hash, procedência preservada, importação em staging e promoção atômica. Não substitui nem apaga o original.</li>
+    </ul></div></details>
+
+  <details><summary>Rede, licença e privacidade <span class="chip">offline</span></summary><div class="body">
+    <p class="short">O núcleo não tem cliente de rede; funciona sem internet e sem conta.</p>
+    <ul>
+      <li>A CSP do WebView só permite recursos locais (<code>default-src 'self'</code>).</li>
+      <li>Licença beta por certificado assinado com Ed25519, verificado localmente. O app contém só a chave pública do emissor.</li>
+      <li>A chave do dispositivo fica no Keychain (macOS) ou no Credential Manager (Windows).</li>
+      <li>A edição pessoal usada na demonstração não tem licença.</li>
+    </ul></div></details>
+
+  <details><summary>Integração com a Adobe <span class="chip warn">em desenvolvimento</span></summary><div class="body">
+    <p class="short">Hoje: "Abrir com kit". Em desenvolvimento: ler as fontes do documento e ativar sozinho.</p>
+    <ul>
+      <li>Hoje você escolhe o documento e o kit; o app ativa as fontes e abre o InDesign. Ensaiado em 05/11 (espera de até ~90 s).</li>
+      <li>Em desenvolvimento: plug-in nativo que conversa com o app por socket de domínio Unix local, sem TCP. No macOS o app confere a assinatura de código do cliente antes de aceitar, e o contrato só carrega nomes PostScript.</li>
+    </ul></div></details>
+</section>
+
+<section class="tab" id="plataforma">
+  <div class="lead"><b>Em uma frase</b>Plataforma web hospedada, multi-marca, para agências e marcas guardarem o manual de marca em PDF, os materiais e consultarem tudo com um assistente que cita a fonte.</div>
+
+  <details><summary>Mapa: onde cada coisa mora <span class="chip">Vercel · Supabase · Stripe</span></summary><div class="body">
+    <p class="short">Aplicação na Vercel, dados no Supabase, cobrança no Stripe, e-mail pela Resend, IA por provedores externos.</p>
+    <table>
+      <tr><th>Peça</th><th>Onde</th><th>Para quê</th></tr>
+      <tr><td>Aplicação web</td><td>Vercel (funções em São Paulo, <code>gru1</code>)</td><td>Páginas, rotas de API, tarefas agendadas</td></tr>
+      <tr><td>Banco de dados</td><td>Supabase Postgres (<code>sa-east-1</code>, São Paulo)</td><td>Contas, marcas, regras, registros, kits</td></tr>
+      <tr><td>Login</td><td>Supabase Auth</td><td>Sessões por cookie (<code>@supabase/ssr</code>)</td></tr>
+      <tr><td>Arquivos</td><td>Supabase Storage (3 buckets privados)</td><td>PDFs, materiais, evidências</td></tr>
+      <tr><td>Cobrança</td><td>Stripe, só cartão</td><td>Assinatura, webhook assinado</td></tr>
+      <tr><td>E-mail</td><td>Resend (integração no código)</td><td>Avisos transacionais</td></tr>
+      <tr><td>IA</td><td>Provedores via Vercel AI SDK</td><td>Assistente Vini e leitura de manuais</td></tr>
+      <tr><td>Domínio</td><td>brennimark.com, DNS na Vercel</td><td>Site e produto</td></tr>
+    </table></div></details>
+
+  <details><summary>Aplicação <span class="chip">Next.js 16 · React 19</span></summary><div class="body">
+    <p class="short">Next.js 16 (App Router), React 19 e TypeScript, com Tailwind 4.</p>
+    <ul>
+      <li>Páginas de servidor e rotas de API no mesmo projeto. Autorização do lado do servidor.</li>
+      <li>Três tarefas agendadas (cron da Vercel): limpeza de materiais órfãos, registros de acesso e contas canceladas.</li>
+      <li>Em 23/10 as funções foram movidas de Washington (<code>iad1</code>) para São Paulo (<code>gru1</code>), junto do banco: leituras de ~4 s caíram para ~0,8 s. A lentidão era geografia, não código.</li>
+    </ul></div></details>
+
+  <details><summary>Banco, isolamento e RLS <span class="chip">Postgres · Row Level Security</span></summary><div class="body">
+    <p class="short">Cada conta e cada marca são isoladas dentro do próprio banco, por políticas de linha (RLS).</p>
+    <ul>
+      <li>RLS: o Postgres filtra as linhas conforme quem pergunta. Mesmo uma falha na aplicação não deixa uma conta ler a outra.</li>
+      <li>Regra do projeto: toda mudança de banco tem migration versionada (hoje 102), RLS, índices e <b>teste de autorização negativo</b>, que prova que a conta A não lê os dados da B.</li>
+      <li><b>Interface não é fronteira de segurança.</b> Os papéis (consultar, editar, aprovar, administrar) decidem o que aparece; o banco decide o que é permitido.</li>
+      <li>Funções privilegiadas (<code>SECURITY DEFINER</code>) revogam acesso de <code>anon</code> e <code>authenticated</code> e travam o <code>search_path</code>.</li>
+      <li>O histórico de migrations do repositório precisa bater com o de produção; não se reescreve migration já aplicada.</li>
+    </ul></div></details>
+
+  <details><summary>Armazenamento de arquivos <span class="chip">Supabase Storage</span></summary><div class="body">
+    <p class="short">Três buckets privados no Supabase Storage, na mesma região do banco.</p>
+    <ul>
+      <li><code>brand-imports</code>: PDFs dos manuais (limite de 50 MB por arquivo hoje, por causa do plano; o produto prevê 100 MB).</li>
+      <li><code>brand-assets</code>: biblioteca de materiais da marca (logotipos, imagens, fontes).</li>
+      <li><code>analysis-evidence</code>: evidências das análises.</li>
+      <li>Nenhum é público: acesso por política de Storage e por link com prazo.</li>
+      <li>Fonte licenciada de cliente só é servida para download, a membro autenticado da marca, nunca por URL pública.</li>
+    </ul></div></details>
+
+  <details><summary>Leitura do PDF <span class="chip">PDF.js · HTTP Range</span></summary><div class="body">
+    <p class="short">O PDF é a superfície de leitura. O visualizador baixa só os trechos que a tela precisa.</p>
+    <ul>
+      <li>PDF.js com requisições por intervalo (HTTP Range). O visualizador nunca pede o arquivo inteiro.</li>
+      <li>Nenhuma resposta passa de 4 MiB, porque a Vercel trunca respostas de função acima de ~4,5 MB, e um PDF truncado vira arquivo corrompido sem aviso.</li>
+      <li>Medição, não teoria: a rota expõe <code>Server-Timing</code> (consulta, sessão, storage). A autorização enxuta caiu de ~350 ms para ~16 ms por pedido.</li>
+    </ul></div></details>
+
+  <details><summary>IA da plataforma <span class="chip">Vini</span></summary><div class="body">
+    <p class="short">A IA é da plataforma: nenhuma conta escolhe ou configura IA.</p>
+    <ul>
+      <li>Camada única de abstração (<code>getModel()</code>) sobre o Vercel AI SDK, com provedores Anthropic, Google, Groq, OpenAI e OpenRouter.</li>
+      <li>As rotas (qual modelo faz o quê) ficam no Console de administração. As chaves ficam como variáveis de ambiente na Vercel e nunca vão ao banco nem a tela alguma.</li>
+      <li>Honestidade editorial: cada regra tem status (aprovada, rascunho ou pendente). Só regra aprovada entra em silêncio no prompt; o assistente cita fonte, status e caminho e não afirma o que não está documentado.</li>
+      <li>Decisão: o manual inteiro vai ao modelo quando cabe; busca só para manual gigante ou modelo pequeno.</li>
+      <li>Há orçamento por conta, trava geral e pausas por conta ou marca.</li>
+    </ul></div></details>
+
+  <details><summary>Cobrança, e-mail e dados pessoais <span class="chip">Stripe · LGPD</span></summary><div class="body">
+    <p class="short">Stripe só com cartão, em modo real; dados em São Paulo.</p>
+    <ul>
+      <li>Webhook do Stripe com assinatura verificada. Cancelamento, direito de arrependimento, exclusão aos 12 meses e exportação dos dados pelo navegador estão no ar.</li>
+      <li>Links de entrega: o código aparece uma única vez e só o hash vai ao banco.</li>
+      <li>Conformidade e registros de acesso têm rotina diária de manutenção.</li>
+    </ul></div></details>
+
+  <details><summary>Qualidade e entrega <span class="chip">CI · Playwright</span></summary><div class="body">
+    <p class="short">Lint, tipos, testes de unidade, build e testes de navegador rodam em CI antes de qualquer merge.</p>
+    <ul>
+      <li>Um único comando (<code>npm run verify</code>) faz a mesma sequência do CI. Os testes de navegador usam Playwright.</li>
+      <li>CI em GitHub Actions, em cada pull request, contra a integração com a <code>main</code> atual.</li>
+      <li>Decisões de arquitetura ficam em ADRs numerados (oito vigentes), e o histórico de migrations é auditável.</li>
+    </ul></div></details>
+
+  <details><summary>Fonts e plataforma: como se conectam <span class="chip">hoje separados</span></summary><div class="body">
+    <p class="short">Hoje são independentes. A ponte (conta, sincronização) é futura.</p>
+    <ul>
+      <li>O Fonts é local-first e não depende de conta. Conta, assinatura e sincronização serão capacidades adicionais.</li>
+      <li>Hoje o certificado de licença do Fonts é emitido à mão pela plataforma.</li>
+    </ul></div></details>
+</section>
+
+<section class="tab" id="perguntas">
+  <div class="lead"><b>Respostas curtas</b>Para quando perguntarem. Abra a pergunta para ver o detalhe.</div>
+
+  <details><summary>Por que Tauri/Rust e não Electron?</summary><div class="body">
+    <p class="short">Instalador de ~5 MB e uso de APIs nativas de fonte, sem embutir um navegador.</p>
+    <p>O núcleo em Rust lê e mede fontes com rapidez e fala direto com o Core Text e o GDI. A interface web usa o WebView do próprio sistema.</p></div></details>
+
+  <details><summary>Onde ficam os dados do cliente?</summary><div class="body">
+    <p class="short">Plataforma: Postgres e Storage do Supabase em São Paulo. Fonts: no computador do usuário.</p>
+    <p>No Fonts nada sai da máquina: não há cliente de rede no núcleo. Na plataforma, tudo fica em <code>sa-east-1</code>, com isolamento por RLS.</p></div></details>
+
+  <details><summary>Como garantem que uma conta não vê dados de outra?</summary><div class="body">
+    <p class="short">RLS no banco e teste negativo obrigatório em toda mudança.</p>
+    <p>O isolamento não depende da interface nem do código da aplicação. O Postgres filtra por quem pergunta, e cada tabela nova prova que A não lê B.</p></div></details>
+
+  <details><summary>As chaves de IA e segredos ficam onde?</summary><div class="body">
+    <p class="short">Variáveis de ambiente na Vercel. Nunca no banco, na tela nem no repositório.</p>
+    <p>O Console mostra apenas se a chave existe. Chaves antigas de clientes seguem cifradas com AES-256-GCM, sem uso.</p></div></details>
+
+  <details><summary>A IA pode inventar regra da marca?</summary><div class="body">
+    <p class="short">O desenho existe para evitar isso: status, citação e "não há diretriz documentada".</p>
+    <p>Só regra aprovada entra em silêncio no prompt. Rascunho aparece identificado. O assistente cita fonte, status e caminho. Não é garantia absoluta de modelo de linguagem, e por isso a citação permite conferir.</p></div></details>
+
+  <details><summary>Dá para usar o Fonts sem internet?</summary><div class="body">
+    <p class="short">Sim. Catálogo, prévia, ativação e licença funcionam offline.</p></div></details>
+
+  <details><summary>O Fonts altera ou apaga minhas fontes?</summary><div class="body">
+    <p class="short">Não. Só lê. A ativação é de sessão e não copia nada para a pasta Fontes.</p>
+    <p>O Vault, se usado, é uma cópia separada. As duplicatas hoje só são listadas; a remoção segura (movendo para a Lixeira) é um próximo passo planejado.</p></div></details>
+
+  <details><summary>Como sabe que duas fontes são a mesma?</summary><div class="body">
+    <p class="short">SHA-256 do conteúdo: mesmos bytes, mesma identidade, em qualquer pasta.</p></div></details>
+
+  <details><summary>Quantas fontes aguenta?</summary><div class="body">
+    <p class="short">Medido: 19 mil arquivos / 5,5 mil famílias abrem na hora.</p>
+    <p>Só os cartões visíveis carregam, dentro de um orçamento de 128 MB. Coleções asiáticas gigantes usam mais memória (~670 MB no pior caso medido).</p></div></details>
+
+  <details><summary>E o Windows?</summary><div class="body">
+    <p class="short">Existe versão em beta; a interface nova ainda será validada lá.</p>
+    <p>A ativação no Windows usa <code>AddFontResourceExW</code> e está implementada no código; falta validar a interface nova lá.</p></div></details>
+
+  <details><summary>E a integração com Adobe?</summary><div class="body">
+    <p class="short">"Abrir com kit" funciona hoje; a leitura automática do documento está em desenvolvimento.</p></div></details>
+
+  <details><summary>Escala? Aguenta muitos clientes?</summary><div class="body">
+    <p class="short">Arquitetura serverless gerenciada (Vercel + Supabase); fase atual é de pilotos.</p>
+    <p>Ainda não há carga de produção em escala medida. Hoje o foco é validar com poucas agências. Postgres e Storage gerenciados escalam por plano, e as funções escalam por demanda.</p></div></details>
+
+  <details><summary>Quem desenvolve? Vibecoding?</summary><div class="body">
+    <p class="short">O produto é meu; o código é desenvolvido com apoio de IA, com testes e revisão.</p>
+    <p>A disciplina é a de engenharia: ADRs, migrations versionadas, testes negativos de autorização, CI e provas versionadas. Se perguntarem, assuma e mostre os testes.</p></div></details>
+
+  <details><summary>Qual o modelo de negócio?</summary><div class="body">
+    <p class="short">Assinatura (cartão). Fonts incluso em todos os planos e disponível sozinho.</p>
+    <p>Preços ainda provisórios, em estudo (roteiro de precificação).</p></div></details>
+</section>
+
+<section class="tab" id="limites">
+  <div class="lead"><b>Diga com franqueza</b>Se não estiver nesta lista como pronto, diga "em desenvolvimento". Isso passa mais confiança a quem entende do assunto.</div>
+  <details open><summary>Ainda não está pronto</summary><div class="body">
+    <ul>
+      <li><b>Integração Adobe automática</b> (ler as fontes do <code>.indd</code> e ativar sozinho): em desenvolvimento.</li>
+      <li><b>Windows:</b> versão em beta; a interface nova ainda será validada lá.</li>
+      <li><b>Instalador macOS:</b> ainda sem assinatura de distribuição e notarização (a edição de demonstração é assinada ad hoc).</li>
+      <li><b>Remover duplicatas:</b> hoje só lista; remoção pela Lixeira planejada.</li>
+      <li><b>Sincronização conta ↔ Fonts:</b> futura.</li>
+      <li><b>Limite de arquivo:</b> 50 MB por PDF hoje (plano do Supabase); o produto prevê 100 MB.</li>
+      <li><b>Escala:</b> ainda sem teste de carga com muitos clientes.</li>
+      <li><b>Precificação:</b> provisória.</li>
+    </ul></div></details>
+  <p class="hint">Dica: antes de uma resposta que você não tem certeza, diga "vou confirmar e te mando". Vale mais do que um número inventado.</p>
+</section>
+<p class="empty" id="empty">Nada encontrado nesta aba.</p>
+</div>
+<script>
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('nav.tabs button'));
+  var secs=[].slice.call(document.querySelectorAll('section.tab'));
+  var q=document.getElementById('q'),empty=document.getElementById('empty');
+  function show(id){
+    tabs.forEach(function(b){b.setAttribute('aria-selected',b.dataset.tab===id)});
+    secs.forEach(function(s){s.classList.toggle('on',s.id===id)});
+    try{history.replaceState(null,'','#'+id)}catch(e){}
+    filter();
+  }
+  function norm(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase()}
+  function filter(){
+    var t=norm(q.value.trim()),cur=document.querySelector('section.tab.on'),n=0;
+    [].forEach.call(cur.querySelectorAll('details'),function(d){
+      var hit=!t||norm(d.textContent).indexOf(t)>-1;
+      d.style.display=hit?'':'none'; if(hit)n++; if(t&&hit)d.open=true;
+    });
+    empty.style.display=(t&&!n)?'block':'none';
+  }
+  tabs.forEach(function(b){b.addEventListener('click',function(){show(b.dataset.tab)})});
+  q.addEventListener('input',filter);
+  var theme=document.getElementById('theme');
+  theme.addEventListener('click',function(){
+    var r=document.documentElement,dark=getComputedStyle(r).getPropertyValue('--bg').trim()==='#141413';
+    r.setAttribute('data-theme',dark?'light':'dark');
+  });
+  var h=location.hash.slice(1); if(h&&document.getElementById(h))show(h);
+})();
+</script>
+</body>
+</html>
