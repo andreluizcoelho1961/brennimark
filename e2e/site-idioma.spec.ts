@@ -176,9 +176,9 @@ test("O Fonts em inglês: recursos, comparação com o FontBase, perguntas e o p
   await expect(page.locator('.fx-tab [role="columnheader"]').nth(1)).toHaveText("Brennimark Fonts (beta)");
   await expect(page.locator('.fx-tab [data-melhor]')).toHaveCount(8);
   await expect(page.locator(".faq details")).toHaveCount(8);
-  // O aviso de lançamento leva o assunto em inglês, e a janela desenhada também fala inglês.
+  // O aviso de lançamento leva o assunto em inglês, e as legendas da janela do app também.
   await expect(page.getByRole("link", { name: /Notify me of the launch/ })).toHaveAttribute("href", /subject=Please%20notify%20me%20of%20the%20Brennimark%20Fonts%20launch/);
-  await expect(page.locator(".fx-demo")).toContainText("Name conflict");
+  await expect(page.locator(".fx-janela .fx-abas")).toContainText("Conflict");
   await expect(page.locator('a.rel[href="/en/font-license"]')).toContainText("Company");
   await expect(page.locator('a.rel[href="/en/agencies"]')).toContainText("Who it's for");
   await expect(page.getByRole("button", { name: /Request beta access/ })).toBeVisible();
@@ -188,7 +188,7 @@ test("O Fonts em português segue igual: recursos, comparação e perguntas", as
   await page.goto("/fonts");
   await expect(page.locator(".fx-grid li")).toHaveCount(12);
   await expect(page.locator('.fx-tab [data-melhor]')).toHaveCount(8);
-  await expect(page.locator(".fx-demo")).toContainText("Conflito de nome");
+  await expect(page.locator(".fx-janela .fx-abas")).toContainText("Conflito");
   await expect(page.getByRole("link", { name: /Avisar-me do lançamento/ })).toHaveAttribute("href", /subject=Avisem-me/);
 });
 
