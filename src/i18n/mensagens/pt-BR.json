@@ -807,20 +807,19 @@
       "a8": "Em breve, sem data fechada. A versão paga é uma licença de um ano, com atualizações e novas versões durante a validade; depois, renova-se. Quem assina o Brennimark já recebe o Fonts. Quem testa o beta tem condição de lançamento, que anunciaremos antes de qualquer cobrança."
     },
     "janelaDoFonts": {
-      "aria": "Janela do Brennimark Fonts: famílias de uma marca, com um kit pronto para ativar e um conflito de nomes avisado",
-      "beta": "Beta",
-      "kit": "Kit · Marca Exemplo",
-      "kitInfo": "3 famílias · 11 estilos",
-      "ativarKit": "Ativar kit",
-      "serifada": "Serifada Display",
-      "serifadaInfo": "5 estilos · ativa",
-      "desativar": "Desativar",
-      "sans": "Sans Texto",
-      "sansInfo": "6 estilos · inativa",
-      "ativar": "Ativar",
-      "conflito": "Conflito de nome",
-      "conflitoInfo": "Outra Sans Texto já está ativa",
-      "diferenca": "Ver diferença"
+      "aria": "Janela do Brennimark Fonts: capturas reais do aplicativo",
+      "abaBiblioteca": "Biblioteca",
+      "abaFamilia": "Ativar",
+      "abaKit": "Kit",
+      "abaConflito": "Conflito",
+      "legBiblioteca": "A biblioteca em famílias: cada cartão desenha com a fonte real.",
+      "altBiblioteca": "Tela do Brennimark Fonts: biblioteca em cartões, cada família desenhada com a própria fonte",
+      "legFamilia": "Uma família ativada nos seus aplicativos, com um clique, sem instalar.",
+      "altFamilia": "Tela do Brennimark Fonts: família Aileron aberta, com 16 arquivos ativados",
+      "legKit": "O kit da marca ativado de uma vez, com cada fonte no seu papel.",
+      "altKit": "Tela do Brennimark Fonts: kit ACME — Identidade 2026 com 4 arquivos ativados",
+      "legConflito": "Se o nome já está ativo no sistema, o app avisa e preserva a fonte que já existe.",
+      "altConflito": "Tela do Brennimark Fonts: kit com 3 de 4 fontes ativas e o aviso de que o IBM Plex Mono já estava ativo e foi preservado"
     },
     "home": {
       "13_formatos_com_os_quatro": "13 formatos, com os quatro tipos de grid.",

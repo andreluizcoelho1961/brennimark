@@ -1218,3 +1218,13 @@ body:has(.home-v){overflow:auto}
   border: 0;
   cursor: pointer;
 }
+
+/* Janela do Fonts com capturas reais (06/11/2026) */
+.bm-site .fx-janela{width:100%;max-width:640px}
+.bm-site .fx-janela .frame{padding:0;overflow:hidden;line-height:0}
+.bm-site .fx-captura{width:100%;height:auto;display:block}
+.bm-site .fx-abas{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 8px}
+.bm-site .fx-abas button{font:500 12px var(--mono);letter-spacing:.02em;padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:inherit;cursor:pointer}
+.bm-site .fx-abas button[aria-selected="true"]{background:var(--app-brasa-ink,currentColor);color:var(--surface);border-color:transparent}
+.bm-site .fx-abas button:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.bm-site .fx-legenda{margin:0;font-size:13px;color:var(--app-muted,inherit);min-height:2.6em}

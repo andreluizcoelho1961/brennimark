@@ -807,20 +807,19 @@
       "a8": "Soon, with no fixed date. The paid version is a one-year license, with updates and new versions during its validity; after that, it renews. Whoever subscribes to Brennimark already receives Fonts. Whoever tests the beta gets launch terms, which we will announce before any charge."
     },
     "janelaDoFonts": {
-      "aria": "Brennimark Fonts window: a brand's families, with a kit ready to activate and a name conflict flagged",
-      "beta": "Beta",
-      "kit": "Kit · Sample Brand",
-      "kitInfo": "3 families · 11 styles",
-      "ativarKit": "Activate kit",
-      "serifada": "Display Serif",
-      "serifadaInfo": "5 styles · active",
-      "desativar": "Deactivate",
-      "sans": "Text Sans",
-      "sansInfo": "6 styles · inactive",
-      "ativar": "Activate",
-      "conflito": "Name conflict",
-      "conflitoInfo": "Another Text Sans is already active",
-      "diferenca": "See difference"
+      "aria": "Brennimark Fonts window: real screenshots of the app",
+      "abaBiblioteca": "Library",
+      "abaFamilia": "Activate",
+      "abaKit": "Kit",
+      "abaConflito": "Conflict",
+      "legBiblioteca": "The library by family: each card is drawn with the real font.",
+      "altBiblioteca": "Brennimark Fonts screen: card library, each family drawn in its own font (app interface in Portuguese)",
+      "legFamilia": "A family activated in your apps with one click, nothing installed.",
+      "altFamilia": "Brennimark Fonts screen: the Aileron family open, with 16 files activated (app interface in Portuguese)",
+      "legKit": "The brand kit activated at once, each font in its role.",
+      "altKit": "Brennimark Fonts screen: ACME — Identidade 2026 kit with 4 files activated (app interface in Portuguese)",
+      "legConflito": "If the name is already active on the system, the app warns you and keeps the existing font.",
+      "altConflito": "Brennimark Fonts screen: kit with 3 of 4 fonts active and a notice that IBM Plex Mono was already active and was preserved (app interface in Portuguese)"
     },
     "home": {
       "13_formatos_com_os_quatro": "13 formats, with the four grid types.",
