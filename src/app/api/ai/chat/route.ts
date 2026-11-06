@@ -17,6 +17,7 @@ import { capacidadesDe } from "@/lib/ai/catalogo";
 import { comPaginasVistas, lerPaginasVistas, modeloVePaginas, paginasParaVer, type PaginaVista } from "@/lib/ai/paginas-para-ver";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { lerPaleta, trechosDaFicha } from "@/lib/paleta/paleta";
+import { trechosDoContraste } from "@/lib/paleta/contraste";
 import { lerTipografia, trechosDaTipografia } from "@/lib/tipografia/tipografia";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
@@ -190,7 +191,11 @@ export async function POST(request: Request) {
      * derruba a conversa: o manual continua lá, e o log diz que a ficha caiu.
      */
     const paleta = await lerPaleta(portao.auth.supabase, portao.brand.id);
-    if (paleta.ok) ficha = trechosDaFicha(paleta.cores, brandPrompt.language === "en");
+    if (paleta.ok) {
+      const ingles = brandPrompt.language === "en";
+      // O contraste dos pares (06/11/2026) sai da MESMA leitura: é conta sobre a ficha, sem IA.
+      ficha = [...trechosDaFicha(paleta.cores, ingles), ...trechosDoContraste(paleta.cores, ingles)];
+    }
     // A ficha da tipografia (15/10/2026), do mesmo jeito: falhar não derruba a conversa.
     const tipografia = await lerTipografia(portao.auth.supabase, portao.brand.id);
     if (tipografia.ok) ficha = [...ficha, ...trechosDaTipografia(tipografia.fontes, brandPrompt.language === "en")];

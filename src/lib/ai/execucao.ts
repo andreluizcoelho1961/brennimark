@@ -123,11 +123,12 @@ const BYTES_POR_CARACTERE_PIOR_CASO = 4;
  *     citação uma vez por bloco, também de 26/09; 4.268 → 4.300; e a ficha da
  *     paleta, 27/09: as duas fontes dela e a regra "a ficha prevalece"; 5.050
  *     → 6.065 medidos com a ficha da tipografia, 15/10: as duas fontes e a
- *     regra dela — 6.100)
+ *     regra dela — 6.100; 6.956 medidos com o contraste da paleta, 06/11:
+ *     as duas fontes e a regra dela — 7.050)
  *   analyse-image: 3.632 medidos → 3.700
  */
 export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
-  assist: 6_100,
+  assist: 7_050,
   "analyse-image": 3_700,
   prompt: 2_300,
 };
