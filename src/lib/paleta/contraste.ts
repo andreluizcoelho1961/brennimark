@@ -2,6 +2,7 @@ import type { Trecho } from "../ai/recuperacao";
 import { contraste, veredito, type Veredito } from "../cores/cores";
 import type { CorDaPaleta } from "./paleta";
 import { ordenarPaleta } from "./paleta";
+import { seConfundem, type ParQueSeConfunde } from "../cores/acessibilidade-da-peca";
 
 /**
  * O contraste dos pares da paleta — fatia 1 de acessibilidade (06/11/2026).
@@ -90,6 +91,28 @@ export function contrastesDaPaleta(cores: readonly CorMedida[]): ContrasteDaPale
 /** Quantos usos o par atende, de 0 a 3. */
 export function usosAtendidos(v: Veredito): number {
   return Number(v.textoPequeno !== "falha") + Number(v.textoGrande !== "falha") + Number(v.iconesEBotoes === "passa");
+}
+
+// ─── Daltonismo na paleta (fatia 3) ──────────────────────────────────────────
+
+export type ParDaPaletaQueSeConfunde = ParQueSeConfunde & { nomeA: string; nomeB: string; afirmado: boolean };
+
+/**
+ * Pares da paleta que se distinguem bem para o olho típico e deixam de se
+ * distinguir para quem tem protanopia, deuteranopia ou tritanopia. Mesma regra
+ * de status do contraste: com cor em rascunho, o par vem marcado.
+ */
+export function paresQueSeConfundem(cores: readonly CorMedida[]): ParDaPaletaQueSeConfunde[] {
+  const medidas = ordenarPaleta(cores).filter((c): c is CorMedida & { hex: string } => Boolean(c.hex));
+  const achados: ParDaPaletaQueSeConfunde[] = [];
+  for (let i = 0; i < medidas.length; i++) {
+    for (let j = i + 1; j < medidas.length; j++) {
+      for (const par of seConfundem(medidas[i].hex, medidas[j].hex)) {
+        achados.push({ ...par, nomeA: medidas[i].nome, nomeB: medidas[j].nome, afirmado: medidas[i].status === "ready" && medidas[j].status === "ready" });
+      }
+    }
+  }
+  return achados;
 }
 
 // ─── Para o Vini ─────────────────────────────────────────────────────────────

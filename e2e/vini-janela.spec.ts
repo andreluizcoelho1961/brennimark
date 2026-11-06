@@ -738,3 +738,67 @@ test("com 'reduzir movimento', o Vini fica parado e o vídeo não carrega", asyn
   await page.waitForTimeout(2000);
   await expect(page.locator(".vini-passo[data-andando]")).toHaveCount(0);
 });
+
+test("a acessibilidade da peça mede o contraste, simula daltonismo e sugere só cor aprovada", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route("**/api/cores/paleta", (r) => r.fulfill({ json: {
+    marca: "Marca de Bancada",
+    paleta: [
+      { nome: "Azul Noite", hex: "#0B1F3A", status: "ready", pagina: 1, cmyk: null, pms: null, rgb: null },
+      { nome: "Branco", hex: "#FFFFFF", status: "ready", pagina: 1, cmyk: null, pms: null, rgb: null },
+      { nome: "Amarelo Rascunho", hex: "#FFD400", status: "draft", pagina: 2, cmyk: null, pms: null, rgb: null },
+    ],
+  } }));
+  await page.goto(MARCA);
+  // Uma peça de 40x20: metade esquerda vermelha (texto), metade direita verde (fundo).
+  const base64 = await page.evaluate(() => {
+    const c = document.createElement("canvas");
+    c.width = 40; c.height = 20;
+    const x = c.getContext("2d")!;
+    x.fillStyle = "#C0392B"; x.fillRect(0, 0, 20, 20);
+    x.fillStyle = "#2E8B3A"; x.fillRect(20, 0, 20, 20);
+    return c.toDataURL("image/png").split(",")[1];
+  });
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({ name: "cartaz.png", mimeType: "image/png", buffer: Buffer.from(base64, "base64") });
+
+  const painel = page.locator("[data-acessibilidade-da-peca]");
+  await expect(painel).toBeVisible();
+  const tela = painel.locator("[data-acessibilidade-canvas]");
+  await expect(painel.locator("[data-proximo-clique]")).toHaveText("Clique na cor do TEXTO");
+
+  // Fatia 3: a peça vista com protanopia muda de pixels; amostrar continua lendo a ORIGINAL.
+  const pixel = () => tela.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(5, 10, 1, 1).data));
+  const antes = await pixel();
+  await painel.locator('[data-daltonismo="protanopia"]').click();
+  await expect(tela).toHaveAttribute("data-modo", "protanopia");
+  expect(await pixel()).not.toEqual(antes);
+  await painel.locator('[data-daltonismo="normal"]').click();
+  expect(await pixel()).toEqual(antes);
+  await painel.locator('[data-daltonismo="deuteranopia"]').click();
+
+  // Fatia 2: clique no texto e no fundo, ainda com a simulação na tela.
+  const caixa = (await tela.boundingBox())!;
+  await tela.click({ position: { x: caixa.width * 0.25, y: caixa.height / 2 } });
+  await expect(painel.locator('[data-amostra="texto"]')).toContainText("#C0392B");
+  await expect(painel.locator("[data-proximo-clique]")).toHaveText("Agora clique na cor do FUNDO");
+  await tela.click({ position: { x: caixa.width * 0.75, y: caixa.height / 2 } });
+  await expect(painel.locator('[data-amostra="fundo"]')).toContainText("#2E8B3A");
+
+  const medida = painel.locator("[data-medida]");
+  await expect(medida.locator("[data-razao]")).toHaveAttribute("data-razao", /^1\.2\d$/);
+  await expect(medida.locator('[data-passa="nao"]')).toHaveCount(3);
+  await expect(medida.locator("[data-sob-daltonismo]")).toContainText("protanopia");
+
+  // Fatia 4: texto comum — só o Branco aprovado como fundo resolve; rascunho nunca entra.
+  await expect(medida.locator("[data-ajuste]")).toHaveAttribute("data-ajuste", "sugestoes");
+  await expect(medida.locator('[data-sugestao="fundo"]').first()).toContainText("Branco");
+  await expect(medida.locator("[data-ajuste]")).not.toContainText("Amarelo Rascunho");
+  // Texto grande (3:1): o Azul Noite aprovado também serve como cor do texto.
+  await medida.locator("[data-uso-do-ajuste]").selectOption("texto-grande");
+  await expect(medida.locator('[data-sugestao="texto"]').first()).toContainText("Azul Noite");
+
+  // Limpar zera as amostras.
+  await painel.locator("[data-limpar-amostras]").click();
+  await expect(painel.locator("[data-medida]")).toHaveCount(0);
+});
