@@ -36,7 +36,10 @@ Os ADRs vigentes, em ordem:
 - [`docs/adr/0007`](./docs/adr/0007-biblioteca-de-assets-da-marca.md) — a biblioteca de assets da
   marca, a entrega governada por link com prazo, e a hospedagem de fonte
 - [`docs/adr/0008`](./docs/adr/0008-a-ia-e-da-plataforma.md) — a IA é da plataforma: nenhuma conta
-  escolhe ou configura IA; rotas no Console, chaves na Vercel
+  escolhe ou configura IA; rotas no Console, chaves na Vercel (vale para o plano com IA)
+- [`docs/adr/0009`](./docs/adr/0009-a-ia-depende-do-plano.md) — a IA depende do plano: com IA é da
+  plataforma; sem IA a conta conecta a própria (chave cifrada, nunca revelada). Direção aceita,
+  **nada construído**; banco e preços esperam o OK do André
 
 `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRENNIMARK_MATRIX.md` são
 **históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
@@ -105,8 +108,10 @@ cliente dele.
 Nunca importar `@ai-sdk/*` direto de código de feature — sempre via `getModel()` em
 `src/lib/ai/provider.ts`. Resolução da rota em `src/lib/ai/settings.ts`.
 
-**A IA é da plataforma — mudou em 29/09/2026, ver ADR-0008.** Nenhuma conta escolhe ou configura
-IA. O Vini lê as rotas do Console (`rotas_de_ia_da_plataforma()`, só chave de serviço) e a chave de
+**A IA é da plataforma — mudou em 29/09/2026, ver ADR-0008. Desde 06/11/2026 isso vale para o plano
+COM IA; o ADR-0009 prevê o plano SEM IA, em que o administrador da conta conecta a própria IA (chave
+cifrada na conta, oculta o tempo todo, trocada em vez de revelada, sem cair na IA da plataforma).
+Ainda NÃO está construído: hoje, no código, nenhuma conta escolhe ou configura IA.** O Vini lê as rotas do Console (`rotas_de_ia_da_plataforma()`, só chave de serviço) e a chave de
 cada provedor da Vercel (`BRENNIMARK_CHAVE_<PROVEDOR>`, `src/lib/ai/chaves-da-plataforma.ts`). A
 chave nunca vai ao banco nem a tela nenhuma; o Console mostra só se ela existe. O orçamento continua
 por conta. **Manual de cliente real nunca passa por chave de plano gratuito.**
