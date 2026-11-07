@@ -309,6 +309,10 @@ test("o boilerplate FIXO medido do prompt de sistema (sem o papel) cabe dentro d
       documentSlug: slug, documentTitle: i === 0 ? "Ficha da paleta (aprovada)" : "Ficha da paleta (rascunho)",
       groupName: "Cores", section: null, status: i === 0 ? "ready" : "draft", pageStart: 999, pageEnd: 999, content: "x",
     })),
+    ...["contraste-da-paleta", "contraste-da-paleta-rascunho"].map((slug, i) => ({
+      documentSlug: slug, documentTitle: i === 0 ? "Contraste da paleta (cores aprovadas)" : "Contraste da paleta (com cor em rascunho)",
+      groupName: "Cores", section: null, status: i === 0 ? "ready" : "draft", pageStart: null, pageEnd: null, content: "x",
+    })),
     ...["ficha-da-tipografia", "ficha-da-tipografia-rascunho"].map((slug, i) => ({
       documentSlug: slug, documentTitle: i === 0 ? "Ficha da tipografia (aprovada)" : "Ficha da tipografia (rascunho)",
       groupName: "Tipografia", section: null, status: i === 0 ? "ready" : "draft", pageStart: 999, pageEnd: 999, content: "x",

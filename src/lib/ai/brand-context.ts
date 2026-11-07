@@ -221,6 +221,7 @@ export function buildChatSystemPrompt(
   const raciocinio = regrasDeRaciocinio(brand.language, modo)
     + (ficha.some((t) => t.documentSlug.startsWith("ficha-da-paleta")) ? regraDaFicha(brand.language) : "")
     + (ficha.some((t) => t.documentSlug.startsWith("ficha-da-tipografia")) ? regraDaTipografia(brand.language) : "")
+    + (ficha.some((t) => t.documentSlug.startsWith("contraste-da-paleta")) ? regraDoContraste(brand.language) : "")
     + (textoDosComplementos ? regraDosComplementos(brand.language) : "");
 
   if (brand.language === "en") {
@@ -290,6 +291,21 @@ function regraDaFicha(language: string): string {
     : `
 - As fontes "Ficha da paleta" foram conferidas por uma pessoa contra o manual. Para cores — quantas, quais, seus códigos —, responda pela ficha, mesmo sobre o texto extraído das páginas do manual. Se divergirem, responda pela ficha e diga que o texto do manual traz outra coisa.
 - As cores da "Ficha da paleta (rascunho)" ainda não foram aprovadas: ao usá-las, diga que são rascunho.`;
+}
+
+/**
+ * O contraste da paleta é MEDIDO, não opinado — 06/11/2026 (fatia 1 de
+ * acessibilidade). A plataforma calcula a razão; o Vini a cita e não a refaz.
+ * O status da cor atravessa o par, e o que não foi medido é dito como tal.
+ */
+function regraDoContraste(language: string): string {
+  return language === "en"
+    ? `
+- The "Palette contrast" sources hold ratios MEASURED by the platform. For "does color A over color B pass?", answer with the measured ratio and the verdict for the use asked (normal text 4.5:1, large text 3:1, icons and buttons 3:1). Never calculate or estimate a ratio yourself.
+- Pairs in "Palette contrast (includes draft colors)" involve a color not approved yet: say it is a draft. If a color or pair is not in the sources, or the color has no HEX, say "I did not measure it" — never guess.`
+    : `
+- As fontes "Contraste da paleta" trazem razões MEDIDAS pela plataforma. Para "a cor A sobre a cor B passa?", responda com a razão medida e o veredito do uso perguntado (texto comum 4,5:1, texto grande 3:1, ícones e botões 3:1). Nunca calcule nem estime uma razão por conta própria.
+- Os pares de "Contraste da paleta (com cor em rascunho)" envolvem uma cor ainda não aprovada: diga que é rascunho. Se a cor ou o par não está nas fontes, ou a cor não tem HEX, diga "não medi" — nunca chute.`;
 }
 
 /**

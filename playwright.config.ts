@@ -17,7 +17,8 @@ import { defineConfig, devices } from "@playwright/test";
  * fonte do sistema e vira ruído que se aprende a ignorar. As asserções são
  * estruturais, de geometria e de comportamento.
  */
-const PORTA = 3210;
+// PORTA_DO_E2E: outra worktree pode já ocupar a 3210 com o código dela.
+const PORTA = Number(process.env.PORTA_DO_E2E ?? 3210);
 
 /**
  * As suítes que rodam nos três motores — casadas pelo NOME DO ARQUIVO.

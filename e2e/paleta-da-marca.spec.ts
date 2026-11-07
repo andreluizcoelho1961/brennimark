@@ -244,3 +244,48 @@ test("quem edita e não aprova vê o selo, mas não o botão de aprovar", async 
   await expect(secao.locator("[data-conferencia]").first()).toBeVisible();
   await expect(secao.locator("[data-aprovar-conferidas]")).toHaveCount(0);
 });
+
+test("o contraste da paleta mede cada cor sobre branco e preto, e marca o rascunho e a cor sem HEX", async ({ page }) => {
+  await page.goto("/dev/admin-panel");
+  const bloco = secaoDaPaleta(page).locator("[data-contraste-da-paleta]");
+
+  // A razão de contraste é definida na tela, em uma frase.
+  await expect(bloco.locator("[data-definicao-da-razao]")).toContainText("Razão de contraste é quantas vezes");
+
+  // Três cores com HEX (Só Pantone não tem): 3 × (branco + preto) = 6 linhas.
+  const linhas = bloco.locator("table").first().locator("[data-par-de-contraste]");
+  await expect(linhas).toHaveCount(6);
+
+  // Vermelho #C8102E sobre branco: 5,88:1 → passa em texto comum, grande e ícones.
+  const vermelhoBranco = linhas.filter({ hasText: "Vermelho Bancada sobre Branco" });
+  await expect(vermelhoBranco).toHaveAttribute("data-razao", "5.88");
+  await expect(vermelhoBranco).toContainText("5,88:1");
+  await expect(vermelhoBranco.locator("[data-passa]")).toHaveText([/Passa/, /Passa/, /Passa/]);
+
+  // Branco sobre branco é 1:1 e falha em tudo — dito por palavra, não só por cor.
+  const brancoBranco = linhas.filter({ hasText: "Branco sobre Branco" });
+  await expect(brancoBranco).toHaveAttribute("data-razao", "1.00");
+  await expect(brancoBranco.locator("[data-passa=nao]")).toHaveCount(3);
+
+  // Azul Noite está em rascunho: o par é medido, mas marcado.
+  const azul = linhas.filter({ hasText: "Azul Noite sobre Branco" });
+  await expect(azul.locator("[data-par-em-rascunho]")).toHaveText("cor em rascunho");
+  await expect(azul).toHaveAttribute("data-afirmado", "nao");
+  await expect(vermelhoBranco).toHaveAttribute("data-afirmado", "sim");
+
+  // Os pares entre as cores ficam recolhidos; abrir mostra cada par uma vez (3 cores = 3 pares).
+  const pares = bloco.locator("[data-pares-entre-cores]");
+  await expect(pares.locator("summary")).toHaveText("Pares entre as cores da paleta (3)");
+  await pares.locator("summary").click();
+  await expect(pares.locator("[data-par-de-contraste]")).toHaveCount(3);
+
+  // A cor sem HEX não é medida, e a tela diz.
+  await expect(bloco.locator("[data-sem-hex]")).toContainText("Não medidas (sem HEX na ficha): Só Pantone");
+});
+
+test("o contraste da paleta usa a moldura da plataforma, sem herdar cor da marca", async ({ page }) => {
+  await page.goto("/dev/admin-panel");
+  const bloco = secaoDaPaleta(page).locator("[data-contraste-da-paleta]");
+  const classes = await bloco.evaluate((el) => Array.from(el.querySelectorAll("*")).map((n) => n.getAttribute("class") ?? "").join(" "));
+  expect(classes).not.toMatch(/(?:bg|text|border)-brand-|--brand-/);
+});
