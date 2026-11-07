@@ -1320,6 +1320,8 @@
         "tabelaCompleta": "Contraste entre todas as cores da marca"
       },
       "daltonismoNota": "Assim esta cor aparece para quem tem daltonismo. É uma simulação, não uma sugestão de cor.",
+      "daltonismoSua": "Sua cor",
+      "daltonismoComoAparece": "Como aparece",
       "ajuste": {
         "titulo": "Ajuste com as cores da marca",
         "usoAria": "Uso do par texto e fundo",

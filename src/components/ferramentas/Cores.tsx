@@ -333,7 +333,16 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(DALTONISMOS) as Daltonismo[]).map((tipo) => (
                 <figure key={tipo} data-cores-daltonismo={tipo} className="flex flex-col gap-1">
-                  <Amostra fundo={simularDaltonismo(cor, tipo)} texto={simularDaltonismo(textoSobre, tipo)} pequena />
+                  <div className="grid grid-cols-2 gap-1">
+                    <div data-cores-daltonismo-original className="flex flex-col gap-0.5">
+                      <Amostra fundo={cor} texto={textoSobre} pequena />
+                      <span className="text-[10px] leading-tight text-platform-text-muted">{t("daltonismoSua")}</span>
+                    </div>
+                    <div data-cores-daltonismo-simulada className="flex flex-col gap-0.5">
+                      <Amostra fundo={simularDaltonismo(cor, tipo)} texto={simularDaltonismo(textoSobre, tipo)} pequena />
+                      <span className="text-[10px] leading-tight text-platform-text-muted">{t("daltonismoComoAparece")}</span>
+                    </div>
+                  </div>
                   <figcaption className="text-[11px] leading-tight text-platform-text-muted">{t(`daltonismo.${tipo}`)}</figcaption>
                 </figure>
               ))}

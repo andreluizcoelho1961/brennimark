@@ -1320,6 +1320,8 @@
         "tabelaCompleta": "Contrast between all the brand colors"
       },
       "daltonismoNota": "This is how this color looks to someone with color blindness. It is a simulation, not a color suggestion.",
+      "daltonismoSua": "Your color",
+      "daltonismoComoAparece": "How it looks",
       "ajuste": {
         "titulo": "Adjust with the brand colors",
         "usoAria": "Use of the text and background pair",
