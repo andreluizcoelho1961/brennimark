@@ -122,7 +122,8 @@ export function IaDaAgencia() {
     if (!resposta?.ok) {
       setOcupado(null);
       const mensagens: Record<string, string> = {
-        chave_invalida: t("That doesn't look like an API key: it should be one line, without spaces.", "Isto não parece uma chave de API: deve ser uma linha só, sem espaços."),
+        chave_invalida: t("That doesn't look like an API key: it should be one line, without spaces. Keys are shown only once by the provider; if you no longer have it, create a new one.", "Isto não parece uma chave de API: deve ser uma linha só, sem espaços. O provedor mostra a chave só uma vez; se você não a tem mais, crie outra."),
+        modelo_invalido: t("Choose a model from the list.", "Escolha um modelo da lista."),
         modelo_sem_visao: t("The image slot needs a model that accepts images.", "O encaixe de imagem precisa de um modelo que aceite imagens."),
         termo_pendente: t("Accept the terms first.", "Aceite o termo antes."),
         servidor_sem_cofre: t("Keys can't be stored right now. Contact Brennimark.", "As chaves não podem ser guardadas agora. Fale com a Brennimark."),
@@ -254,6 +255,8 @@ export function IaDaAgencia() {
                           autoComplete="new-password" spellCheck={false} required />
                         <p className="mt-1 text-xs text-platform-text-muted">{t("It is stored encrypted and never shown again.", "Fica guardada cifrada e não aparece de novo.")}</p>
                       </div>
+                      {/* O erro aparece AQUI, perto do botão: no fim da página ele ficava fora da tela. */}
+                      {erro && <p data-erro-do-formulario role="alert" className="border-l-2 border-platform-text pl-3 text-sm font-bold text-platform-text">{erro}</p>}
                       <div className="flex gap-2">
                         <button type="submit" data-salvar-chave disabled={ocupado !== null || !provedor || !modelo || chave.length === 0} className={BOTAO}>
                           {ocupado === `salvar-${encaixe}` ? t("Saving…", "Salvando…") : t("Save and test", "Salvar e testar")}
@@ -290,7 +293,7 @@ export function IaDaAgencia() {
         </section>
       )}
 
-      {erro && <p role="alert" className="text-sm text-platform-text">{erro}</p>}
+      {erro && aberto === null && <p role="alert" className="text-sm text-platform-text">{erro}</p>}
     </div>
   );
 }
