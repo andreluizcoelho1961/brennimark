@@ -145,6 +145,35 @@ function linhaDoPar(p: ParMedido, ingles: boolean): string {
   return `- ${nomeDoExtremo(p.a, ingles)} × ${nomeDoExtremo(p.b, ingles)}: ${razao}:1 — ${usos}`;
 }
 
+/** Quantos pares que se confundem vão ao prompt por fonte: o teto protege o orçamento de tokens. */
+export const LIMITE_DE_CONFUSOES = 12;
+
+/**
+ * Pares que a simulação de daltonismo mostra quase iguais, um por linha com os
+ * tipos. Vão ao Vini identificados como SIMULAÇÃO APROXIMADA: ele não os afirma
+ * como laudo, e a saída que indica nunca é trocar a cor da marca.
+ */
+function linhasDeConfusao(achados: readonly ParDaPaletaQueSeConfunde[], ingles: boolean): string[] {
+  if (achados.length === 0) return [];
+  const porPar = new Map<string, { a: string; b: string; tipos: string[] }>();
+  for (const c of achados) {
+    const chave = [c.nomeA, c.nomeB].join("|");
+    const par = porPar.get(chave) ?? { a: c.nomeA, b: c.nomeB, tipos: [] };
+    par.tipos.push(c.tipo);
+    porPar.set(chave, par);
+  }
+  const pares = [...porPar.values()];
+  const mostrados = pares.slice(0, LIMITE_DE_CONFUSOES);
+  const linhas = [ingles
+    ? "Pairs that look alike to people with color blindness (APPROXIMATE simulation, not a diagnosis; the brand colors stay as they are, the fix is not to rely on color alone):"
+    : "Pares que ficam parecidos para quem tem daltonismo (simulação APROXIMADA, não laudo; as cores da marca não mudam, a saída é não depender só da cor):"];
+  linhas.push(...mostrados.map((p) => `- ${p.a} / ${p.b}: ${p.tipos.join(", ")}`));
+  if (pares.length > mostrados.length) {
+    linhas.push(ingles ? `(${pares.length - mostrados.length} more pairs not listed; do not claim a pair is safe just because it is not here.)` : `(mais ${pares.length - mostrados.length} pares não listados; não afirme que um par é seguro só porque não está aqui.)`);
+  }
+  return linhas;
+}
+
 function cabecalho(ingles: boolean): string {
   return ingles
     ? `Contrast ratios (WCAG 2) MEASURED by the platform from the HEX codes of the palette sheet. Thresholds: normal text 4.5:1, large text 3:1, icons and buttons 3:1. Ratios are truncated to 2 decimals. Cite the ratio shown; never recompute it from memory.`
@@ -161,6 +190,7 @@ export function trechosDoContraste(cores: readonly CorMedida[], ingles: boolean)
   const todos = [...sobreReferencias, ...entreCores];
   const total = todos.length;
   const cortar = total > LIMITE_DE_LINHAS_DO_CONTRASTE;
+  const confundem = paresQueSeConfundem(cores);
   const trechos: Trecho[] = [];
 
   const grupos: [CorDaPaleta["status"], string, string][] = [
@@ -180,6 +210,7 @@ export function trechosDoContraste(cores: readonly CorMedida[], ingles: boolean)
         : `Só os pares que chegam a 3:1 estão listados. Todo par destas cores (ou cor contra branco/preto) que NÃO está na lista foi medido e fica ABAIXO de 3:1: falha em todos os usos. A razão exata está na tela da paleta.`);
     }
     linhas.push(...listados.map((p) => linhaDoPar(p, ingles)));
+    linhas.push(...linhasDeConfusao(confundem.filter((c) => c.afirmado === (status === "ready")), ingles));
     if (semMedida.length > 0) {
       linhas.push(ingles
         ? `NOT measured (no HEX in the sheet): ${semMedida.map((c) => c.nome).join(", ")}. Say you did not measure them.`

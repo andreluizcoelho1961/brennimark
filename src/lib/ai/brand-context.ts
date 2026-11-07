@@ -302,10 +302,12 @@ function regraDoContraste(language: string): string {
   return language === "en"
     ? `
 - The "Palette contrast" sources hold ratios MEASURED by the platform. For "does color A over color B pass?", answer with the measured ratio and the verdict for the use asked (normal text 4.5:1, large text 3:1, icons and buttons 3:1). Never calculate or estimate a ratio yourself.
-- Pairs in "Palette contrast (includes draft colors)" involve a color not approved yet: say it is a draft. If a color or pair is not in the sources, or the color has no HEX, say "I did not measure it" — never guess.`
+- Pairs in "Palette contrast (includes draft colors)" involve a color not approved yet: say it is a draft. If a color or pair is not in the sources, or the color has no HEX, say "I did not measure it" — never guess.
+- If asked what to change: suggest ONLY approved palette colors, naming the color and quoting its measured ratio. Never invent or suggest a color outside the palette. The color-blindness pairs are an approximate simulation, not a diagnosis, and not a request to change the brand's colors: the fix is not to rely on color alone (label, shape, lighter/darker value).`
     : `
 - As fontes "Contraste da paleta" trazem razões MEDIDAS pela plataforma. Para "a cor A sobre a cor B passa?", responda com a razão medida e o veredito do uso perguntado (texto comum 4,5:1, texto grande 3:1, ícones e botões 3:1). Nunca calcule nem estime uma razão por conta própria.
-- Os pares de "Contraste da paleta (com cor em rascunho)" envolvem uma cor ainda não aprovada: diga que é rascunho. Se a cor ou o par não está nas fontes, ou a cor não tem HEX, diga "não medi" — nunca chute.`;
+- Os pares de "Contraste da paleta (com cor em rascunho)" envolvem uma cor ainda não aprovada: diga que é rascunho. Se a cor ou o par não está nas fontes, ou a cor não tem HEX, diga "não medi" — nunca chute.
+- Se perguntarem o que trocar: sugira SÓ cores aprovadas da paleta, dizendo o nome da cor e a razão medida. Nunca invente nem sugira cor fora da paleta. Os pares de daltonismo são uma simulação aproximada, não laudo, e não pedem para mudar as cores da marca: a saída é não depender só da cor (rótulo, forma, claro/escuro).`;
 }
 
 /**

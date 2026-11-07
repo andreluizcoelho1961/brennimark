@@ -134,3 +134,31 @@ test("pares da paleta que se confundem para daltonismo, com o status atravessand
   assert.ok(achados.every((a) => [a.nomeA, a.nomeB].sort().join("/") === "Verde/Vermelho" && a.afirmado === false));
   assert.deepEqual(paresQueSeConfundem([cor("Preto", "#000000"), cor("Branco", "#FFFFFF")]), []);
 });
+
+test("o Vini recebe os pares que se confundem, como simulação aproximada e no grupo do status certo", () => {
+  const [aprovado, rascunho] = trechosDoContraste([
+    cor("Vermelho", "#C0392B"),
+    cor("Verde", "#2E8B3A", { status: "draft" }),
+    cor("Vermelho 2", "#B03A2E"),
+    cor("Verde 2", "#2D8A3D"),
+  ], false);
+  // Vermelho × Vermelho 2 e Verde 2 × Vermelho são aprovados; os que envolvem "Verde" (rascunho) ficam no outro grupo.
+  assert.doesNotMatch(aprovado.content, /Verde \/|\/ Verde:/);
+  assert.match(rascunho.content, /simulação APROXIMADA/);
+  assert.match(rascunho.content, /Verde/);
+  // Linha de confusão: "Nome / Nome: tipos".
+  assert.match([aprovado.content, rascunho.content].join("\n"), /^- [^:]+ \/ [^:]+: (protanopia|deuteranopia|tritanopia)/m);
+});
+
+test("sem pares que se confundem, a fonte não ganha o bloco de daltonismo", () => {
+  const [t] = trechosDoContraste([cor("Preto", "#000000"), cor("Branco", "#FFFFFF")], false);
+  assert.doesNotMatch(t.content, /daltonismo/);
+});
+
+test("a regra do prompt manda sugerir só cor aprovada da paleta", async () => {
+  const { buildChatSystemPrompt } = await import("../ai/brand-context");
+  const brand = { language: "pt" as const, chatRole: "", analysisRole: "", statusLabels: undefined };
+  const p = buildChatSystemPrompt([], brand, "", "trechos", trechosDoContraste([cor("Preto", "#000000")], false));
+  assert.match(p, /SÓ cores aprovadas da paleta/);
+  assert.match(p, /Nunca invente nem sugira cor fora da paleta/);
+});
