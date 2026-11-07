@@ -93,7 +93,7 @@ export function lerCodigo(texto: string): string | null {
 
 // ─── Percepção ─────────────────────────────────────────────────────────────
 
-function linear(c: number): number {
+export function linear(c: number): number {
   const v = c / 255;
   return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
 }

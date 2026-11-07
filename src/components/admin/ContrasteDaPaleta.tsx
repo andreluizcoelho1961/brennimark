@@ -3,7 +3,7 @@
 import { useId, useMemo } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import {
-  contrastesDaPaleta, LIMITE_ICONES_E_BOTOES, LIMITE_TEXTO_COMUM, LIMITE_TEXTO_GRANDE,
+  contrastesDaPaleta, paresQueSeConfundem, LIMITE_ICONES_E_BOTOES, LIMITE_TEXTO_COMUM, LIMITE_TEXTO_GRANDE,
   type CorMedida, type Extremo, type ParMedido,
 } from "@/lib/paleta/contraste";
 
@@ -29,6 +29,7 @@ export function ContrasteDaPaleta({ cores }: { cores: readonly CorMedida[] }) {
   const titulo = useId();
   const resultado = useMemo(() => contrastesDaPaleta(cores), [cores]);
   const { sobreReferencias, entreCores, semHex } = resultado;
+  const confundem = useMemo(() => paresQueSeConfundem(cores), [cores]);
 
   if (sobreReferencias.length === 0 && semHex.length === 0) return null;
 
@@ -134,6 +135,28 @@ export function ContrasteDaPaleta({ cores }: { cores: readonly CorMedida[] }) {
             "Pares com cor em rascunho também são medidos, mas ficam marcados: só cor aprovada é afirmada como da marca.",
           )}
         </p>
+      )}
+
+      {confundem.length > 0 && (
+        <div data-cores-que-se-confundem className="mt-6 border border-platform-border px-4 py-3">
+          <p className="text-sm font-bold text-platform-text">{t("Colors that get confused", "Cores que se confundem")}</p>
+          <p className="mt-1 text-xs text-platform-text-muted">
+            {t(
+              "These pairs look clearly different to most people, but can look alike to someone with color blindness. Don't rely on color alone to tell them apart.",
+              "Estes pares parecem bem diferentes para a maioria das pessoas, mas podem parecer iguais para quem tem daltonismo. Não dependa só da cor para distingui-las.",
+            )}
+          </p>
+          <ul className="mt-2 space-y-1 text-sm text-platform-text">
+            {confundem.map((c) => (
+              <li key={`${c.nomeA}-${c.nomeB}-${c.tipo}`} data-confusao={c.tipo}>
+                <span aria-hidden className="mr-2 inline-block h-3 w-3 border border-platform-border align-middle" style={{ backgroundColor: c.a }} />
+                <span aria-hidden className="mr-2 inline-block h-3 w-3 border border-platform-border align-middle" style={{ backgroundColor: c.b }} />
+                {c.nomeA} / {c.nomeB} — {c.tipo}
+                {!c.afirmado && <span className="ml-2 text-xs text-platform-text-muted">({t("draft color", "cor em rascunho")})</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {semHex.length > 0 && (

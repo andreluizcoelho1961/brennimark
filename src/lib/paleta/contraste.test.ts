@@ -121,3 +121,16 @@ test("no prompt, a regra do contraste só vai quando há fonte de contraste", as
   const sem = buildChatSystemPrompt([], brand, "", "trechos", []);
   assert.doesNotMatch(sem, /razões MEDIDAS pela plataforma/);
 });
+
+test("pares da paleta que se confundem para daltonismo, com o status atravessando", async () => {
+  const { paresQueSeConfundem } = await import("./contraste");
+  const achados = paresQueSeConfundem([
+    cor("Vermelho", "#C0392B"),
+    cor("Verde", "#2E8B3A", { status: "draft" }),
+    cor("Preto", "#000000"),
+    cor("Só Pantone", null),
+  ]);
+  assert.ok(achados.length > 0);
+  assert.ok(achados.every((a) => [a.nomeA, a.nomeB].sort().join("/") === "Verde/Vermelho" && a.afirmado === false));
+  assert.deepEqual(paresQueSeConfundem([cor("Preto", "#000000"), cor("Branco", "#FFFFFF")]), []);
+});
