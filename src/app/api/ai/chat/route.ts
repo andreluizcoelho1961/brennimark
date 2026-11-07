@@ -22,7 +22,7 @@ import { lerTipografia, trechosDaTipografia } from "@/lib/tipografia/tipografia"
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
 import { ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDoLimite } from "@/lib/demonstracao/visitante";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -78,6 +78,8 @@ export async function POST(request: Request) {
   }
 
   let attempts: ResolvedChatAttempt[];
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   let firstChunkTimeoutMs: number;
   let trechos: Trecho[] = [];
   // O manual inteiro, quando lido (decisão de 26/09/2026). Vazio = só a busca.
@@ -160,13 +162,14 @@ export async function POST(request: Request) {
     if (!recuperacao.ok) { await devolverPerguntaDoTour(); return conhecimentoIndisponivel(isEnglish); }
     trechos = recuperacao.trechos;
     const routing = await resolveChatRouting(portao.auth.workspaceId);
+    modoDaIA = routing.modo;
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
     // Interrompe AQUI: sem isto, `executarComOrcamento` chegaria a
     // `prepareStreamWithFallback` com uma lista vazia e lançaria um erro
     // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
     // mensagem que diz a quem pedir.
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado(isEnglish);
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
       await devolverPerguntaDoTour();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
@@ -395,7 +398,7 @@ export async function POST(request: Request) {
     // este catch cobre tanto as falhas anteriores a ela (portão, busca,
     // roteamento) quanto o que ela deixa passar.
     const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish);
+    const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }

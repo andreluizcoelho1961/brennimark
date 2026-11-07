@@ -247,6 +247,22 @@ export async function portaoDeIA(
         };
   }
 
+  /*
+   * O interruptor do Vini por pessoa (ADR-0009 §6): quem administra a conta pode
+   * desligar o Vini para uma pessoa — a gráfica que só baixa o logo, por
+   * exemplo —, em qualquer plano. Vale para o chat e a análise de peça; o
+   * histórico de conversas continua legível. Sem linha na tabela, o Vini está
+   * ligado. A pergunta usa a sessão de quem pede (a função só responde sobre
+   * quem pergunta), e falhar ao perguntar RECUSA: na dúvida, não se gasta IA.
+   * 403 com código próprio, para a interface dizer o motivo em vez de "sem permissão".
+   */
+  if (utilidade !== "history") {
+    const { data: pode, error } = await auth.supabase.rpc("posso_usar_o_vini", { p_workspace_id: auth.workspaceId });
+    if (error || pode !== true) {
+      return { ok: false, resposta: NextResponse.json({ error: "vini_desligado" }, { status: 403 }) };
+    }
+  }
+
   return { ok: true, contexto, auth, brand: contexto.brand };
 }
 
