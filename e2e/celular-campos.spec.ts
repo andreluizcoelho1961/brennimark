@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { abrirAdministracao } from "./abrir-administracao";
 
 /**
  * Campo de texto em tela de toque não pode ter letra abaixo de 16 px.
@@ -31,7 +32,8 @@ test.describe("no celular", () => {
   for (const caminho of ["/login", "/dev/pessoas", "/dev/materiais?gerencia=1", "/dev/admin-panel"]) {
     test(`nenhum campo abaixo de 16 px em ${caminho}`, async ({ page, browserName }) => {
       test.skip(browserName !== "chromium", "isMobile só no Chromium");
-      await page.goto(caminho);
+      if (caminho.startsWith("/dev/admin-panel")) await abrirAdministracao(page, caminho);
+      else await page.goto(caminho);
       await expect(page.locator("input, textarea, select").first()).toBeVisible();
       const { quantos, menor } = await menorLetraDosCampos(page);
       expect(quantos).toBeGreaterThan(0);
@@ -41,7 +43,7 @@ test.describe("no celular", () => {
 });
 
 test("no computador, a regra não mexe: o campo continua com a letra da própria classe", async ({ page }) => {
-  await page.goto("/dev/admin-panel");
+  await abrirAdministracao(page);
   await expect(page.locator("input, textarea, select").first()).toBeVisible();
   const { menor } = await menorLetraDosCampos(page);
   expect(menor).toBeLessThan(16);
