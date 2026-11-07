@@ -12,6 +12,7 @@ import type { FormatoDaPaleta } from "@/lib/cores/download-da-paleta";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
 import { useCadastroParaBaixar } from "./CadastroParaBaixar";
+import { CorSobreAPaleta } from "./CorSobreAPaleta";
 
 /** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
 const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
@@ -367,6 +368,8 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
           </div>
         )}
       </section>
+
+      {marca && marca.paleta.length > 0 && <CorSobreAPaleta cor={cor} paleta={marca.paleta} />}
 
       {/* ─── Histórico e exportação ─────────────────────────────────────── */}
       <section className={CAIXA} aria-labelledby="titulo-historico">

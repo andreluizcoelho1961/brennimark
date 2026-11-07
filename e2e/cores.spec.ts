@@ -157,3 +157,43 @@ test("com conta-gotas de tela (Chrome): o botão é o conta-gotas, não o seleto
   await page.locator("[data-cores-conta-gotas]").click();
   await expect(page.locator("[data-cores-hex]")).toHaveText("#FF4103");
 });
+
+test("no assinante: a cor da vez é medida contra todas as cores da marca, com rascunho identificado e a tabela completa", async ({ page }) => {
+  await page.route("**/api/cores/paleta", (r) => r.fulfill({ json: {
+    marca: "Brennimark",
+    paleta: [
+      { nome: "Brasa", hex: "#FF4103", status: "ready", pagina: 13, cmyk: null, pms: null, rgb: null },
+      { nome: "Noite Polar", hex: "#001621", status: "ready", pagina: 13, cmyk: null, pms: null, rgb: null },
+      { nome: "Azul de apoio", hex: "#0B4F9E", status: "draft", pagina: 14, cmyk: null, pms: null, rgb: null },
+    ],
+  } }));
+  await page.goto("/dev/cores-assinante");
+  await page.locator("[data-cores-codigo]").fill("#FFFFFF");
+  await page.locator("[data-cores-codigo]").press("Enter");
+
+  const bloco = page.locator("[data-cores-sobre-a-paleta]");
+  await expect(bloco).toBeVisible();
+  const linhas = bloco.locator("[data-cor-sobre-a-paleta]");
+  await expect(linhas).toHaveCount(3);
+  // Branco sobre Noite Polar (#001621): contraste altíssimo, passa em tudo.
+  const noite = linhas.filter({ hasText: "Noite Polar" });
+  expect(Number(await noite.getAttribute("data-razao"))).toBeGreaterThan(15);
+  await expect(noite.locator("[data-passa=nao]")).toHaveCount(0);
+  // O rascunho é medido, mas vem identificado, e a linha não é afirmada.
+  const azul = linhas.filter({ hasText: "Azul de apoio" });
+  await expect(azul.locator("[data-cor-em-rascunho]")).toBeVisible();
+  await expect(azul).toHaveAttribute("data-afirmado", "nao");
+  await expect(noite).toHaveAttribute("data-afirmado", "sim");
+  // Aprovado e reprovado se dizem por palavra e sinal, não só por cor.
+  await expect(noite).toContainText("✓");
+
+  // A tabela completa da paleta (a mesma da ficha) abre sem sair da ferramenta.
+  await bloco.locator("[data-cores-tabela-da-paleta] > summary").click();
+  await expect(bloco.locator("[data-contraste-da-paleta]")).toBeVisible();
+});
+
+test("fora do assinante, o bloco de contraste com a paleta não existe", async ({ page }) => {
+  await page.goto("/ferramentas/cores");
+  await expect(page.locator("[data-cores]")).toBeVisible();
+  await expect(page.locator("[data-cores-sobre-a-paleta]")).toHaveCount(0);
+});
