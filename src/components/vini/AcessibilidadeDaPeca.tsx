@@ -140,7 +140,7 @@ export function AcessibilidadeDaPeca({ dataUrl }: { dataUrl: string }) {
       </div>
       <p data-dica-do-daltonismo className="mt-1 text-[11px] text-platform-text-muted">
         {(() => { const a = TIPOS.find((x) => x.id === modo)!; return isEnglish ? a.dicaEn : a.dicaPt; })()}
-        {modo !== "normal" && t(" É uma simulação aproximada, não um laudo.", " This is an approximate simulation, not a diagnosis.")}
+        {modo !== "normal" && t(" É uma simulação aproximada, não um laudo nem uma sugestão de cor.", " This is an approximate simulation, not a diagnosis or a color suggestion.")}
       </p>
 
       {falhou

@@ -772,6 +772,8 @@ test("a acessibilidade da peça mede o contraste, simula daltonismo e sugere só
   const antes = await pixel();
   await painel.locator('[data-daltonismo="protanopia"]').click();
   await expect(tela).toHaveAttribute("data-modo", "protanopia");
+  // A simulação diz que não é sugestão de cor.
+  await expect(painel).toContainText("não um laudo nem uma sugestão de cor");
   expect(await pixel()).not.toEqual(antes);
   await painel.locator('[data-daltonismo="normal"]').click();
   expect(await pixel()).toEqual(antes);

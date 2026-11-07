@@ -146,6 +146,12 @@ export function ContrasteDaPaleta({ cores }: { cores: readonly CorMedida[] }) {
               "Estes pares parecem bem diferentes para a maioria das pessoas, mas podem parecer iguais para quem tem daltonismo. Não dependa só da cor para distingui-las.",
             )}
           </p>
+          <p data-confusao-nota className="mt-1 text-xs text-platform-text-muted">
+            {t(
+              "It is an approximate simulation, not a diagnosis, and it does not ask you to change the brand's colors: add a label, a shape, or a lighter/darker value next to the color.",
+              "É uma simulação aproximada, não um laudo, e não pede para mudar as cores da marca: some um rótulo, uma forma ou um tom mais claro/escuro ao lado da cor.",
+            )}
+          </p>
           <ul className="mt-2 space-y-1 text-sm text-platform-text">
             {confundem.map((c) => (
               <li key={`${c.nomeA}-${c.nomeB}-${c.tipo}`} data-confusao={c.tipo}>
