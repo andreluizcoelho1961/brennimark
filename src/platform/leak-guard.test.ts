@@ -22,6 +22,7 @@ const MOLDURA = [
   "src/components/docs/status.ts",
   "src/components/shell/PlatformSurface.tsx",
   "src/components/admin/ContrasteDaPaleta.tsx",
+  "src/components/ferramentas/AjusteComCoresDaMarca.tsx",
   "src/components/ferramentas/CorSobreAPaleta.tsx",
 ];
 

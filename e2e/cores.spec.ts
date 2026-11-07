@@ -197,3 +197,58 @@ test("fora do assinante, o bloco de contraste com a paleta não existe", async (
   await expect(page.locator("[data-cores]")).toBeVisible();
   await expect(page.locator("[data-cores-sobre-a-paleta]")).toHaveCount(0);
 });
+
+test("a simulação de daltonismo diz que é simulação, não sugestão de cor", async ({ page }) => {
+  await page.goto("/ferramentas/cores");
+  await expect(page.locator("[data-cores-daltonismo-nota]")).toContainText("não uma sugestão de cor");
+});
+
+test("no assinante: o ajuste sugere só cores APROVADAS da marca, nunca rascunho nem cor de fora", async ({ page }) => {
+  await page.route("**/api/cores/paleta", (r) => r.fulfill({ json: {
+    marca: "Brennimark",
+    paleta: [
+      { nome: "Brasa", hex: "#FF4103", status: "ready", pagina: 13, cmyk: null, pms: null, rgb: null },
+      { nome: "Noite Polar", hex: "#001621", status: "ready", pagina: 13, cmyk: null, pms: null, rgb: null },
+      { nome: "Verde de teste", hex: "#00AA00", status: "draft", pagina: 14, cmyk: null, pms: null, rgb: null },
+    ],
+  } }));
+  await page.goto("/dev/cores-assinante");
+  await page.locator("[data-cores-codigo]").fill("#FF4103");
+  await page.locator("[data-cores-codigo]").press("Enter");
+
+  // Brasa com texto branco: 3,49:1, não passa em texto comum, e o ajuste oferece a Noite Polar.
+  const ajuste = page.locator("[data-cores-ajuste]");
+  await expect(ajuste.locator("[data-cores-ajuste-estado=sugestoes]")).toBeVisible();
+  await expect(ajuste.locator("[data-cores-sugestao][data-hex='#001621']").first()).toBeVisible();
+  // Rascunho nunca é sugerido, e nada fora da paleta aparece.
+  await expect(ajuste.locator("[data-cores-sugestao][data-hex='#00AA00']")).toHaveCount(0);
+  const hexes = await ajuste.locator("[data-cores-sugestao]").evaluateAll((els) => els.map((e) => e.getAttribute("data-hex")));
+  for (const h of hexes) expect(["#001621", "#FF4103"]).toContain(h);
+
+  // Para texto grande o par já passa (3,49 ≥ 3): a tela diz isso, sem sugerir.
+  await ajuste.locator("[data-cores-ajuste-uso=texto-grande]").click();
+  await expect(ajuste.locator("[data-cores-ajuste-estado=ja-passa]")).toBeVisible();
+});
+
+test("no assinante: sem cor aprovada que resolva, o Cores diz isso e não inventa cor", async ({ page }) => {
+  await page.route("**/api/cores/paleta", (r) => r.fulfill({ json: {
+    marca: "Brennimark",
+    paleta: [
+      { nome: "Brasa", hex: "#FF4103", status: "ready", pagina: 13, cmyk: null, pms: null, rgb: null },
+      // Um preto em RASCUNHO resolveria o par, mas rascunho não é sugerido.
+      { nome: "Preto de teste", hex: "#000000", status: "draft", pagina: 14, cmyk: null, pms: null, rgb: null },
+    ],
+  } }));
+  await page.goto("/dev/cores-assinante");
+  await page.locator("[data-cores-codigo]").fill("#FF4103");
+  await page.locator("[data-cores-codigo]").press("Enter");
+  const ajuste = page.locator("[data-cores-ajuste]");
+  await expect(ajuste.locator("[data-cores-ajuste-estado=nenhuma]")).toContainText("não inventa cor fora da paleta");
+  await expect(ajuste.locator("[data-cores-sugestao]")).toHaveCount(0);
+});
+
+test("fora do assinante, o ajuste com cores da marca não existe", async ({ page }) => {
+  await page.goto("/ferramentas/cores");
+  await expect(page.locator("[data-cores]")).toBeVisible();
+  await expect(page.locator("[data-cores-ajuste]")).toHaveCount(0);
+});

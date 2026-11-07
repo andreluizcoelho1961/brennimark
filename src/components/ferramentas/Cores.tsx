@@ -13,6 +13,7 @@ import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
 import { useCadastroParaBaixar } from "./CadastroParaBaixar";
 import { CorSobreAPaleta } from "./CorSobreAPaleta";
+import { AjusteComCoresDaMarca } from "./AjusteComCoresDaMarca";
 
 /** As dicas dos controles (15/10/2026): textos em `components/shell/dicas.ts`. */
 const dicaDe = (chave: string) => textoDaDica(chave, false) ?? "";
@@ -328,6 +329,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
           </ul>
           <div>
             <Dica texto={dicaDe("cores-daltonismo")} lado="cima"><p className={`${ROTULO} mb-2`}>{t("daltonismoTitulo")}</p></Dica>
+            <p data-cores-daltonismo-nota className="mb-2 text-[12px] leading-snug text-platform-text-muted">{t("daltonismoNota")}</p>
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(DALTONISMOS) as Daltonismo[]).map((tipo) => (
                 <figure key={tipo} data-cores-daltonismo={tipo} className="flex flex-col gap-1">
@@ -337,6 +339,7 @@ export function Cores({ marca }: { marca?: MarcaDoCores } = {}) {
               ))}
             </div>
           </div>
+          {marca && <AjusteComCoresDaMarca texto={textoSobre} fundo={cor} paleta={marca.paleta} />}
         </section>
       </div>
 
