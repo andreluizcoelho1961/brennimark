@@ -270,7 +270,15 @@ test("Termos e Privacidade mostram o texto com a versão, e o /assinar aponta pa
 test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé, link entre os documentos", async ({ page }) => {
   await page.goto("/dev/assinar", { waitUntil: "commit" });
   await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Assinatura mensal com renovação automática");
-  await page.goto("/privacidade", { waitUntil: "commit" });
+  // O link entre os documentos, conferido pelo PEDIDO de navegação, não pela
+  // página nova desenhada. Medido em 14/10/2026, depois de uma falha na suíte
+  // inteira (0 itens em 5 s): clicando logo após o HTML, o teste disputava
+  // corrida com a hidratação — ora o navegador navegava sozinho, ora o `Link`
+  // pedia `/termos` ao servidor. Nesse segundo caminho, a lista só aparece
+  // quando o servidor de DESENVOLVIMENTO termina de montar a página (com o
+  // pedido atrasado 7 s, ela levou 7,4 s); em produção ela é estática.
+  // `abrir` tira a corrida; o pedido prova o clique.
+  await abrir(page, "/privacidade");
   await expect(page.locator("[data-empresa]")).toContainText("CNPJ 47.924.458/0001-09");
   // Decisão do André (22/10/2026): o rodapé mostra só o nome fantasia, o CNPJ e o
   // e-mail. Nome do titular e endereço residencial não aparecem nele.
@@ -278,7 +286,11 @@ test("revisão dos Termos: aviso de renovação no /assinar, empresa no rodapé,
   await expect(page.locator("[data-empresa]")).not.toContainText("Rua ");
   const link = page.locator("[data-documento-legal] a", { hasText: "Dados tratados em nome do assinante" });
   await expect(link).toHaveAttribute("href", "/termos#dados-tratados-em-nome-do-assinante");
+  const indoAosTermos = page.waitForRequest((r) => new URL(r.url()).pathname === "/termos" && r.headers()["rsc"] === "1", { timeout: 10_000 });
   await link.click();
+  await indoAosTermos;
+  // E a âncora existe, na seção certa: no documento que o servidor entrega.
+  await page.goto("/termos#dados-tratados-em-nome-do-assinante", { waitUntil: "commit" });
   await expect(page.locator("#dados-tratados-em-nome-do-assinante li")).toHaveCount(5);
 });
 
