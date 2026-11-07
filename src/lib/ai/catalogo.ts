@@ -97,7 +97,7 @@ export interface ModelCapabilities {
  * execução antiga continua lendo o preço que valia quando ela aconteceu, em
  * vez de ser reescrita silenciosamente pela mudança.
  */
-export const CATALOGO_VERSION = "2026-09-23";
+export const CATALOGO_VERSION = "2026-11-07";
 
 export interface ModeloDoCatalogo {
   provider: AIProvider;
@@ -173,6 +173,14 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     capabilities: {
       text: true, vision: true, streaming: true,
       maxContextTokens: 200_000, maxImageBytes: 5 * MB, supportsStructuredOutput: true,
+      pricing: {
+        inputPerMillionTokensUsd: 2, cachedInputPerMillionTokensUsd: 0.2,
+        outputPerMillionTokensUsd: 10, currency: "USD",
+        source: "https://platform.claude.com/docs/en/about-claude/pricing", asOf: "2026-11-07",
+        // Imagem: ⌈largura/28⌉ × ⌈altura/28⌉ tokens, com teto por faixa — Claude 4.7 em diante: lado maior até 2.576 px
+        // (https://platform.claude.com/docs/en/build-with-claude/vision).
+        maxImageTokens: 4_784,
+      },
     },
   },
   {
@@ -180,6 +188,14 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     capabilities: {
       text: true, vision: true, streaming: true,
       maxContextTokens: 200_000, maxImageBytes: 5 * MB, supportsStructuredOutput: true,
+      pricing: {
+        inputPerMillionTokensUsd: 1, cachedInputPerMillionTokensUsd: 0.1,
+        outputPerMillionTokensUsd: 5, currency: "USD",
+        source: "https://platform.claude.com/docs/en/about-claude/pricing", asOf: "2026-11-07",
+        // Imagem: ⌈largura/28⌉ × ⌈altura/28⌉ tokens, com teto por faixa — demais modelos: lado maior até 1.568 px
+        // (https://platform.claude.com/docs/en/build-with-claude/vision).
+        maxImageTokens: 1_568,
+      },
     },
   },
   {
@@ -187,6 +203,14 @@ export const CATALOGO: readonly ModeloDoCatalogo[] = [
     capabilities: {
       text: true, vision: true, streaming: true,
       maxContextTokens: 200_000, maxImageBytes: 5 * MB, supportsStructuredOutput: true,
+      pricing: {
+        inputPerMillionTokensUsd: 5, cachedInputPerMillionTokensUsd: 0.5,
+        outputPerMillionTokensUsd: 25, currency: "USD",
+        source: "https://platform.claude.com/docs/en/about-claude/pricing", asOf: "2026-11-07",
+        // Imagem: ⌈largura/28⌉ × ⌈altura/28⌉ tokens, com teto por faixa — Claude 4.7 em diante: lado maior até 2.576 px
+        // (https://platform.claude.com/docs/en/build-with-claude/vision).
+        maxImageTokens: 4_784,
+      },
     },
   },
 
