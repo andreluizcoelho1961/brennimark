@@ -150,9 +150,16 @@ test("o Vini recebe os pares que se confundem, como simulação aproximada e no 
   assert.match([aprovado.content, rascunho.content].join("\n"), /^- [^:]+ \/ [^:]+: (protanopia|deuteranopia|tritanopia)/m);
 });
 
-test("sem pares que se confundem, a fonte não ganha o bloco de daltonismo", () => {
+test("sem pares que se confundem, a fonte diz que a simulação não achou nenhum, e não fica muda", () => {
   const [t] = trechosDoContraste([cor("Preto", "#000000"), cor("Branco", "#FFFFFF")], false);
-  assert.doesNotMatch(t.content, /daltonismo/);
+  assert.match(t.content, /Daltonismo: nenhum par destas cores fica parecido/);
+  assert.match(t.content, /simulação APROXIMADA/);
+  assert.doesNotMatch(t.content, /^- [^:]+ \/ [^:]+: (protanopia|deuteranopia|tritanopia)/m);
+});
+
+test("com uma cor só não há par comparado, então nada é afirmado sobre daltonismo", () => {
+  const [t] = trechosDoContraste([cor("Preto", "#000000")], false);
+  assert.doesNotMatch(t.content, /Daltonismo:/);
 });
 
 test("a regra do prompt manda sugerir só cor aprovada da paleta", async () => {
