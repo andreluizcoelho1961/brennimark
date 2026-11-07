@@ -50,6 +50,9 @@ test("o contraste dá o veredito, e a área da marca convida a assinar", async (
   await expect(page.locator("[data-cores-contraste]")).toHaveText("Contraste 18,47 : 1");
   await expect(page.locator("[data-cores-veredito]")).toContainText("AAA");
   await expect(page.locator("[data-cores-daltonismo]")).toHaveCount(3);
+  // a simulação nunca aparece sozinha: a cor do usuário vem ao lado, para não parecer sugestão
+  await expect(page.locator("[data-cores-daltonismo-original]")).toHaveCount(3);
+  await expect(page.locator("[data-cores-daltonismo-simulada]")).toHaveCount(3);
   await expect(page.locator("[data-cores-marca]")).toContainText("No Brennimark, o Cores diz se essa é a cor da sua marca");
 });
 
