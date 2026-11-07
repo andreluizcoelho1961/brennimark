@@ -1472,6 +1472,12 @@ test("nenhuma rota recebe, grava ou testa chave de IA de conta", () => {
   // Vercel e as rotas no Console. As rotas `/api/ai/settings`, `/api/ai/routing`
   // e `/api/ai/test-connection` saíram; esta guarda impede que uma tela de
   // "conecte sua IA" volte por uma porta lateral.
+  //
+  // Exceção ÚNICA, de 07/11/2026 (ADR-0009): no plano "traga a sua IA" a agência
+  // cadastra as chaves que já paga, por UMA rota, que cifra e entrega ao banco
+  // (`guardar_chave_de_ia`). Qualquer outra rota que cifre uma chave de cliente
+  // continua barrada, e as tabelas antigas continuam sem escrita.
+  const UNICA_QUE_CIFRA = "src/app/api/configuracoes/ia/chave/route.ts";
   const rotas = listarArquivos("src/app/api").filter((f) => /route\.tsx?$/.test(f));
   for (const arquivo of rotas) {
     const codigo = lerCodigo(arquivo);
@@ -1480,7 +1486,9 @@ test("nenhuma rota recebe, grava ou testa chave de IA de conta", () => {
       /from\(["'](ai_settings|ai_routing_policies)["']\)\s*\.(insert|update|upsert|delete)\(/,
       `${arquivo} grava configuração de IA de conta`,
     );
-    assert.doesNotMatch(codigo, /encryptApiKey\(/, `${arquivo} cifra uma chave recebida do cliente`);
+    if (arquivo !== UNICA_QUE_CIFRA) {
+      assert.doesNotMatch(codigo, /encryptApiKey\(/, `${arquivo} cifra uma chave recebida do cliente`);
+    }
   }
   for (const removida of ["src/app/api/ai/settings", "src/app/api/ai/routing", "src/app/api/ai/test-connection"]) {
     assert.ok(!rotas.some((f) => f.startsWith(removida)), `${removida} voltou`);

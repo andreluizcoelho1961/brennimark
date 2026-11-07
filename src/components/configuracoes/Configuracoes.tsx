@@ -4,27 +4,31 @@ import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useIsEnglish } from "@/platform/locale-client";
 import { Consumo } from "./Consumo";
+import { IaDaAgencia } from "./IaDaAgencia";
 import { Plano } from "./Plano";
 
 /**
  * Configurações da conta (30/09/2026) — a subnavegação da seção (spec do
  * Studio §9.1: "Em Configurações: IA · Consumo · Plano · Aceites").
  *
- * "IA" não entra: a IA é da plataforma, e nenhuma conta a escolhe ou configura
- * (ADR-0008). Aceites aparece apagado com "em breve", como na coluna
+ * "IA" só entra em conta de plano "traga a sua IA" (ADR-0009, 07/11/2026): ali
+ * a agência cadastra as chaves que já paga. Nas demais, a IA é da plataforma e
+ * nenhuma conta a escolhe ou configura (ADR-0008). Aceites aparece apagado com "em breve", como na coluna
  * (decisão de 18/09): a pessoa vê o que vem, sem clicar numa tela vazia.
  *
  * Plano entrou em 01/10/2026 (cobrança, fatia 3). `?parte=plano` abre direto
  * nele — é para onde o Portal do Stripe devolve a pessoa.
  */
-type Parte = "consumo" | "plano";
+type Parte = "consumo" | "plano" | "ia";
 
-export function Configuracoes() {
+export function Configuracoes({ iaDaAgencia = false }: { iaDaAgencia?: boolean }) {
   const isEnglish = useIsEnglish();
   const t = (en: string, pt: string) => (isEnglish ? en : pt);
-  const inicial = useSearchParams().get("parte") === "plano" ? "plano" : "consumo";
+  const parte = useSearchParams().get("parte");
+  const inicial: Parte = parte === "plano" ? "plano" : parte === "ia" && iaDaAgencia ? "ia" : "consumo";
   const [atual, setAtual] = useState<Parte>(inicial);
   const partes: { id: string; rotulo: string; ativa: boolean }[] = [
+    ...(iaDaAgencia ? [{ id: "ia", rotulo: t("AI", "IA"), ativa: true }] : []),
     { id: "consumo", rotulo: t("Usage", "Consumo"), ativa: true },
     { id: "plano", rotulo: t("Plan", "Plano"), ativa: true },
     { id: "aceites", rotulo: t("Agreements", "Aceites"), ativa: false },
@@ -46,7 +50,7 @@ export function Configuracoes() {
         ))}
       </nav>
       <div className="mt-8">
-        {atual === "plano" ? <Plano /> : <Consumo />}
+        {atual === "plano" ? <Plano /> : atual === "ia" && iaDaAgencia ? <IaDaAgencia /> : <Consumo />}
       </div>
     </div>
   );
