@@ -113,3 +113,46 @@ de IA não deve receber manual de cliente real**, porque o provedor pode treinar
 
 Preço dos planos (estudo em andamento), a lista de modelos validados, a acessibilidade nas análises
 do Vini (fatia própria, ver o estudo) e o que fazer com quem trocar de plano no meio do ciclo.
+
+## 6. Adendo de 07/11/2026 — decisões do André sobre o desenho
+
+O André respondeu ao desenho no dia seguinte à entrevista. O que fica decidido (a **direção**; o
+schema continua esperando o OK explícito dele antes de qualquer migration):
+
+1. **O modo mora no plano.** Mudar de modo é trocar de plano. Quem está no plano sem IA e quer a
+   IA da Brennimark contrata o plano com IA; no plano com IA ninguém configura IA. Não existe plano
+   híbrido.
+2. **Nunca cai na IA da plataforma.** Confirmado o §2.2: se a chave da agência falhar, o Vini não usa
+   a nossa. "A gente não vai pagar para ninguém usar IA nunca": ou a agência paga o uso da nossa
+   (troca de plano), ou corrige a chave dela.
+3. **Três encaixes de IA no painel do administrador:** texto (interpretar o manual), imagem
+   (analisar peça) e reserva (assume quando a principal falha). É o mesmo desenho que a plataforma
+   já teve.
+4. **Aviso e termo sobre IA gratuita.** O painel avisa, antes de aceitar uma chave, que IAs
+   gratuitas podem usar o conteúdo para treinar os próprios modelos e que, para confidencialidade,
+   é preciso plano pago do provedor. O termo aceito no §2.4 passa a dizer, com todas as letras, que
+   usar IA gratuita **encerra a confidencialidade** daqueles dados, por escolha da agência. O termo é
+   assinado **ao contratar** o plano sem IA (além do aceite do administrador ao ligar a conexão). A
+   Política de Privacidade precisa de uma exceção explícita para esse modo, porque hoje promete que
+   o conteúdo vai a provedor pago, sem treinamento.
+5. **Interruptor "usa o Vini" por pessoa**, válido para a **conta inteira** (não por marca) e em
+   **todos os planos**, não só no sem IA. Motivo (pedido da Happy): muita gente só precisa baixar o
+   logotipo — uma gráfica, um assistente — e não precisa de IA. É ortogonal às capacidades
+   (`consultar`, `editar`, `aprovar`, `administrar`), não um nível novo delas. A interface só
+   decide o que aparece; quem barra é o servidor, com teste negativo (membro sem o interruptor não
+   chama a rota do Vini por fora da tela). O padrão para membro novo fica em aberto.
+6. **Provedores:** lista fechada pela Brennimark; endereço de API digitado pelo cliente **não
+   existe** (seria uma porta de requisição forjada a partir do nosso servidor). A Happy usa pelo
+   menos Anthropic, OpenAI e Google; as demais saem da lista de perguntas em
+   `docs/plan/perguntas-para-a-happy-ia-propria.md`.
+7. **Limite de tokens do administrador** fica para fatia posterior (o razão de IA por conta já
+   existe e pode servir).
+
+**Sobre as tabelas:** vale o §3 deste ADR (tabela nova de chaves, `ai_settings` e
+`ai_routing_policies` não são religadas). Uma ideia intermediária de reaproveitá-las, endurecendo as
+políticas de 29/08 que deixavam qualquer membro ler a chave cifrada, foi **descartada** por esse
+motivo: tabela nova nasce com a política certa.
+
+**O piloto da Happy não usa "teto zero" do Vini.** O piloto espera o painel de conexão (fatia de
+banco + roteamento + painel); preço e plano `piloto-sem-ia` entram como dado depois, e o preço
+segue o estudo de viabilidade de 06/11.
