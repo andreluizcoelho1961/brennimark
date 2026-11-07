@@ -57,6 +57,9 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `ia_por_plano` (ADR-0009): escrita em 07/11/2026, aplicada só ao banco LOCAL. Vai ao banco
+  // hospedado com autorização nominal do André; então sai daqui e entra o carimbo real.
+  "ia_por_plano",
   // `fonte_hospedada` saiu daqui em 03/11/2026: aplicada ao banco hospedado com autorização
   // nominal do André, carimbada `20261103183313`; conferido depois: termo v1 com impressão digital
   // igual ao texto, RLS ligada, `authenticated` só com select, `anon` sem privilégio, as duas
