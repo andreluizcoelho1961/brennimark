@@ -1309,6 +1309,15 @@
         "metaTitulo": "Cores da marca",
         "rotulo": "Cores da marca",
         "titulo": "Que cor é essa — e é a cor da marca?"
+      },
+      "sobreAPaleta": {
+        "titulo": "Esta cor sobre as cores da marca",
+        "explicacao": "Contraste de {cor} com cada cor da paleta do manual: serve para saber se ela lê bem sobre o fundo da marca, ou o contrário. É conta, sem IA, e o número é o mesmo da ficha da paleta e do Vini.",
+        "cabecalho": {
+          "cor": "Cor da marca",
+          "razao": "Razão"
+        },
+        "tabelaCompleta": "Contraste entre todas as cores da marca"
       }
     },
     "arquivos": {

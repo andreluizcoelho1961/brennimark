@@ -1309,6 +1309,15 @@
         "metaTitulo": "Brand colors",
         "rotulo": "Brand colors",
         "titulo": "What color is this — and is it the brand's color?"
+      },
+      "sobreAPaleta": {
+        "titulo": "This color against the brand colors",
+        "explicacao": "Contrast of {cor} with each color in the manual's palette: it tells you whether it reads well on the brand's background, or the other way round. It is calculated, with no AI, and the number is the same as on the palette sheet and in Vini.",
+        "cabecalho": {
+          "cor": "Brand color",
+          "razao": "Ratio"
+        },
+        "tabelaCompleta": "Contrast between all the brand colors"
       }
     },
     "arquivos": {
