@@ -124,11 +124,12 @@ const BYTES_POR_CARACTERE_PIOR_CASO = 4;
  *     paleta, 27/09: as duas fontes dela e a regra "a ficha prevalece"; 5.050
  *     → 6.065 medidos com a ficha da tipografia, 15/10: as duas fontes e a
  *     regra dela — 6.100; 6.956 medidos com o contraste da paleta, 06/11:
- *     as duas fontes e a regra dela — 7.050)
+ *     as duas fontes e a regra dela — 7.050; 7.279 medidos com os pares de
+ *     daltonismo e a regra "só cor aprovada da paleta", 07/11 — 7.350)
  *   analyse-image: 3.632 medidos → 3.700
  */
 export const BOILERPLATE_DO_PROMPT_DE_SISTEMA: Record<AITaskType, number> = {
-  assist: 7_050,
+  assist: 7_350,
   "analyse-image": 3_700,
   prompt: 2_300,
 };

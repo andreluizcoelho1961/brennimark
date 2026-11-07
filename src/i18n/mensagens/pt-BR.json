@@ -1318,6 +1318,24 @@
           "razao": "Razão"
         },
         "tabelaCompleta": "Contraste entre todas as cores da marca"
+      },
+      "daltonismoNota": "Assim esta cor aparece para quem tem daltonismo. É uma simulação, não uma sugestão de cor.",
+      "daltonismoSua": "Sua cor",
+      "daltonismoComoAparece": "Como aparece",
+      "ajuste": {
+        "titulo": "Ajuste com as cores da marca",
+        "usoAria": "Uso do par texto e fundo",
+        "usos": {
+          "texto-comum": "Texto comum",
+          "texto-grande": "Texto grande",
+          "icones-e-botoes": "Ícones e botões"
+        },
+        "jaPassa": "Este par já passa para este uso.",
+        "semPaleta": "A marca não tem cor aprovada com código HEX para sugerir.",
+        "nenhuma": "Nenhuma cor aprovada da marca resolve este par. O Cores não inventa cor fora da paleta.",
+        "trocarTexto": "Trocar o texto por",
+        "trocarFundo": "Trocar o fundo por",
+        "nota": "Só entram cores aprovadas da paleta, as mais próximas da atual primeiro. Cor em rascunho não é sugerida."
       }
     },
     "arquivos": {

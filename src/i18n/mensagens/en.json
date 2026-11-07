@@ -1318,6 +1318,24 @@
           "razao": "Ratio"
         },
         "tabelaCompleta": "Contrast between all the brand colors"
+      },
+      "daltonismoNota": "This is how this color looks to someone with color blindness. It is a simulation, not a color suggestion.",
+      "daltonismoSua": "Your color",
+      "daltonismoComoAparece": "How it looks",
+      "ajuste": {
+        "titulo": "Adjust with the brand colors",
+        "usoAria": "Use of the text and background pair",
+        "usos": {
+          "texto-comum": "Normal text",
+          "texto-grande": "Large text",
+          "icones-e-botoes": "Icons and buttons"
+        },
+        "jaPassa": "This pair already passes for this use.",
+        "semPaleta": "The brand has no approved color with a HEX code to suggest.",
+        "nenhuma": "No approved brand color solves this pair. Colors does not invent a color outside the palette.",
+        "trocarTexto": "Change the text to",
+        "trocarFundo": "Change the background to",
+        "nota": "Only approved palette colors are used, closest to the current one first. Draft colors are never suggested."
       }
     },
     "arquivos": {
