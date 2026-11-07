@@ -1,6 +1,27 @@
 import { APICallError } from "ai";
 
 
+/** De quem é a IA da conta (ADR-0009). Ver `ResolvedAIRouting.modo`. */
+export type ModoDaIA = "plataforma" | "propria";
+
+/**
+ * O que dizer quando a IA é da AGÊNCIA e não responde. Duas diferenças das
+ * mensagens da plataforma, ambas decisão do André (07/11/2026): a quem trouxe a
+ * sua IA não se manda "falar com o suporte da Brennimark" — o conserto é da
+ * agência —, e se diz com todas as letras que o Vini não usa outra IA no lugar,
+ * para ninguém esperar um atendimento que a Brennimark não paga.
+ */
+function mensagemDaIAPropria(isEnglish: boolean, caso: "sem-rota" | "chave-recusada"): string {
+  if (caso === "chave-recusada") {
+    return isEnglish
+      ? "Your agency's AI key was refused by the provider. Ask whoever administers the account to check it in Settings. Vini does not switch to another AI in the meantime."
+      : "A chave de IA da sua agência foi recusada pelo provedor. Peça a quem administra a conta que a confira em Configurações. O Vini não usa outra IA no lugar.";
+  }
+  return isEnglish
+    ? "Your agency's AI is not set up or can't be read. Ask whoever administers the account to check it in Settings. Vini does not switch to another AI in the meantime."
+    : "A IA da sua agência não está configurada ou não pôde ser lida. Peça a quem administra a conta que confira em Configurações. O Vini não usa outra IA no lugar.";
+}
+
 export type AIErrorCode =
   | "invalid_key"
   | "rate_limited"
@@ -39,7 +60,11 @@ export type AIErrorCode =
  * `classifyAIError` continua reconhecendo o erro nomeado `SemProvedorDeIA`,
  * caso algum caminho futuro prefira lançar — mas o caminho direto é este.
  */
-export function semProvedorConfigurado(isEnglish: boolean): { code: "no_provider"; message: string } {
+export function semProvedorConfigurado(
+  isEnglish: boolean,
+  modo: ModoDaIA = "plataforma",
+): { code: "no_provider"; message: string } {
+  if (modo === "propria") return { code: "no_provider", message: mensagemDaIAPropria(isEnglish, "sem-rota") };
   return {
     code: "no_provider",
     // A IA é da plataforma (29/09/2026): nenhuma conta configura provedor, e
@@ -77,6 +102,7 @@ function sobrecarga(isEnglish: boolean): { code: "overloaded"; message: string }
 export function classifyAIError(
   error: unknown,
   isEnglish: boolean,
+  modo: ModoDaIA = "plataforma",
 ): { code: AIErrorCode; message: string; detalheTecnico?: string } {
   if (APICallError.isInstance(error)) {
     if (error.statusCode === 503 || error.statusCode === 529 || SOBRECARGA.test(error.message)) {
@@ -92,6 +118,7 @@ export function classifyAIError(
       };
     }
     if (error.statusCode === 401 || error.statusCode === 403) {
+      if (modo === "propria") return { code: "invalid_key", message: mensagemDaIAPropria(isEnglish, "chave-recusada") };
       return { code: "invalid_key", message: isEnglish ? "Invalid API key or no permission for this model." : "Chave de API inválida ou sem permissão para esse modelo." };
     }
     if (error.statusCode === 429) {

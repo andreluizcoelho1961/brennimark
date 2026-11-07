@@ -10,7 +10,7 @@ import { resolveAnalysisRouting, type ResolvedChatAttempt } from "@/lib/ai/setti
 import { buildAnalysisSystemPrompt } from "@/lib/ai/brand-context";
 import { brandPromptContext } from "@/lib/brennimark/context";
 import type { BrandPromptContext } from "@/lib/ai/brand-context";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { parseAnalysisText } from "@/lib/ai/analysis-result";
 import { normalizeAnalysisVerdict } from "@/lib/ai/analysis-result";
 import { persistAnalysisRun, type AnalysisAuthContext } from "@/lib/analysis/server";
@@ -162,18 +162,21 @@ export async function POST(request: Request) {
   }
 
   let attempts: ResolvedChatAttempt[];
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   let firstChunkTimeoutMs: number;
   try {
     const routing = await resolveAnalysisRouting(workspaceId);
+    modoDaIA = routing.modo;
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado(isEnglish);
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     attempts = routing.attempts;
     firstChunkTimeoutMs = routing.timeoutMs;
   } catch (error) {
-    const { code, message, detalheTecnico } = classifyAIError(error, isEnglish);
+    const { code, message, detalheTecnico } = classifyAIError(error, isEnglish, modoDaIA);
     // O detalhe fica no log do servidor. A resposta leva só a mensagem de
     // produto — ela atravessa a rede e aparece na tela.
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
@@ -239,7 +242,7 @@ export async function POST(request: Request) {
     // (é a checagem que bloqueia antes de chegar aqui) — não-nulo garantido.
     pricing = decisao.capabilities.pricing!;
   } catch (error) {
-    const { code, message, detalheTecnico } = classifyAIError(error, isEnglish);
+    const { code, message, detalheTecnico } = classifyAIError(error, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico }));
     return NextResponse.json({ error: code, message }, { status: 503 });
   }
@@ -430,7 +433,7 @@ export async function POST(request: Request) {
         // executarComOrcamento já libera a reserva antes de repassar o
         // erro — nenhuma chamada extra precisa acontecer aqui.
         const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-        const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish);
+        const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish, modoDaIA);
         console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
         console.error(JSON.stringify({
           level: "error",

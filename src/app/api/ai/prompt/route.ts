@@ -9,7 +9,7 @@ import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -76,6 +76,8 @@ export async function POST(request: Request) {
 
   let executionId: string | undefined;
   let fimDoProvedor: { unificado: PromiseLike<string>; bruto: PromiseLike<string | undefined> } | null = null;
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   try {
     const portao = await portaoDeIA(request, "chat");
     if (!portao.ok) return portao.resposta;
@@ -102,8 +104,10 @@ export async function POST(request: Request) {
     const trechosPermitidos = recuperacao.trechos.filter((tr) => slugs.has(tr.documentSlug));
 
     const routing = await resolveChatRouting(portao.auth.workspaceId);
+
+    modoDaIA = routing.modo;
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado(isEnglish);
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     // A fila inteira; a decisão abaixo é da primeira (ver `executarEmFila`).
@@ -229,7 +233,7 @@ export async function POST(request: Request) {
     return resposta;
   } catch (error) {
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "prompt", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }
