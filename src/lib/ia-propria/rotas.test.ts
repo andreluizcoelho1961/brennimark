@@ -12,7 +12,7 @@ import test from "node:test";
  */
 const raiz = join(process.cwd(), "src");
 const ler = (caminho: string) => readFileSync(join(raiz, caminho), "utf8");
-const ROTAS = ["ia/route.ts", "ia/termo/route.ts", "ia/chave/route.ts", "ia/testar/route.ts"].map((r) => `app/api/configuracoes/${r}`);
+const ROTAS = ["ia/route.ts", "ia/termo/route.ts", "ia/chave/route.ts", "ia/testar/route.ts", "ia/teto/route.ts"].map((r) => `app/api/configuracoes/${r}`);
 
 test("toda rota da IA própria resolve a conta e recusa quem não administra", () => {
   for (const rota of ROTAS) {

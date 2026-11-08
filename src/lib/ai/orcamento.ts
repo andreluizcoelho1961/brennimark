@@ -83,7 +83,8 @@ export type MotivoDeRecusa =
   | "sem_orcamento_configurado"
   | "orcamento_do_workspace_esgotado"
   | "orcamento_mensal_esgotado"
-  | "orcamento_da_marca_esgotado";
+  | "orcamento_da_marca_esgotado"
+  | "franquia_esgotada";
 
 /** O estado do LEDGER para esta execução — não confundir com o resultado da chamada. */
 export type StatusDaExecucao = "reserved" | "settled" | "released";
@@ -323,6 +324,8 @@ export async function expirarReservasAntigas(
 export function mensagemDeOrcamento(
   motivo: MotivoDeRecusa | "erro_de_consulta",
   ingles: boolean,
+  /** Quem paga o modelo (ADR-0009): na IA própria o teto é da agência, e quem o muda é ela. */
+  modo: "plataforma" | "propria" = "plataforma",
 ): string {
   /*
    * A IA é da PLATAFORMA (28/09/2026): o cliente não configura nada, então
@@ -348,6 +351,19 @@ export function mensagemDeOrcamento(
     return ingles
       ? "The assistant is paused for this account. Contact Brennimark support."
       : "O Vini está pausado nesta conta. Fale com o suporte da Brennimark.";
+  }
+  // A franquia de perguntas do plano (08/11/2026): acabou, volta no mês seguinte.
+  if (motivo === "franquia_esgotada") {
+    return ingles
+      ? "This account used all of this month's Vini questions. Vini is back at the start of next month."
+      : "Esta conta usou todas as perguntas do Vini deste mês. Ele volta no início do mês que vem.";
+  }
+  // IA própria (ADR-0009): o teto é da agência, então quem o muda é a dona da conta, não o suporte.
+  if (modo === "propria" && (motivo === "orcamento_do_workspace_esgotado" || motivo === "orcamento_mensal_esgotado")) {
+    const hoje = motivo === "orcamento_do_workspace_esgotado";
+    return ingles
+      ? `This account reached the spending limit your agency set for ${hoje ? "today" : "this month"}. Whoever administers the account can change it in Settings › AI.`
+      : `Esta conta chegou ao limite de gasto que a sua agência definiu para ${hoje ? "hoje" : "este mês"}. Quem administra a conta pode mudá-lo em Configurações › IA.`;
   }
   if (motivo === "orcamento_do_workspace_esgotado" || motivo === "orcamento_da_marca_esgotado") {
     return ingles

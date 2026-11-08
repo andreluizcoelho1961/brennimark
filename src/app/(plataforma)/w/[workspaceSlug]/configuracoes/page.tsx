@@ -34,6 +34,9 @@ export default async function ConfiguracoesPage({
    */
   const supabase = await createClient();
   const { data: modo } = await supabase.rpc("modo_de_ia_da_conta", { p_workspace_id: conta.id });
+  // Plano com franquia de perguntas também ganha a aba, para mostrar "usou X de Y" (08/11/2026).
+  const { data: uso } = await supabase.rpc("uso_do_vini_da_conta", { p_workspace_id: conta.id });
+  const temFranquia = (uso as { franquia: number | null } | null)?.franquia != null;
 
   return (
     <MolduraDaConta contexto={contexto} contaSlug={conta.slug}>
@@ -45,7 +48,7 @@ export default async function ConfiguracoesPage({
             administra a conta vê esta tela.
           </p>
           <div className="mt-8">
-            <Configuracoes iaDaAgencia={modo === "propria"} />
+            <Configuracoes iaDaAgencia={modo === "propria" || temFranquia} />
           </div>
         </div>
       </div>

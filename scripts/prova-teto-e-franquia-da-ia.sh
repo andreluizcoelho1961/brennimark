@@ -12,4 +12,4 @@ if ! docker exec "$CONTAINER" true 2>/dev/null; then
   exit 1
 fi
 
-docker exec -i "$CONTAINER" psql -U postgres -q -f - < "$AQUI/prova-razao-sem-teto.sql"
+docker exec -i "$CONTAINER" psql -U postgres -q -f - < "$AQUI/prova-teto-e-franquia-da-ia.sql"

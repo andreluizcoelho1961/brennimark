@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {
-      return NextResponse.json({ error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) }, { status: 503 });
+      return NextResponse.json({ error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish, modoDaIA) }, { status: 503 });
     }
 
     const sistema = sistemaDoCopiloto(permitidas, tipo, portao.brand.brand.name);

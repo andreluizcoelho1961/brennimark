@@ -5,6 +5,7 @@ import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { TERMO } from "@/lib/ia-propria/termo";
+import { microsParaDolares, perguntasQueCabem } from "@/lib/ia-propria/teto";
 
 /**
  * Configurações › IA (ADR-0009, 07/11/2026) — só existe em conta de plano "traga
@@ -22,12 +23,19 @@ const ENCAIXES: Encaixe[] = ["texto", "imagem", "reserva"];
 type Modelo = { model: string; label: string; vision: boolean; gratuito: boolean };
 type Provedor = { value: string; label: string; modelos: Modelo[] };
 type Chave = { encaixe: Encaixe; provedor: string; modelo: string; chaveFinal: string; atualizadaEm: string; testadaEm: string | null; testeOk: boolean | null };
+type Uso = {
+  franquia: number | null; perguntasNoMes: number; voltaEm: string;
+  tetoDiarioMicros: number | null; tetoMensalMicros: number | null;
+  gastoHojeMicros: number; gastoNoMesMicros: number;
+} | null;
 type Dados = {
   modo: "propria";
+  uso: Uso;
   termo: { aceito: boolean; vigente: boolean; versao: string | null; em: string | null };
   chaves: Chave[];
   provedores: Provedor[];
 };
+type DadosDaPlataforma = { modo: "plataforma"; uso: Uso };
 
 const TITULO = "font-display text-sm font-black uppercase tracking-wider text-platform-text";
 const DT = "text-[11px] uppercase tracking-wide text-platform-text-muted";
@@ -41,6 +49,10 @@ export function IaDaAgencia() {
   const isEnglish = useIsEnglish();
   const t = (en: string, pt: string) => (isEnglish ? en : pt);
   const [dados, setDados] = useState<Dados | null>(null);
+  const [daPlataforma, setDaPlataforma] = useState<DadosDaPlataforma | null>(null);
+  const [diario, setDiario] = useState("");
+  const [mensal, setMensal] = useState("");
+  const [avisoDoTeto, setAvisoDoTeto] = useState<{ ok: boolean; texto: string } | null>(null);
   const [erro, setErro] = useState("");
   const [aberto, setAberto] = useState<Encaixe | null>(null);
   const [removendo, setRemovendo] = useState<Encaixe | null>(null);
@@ -61,7 +73,13 @@ export function IaDaAgencia() {
       const resposta = await fetch(comAlvo("/api/configuracoes/ia", alvo), { cache: "no-store" }).catch(() => null);
       const corpo = resposta ? await resposta.json().catch(() => ({})) : {};
       if (cancelado) return;
-      if (resposta?.ok && corpo.modo === "propria") { setDados(corpo as Dados); setErro(""); }
+      if (resposta?.ok && corpo.modo === "propria") {
+        const c = corpo as Dados;
+        setDados(c); setErro("");
+        const d = microsParaDolares(c.uso?.tetoDiarioMicros ?? null);
+        const m = microsParaDolares(c.uso?.tetoMensalMicros ?? null);
+        setDiario(d === null ? "" : String(d)); setMensal(m === null ? "" : String(m));
+      } else if (resposta?.ok && corpo.modo === "plataforma") { setDaPlataforma(corpo as DadosDaPlataforma); setErro(""); }
       else setErro(corpo.message ?? t("Couldn't load the AI settings.", "Não foi possível carregar a IA da conta."));
     })();
     return () => { cancelado = true; };
@@ -145,7 +163,25 @@ export function IaDaAgencia() {
     carregar();
   }
 
-  if (erro && !dados) return <p role="alert" className="text-sm text-platform-text">{erro}</p>;
+  async function salvarTeto() {
+    setOcupado("teto"); setAvisoDoTeto(null);
+    const resposta = await fetch(comAlvo("/api/configuracoes/ia/teto", alvo), {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ diarioUsd: diario, mensalUsd: mensal }),
+    }).catch(() => null);
+    const corpo = resposta ? await resposta.json().catch(() => ({})) : {};
+    setOcupado(null);
+    if (resposta?.ok) { setAvisoDoTeto({ ok: true, texto: t("Limit saved.", "Limite guardado.") }); carregar(); return; }
+    setAvisoDoTeto({
+      ok: false,
+      texto: corpo.error === "teto_invalido"
+        ? t("Use positive amounts in dollars, and a daily limit no larger than the monthly one. Leave blank for no limit.", "Use valores positivos em dólar, e um limite por dia que não passe do mensal. Deixe em branco para não ter limite.")
+        : t("Couldn't save the limit.", "Não foi possível guardar o limite."),
+    });
+  }
+
+  if (erro && !dados && !daPlataforma) return <p role="alert" className="text-sm text-platform-text">{erro}</p>;
+  if (daPlataforma) return <div data-ia-da-agencia className="space-y-8"><Franquia uso={daPlataforma.uso} isEnglish={isEnglish} /></div>;
   if (!dados) return <p className="text-sm text-platform-text-muted">{t("Loading…", "Carregando…")}</p>;
 
   const termo = isEnglish ? TERMO.en : TERMO.pt;
@@ -293,7 +329,73 @@ export function IaDaAgencia() {
         </section>
       )}
 
+      <section data-teto-da-agencia aria-labelledby="titulo-do-teto" className="max-w-[46rem]">
+        <h2 id="titulo-do-teto" className={TITULO}>{t("Spending limit", "Limite de gasto")}</h2>
+        <p className="mt-2 text-sm text-platform-text-muted">
+          {t("You pay the AI provider, so you set the limit. When Vini reaches it, it pauses until the next day or month. Leave a field blank for no limit. Setting a limit at your provider too is a good second safety net.",
+             "Quem paga o provedor é a sua agência, então o limite é seu. Quando o Vini chega nele, pausa até o dia ou o mês seguinte. Deixe o campo em branco para não ter limite. Pôr um limite também no seu provedor é uma boa segunda proteção.")}
+        </p>
+        <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); void salvarTeto(); }}>
+          <div>
+            <label className={ROTULO} htmlFor="teto-diario">{t("Per day (US$)", "Por dia (US$)")}</label>
+            <input id="teto-diario" data-teto-diario inputMode="decimal" className={`${CAMPO} w-full`} value={diario} onChange={(e) => setDiario(e.target.value)} placeholder={t("No limit", "Sem limite")} />
+            <EstimativaDoTeto valor={diario} uso={dados.uso} isEnglish={isEnglish} />
+          </div>
+          <div>
+            <label className={ROTULO} htmlFor="teto-mensal">{t("Per month (US$)", "Por mês (US$)")}</label>
+            <input id="teto-mensal" data-teto-mensal inputMode="decimal" className={`${CAMPO} w-full`} value={mensal} onChange={(e) => setMensal(e.target.value)} placeholder={t("No limit", "Sem limite")} />
+            <EstimativaDoTeto valor={mensal} uso={dados.uso} isEnglish={isEnglish} />
+          </div>
+          <div className="sm:col-span-2">
+            <button type="submit" data-salvar-teto disabled={ocupado !== null} className={BOTAO}>
+              {ocupado === "teto" ? t("Saving…", "Salvando…") : t("Save limit", "Guardar limite")}
+            </button>
+          </div>
+        </form>
+        {avisoDoTeto && <p data-resultado-do-teto role="status" className={`mt-3 text-sm ${avisoDoTeto.ok ? "text-platform-text" : "font-bold text-platform-text"}`}>{avisoDoTeto.texto}</p>}
+        {dados.uso && (
+          <p data-gasto className="mt-4 text-xs text-platform-text-muted">
+            {t(`Spent today US$ ${(dados.uso.gastoHojeMicros / 1e6).toFixed(2)} · this month US$ ${(dados.uso.gastoNoMesMicros / 1e6).toFixed(2)} · ${dados.uso.perguntasNoMes} questions this month`,
+               `Gasto hoje US$ ${(dados.uso.gastoHojeMicros / 1e6).toFixed(2)} · neste mês US$ ${(dados.uso.gastoNoMesMicros / 1e6).toFixed(2)} · ${dados.uso.perguntasNoMes} perguntas neste mês`)}
+          </p>
+        )}
+      </section>
+
+      <Franquia uso={dados.uso} isEnglish={isEnglish} />
+
       {erro && aberto === null && <p role="alert" className="text-sm text-platform-text">{erro}</p>}
     </div>
+  );
+}
+
+/** "Cerca de N perguntas" ao lado do valor digitado, para quem não pensa em dólar. */
+function EstimativaDoTeto({ valor, uso, isEnglish }: { valor: string; uso: Uso; isEnglish: boolean }) {
+  const numero = Number(valor.trim().replace(",", "."));
+  if (!valor.trim() || !Number.isFinite(numero) || numero <= 0) return null;
+  const { quantas, estimativa } = perguntasQueCabem(numero, (uso?.gastoNoMesMicros ?? 0) / 1e6, uso?.perguntasNoMes ?? 0);
+  return (
+    <p data-estimativa className="mt-1 text-xs text-platform-text-muted">
+      {isEnglish
+        ? `About ${quantas} questions${estimativa ? " (estimate)" : " at your average"}`
+        : `Cerca de ${quantas} perguntas${estimativa ? " (estimativa)" : " pela sua média"}`}
+    </p>
+  );
+}
+
+/** A franquia de perguntas do plano: "usou X de Y, volta em DD/MM". Só aparece se o plano tiver uma. */
+function Franquia({ uso, isEnglish }: { uso: Uso; isEnglish: boolean }) {
+  if (!uso || uso.franquia === null) return null;
+  const volta = new Intl.DateTimeFormat(localeDeFormato(isEnglish), { day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${uso.voltaEm}T00:00:00Z`));
+  const restantes = Math.max(0, uso.franquia - uso.perguntasNoMes);
+  return (
+    <section data-franquia aria-labelledby="titulo-da-franquia" className="max-w-[46rem]">
+      <h2 id="titulo-da-franquia" className={TITULO}>{isEnglish ? "Questions this month" : "Perguntas deste mês"}</h2>
+      <p className="mt-2 text-sm text-platform-text">
+        {isEnglish
+          ? `Used ${uso.perguntasNoMes} of ${uso.franquia}${restantes === 0 ? `. Vini is back on ${volta}.` : `. ${restantes} left; the count restarts on ${volta}.`}`
+          : `Usou ${uso.perguntasNoMes} de ${uso.franquia}${restantes === 0 ? `. O Vini volta em ${volta}.` : `. Restam ${restantes}; a contagem recomeça em ${volta}.`}`}
+      </p>
+      <progress className="mt-3 block h-2 w-full" max={uso.franquia} value={Math.min(uso.perguntasNoMes, uso.franquia)} aria-label={isEnglish ? "Questions used" : "Perguntas usadas"} />
+    </section>
   );
 }

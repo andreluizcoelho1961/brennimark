@@ -16,6 +16,24 @@ import { TERMO_VERSAO } from "@/lib/ia-propria/termo";
  */
 const SEM_CACHE = { "Cache-Control": "private, no-store" };
 
+type Cliente = Awaited<ReturnType<typeof createClient>>;
+
+/** O uso e o teto da conta, do jeito que a tela lê. `null` se o banco não respondeu. */
+async function lerUso(supabase: Cliente, workspaceId: string) {
+  const { data } = await supabase.rpc("uso_do_vini_da_conta", { p_workspace_id: workspaceId });
+  const u = data as {
+    franquia: number | null; perguntas_no_mes: number; volta_em: string;
+    teto_diario_micros: number | null; teto_mensal_micros: number | null;
+    gasto_hoje_micros: number; gasto_no_mes_micros: number;
+  } | null;
+  if (!u) return null;
+  return {
+    franquia: u.franquia, perguntasNoMes: u.perguntas_no_mes, voltaEm: u.volta_em,
+    tetoDiarioMicros: u.teto_diario_micros, tetoMensalMicros: u.teto_mensal_micros,
+    gastoHojeMicros: u.gasto_hoje_micros, gastoNoMesMicros: u.gasto_no_mes_micros,
+  };
+}
+
 export async function GET(request: Request) {
   const r = await workspaceDaRota(request);
   if (!r.ok) return r.resposta;
@@ -24,8 +42,10 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data: modo, error: erroDoModo } = await supabase.rpc("modo_de_ia_da_conta", { p_workspace_id: r.workspaceId });
   if (erroDoModo) return NextResponse.json({ message: "Não foi possível ler a IA da conta." }, { status: 500, headers: SEM_CACHE });
-  // Conta que usa a IA da Brennimark não configura nada, e a tela nem mostra a aba.
-  if (modo !== "propria") return NextResponse.json({ modo: "plataforma" }, { headers: SEM_CACHE });
+  const uso = await lerUso(supabase, r.workspaceId);
+  // Conta que usa a IA da Brennimark não configura chave nenhuma. Só vê a franquia de perguntas,
+  // se o plano tiver uma.
+  if (modo !== "propria") return NextResponse.json({ modo: "plataforma", uso }, { headers: SEM_CACHE });
 
   const [chaves, termo] = await Promise.all([
     supabase.rpc("listar_chaves_de_ia", { p_workspace_id: r.workspaceId }),
@@ -54,6 +74,7 @@ export async function GET(request: Request) {
 
   return NextResponse.json({
     modo: "propria",
+    uso,
     termo: { aceito: !!aceite, vigente: aceite?.versao_termo === TERMO_VERSAO, versao: aceite?.versao_termo ?? null, em: aceite?.criado_em ?? null },
     termoVersaoAtual: TERMO_VERSAO,
     chaves: (chaves.data ?? []).map((c: { encaixe: string; provedor: string; modelo: string; chave_final: string; atualizada_em: string; testada_em: string | null; teste_ok: boolean | null }) => ({

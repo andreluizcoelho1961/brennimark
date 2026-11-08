@@ -245,7 +245,7 @@ export async function POST(request: Request) {
     if (!decisao.pode) {
       await devolverPerguntaDoTour();
       return NextResponse.json(
-        { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) },
+        { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish, modoDaIA) },
         { status: 503 },
       );
     }
