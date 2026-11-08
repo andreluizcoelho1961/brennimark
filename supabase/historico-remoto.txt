@@ -114,3 +114,4 @@
 20261103172241 downloads_da_paleta
 20261103183313 fonte_hospedada
 20261107184907 ia_por_plano
+20261108140544 ia_propria_teto_e_franquia

@@ -247,6 +247,29 @@ test("nenhuma mensagem manda o cliente configurar IA — a IA é da plataforma",
   assert.match(mensagemDeOrcamento("orcamento_do_workspace_esgotado", false), /por hoje/);
 });
 
+test("franquia esgotada diz que volta no mês seguinte e não manda procurar o suporte", () => {
+  const pt = mensagemDeOrcamento("franquia_esgotada", false);
+  const en = mensagemDeOrcamento("franquia_esgotada", true);
+  assert.match(pt, /perguntas do Vini deste mês/);
+  assert.match(pt, /mês que vem/);
+  assert.match(en, /questions/);
+  assert.doesNotMatch(pt, /suporte/);
+});
+
+test("na IA própria o teto esgotado é da agência: manda a dona mudar em Configurações, não falar com a Brennimark", () => {
+  for (const motivo of ["orcamento_do_workspace_esgotado", "orcamento_mensal_esgotado"] as const) {
+    const pt = mensagemDeOrcamento(motivo, false, "propria");
+    assert.match(pt, /sua agência definiu/, motivo);
+    assert.match(pt, /Configurações › IA/, motivo);
+    assert.doesNotMatch(pt, /suporte da Brennimark/, motivo);
+    assert.match(mensagemDeOrcamento(motivo, true, "propria"), /your agency set/, motivo);
+  }
+  assert.match(mensagemDeOrcamento("orcamento_do_workspace_esgotado", false, "propria"), /hoje/);
+  assert.match(mensagemDeOrcamento("orcamento_mensal_esgotado", false, "propria"), /este mês/);
+  // A conta da plataforma segue como antes.
+  assert.match(mensagemDeOrcamento("orcamento_do_workspace_esgotado", false), /suporte da Brennimark/);
+});
+
 // ─── Contenção do item 7: o limiar tem piso ────────────────────────────────
 //
 // A garantia real está no banco (a função é `security definer` e alcançável

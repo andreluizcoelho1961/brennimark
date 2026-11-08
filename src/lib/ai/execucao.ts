@@ -332,7 +332,7 @@ export async function decidirExecucao(
  * já têm mensagem própria em `mensagemDeOrcamento`; os quatro daqui são os
  * que só `decidirExecucao` produz, antes de chegar ao orçamento.
  */
-export function mensagemDeBloqueio(motivo: MotivoDeBloqueio, ingles: boolean): string {
+export function mensagemDeBloqueio(motivo: MotivoDeBloqueio, ingles: boolean, modo: "plataforma" | "propria" = "plataforma"): string {
   switch (motivo) {
     case "modelo_nao_catalogado":
       return ingles
@@ -359,7 +359,7 @@ export function mensagemDeBloqueio(motivo: MotivoDeBloqueio, ingles: boolean): s
         ? "This request has already been completed. Reload the page and send a new message to try again."
         : "Esta solicitação já foi concluída. Recarregue a página e envie uma nova mensagem para tentar de novo.";
     default:
-      return mensagemDeOrcamento(motivo, ingles);
+      return mensagemDeOrcamento(motivo, ingles, modo);
   }
 }
 
