@@ -72,8 +72,9 @@ export async function GET(request: Request) {
 
   // As marcas vêm pela RLS normal: quem administra a conta as alcança todas, e
   // é essa mesma lista que o formulário oferece.
-  const [pessoas, marcas] = await Promise.all([
+  const [pessoas, usos, marcas] = await Promise.all([
     supabase.rpc("pessoas_da_conta", { p_workspace_id: r.workspaceId }),
+    supabase.rpc("usos_do_vini_da_conta", { p_workspace_id: r.workspaceId }),
     supabase.from("brands").select("id, name").eq("workspace_id", r.workspaceId).order("name"),
   ]);
 
@@ -82,6 +83,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ message }, { status });
   }
 
+  // O interruptor "usa o Vini" por e-mail. Se a leitura falhar, a lista ainda abre: sem o
+  // interruptor, nunca com um valor inventado.
+  const usaOVini = new Map<string, boolean>(
+    (usos.data ?? []).map((u: { email: string; usa_o_vini: boolean }) => [u.email, u.usa_o_vini]),
+  );
+
   return NextResponse.json({
     pessoas: (pessoas.data ?? []).map((p: {
       email: string; nome: string | null; papel: string; marcas: unknown; pendente: boolean;
@@ -89,6 +96,7 @@ export async function GET(request: Request) {
     }) => ({
       email: p.email, nome: p.nome, papel: p.papel, marcas: p.marcas ?? [], pendente: p.pendente,
       desde: p.desde, senhaProvisoriaAte: p.senha_provisoria_ate,
+      usaOVini: p.papel === "consulta" && !p.pendente && usaOVini.has(p.email) ? usaOVini.get(p.email)! : null,
     })),
     marcas: (marcas.data ?? []).map((b) => ({ id: b.id, nome: b.name })),
   });
