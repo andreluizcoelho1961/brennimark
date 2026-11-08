@@ -199,6 +199,20 @@ begin
   update public.ai_budgets set limit_micros = 999000000 where workspace_id = s;
   perform pg_temp.registrar('D9 plano sem franquia não limita por perguntas', 'true/reservado', pg_temp.reservar(us, s, gen_random_uuid(), 10));
 
+  -- ─── G. Abrir ou trocar de plano não impõe teto à IA própria ───────────
+  -- (o plano próprio tem teto 0 no cadastro; copiá-lo para a conta bloquearia o Vini)
+  update public.assinaturas set plano = 'prova-teto-propria' where workspace_id = p;
+  update public.ai_budgets set limit_micros = null where workspace_id = p and brand_id is null and period = 'monthly';
+  perform private.aplicar_plano_na_conta(p, 'prova-teto-propria');
+  perform pg_temp.registrar('G1 plano próprio na abertura: o teto mensal continua vazio (não vira 0)', 'null', pg_temp.teto(p, 'monthly'));
+  update public.ai_budgets set limit_micros = 7000000 where workspace_id = p and brand_id is null and period = 'monthly';
+  perform private.aplicar_plano_na_conta(p, 'prova-teto-propria-2');
+  perform pg_temp.registrar('G2 troca entre planos próprios preserva o teto que a agência pôs', '7000000', pg_temp.teto(p, 'monthly'));
+  perform private.aplicar_plano_na_conta(q, 'prova-teto-franquia');
+  perform pg_temp.registrar('G3 plano da plataforma continua aplicando o teto do plano', '0', pg_temp.teto(q, 'monthly'));
+  perform pg_temp.registrar('G4 a reserva da IA própria passa depois de abrir o plano', 'true/reservado',
+    pg_temp.reservar(up, p, gen_random_uuid(), 10) );
+
   -- ─── E. Autorização (negativos) ────────────────────────────────────────
   update public.assinaturas set plano = 'prova-teto-propria' where workspace_id = p;
   update public.ai_budgets set limit_micros = 2000000 where workspace_id = p and brand_id is null and period = 'daily';
