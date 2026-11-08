@@ -115,3 +115,6 @@
 20261103183313 fonte_hospedada
 20261107184907 ia_por_plano
 20261108140544 ia_propria_teto_e_franquia
+20261108141518 plano_proprio_nao_impoe_teto_na_conta
+20261108141521 planos_da_escada_nova
+20261108200726 planos_da_escada_nomes_e_venda
