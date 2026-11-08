@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { type AIProviderConfig, type AIRoutingFeature } from "@/lib/ai/provider";
 import { montarRotas, type LinhaDeRota } from "@/lib/ai/rotas-da-plataforma";
+import { montarRotasDaAgencia, type LinhaDaChave, type Encaixe, ENCAIXES_DA_TAREFA } from "@/lib/ai/rotas-da-agencia";
+import { decryptApiKey } from "@/lib/ai/crypto";
 
 /*
  * Resolução da rota de IA de um pedido. Desde 29/09/2026 (ADR-0008) a rota é
@@ -20,6 +22,13 @@ export type ResolvedAIRouting = {
   attempts: ResolvedChatAttempt[];
   timeoutMs: number;
   allowCrossProvider: boolean;
+  /**
+   * De quem é a IA que atende esta conta (ADR-0009): da `plataforma`, ou
+   * `propria` — a da agência. Quem monta a mensagem de "sem IA" precisa saber,
+   * porque a quem fala com a nossa IA se diz "fale com o suporte" e a quem trouxe
+   * a sua se diz "confira a chave".
+   */
+  modo: "plataforma" | "propria";
 };
 
 /**
@@ -43,6 +52,17 @@ export async function resolveFeatureRouting(
   workspaceId: string,
 ): Promise<ResolvedAIRouting> {
   const supabase = createServiceClient();
+
+  /*
+   * O modo da IA mora no PLANO (ADR-0009). Conta que trouxe a sua IA nunca toca
+   * nas chaves da Brennimark: se as dela faltarem ou falharem, `attempts` volta
+   * vazio e o Vini diz isso — não há "cair na nossa". A pergunta falhar também
+   * interrompe: na dúvida sobre quem paga, não se chama provedor nenhum.
+   */
+  const { data: modo, error: erroDoModo } = await supabase.rpc("modo_de_ia_da_conta", { p_workspace_id: workspaceId });
+  if (erroDoModo) throw erroDoModo;
+  if (modo === "propria") return resolverRotaDaAgencia(feature, workspaceId);
+
   const { data, error } = await supabase.rpc("rotas_de_ia_da_plataforma");
   if (error) throw error;
 
@@ -52,7 +72,27 @@ export async function resolveFeatureRouting(
     // para saber por que o Vini pulou uma reserva.
     console.warn("[ia] rotas descartadas", { tarefa: feature, conta: workspaceId, descartadas: rotas.descartadas });
   }
-  return { attempts: rotas.attempts, timeoutMs: rotas.timeoutMs, allowCrossProvider: rotas.allowCrossProvider };
+  return { attempts: rotas.attempts, timeoutMs: rotas.timeoutMs, allowCrossProvider: rotas.allowCrossProvider, modo: "plataforma" };
+}
+
+/** A rota de uma conta no plano "traga a sua": só as chaves que ELA cadastrou. */
+async function resolverRotaDaAgencia(feature: AIRoutingFeature, workspaceId: string): Promise<ResolvedAIRouting> {
+  const supabase = createServiceClient();
+  const linhas: LinhaDaChave[] = [];
+  for (const encaixe of ENCAIXES_DA_TAREFA[feature]) {
+    // `chave_de_ia_para_uso` só devolve o texto cifrado a conta em modo `propria`
+    // e só à chave de serviço; o texto claro existe aqui, em memória, por esta chamada.
+    const { data, error } = await supabase.rpc("chave_de_ia_para_uso", { p_workspace_id: workspaceId, p_encaixe: encaixe });
+    if (error) throw error;
+    const linha = (data as { provedor: string; modelo: string; chave_cifrada: string; chave_iv: string }[] | null)?.[0];
+    if (linha) linhas.push({ encaixe: encaixe as Encaixe, provedor: linha.provedor, modelo: linha.modelo, chave_cifrada: linha.chave_cifrada, chave_iv: linha.chave_iv });
+  }
+
+  const rotas = montarRotasDaAgencia(linhas, feature, decryptApiKey);
+  if (rotas.descartadas.length) {
+    console.warn("[ia] encaixes da agência descartados", { tarefa: feature, conta: workspaceId, descartadas: rotas.descartadas });
+  }
+  return { attempts: rotas.attempts, timeoutMs: rotas.timeoutMs, allowCrossProvider: rotas.allowCrossProvider, modo: "propria" };
 }
 
 export async function resolveChatRouting(workspaceId: string): Promise<ResolvedAIRouting> {

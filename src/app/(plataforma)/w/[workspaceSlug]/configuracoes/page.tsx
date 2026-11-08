@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Configuracoes } from "@/components/configuracoes/Configuracoes";
 import { MolduraDaConta } from "@/components/shell/MolduraDaConta";
 import { resolveWorkspaceContext } from "@/lib/brennimark/workspace-context";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * Configurações — tela da CONTA, como Registros (30/09/2026).
@@ -26,6 +27,14 @@ export default async function ConfiguracoesPage({
   // Não participa, ou não administra: a mesma saída para os dois.
   if (!conta || conta.papel !== "owner") redirect("/docs");
 
+  /*
+   * A aba "IA" só existe em conta de plano "traga a sua IA" (ADR-0009). O modo
+   * vem do banco, com a sessão da dona: a função só responde a quem administra.
+   * Se a pergunta falhar, a aba some — a rota de dados confere de novo.
+   */
+  const supabase = await createClient();
+  const { data: modo } = await supabase.rpc("modo_de_ia_da_conta", { p_workspace_id: conta.id });
+
   return (
     <MolduraDaConta contexto={contexto} contaSlug={conta.slug}>
       <div className="px-[var(--space-shell-5)] py-[var(--space-shell-6)]">
@@ -36,7 +45,7 @@ export default async function ConfiguracoesPage({
             administra a conta vê esta tela.
           </p>
           <div className="mt-8">
-            <Configuracoes />
+            <Configuracoes iaDaAgencia={modo === "propria"} />
           </div>
         </div>
       </div>

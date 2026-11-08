@@ -210,7 +210,15 @@ export function trechosDoContraste(cores: readonly CorMedida[], ingles: boolean)
         : `Só os pares que chegam a 3:1 estão listados. Todo par destas cores (ou cor contra branco/preto) que NÃO está na lista foi medido e fica ABAIXO de 3:1: falha em todos os usos. A razão exata está na tela da paleta.`);
     }
     linhas.push(...listados.map((p) => linhaDoPar(p, ingles)));
-    linhas.push(...linhasDeConfusao(confundem.filter((c) => c.afirmado === (status === "ready")), ingles));
+    const confusoesDoGrupo = confundem.filter((c) => c.afirmado === (status === "ready"));
+    const paresComparados = entreCores.some((p) => p.afirmado === (status === "ready"));
+    linhas.push(...linhasDeConfusao(confusoesDoGrupo, ingles));
+    // Ausência também é resultado medido: sem esta linha o Vini respondia "não está documentado".
+    if (confusoesDoGrupo.length === 0 && paresComparados) {
+      linhas.push(ingles
+        ? "Color blindness: no pair of these colors comes out alike for protanopia, deuteranopia or tritanopia in the APPROXIMATE simulation (not a diagnosis). Say it is a simulation, and that the brand's own manual does not document it."
+        : "Daltonismo: nenhum par destas cores fica parecido para protanopia, deuteranopia ou tritanopia na simulação APROXIMADA (não é laudo). Diga que é simulação e que o manual da marca não documenta isso.");
+    }
     if (semMedida.length > 0) {
       linhas.push(ingles
         ? `NOT measured (no HEX in the sheet): ${semMedida.map((c) => c.nome).join(", ")}. Say you did not measure them.`

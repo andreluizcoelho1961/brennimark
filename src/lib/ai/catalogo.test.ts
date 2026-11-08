@@ -173,8 +173,15 @@ test("os modelos do catálogo com imagem computável hoje", () => {
   // 23/09/2026: entrou o Qwen 3.8 27B do Groq, a IA de reserva da fase de
   // testes — 2.048 tokens por imagem, fonte
   // https://console.groq.com/docs/model/qwen/qwen3.8-27b.
+  // 07/11/2026: entraram os três modelos da Anthropic, com preço e teto de imagem
+  // de https://platform.claude.com/docs/en/about-claude/pricing e
+  // https://platform.claude.com/docs/en/build-with-claude/vision (4.784 tokens
+  // por imagem no Sonnet 5 e no Opus 4.8; 1.568 no Haiku 4.5) — o plano "traga a
+  // sua IA" (ADR-0009) oferece esses modelos à agência, e sem preço o Vini os recusa.
   assert.deepEqual(comImagemComputavel, [
-    "groq:qwen/qwen3.8-27b", "google:gemini-3.6-flash", "ollama-cloud:gemma4:31b-cloud",
+    "groq:qwen/qwen3.8-27b",
+    "anthropic:claude-sonnet-5", "anthropic:claude-haiku-4-5-20251001", "anthropic:claude-opus-4-8",
+    "google:gemini-3.6-flash", "ollama-cloud:gemma4:31b-cloud",
   ]);
 });
 
