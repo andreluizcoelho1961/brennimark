@@ -5,6 +5,7 @@ import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { TERMO } from "@/lib/ia-propria/termo";
+import { PacotesDePerguntas } from "./PacotesDePerguntas";
 import { microsParaDolares, perguntasQueCabem } from "@/lib/ia-propria/teto";
 
 /**
@@ -24,7 +25,7 @@ type Modelo = { model: string; label: string; vision: boolean; gratuito: boolean
 type Provedor = { value: string; label: string; modelos: Modelo[] };
 type Chave = { encaixe: Encaixe; provedor: string; modelo: string; chaveFinal: string; atualizadaEm: string; testadaEm: string | null; testeOk: boolean | null };
 type Uso = {
-  franquia: number | null; perguntasNoMes: number; voltaEm: string;
+  franquia: number | null; franquiaDoPlano: number | null; perguntasDePacotes: number; perguntasNoMes: number; voltaEm: string;
   tetoDiarioMicros: number | null; tetoMensalMicros: number | null;
   gastoHojeMicros: number; gastoNoMesMicros: number;
 } | null;
@@ -395,7 +396,15 @@ function Franquia({ uso, isEnglish }: { uso: Uso; isEnglish: boolean }) {
           ? `Used ${uso.perguntasNoMes} of ${uso.franquia}${restantes === 0 ? `. Vini is back on ${volta}.` : `. ${restantes} left; the count restarts on ${volta}.`}`
           : `Usou ${uso.perguntasNoMes} de ${uso.franquia}${restantes === 0 ? `. O Vini volta em ${volta}.` : `. Restam ${restantes}; a contagem recomeça em ${volta}.`}`}
       </p>
+      {uso.perguntasDePacotes > 0 && uso.franquiaDoPlano !== null && (
+        <p data-franquia-de-pacotes className="mt-1 text-xs text-platform-text-muted">
+          {isEnglish
+            ? `${uso.franquiaDoPlano} from the plan + ${uso.perguntasDePacotes} from extra packs.`
+            : `${uso.franquiaDoPlano} do plano + ${uso.perguntasDePacotes} de pacotes avulsos.`}
+        </p>
+      )}
       <progress className="mt-3 block h-2 w-full" max={uso.franquia} value={Math.min(uso.perguntasNoMes, uso.franquia)} aria-label={isEnglish ? "Questions used" : "Perguntas usadas"} />
+      {uso.franquiaDoPlano !== null && <PacotesDePerguntas isEnglish={isEnglish} esgotada={restantes === 0} />}
     </section>
   );
 }

@@ -89,6 +89,15 @@ export async function POST(request: Request) {
           if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "cobranca_boas_vindas_falhou", motivo: envio.motivo }));
         }
       },
+      async creditarPacote(c) {
+        const { data, error } = await servico.rpc("creditar_pacote_de_perguntas", {
+          p_workspace_id: c.workspaceId, p_codigo: c.pacote.codigo, p_quantidade: c.pacote.quantidade,
+          p_valor_centavos: c.valorCentavos, p_moeda: c.moeda, p_sessao_externa: c.sessao,
+        });
+        if (error) throw new Error(`pacote: ${error.code} ${error.hint ?? ""}`.trim());
+        if (data === true) console.info(JSON.stringify({ level: "info", msg: "cobranca_pacote_creditado", pacote: c.pacote.codigo }));
+        return data === true;
+      },
       async sincronizar(a) {
         const { data, error } = await servico.rpc("cobranca_sincronizar_assinatura", {
           p_provedor: "stripe",
