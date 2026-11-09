@@ -65,6 +65,31 @@ function portas(creditar: () => Promise<boolean>): { portas: Portas; chamadas: s
   };
 }
 
+test("valor pago diferente do catálogo falha o aviso (B2); sem valor também", () => {
+  assert.throws(() => compraDePacoteDoAviso(aviso(sessao({ amount_total: 100 }))), /valor pago diverge/);
+  assert.throws(() => compraDePacoteDoAviso(aviso(sessao({ amount_total: undefined }))), /valor pago diverge/);
+  assert.equal(compraDePacoteDoAviso(aviso(sessao({ amount_total: 2900 })))?.valorCentavos, 2900);
+});
+
+test("falha ao creditar avisa a equipe só na primeira vez, e leva sessão, conta e pacote no detalhe", async () => {
+  const alertas: string[] = [];
+  const base = portas(async () => { throw new Error("pacote: 22023 pacote_sem_franquia"); });
+  const comAlerta = { ...base.portas, async alertarPacoteNaoCreditado(a: { detalhe: string }) { alertas.push(a.detalhe); } } as Portas;
+  await assert.rejects(processarAviso("stripe", aviso(sessao()), comAlerta), /pacote_sem_franquia/);
+  assert.equal(alertas.length, 1);
+  assert.match(alertas[0], /sessao=cs_live_1 conta=0b1f7b3e.* pacote=100-perguntas/);
+  assert.match(base.chamadas.at(-1) ?? "", /sessao=cs_live_1/);
+  const repetido = { ...comAlerta, async receber() { return "repetir" as const; } } as Portas;
+  await assert.rejects(processarAviso("stripe", aviso(sessao()), repetido), /pacote_sem_franquia/);
+  assert.equal(alertas.length, 1);
+});
+
+test("o alerta que falha não esconde a falha original", async () => {
+  const base = portas(async () => { throw new Error("pacote: 22023 pacote_sem_franquia"); });
+  const quebrado = { ...base.portas, async alertarPacoteNaoCreditado() { throw new Error("resend fora"); } } as Portas;
+  await assert.rejects(processarAviso("stripe", aviso(sessao()), quebrado), /pacote_sem_franquia/);
+});
+
 test("o webhook credita o pacote sem tocar em assinatura", async () => {
   const { portas: p, chamadas } = portas(async () => true);
   const d = await processarAviso("stripe", aviso(sessao()), p);
