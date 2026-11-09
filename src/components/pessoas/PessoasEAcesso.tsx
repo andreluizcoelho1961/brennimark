@@ -188,6 +188,24 @@ export function PessoasEAcesso() {
     if (resposta.ok) await carregar();
   }
 
+  /** Liga ou desliga o Vini para uma pessoa de consulta. O banco confere; aqui só se mostra o que houve. */
+  async function mudarVini(pessoa: Pessoa, ligado: boolean) {
+    setMensagem("");
+    const resposta = await fetch(comAlvo("/api/admin/pessoas/vini", alvo), {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: pessoa.email, ligado }),
+    });
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) {
+      setMensagem(dados.message ?? (isEnglish ? "Couldn't save." : "Não foi possível guardar."));
+      return;
+    }
+    setMensagem(ligado
+      ? (isEnglish ? `Vini is on for ${pessoa.email}.` : `O Vini está ligado para ${pessoa.email}.`)
+      : (isEnglish ? `Vini is off for ${pessoa.email}.` : `O Vini está desligado para ${pessoa.email}.`));
+    await carregar();
+  }
+
   const campo = "w-full border border-platform-border bg-platform-bg px-4 py-3 text-platform-text focus:border-platform-signal focus:outline-none";
   const rotulo = "mb-2 block text-xs font-bold uppercase text-platform-text-muted";
   const botaoSecundario = "border border-platform-border px-3 py-1.5 font-display text-[10px] font-bold uppercase text-platform-text-muted";
@@ -299,12 +317,13 @@ export function PessoasEAcesso() {
       {carregando
         ? <p className="mt-8 text-sm text-platform-text-muted">{isEnglish ? "Loading…" : "Carregando…"}</p>
         : <div className="mt-8 overflow-x-auto">
-            <table data-tabela-pessoas className="w-full min-w-[40rem] text-left text-sm">
+            <table data-tabela-pessoas className="w-full min-w-[46rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-platform-border text-[11px] uppercase tracking-wider text-platform-text-muted">
                   <th className="py-2 pr-4 font-medium">{isEnglish ? "Person" : "Pessoa"}</th>
                   <th className="py-2 pr-4 font-medium">{isEnglish ? "Level" : "Nível"}</th>
                   <th className="py-2 pr-4 font-medium">{isEnglish ? "Reaches" : "Alcança"}</th>
+                  <th className="py-2 pr-4 font-medium">{isEnglish ? "Uses Vini" : "Usa o Vini"}</th>
                   <th className="py-2 font-medium"><span className="sr-only">{isEnglish ? "Actions" : "Ações"}</span></th>
                 </tr>
               </thead>
@@ -343,6 +362,17 @@ export function PessoasEAcesso() {
                           ))}
                         </span>
                       )}
+                    </td>
+                    <td className="py-3 pr-4 text-platform-text-muted">
+                      {pessoa.usaOVini === null || pessoa.usaOVini === undefined
+                        ? (pessoa.papel === "administrador"
+                            ? (isEnglish ? "Always" : "Sempre")
+                            : (isEnglish ? "After first sign-in" : "Depois do primeiro acesso"))
+                        : <label className="flex items-center gap-2 text-platform-text">
+                            <input type="checkbox" data-usa-o-vini={pessoa.email} checked={pessoa.usaOVini}
+                              onChange={(e) => { void mudarVini(pessoa, e.target.checked); }} />
+                            {pessoa.usaOVini ? (isEnglish ? "On" : "Ligado") : (isEnglish ? "Off" : "Desligado")}
+                          </label>}
                     </td>
                     <td className="flex flex-wrap gap-2 py-3">
                       {pessoa.pendente && pessoa.senhaProvisoriaAte && (
