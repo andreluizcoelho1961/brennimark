@@ -84,7 +84,8 @@ export type MotivoDeRecusa =
   | "orcamento_do_workspace_esgotado"
   | "orcamento_mensal_esgotado"
   | "orcamento_da_marca_esgotado"
-  | "franquia_esgotada";
+  | "franquia_esgotada"
+  | "vini_desligado_para_voce";
 
 /** O estado do LEDGER para esta execução — não confundir com o resultado da chamada. */
 export type StatusDaExecucao = "reserved" | "settled" | "released";
@@ -351,6 +352,12 @@ export function mensagemDeOrcamento(
     return ingles
       ? "The assistant is paused for this account. Contact Brennimark support."
       : "O Vini está pausado nesta conta. Fale com o suporte da Brennimark.";
+  }
+  // O interruptor por pessoa (08/11/2026): quem administra a conta desligou o Vini para esta pessoa.
+  if (motivo === "vini_desligado_para_voce") {
+    return ingles
+      ? "Vini is turned off for you in this account. Ask the account administrator if you need it."
+      : "O Vini está desligado para você nesta conta. Se precisar dele, peça a quem administra a conta.";
   }
   // A franquia de perguntas do plano (08/11/2026): acabou, volta no mês seguinte.
   if (motivo === "franquia_esgotada") {

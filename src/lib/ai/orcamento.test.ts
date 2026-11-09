@@ -256,6 +256,15 @@ test("franquia esgotada diz que volta no mês seguinte e não manda procurar o s
   assert.doesNotMatch(pt, /suporte/);
 });
 
+test("Vini desligado para a pessoa manda falar com quem administra, não com o suporte", () => {
+  const pt = mensagemDeOrcamento("vini_desligado_para_voce", false);
+  const en = mensagemDeOrcamento("vini_desligado_para_voce", true);
+  assert.match(pt, /desligado para você/);
+  assert.match(pt, /quem administra a conta/);
+  assert.match(en, /turned off for you/);
+  assert.doesNotMatch(pt, /suporte/);
+});
+
 test("na IA própria o teto esgotado é da agência: manda a dona mudar em Configurações, não falar com a Brennimark", () => {
   for (const motivo of ["orcamento_do_workspace_esgotado", "orcamento_mensal_esgotado"] as const) {
     const pt = mensagemDeOrcamento(motivo, false, "propria");
