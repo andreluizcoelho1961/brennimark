@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { dentroDoLimite, ipDoPedido } from "@/lib/seguranca/limite-de-taxa";
 import { abrirCheckout } from "@/lib/cobranca/abrir-checkout";
 import { lerPedidoDeCompra } from "@/lib/cobranca/compra";
 import {
@@ -22,6 +24,14 @@ import {
 export async function POST(request: Request) {
   const lido = lerPedidoDeCompra(await request.json().catch(() => null));
   if (!lido.ok) return NextResponse.json({ message: lido.motivo }, { status: 400 });
+
+  // Teto por IP (auditoria de 09/11/2026, A1): cada pedido abre uma sessão no Stripe. 20 por hora.
+  try {
+    const servico = createServiceClient();
+    if (!(await dentroDoLimite(servico, { rota: "checkout", ip: ipDoPedido(request.headers), limite: 20, janelaSegundos: 3600 }))) {
+      return NextResponse.json({ message: "Muitas tentativas. Tente de novo daqui a pouco." }, { status: 429, headers: { "Retry-After": "3600" } });
+    }
+  } catch { /* sem chave de serviço o limite não existe; a abertura do checkout segue como estava */ }
 
   const prova = gerarProva();
   const abertura = await abrirCheckout(lido.valor, new URL(request.url).origin, {
