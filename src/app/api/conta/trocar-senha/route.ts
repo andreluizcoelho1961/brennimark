@@ -1,3 +1,4 @@
+import { FRASE_DE_SENHA_VAZADA, senhaVazada } from "@/lib/acesso/senha-vazada";
 import { NextResponse } from "next/server";
 import { inEnglish } from "@/platform/locale";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
@@ -56,6 +57,8 @@ export async function POST(request: Request) {
       } as const;
       return NextResponse.json({ message: t(frases[recusa][0], frases[recusa][1]) }, { status: 400 });
     }
+
+    if (await senhaVazada(corpo.senha)) return NextResponse.json({ message: t(FRASE_DE_SENHA_VAZADA.pt, FRASE_DE_SENHA_VAZADA.en) }, { status: 400 });
 
     // Senha e marca no MESMO pedido: não existe instante em que a senha já é a
     // nova e a marca ainda diz "provisória", nem o contrário.
