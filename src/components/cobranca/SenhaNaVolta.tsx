@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +27,7 @@ type Estado = Momento | "conferindo" | "demorou" | "falhou";
 
 export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
   const router = useRouter();
+  const t = useTranslations("cobranca.volta");
   const [estado, setEstado] = useState<Estado>(sessao ? "conferindo" : "sem-prova");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -77,8 +79,7 @@ export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
     setErro("");
     const recusa = conferirSenhaNova(senha, confirmacao);
     if (recusa) {
-      setErro(recusa === "curta" ? "A senha precisa de ao menos 12 caracteres."
-        : recusa === "longa" ? "A senha passou do tamanho máximo." : "As duas senhas não são iguais.");
+      setErro(t(recusa === "curta" ? "curta" : recusa === "longa" ? "longa" : "diferentes"));
       return;
     }
     setEnviando(true);
@@ -90,7 +91,7 @@ export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
     if (!resposta?.ok || !dados?.destino) {
       setEnviando(false);
       if (resposta?.status === 409 && dados?.momento) { setEstado(dados.momento); return; }
-      setErro(dados?.message ?? "Não foi possível criar a senha. Tente de novo.");
+      setErro(dados?.message ?? t("falhouCriar"));
       return;
     }
     const { error } = await createClient().auth.signInWithPassword({ email: dados.email ?? email, password: senha });
@@ -109,14 +110,14 @@ export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
   const botao = "border border-platform-signal px-6 py-3 font-display text-xs font-bold uppercase tracking-wide text-platform-text transition-colors duration-150 hover:bg-platform-text hover:text-platform-bg disabled:opacity-50";
 
   const titulo: Record<Estado, string> = {
-    conferindo: "Pagamento enviado",
-    aguardando: "Confirmando o pagamento",
-    "criar-senha": "Crie a sua senha",
-    "ja-tem-acesso": "Sua conta está pronta",
-    "sem-prova": "Pagamento enviado",
-    expirado: "Pagamento enviado",
-    demorou: "Confirmando o pagamento",
-    falhou: "Pagamento enviado",
+    conferindo: t("titulos.pago"),
+    aguardando: t("titulos.confirmando"),
+    "criar-senha": t("titulos.criarSenha"),
+    "ja-tem-acesso": t("titulos.pronta"),
+    "sem-prova": t("titulos.pago"),
+    expirado: t("titulos.pago"),
+    demorou: t("titulos.confirmando"),
+    falhou: t("titulos.pago"),
   };
 
   return (
@@ -126,41 +127,40 @@ export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
 
       {(estado === "conferindo" || estado === "aguardando") && (
         <p role="status" className="mt-4 text-sm leading-relaxed text-platform-text-muted">
-          Estamos esperando o Stripe confirmar o pagamento e abrindo a sua conta. No cartão, isso leva alguns segundos.
-          Não feche esta página.
+          {t("esperando")}
         </p>
       )}
 
       {estado === "demorou" && (
         <div className="mt-4 flex flex-col gap-4">
           <p className="text-sm leading-relaxed text-platform-text-muted">
-            A confirmação está demorando mais que o normal. Você pode conferir de novo daqui a pouco, nesta mesma página.
+            {t("demorou")}
           </p>
-          <button type="button" onClick={conferirDeNovo} className={`${botao} self-start`}>Conferir de novo</button>
+          <button type="button" onClick={conferirDeNovo} className={`${botao} self-start`}>{t("conferir")}</button>
         </div>
       )}
 
       {estado === "criar-senha" && (
         <form onSubmit={criar} data-form-senha-na-volta className="mt-6 flex flex-col gap-4">
           <p className="text-sm leading-relaxed text-platform-text-muted">
-            Pagamento confirmado. Crie a senha com que você vai entrar no Brennimark.
+            {t("confirmado")}
           </p>
           <label>
-            <span className={rotulo}>E-mail</span>
+            <span className={rotulo}>{t("email")}</span>
             <input type="email" value={email} readOnly autoComplete="username" className={`${campo} opacity-70`} />
           </label>
           <label>
-            <span className={rotulo}>Senha</span>
+            <span className={rotulo}>{t("senha")}</span>
             <input type="password" required autoComplete="new-password" value={senha}
               onChange={(e) => setSenha(e.target.value)} className={campo} />
           </label>
           <label>
-            <span className={rotulo}>Repita a senha</span>
+            <span className={rotulo}>{t("repita")}</span>
             <input type="password" required autoComplete="new-password" value={confirmacao}
               onChange={(e) => setConfirmacao(e.target.value)} className={campo} />
           </label>
-          <p className="text-[12px] text-platform-text-muted">Ao menos 12 caracteres.</p>
-          <button type="submit" disabled={enviando} className={botao}>{enviando ? "…" : "Criar senha e entrar"}</button>
+          <p className="text-[12px] text-platform-text-muted">{t("minimo")}</p>
+          <button type="submit" disabled={enviando} className={botao}>{enviando ? "…" : t("criar")}</button>
           {erro && <p role="alert" data-erro-da-senha className="text-xs text-platform-text-muted">{erro}</p>}
         </form>
       )}
@@ -168,25 +168,25 @@ export function SenhaNaVolta({ sessao }: { sessao: string | null }) {
       {estado === "ja-tem-acesso" && (
         <div className="mt-4 flex flex-col gap-4">
           <p className="text-sm leading-relaxed text-platform-text-muted">
-            {email ? <>Entre com <strong className="text-platform-text">{email}</strong> e a sua senha do Brennimark.</>
-              : "Entre com o seu e-mail e a sua senha do Brennimark."}
+            {email ? t.rich("entreCom", { email, b: (c) => <strong className="text-platform-text">{c}</strong> })
+              : t("entreSemEmail")}
           </p>
-          <Link href="/login" className={`${botao} self-start`}>Entrar</Link>
+          <Link href="/login" className={`${botao} self-start`}>{t("entrar")}</Link>
         </div>
       )}
 
       {(estado === "sem-prova" || estado === "expirado" || estado === "falhou") && (
         <p className="mt-4 text-sm leading-relaxed text-platform-text-muted" data-volta-sem-senha>
           {estado === "falhou"
-            ? "Não conseguimos conferir a compra agora. Recarregue esta página em instantes."
+            ? t("falhou")
             : estado === "expirado"
-              ? "O prazo para criar a senha por esta página passou. Use “Esqueci a senha” na tela de entrar, com o e-mail da compra."
-              : "Assim que o Stripe confirmar o pagamento, a sua conta é criada. Para criar a senha aqui, abra esta página no mesmo navegador em que fez a compra — ou use “Esqueci a senha” na tela de entrar, com o e-mail da compra."}
+              ? t("expirado")
+              : t("semProva")}
         </p>
       )}
 
       <p className="mt-8 border-t border-platform-border pt-6 text-xs text-platform-text-muted">
-        Já tem acesso? <Link href="/login" className="underline">Entrar</Link>
+        {t("jaTem")} <Link href="/login" className="underline">{t("entrar")}</Link>
       </p>
     </div>
   );

@@ -13,6 +13,8 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+import type { Tradutor } from "../i18n/tradutor";
+
 export type Grupo = "site" | "redes" | "endomarketing" | "email" | "apresentacao";
 
 /** Como o desenho entra na imagem. */
@@ -28,7 +30,6 @@ export type Fonte = { tipo: "conferido"; url: string; em: string } | { tipo: "es
 export type ItemDoKit = {
   grupo: Grupo;
   arquivo: string;
-  nome: string;
   largura: number;
   /** 0: segue a proporção do desenho (só em `transparente`). */
   altura: number;
@@ -46,7 +47,6 @@ export type ItemDoKit = {
   tom?: "original" | "negativo" | "uma-cor";
   /** Entra no favicon.ico. */
   ico?: true;
-  obs?: string;
   fonte: Fonte;
 };
 
@@ -66,65 +66,82 @@ const WORKSPACE = conferido("https://support.google.com/a/answer/96474");
 
 export const ITENS_DO_KIT: readonly ItemDoKit[] = [
   // ─── Site ────────────────────────────────────────────────────────────────
-  { grupo: "site", arquivo: "favicon-16.png", nome: "Favicon 16", largura: 16, altura: 16, formato: "quadrado", desenho: "pequeno", ico: true, fonte: ESPEC },
-  { grupo: "site", arquivo: "favicon-32.png", nome: "Favicon 32", largura: 32, altura: 32, formato: "quadrado", desenho: "pequeno", ico: true, fonte: ESPEC },
-  { grupo: "site", arquivo: "favicon-48.png", nome: "Favicon 48", largura: 48, altura: 48, formato: "quadrado", desenho: "pequeno", ico: true, fonte: ESPEC },
-  { grupo: "site", arquivo: "apple-touch-icon.png", nome: "Ícone do iPhone", largura: 180, altura: 180, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "site", arquivo: "android-192.png", nome: "Ícone Android", largura: 192, altura: 192, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "site", arquivo: "android-512.png", nome: "Ícone Android grande", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "site", arquivo: "android-adaptavel-512.png", nome: "Ícone adaptável (Android)", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", circuloSeguro: 0.8, obs: "o desenho dentro da área segura", fonte: ESPEC },
-  { grupo: "site", arquivo: "compartilhamento-1200x630.png", nome: "Imagem de link", largura: 1200, altura: 630, formato: "faixa", desenho: "logo", obs: "WhatsApp, LinkedIn, e-mail", fonte: ESPEC },
+  { grupo: "site", arquivo: "favicon-16.png", largura: 16, altura: 16, formato: "quadrado", desenho: "pequeno", ico: true, fonte: ESPEC },
+  { grupo: "site", arquivo: "favicon-32.png", largura: 32, altura: 32, formato: "quadrado", desenho: "pequeno", ico: true, fonte: ESPEC },
+  { grupo: "site", arquivo: "favicon-48.png", largura: 48, altura: 48, formato: "quadrado", desenho: "pequeno", ico: true, fonte: ESPEC },
+  { grupo: "site", arquivo: "apple-touch-icon.png", largura: 180, altura: 180, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "site", arquivo: "android-192.png", largura: 192, altura: 192, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "site", arquivo: "android-512.png", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "site", arquivo: "android-adaptavel-512.png", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", circuloSeguro: 0.8, fonte: ESPEC },
+  { grupo: "site", arquivo: "compartilhamento-1200x630.png", largura: 1200, altura: 630, formato: "faixa", desenho: "logo", fonte: ESPEC },
 
   // ─── Redes sociais ───────────────────────────────────────────────────────
-  { grupo: "redes", arquivo: "instagram-perfil-1080.png", nome: "Instagram · perfil", largura: 1080, altura: 1080, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "facebook-perfil-720.png", nome: "Facebook · perfil", largura: 720, altura: 720, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "facebook-capa-1640x624.png", nome: "Facebook · capa", largura: 1640, altura: 624, formato: "faixa", desenho: "logo", fonte: ESPEC },
-  { grupo: "redes", arquivo: "linkedin-logo-400.png", nome: "LinkedIn · logo da página", largura: 400, altura: 400, formato: "quadrado", desenho: "pequeno", fonte: LINKEDIN_PAGINAS },
-  { grupo: "redes", arquivo: "linkedin-capa-1512x256.png", nome: "LinkedIn · capa da página", largura: 1512, altura: 256, formato: "faixa", desenho: "logo", obs: "o LinkedIn pede o importante no centro, longe do canto inferior direito", fonte: LINKEDIN_PAGINAS },
-  { grupo: "redes", arquivo: "x-perfil-400.png", nome: "X · perfil", largura: 400, altura: 400, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "x-capa-1500x500.png", nome: "X · capa", largura: 1500, altura: 500, formato: "faixa", desenho: "logo", fonte: ESPEC },
-  { grupo: "redes", arquivo: "youtube-perfil-800.png", nome: "YouTube · perfil", largura: 800, altura: 800, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "youtube-banner-2560x1440.png", nome: "YouTube · banner", largura: 2560, altura: 1440, formato: "faixa", desenho: "logo", seguro: { largura: 1546 / 2560, altura: 423 / 1440 }, obs: "a marca na área que aparece em todo aparelho", fonte: ESPEC },
-  { grupo: "redes", arquivo: "tiktok-perfil-720.png", nome: "TikTok · perfil", largura: 720, altura: 720, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "whatsapp-business-640.png", nome: "WhatsApp Business · perfil", largura: 640, altura: 640, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "redes", arquivo: "pinterest-perfil-600.png", nome: "Pinterest · perfil", largura: 600, altura: 600, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "instagram-perfil-1080.png", largura: 1080, altura: 1080, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "facebook-perfil-720.png", largura: 720, altura: 720, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "facebook-capa-1640x624.png", largura: 1640, altura: 624, formato: "faixa", desenho: "logo", fonte: ESPEC },
+  { grupo: "redes", arquivo: "linkedin-logo-400.png", largura: 400, altura: 400, formato: "quadrado", desenho: "pequeno", fonte: LINKEDIN_PAGINAS },
+  { grupo: "redes", arquivo: "linkedin-capa-1512x256.png", largura: 1512, altura: 256, formato: "faixa", desenho: "logo", fonte: LINKEDIN_PAGINAS },
+  { grupo: "redes", arquivo: "x-perfil-400.png", largura: 400, altura: 400, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "x-capa-1500x500.png", largura: 1500, altura: 500, formato: "faixa", desenho: "logo", fonte: ESPEC },
+  { grupo: "redes", arquivo: "youtube-perfil-800.png", largura: 800, altura: 800, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "youtube-banner-2560x1440.png", largura: 2560, altura: 1440, formato: "faixa", desenho: "logo", seguro: { largura: 1546 / 2560, altura: 423 / 1440 }, fonte: ESPEC },
+  { grupo: "redes", arquivo: "tiktok-perfil-720.png", largura: 720, altura: 720, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "whatsapp-business-640.png", largura: 640, altura: 640, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "redes", arquivo: "pinterest-perfil-600.png", largura: 600, altura: 600, formato: "circulo", desenho: "pequeno", fonte: ESPEC },
 
   // ─── Endomarketing e employer branding ───────────────────────────────────
-  { grupo: "endomarketing", arquivo: "linkedin-vitrine-capa-1512x256.png", nome: "LinkedIn · página vitrine", largura: 1512, altura: 256, formato: "faixa", desenho: "logo", obs: "o LinkedIn pede o importante no centro, longe do canto inferior direito", fonte: LINKEDIN_PAGINAS },
-  { grupo: "endomarketing", arquivo: "linkedin-vida-1128x376.png", nome: "LinkedIn · aba Vida (Career Pages)", largura: 1128, altura: 376, formato: "faixa", desenho: "logo", obs: "imagem principal da aba Vida — só nas Career Pages", fonte: LINKEDIN_PAGINAS },
-  { grupo: "endomarketing", arquivo: "linkedin-evento-capa-1776x444.png", nome: "LinkedIn · capa de evento", largura: 1776, altura: 444, formato: "faixa", desenho: "logo", fonte: LINKEDIN },
-  { grupo: "endomarketing", arquivo: "gupy-carreiras-760x430.png", nome: "Gupy · imagem da página de carreiras", largura: 760, altura: 430, formato: "faixa", desenho: "logo", obs: "a Gupy recomenda foto do ambiente; esta é a versão com a marca", fonte: GUPY },
-  { grupo: "endomarketing", arquivo: "gupy-vaga-topo-1980x600.png", nome: "Gupy · topo da página de vaga", largura: 1980, altura: 600, formato: "faixa", desenho: "logo", fonte: GUPY },
-  { grupo: "endomarketing", arquivo: "glassdoor-logo-512.png", nome: "Glassdoor · logo", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", obs: "mínimo pedido: 256 × 256", fonte: GLASSDOOR_LOGO },
-  { grupo: "endomarketing", arquivo: "glassdoor-capa-2880x550.png", nome: "Glassdoor · capa", largura: 2880, altura: 550, formato: "faixa", desenho: "logo", obs: "o dobro do mínimo de 1440 × 275", fonte: GLASSDOOR_CAPA },
-  { grupo: "endomarketing", arquivo: "viva-engage-capa-1400x524.png", nome: "Viva Engage · capa da comunidade", largura: 1400, altura: 524, formato: "faixa", desenho: "logo", fonte: VIVA },
-  { grupo: "endomarketing", arquivo: "teams-equipe-240.png", nome: "Teams · ícone de equipe", largura: 240, altura: 240, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "endomarketing", arquivo: "slack-espaco-512.png", nome: "Slack · ícone do espaço", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
-  { grupo: "endomarketing", arquivo: "google-workspace-logo-320x132.png", nome: "Google Workspace · logo", largura: 320, altura: 132, formato: "faixa", desenho: "logo", obs: "exibido em exatamente 320 × 132", fonte: WORKSPACE },
-  { grupo: "endomarketing", arquivo: "fundo-videochamada-1920x1080.png", nome: "Fundo de videochamada", largura: 1920, altura: 1080, formato: "videochamada", desenho: "logo", obs: "Teams, Zoom e Meet", fonte: ESPEC },
-  { grupo: "endomarketing", arquivo: "papel-de-parede-1920x1080.png", nome: "Papel de parede", largura: 1920, altura: 1080, formato: "faixa", desenho: "logo", seguro: { largura: 0.5, altura: 0.5 }, fonte: ESPEC },
-  { grupo: "endomarketing", arquivo: "papel-de-parede-2560x1440.png", nome: "Papel de parede (tela grande)", largura: 2560, altura: 1440, formato: "faixa", desenho: "logo", seguro: { largura: 0.5, altura: 0.5 }, fonte: ESPEC },
+  { grupo: "endomarketing", arquivo: "linkedin-vitrine-capa-1512x256.png", largura: 1512, altura: 256, formato: "faixa", desenho: "logo", fonte: LINKEDIN_PAGINAS },
+  { grupo: "endomarketing", arquivo: "linkedin-vida-1128x376.png", largura: 1128, altura: 376, formato: "faixa", desenho: "logo", fonte: LINKEDIN_PAGINAS },
+  { grupo: "endomarketing", arquivo: "linkedin-evento-capa-1776x444.png", largura: 1776, altura: 444, formato: "faixa", desenho: "logo", fonte: LINKEDIN },
+  { grupo: "endomarketing", arquivo: "gupy-carreiras-760x430.png", largura: 760, altura: 430, formato: "faixa", desenho: "logo", fonte: GUPY },
+  { grupo: "endomarketing", arquivo: "gupy-vaga-topo-1980x600.png", largura: 1980, altura: 600, formato: "faixa", desenho: "logo", fonte: GUPY },
+  { grupo: "endomarketing", arquivo: "glassdoor-logo-512.png", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: GLASSDOOR_LOGO },
+  { grupo: "endomarketing", arquivo: "glassdoor-capa-2880x550.png", largura: 2880, altura: 550, formato: "faixa", desenho: "logo", fonte: GLASSDOOR_CAPA },
+  { grupo: "endomarketing", arquivo: "viva-engage-capa-1400x524.png", largura: 1400, altura: 524, formato: "faixa", desenho: "logo", fonte: VIVA },
+  { grupo: "endomarketing", arquivo: "teams-equipe-240.png", largura: 240, altura: 240, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "endomarketing", arquivo: "slack-espaco-512.png", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "endomarketing", arquivo: "google-workspace-logo-320x132.png", largura: 320, altura: 132, formato: "faixa", desenho: "logo", fonte: WORKSPACE },
+  { grupo: "endomarketing", arquivo: "fundo-videochamada-1920x1080.png", largura: 1920, altura: 1080, formato: "videochamada", desenho: "logo", fonte: ESPEC },
+  { grupo: "endomarketing", arquivo: "papel-de-parede-1920x1080.png", largura: 1920, altura: 1080, formato: "faixa", desenho: "logo", seguro: { largura: 0.5, altura: 0.5 }, fonte: ESPEC },
+  { grupo: "endomarketing", arquivo: "papel-de-parede-2560x1440.png", largura: 2560, altura: 1440, formato: "faixa", desenho: "logo", seguro: { largura: 0.5, altura: 0.5 }, fonte: ESPEC },
 
   // ─── E-mail ──────────────────────────────────────────────────────────────
-  { grupo: "email", arquivo: "assinatura-logo-600.png", nome: "Logo da assinatura", largura: 600, altura: 0, formato: "transparente", desenho: "logo", obs: "o dobro do tamanho exibido (300 px)", fonte: ESPEC },
+  { grupo: "email", arquivo: "assinatura-logo-600.png", largura: 600, altura: 0, formato: "transparente", desenho: "logo", fonte: ESPEC },
 
   // ─── Apresentação e uso geral ────────────────────────────────────────────
-  { grupo: "apresentacao", arquivo: "logotipo-2000.png", nome: "Logotipo", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "original", fonte: ESPEC },
-  { grupo: "apresentacao", arquivo: "logotipo-negativo-2000.png", nome: "Logotipo · fundo escuro", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "negativo", fonte: ESPEC },
-  { grupo: "apresentacao", arquivo: "logotipo-uma-cor-2000.png", nome: "Logotipo · uma cor", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "uma-cor", fonte: ESPEC },
-  { grupo: "apresentacao", arquivo: "logotipo-vertical-2000.png", nome: "Logotipo vertical", largura: 2000, altura: 0, formato: "transparente", desenho: "vertical", tom: "original", fonte: ESPEC },
-  { grupo: "apresentacao", arquivo: "simbolo-2000.png", nome: "Símbolo", largura: 2000, altura: 0, formato: "transparente", desenho: "simbolo", tom: "original", fonte: ESPEC },
-  { grupo: "apresentacao", arquivo: "avatar-512.png", nome: "Avatar (Slack, Teams, Google)", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "logotipo-2000.png", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "original", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "logotipo-negativo-2000.png", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "negativo", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "logotipo-uma-cor-2000.png", largura: 2000, altura: 0, formato: "transparente", desenho: "logo", tom: "uma-cor", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "logotipo-vertical-2000.png", largura: 2000, altura: 0, formato: "transparente", desenho: "vertical", tom: "original", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "simbolo-2000.png", largura: 2000, altura: 0, formato: "transparente", desenho: "simbolo", tom: "original", fonte: ESPEC },
+  { grupo: "apresentacao", arquivo: "avatar-512.png", largura: 512, altura: 512, formato: "quadrado", desenho: "pequeno", fonte: ESPEC },
 ];
 
-export const GRUPOS_DO_KIT: readonly { id: Grupo; nome: string; pasta: string }[] = [
-  { id: "site", nome: "Site", pasta: "site" },
-  { id: "redes", nome: "Redes sociais", pasta: "redes" },
-  { id: "endomarketing", nome: "Endomarketing e employer branding", pasta: "endomarketing" },
-  { id: "email", nome: "E-mail", pasta: "email" },
-  { id: "apresentacao", nome: "Apresentação", pasta: "apresentacao" },
-];
+/** O nome de cada grupo vem do catálogo (`grupos.<id>`), e o da pasta no .zip também (`pastas.<id>`). */
+export const GRUPOS_DO_KIT: readonly { id: Grupo }[] = [{ id: "site" }, { id: "redes" }, { id: "endomarketing" }, { id: "email" }, { id: "apresentacao" }];
 
-export function pastaDoGrupo(grupo: Grupo): string {
-  return GRUPOS_DO_KIT.find((g) => g.id === grupo)!.pasta;
+/** A pasta do grupo dentro do .zip, no idioma de `t` (ligado a `ferramentas.kit`). */
+export function pastaDoGrupo(grupo: Grupo, t: Tradutor): string {
+  return t(`pastas.${grupo}`);
+}
+
+/**
+ * O nome do arquivo que o Kit GERA, no idioma de quem baixa. `item.arquivo` é só
+ * o identificador interno (a tabela, os testes); o nome que sai no .zip é do catálogo.
+ */
+export function nomeDoArquivo(item: Pick<ItemDoKit, "arquivo">, t: Tradutor): string {
+  return t(`arquivos.${item.arquivo.replace(/\.png$/, "")}`);
+}
+
+/** Os itens que têm observação no catálogo (os demais mostram só o nome e a medida). */
+const COM_OBSERVACAO: ReadonlySet<string> = new Set([
+  "android-adaptavel-512.png", "compartilhamento-1200x630.png", "linkedin-capa-1512x256.png", "youtube-banner-2560x1440.png",
+  "linkedin-vitrine-capa-1512x256.png", "linkedin-vida-1128x376.png", "gupy-carreiras-760x430.png", "glassdoor-logo-512.png",
+  "glassdoor-capa-2880x550.png", "google-workspace-logo-320x132.png", "fundo-videochamada-1920x1080.png", "assinatura-logo-600.png",
+]);
+
+/** O nome e a observação de um item, no idioma de `t` (ligado a `ferramentas.kit`). */
+export function textoDoItem(item: Pick<ItemDoKit, "arquivo">, t: Tradutor): { nome: string; obs?: string } {
+  const chave = item.arquivo.replace(/\.png$/, "");
+  return { nome: t(`itens.${chave}.nome`), obs: COM_OBSERVACAO.has(item.arquivo) ? t(`itens.${chave}.obs`) : undefined };
 }

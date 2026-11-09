@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { rotuloDaPessoa } from "@/lib/acesso/conta-removida";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
@@ -161,7 +162,7 @@ export function PessoasEAcesso() {
   }
 
   function quando(iso: string) {
-    return new Date(iso).toLocaleString(isEnglish ? "en-GB" : "pt-BR", {
+    return new Date(iso).toLocaleString(localeDeFormato(isEnglish), {
       day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
     });
   }
@@ -185,6 +186,24 @@ export function PessoasEAcesso() {
       ? textoDoResultado(String(dados.resultado ?? ""), isEnglish)
       : (dados.message ?? (isEnglish ? "Couldn't remove access." : "Não foi possível remover o acesso.")));
     if (resposta.ok) await carregar();
+  }
+
+  /** Liga ou desliga o Vini para uma pessoa de consulta. O banco confere; aqui só se mostra o que houve. */
+  async function mudarVini(pessoa: Pessoa, ligado: boolean) {
+    setMensagem("");
+    const resposta = await fetch(comAlvo("/api/admin/pessoas/vini", alvo), {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: pessoa.email, ligado }),
+    });
+    const dados = await resposta.json().catch(() => ({}));
+    if (!resposta.ok) {
+      setMensagem(dados.message ?? (isEnglish ? "Couldn't save." : "Não foi possível guardar."));
+      return;
+    }
+    setMensagem(ligado
+      ? (isEnglish ? `Vini is on for ${pessoa.email}.` : `O Vini está ligado para ${pessoa.email}.`)
+      : (isEnglish ? `Vini is off for ${pessoa.email}.` : `O Vini está desligado para ${pessoa.email}.`));
+    await carregar();
   }
 
   const campo = "w-full border border-platform-border bg-platform-bg px-4 py-3 text-platform-text focus:border-platform-signal focus:outline-none";
@@ -229,7 +248,11 @@ export function PessoasEAcesso() {
         ) : (
           <fieldset className="md:col-span-2">
             <legend className={rotulo}>{isEnglish ? "Brands" : "Marcas"}</legend>
-            {marcas.length === 0
+            {/* Enquanto a lista não chega, "ainda não tem marcas" seria falso: a conta
+                tem, e a demonstração mostrava o aviso errado por alguns segundos. */}
+            {carregando
+              ? <p className="text-sm text-platform-text-muted">{isEnglish ? "Loading…" : "Carregando…"}</p>
+              : marcas.length === 0
               ? <p className="text-sm text-platform-text-muted">{isEnglish ? "This account has no brands yet." : "Esta conta ainda não tem marcas."}</p>
               : <div className="flex flex-wrap gap-3">
                   {marcas.map((marca) => (
@@ -294,12 +317,13 @@ export function PessoasEAcesso() {
       {carregando
         ? <p className="mt-8 text-sm text-platform-text-muted">{isEnglish ? "Loading…" : "Carregando…"}</p>
         : <div className="mt-8 overflow-x-auto">
-            <table data-tabela-pessoas className="w-full min-w-[40rem] text-left text-sm">
+            <table data-tabela-pessoas className="w-full min-w-[46rem] text-left text-sm">
               <thead>
                 <tr className="border-b border-platform-border text-[11px] uppercase tracking-wider text-platform-text-muted">
                   <th className="py-2 pr-4 font-medium">{isEnglish ? "Person" : "Pessoa"}</th>
                   <th className="py-2 pr-4 font-medium">{isEnglish ? "Level" : "Nível"}</th>
                   <th className="py-2 pr-4 font-medium">{isEnglish ? "Reaches" : "Alcança"}</th>
+                  <th className="py-2 pr-4 font-medium">{isEnglish ? "Uses Vini" : "Usa o Vini"}</th>
                   <th className="py-2 font-medium"><span className="sr-only">{isEnglish ? "Actions" : "Ações"}</span></th>
                 </tr>
               </thead>
@@ -338,6 +362,17 @@ export function PessoasEAcesso() {
                           ))}
                         </span>
                       )}
+                    </td>
+                    <td className="py-3 pr-4 text-platform-text-muted">
+                      {pessoa.usaOVini === null || pessoa.usaOVini === undefined
+                        ? (pessoa.papel === "administrador"
+                            ? (isEnglish ? "Always" : "Sempre")
+                            : (isEnglish ? "After first sign-in" : "Depois do primeiro acesso"))
+                        : <label className="flex items-center gap-2 text-platform-text">
+                            <input type="checkbox" data-usa-o-vini={pessoa.email} checked={pessoa.usaOVini}
+                              onChange={(e) => { void mudarVini(pessoa, e.target.checked); }} />
+                            {pessoa.usaOVini ? (isEnglish ? "On" : "Ligado") : (isEnglish ? "Off" : "Desligado")}
+                          </label>}
                     </td>
                     <td className="flex flex-wrap gap-2 py-3">
                       {pessoa.pendente && pessoa.senhaProvisoriaAte && (

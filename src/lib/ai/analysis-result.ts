@@ -1,3 +1,5 @@
+import { semMatematica } from "./markdown-leve";
+
 export type StructuredAnalysis = {
   verdict: string;
   evidence: string[];
@@ -27,23 +29,37 @@ export function normalizeAnalysisVerdict(value: string): AnalysisVerdict {
 type SectionKey = Exclude<keyof StructuredAnalysis, "sources" | "raw">;
 
 const HEADINGS: Array<{ key: SectionKey; pattern: RegExp }> = [
-  { key: "verdict", pattern: /^(veredito|verdict)\s*:\s*/i },
-  { key: "evidence", pattern: /^(evid[eê]ncias?(?:\s+observadas?)?|observed evidence|evidence)\s*:\s*/i },
-  { key: "rules", pattern: /^(regras?(?:\s+aplic[aá]veis?)?|applicable rules|rules)\s*:\s*/i },
-  { key: "problems", pattern: /^(problemas?|issues(?:\s+identified)?)\s*:\s*/i },
-  { key: "impact", pattern: /^(impacto|impact)\s*:\s*/i },
-  { key: "correction", pattern: /^(corre[cç][aã]o(?:\s+m[ií]nima)?(?:\s+recomendada)?|minimum recommended fix|recommended fix)\s*:\s*/i },
-  { key: "confidence", pattern: /^(confian[cç]a|confidence)\s*:\s*/i },
+  { key: "verdict", pattern: /^(veredito|verdict)\s*(?::\s*|$)/i },
+  { key: "evidence", pattern: /^(evid[eê]ncias?(?:\s+observadas?)?|observed evidence|evidence)\s*(?::\s*|$)/i },
+  { key: "rules", pattern: /^(regras?(?:\s+aplic[aá]veis?)?|applicable rules|rules)\s*(?::\s*|$)/i },
+  { key: "problems", pattern: /^(problemas?|issues(?:\s+identified)?)\s*(?::\s*|$)/i },
+  { key: "impact", pattern: /^(impacto|impact)\s*(?::\s*|$)/i },
+  { key: "correction", pattern: /^(corre[cç][aã]o(?:\s+m[ií]nima)?(?:\s+recomendada)?|minimum recommended fix|recommended fix)\s*(?::\s*|$)/i },
+  { key: "confidence", pattern: /^(confian[cç]a|confidence)\s*(?::\s*|$)/i },
 ];
 
+/**
+ * Uma linha de texto da análise, sem a marcação de Markdown.
+ *
+ * Em 23/10/2026 o Gemini passou a responder com `### Evidências observadas` (sem
+ * dois-pontos), itens numerados ("1. **Margem:** …"), separadores `---` e a
+ * matemática em `$2x$`. O leitor só conhecia "Evidências:" na mesma linha: todo
+ * o texto virou o "veredito", e a peça apareceu com uma parede de texto cru.
+ * Os separadores saem, o número do item sai (a lista já numera), e o LaTeX vira
+ * texto.
+ */
 function cleanLine(line: string): string {
-  return line
+  const limpa = line
     .trim()
     .replace(/^#{1,6}\s*/, "")
     .replace(/^[-*•]\s+/, "")
+    .replace(/^\d{1,2}[.)]\s+/, "")
     .replace(/\*\*/g, "")
     .replace(/\*([^*]+)\*/g, "$1")
     .trim();
+  // `---`, `***`, `___`: a linha separadora não é conteúdo.
+  if (/^([-*_])(?:\s*\1){2,}$/.test(limpa)) return "";
+  return semMatematica(limpa);
 }
 
 export function sanitizeStructuredAnalysis(result: StructuredAnalysis): StructuredAnalysis {

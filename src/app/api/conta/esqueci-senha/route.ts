@@ -1,3 +1,5 @@
+import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
@@ -60,7 +62,7 @@ export async function POST(request: Request) {
     return ENVIADO();
   }
 
-  const envio = await enviarEmail(email, mensagemDeRecuperacao({ link: endereco, validoPorMinutos: PRAZO_DA_RECUPERACAO_MINUTOS }));
+  const envio = await enviarEmail(email, mensagemDeRecuperacao({ link: endereco, validoPorMinutos: PRAZO_DA_RECUPERACAO_MINUTOS }, await tradutorDoEmail(await idiomaDaSessao())));
   if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "recuperacao_envio_falhou", motivo: envio.motivo }));
   return ENVIADO();
 }

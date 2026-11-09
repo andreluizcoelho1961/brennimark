@@ -1,3 +1,4 @@
+import { idiomaDoEmailPelaMoeda, tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { buscarAssinaturaNoStripe, chavesDoStripe, estornarArrependimento, lerAvisoAssinado } from "@/lib/cobranca/stripe";
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
         if (error) throw new Error(`concluir: ${error.code}`);
       },
       buscarAssinatura: (idAssinatura) => buscarAssinaturaNoStripe(chaves.chave, idAssinatura),
-      async garantirLogin(email, nome, idAssinatura) {
+      async garantirLogin(email, nome, idAssinatura, moeda) {
         // Sem senha: quem comprou a cria na volta do pagamento, e só a volta
         // desta compra pode (`criado_pela_assinatura`, ver senha-na-volta.ts).
         const { error } = await servico.auth.admin.createUser({
@@ -84,9 +85,18 @@ export async function POST(request: Request) {
           const origem = new URL(request.url).origin;
           const envio = await enviarEmail(email, mensagemDeBoasVindas({
             conta: null, linkDeEntrar: `${origem}/login`, linkDeSenha: `${origem}/esqueci-senha`,
-          }));
+          }, await tradutorDoEmail(idiomaDoEmailPelaMoeda(moeda))));
           if (!envio.ok) console.error(JSON.stringify({ level: "error", msg: "cobranca_boas_vindas_falhou", motivo: envio.motivo }));
         }
+      },
+      async creditarPacote(c) {
+        const { data, error } = await servico.rpc("creditar_pacote_de_perguntas", {
+          p_workspace_id: c.workspaceId, p_codigo: c.pacote.codigo, p_quantidade: c.pacote.quantidade,
+          p_valor_centavos: c.valorCentavos, p_moeda: c.moeda, p_sessao_externa: c.sessao,
+        });
+        if (error) throw new Error(`pacote: ${error.code} ${error.hint ?? ""}`.trim());
+        if (data === true) console.info(JSON.stringify({ level: "info", msg: "cobranca_pacote_creditado", pacote: c.pacote.codigo }));
+        return data === true;
       },
       async sincronizar(a) {
         const { data, error } = await servico.rpc("cobranca_sincronizar_assinatura", {
@@ -148,7 +158,7 @@ export async function POST(request: Request) {
         const origem = new URL(request.url).origin;
         const envio = await enviarEmail(a.email, mensagemDeCancelamento({
           conta: a.conta, tipo: a.tipo, ate: a.ate, linkDeEntrar: `${origem}/login`,
-        }));
+        }, await tradutorDoEmail(idiomaDoEmailPelaMoeda(a.moeda))));
         if (!envio.ok) throw new Error(`e-mail de cancelamento: ${envio.motivo}`);
       },
     });

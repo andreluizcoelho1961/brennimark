@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { ehAcao, lerTextoDoComplemento, mensagemDaRecusa } from "@/lib/complementos/complementos";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const SEM_CACHE = { "Cache-Control": "private, no-store" };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -14,6 +14,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * respondem igual (404). Publicar é aprovar (decisão 75).
  */
 export async function POST(request: Request, ctx: { params: Promise<{ id: string }> }) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const { id } = await ctx.params;
   if (!UUID.test(id)) return NextResponse.json({ error: "nao_encontrado" }, { status: 404, headers: SEM_CACHE });
   const resolvido = await conteudoDaRota(request);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { MAXIMO_DE_ARQUIVOS, PRAZO_MAXIMO_DIAS, PRAZO_PADRAO_DIAS, type SituacaoDoLink } from "@/lib/links/links";
@@ -27,7 +28,7 @@ function useT() {
 
 function useDatas() {
   const isEnglish = useIsEnglish();
-  const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { timeZone: "America/Sao_Paulo", ...o });
+  const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(localeDeFormato(isEnglish), { timeZone: "America/Sao_Paulo", ...o });
   return {
     curta: (iso: string) => f({ day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)),
     dia: (iso: string) => f({ day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso)),

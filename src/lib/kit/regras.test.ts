@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { Trecho } from "../ai/recuperacao";
 import {
-  chavesQueFaltam, deLinhaDaRegra, instrucoesDasRegras, lerRegrasDaIA, paginasDasRegras, regrasParaOKit, valorLegivel, type RegraDoLogo,
+  chavesQueFaltam, deLinhaDaRegra, instrucoesDasRegras, lerRegrasDaIA, paginasDasRegras, regrasParaOKit, valorLegivel as valorLegivelBase, type RegraDoLogo,
 } from "./regras";
+import { comTradutor, tradutorDeTeste } from "../i18n/catalogo-de-teste";
+
+const pt = tradutorDeTeste("ferramentas.kit");
+const en = tradutorDeTeste("ferramentas.kit", "en");
+const valorLegivel = comTradutor(valorLegivelBase, pt);
 
 const trecho = (pageStart: number | null, content: string, extra: Partial<Trecho> = {}): Trecho => ({
   documentSlug: "m", documentTitle: "Manual", groupName: "", section: null, status: "ready", pageStart, pageEnd: pageStart, content, ...extra,
@@ -77,4 +82,9 @@ test("a linha do banco vira regra; chave desconhecida, não", () => {
 test("o valor legível", () => {
   assert.equal(valorLegivel({ chave: "area_de_protecao", valor: 0.25 }), "25% da altura do logo");
   assert.equal(valorLegivel({ chave: "reducao_minima_logo", valor: 120 }), "120 px de largura");
+});
+
+test("o valor legível em inglês", () => {
+  assert.equal(valorLegivelBase({ chave: "area_de_protecao", valor: 0.25 }, en), "25% of the logo's height");
+  assert.equal(valorLegivelBase({ chave: "reducao_minima_logo", valor: 120 }, en), "120 px wide");
 });

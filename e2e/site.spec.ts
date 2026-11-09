@@ -176,8 +176,7 @@ test("todo depoimento leva a marcação de fictício, sem nome de pessoa", async
     return faltas;
   }, ["/", ...PAGINAS_DO_SITE.map((p) => `/${p.slug}`)]);
   expect(semMarcacao).toEqual([]);
-  // A home deixou de ter depoimentos em 22/10/2026 (texto de marcação não vende);
-  // as páginas internas que ainda os tenham seguem obrigadas à marcação acima.
+  await expect(page.locator("#depoimentos .quote figcaption").first()).toContainText("Depoimento fictício");
 });
 
 test("nenhuma classe do site coincide com uma regra de fora dele", async ({ page }) => {
@@ -287,8 +286,8 @@ test("a home rola na vertical: todas as seções, na ordem, sem rolagem de lado"
   await abrir(page, "/");
   const ids = await page.locator(".home-flow > .panel").evaluateAll((els) => els.map((e) => e.id));
   expect(ids).toEqual(CAPITULOS_DA_HOME.map((c) => c.id));
-  // Sem trilho, sem barra de capítulos, sem depoimento de marcação.
-  await expect(page.locator("#track, .chapnav, #depoimentos")).toHaveCount(0);
+  // Sem trilho e sem barra de capítulos.
+  await expect(page.locator("#track, .chapnav")).toHaveCount(0);
   const { sw, cw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
   expect(sw).toBeLessThanOrEqual(cw);
 });
@@ -320,6 +319,29 @@ test("as páginas fundidas redirecionam para o bloco certo", async ({ request })
   }
 });
 
+test("/planos e /precos levam à seção de planos da home, e não a uma tela de login", async ({ request }) => {
+  for (const de of ["/planos", "/precos"]) {
+    const r = await request.get(de, { maxRedirects: 0 });
+    expect(r.status(), de).toBe(308);
+    expect(r.headers()["location"], de).toBe("/#planos");
+  }
+});
+
+test("o Fonts tem botão no menu, célula na capa e capítulo próprio na home", async ({ page }) => {
+  await abrir(page, "/");
+  // O botão do menu, com a etiqueta do beta, leva à página.
+  const botao = page.locator(".site-nav a.nav-fonts");
+  await expect(botao).toBeVisible();
+  await expect(botao).toContainText("Beta");
+  await expect(botao).toHaveAttribute("href", "/fonts");
+  // O capítulo da home: o pedido de convite e o link para a página.
+  const capitulo = page.locator("#fonts");
+  await expect(capitulo).toHaveCount(1);
+  await expect(capitulo).toContainText("Beta fechado, gratuito, por convite");
+  await expect(capitulo.getByRole("link", { name: /Conhecer o Fonts/ })).toHaveAttribute("href", "/fonts");
+  await expect(capitulo.locator('[aria-label^="Janela do Brennimark Fonts"]')).toHaveCount(1);
+});
+
 test("os blocos fundidos existem nas páginas de destino, com âncora", async ({ page }) => {
   for (const [rota, id] of [["/materiais", "entrega"], ["/manual", "complementos"], ["/agencias", "studio"], ["/ajuda", "suporte"], ["/ajuda", "novidades"]]) {
     await abrir(page, rota);
@@ -329,7 +351,9 @@ test("os blocos fundidos existem nas páginas de destino, com âncora", async ({
 
 test("a barra da abertura abre o tour na aba do recurso, e as abas trocam a tela", async ({ page }) => {
   await abrir(page, "/");
-  await expect(page.locator(".hero-bar a")).toHaveCount(7);
+  // Os sete recursos do tour, mais a célula do Brennimark Fonts (23/10/2026).
+  await expect(page.locator(".hero-bar a")).toHaveCount(8);
+  await expect(page.locator(".hero-bar a.hero-bar-fonts")).toHaveAttribute("href", "/fonts");
   await page.locator(".hero-bar a", { hasText: "Envio a fornecedores" }).click();
   await expect(page).toHaveURL(/#recurso-entrega$/);
   await expect(page.getByRole("tab", { name: /Envio a fornecedores/ })).toHaveAttribute("aria-selected", "true");
@@ -339,4 +363,68 @@ test("a barra da abertura abre o tour na aba do recurso, e as abas trocam a tela
   await expect(page.locator("#tour-tela-analise")).toBeVisible();
   await page.keyboard.press("ArrowDown");
   await expect(page.getByRole("tab", { name: /Prompts para IA de imagem/ })).toBeFocused();
+});
+
+test("a demonstração do tour toca à vista, avança sozinha e para quando a pessoa escolhe", async ({ page }) => {
+  // Relógio falso: o avanço é um `setTimeout` do tamanho do roteiro (~9 s).
+  await page.clock.install();
+  await abrir(page, "/");
+  const tour = page.locator(".tour");
+  await expect(tour).not.toHaveAttribute("data-tocando", /.*/);
+  await page.locator("#plataforma .tour-ctrl").scrollIntoViewIfNeeded();
+  await expect(tour).toHaveAttribute("data-tocando", "");
+  await expect(page.locator(".tour-cont")).toHaveText("01 / 07");
+  await page.clock.runFor(15_000);
+  await expect(page.locator(".tour-cont")).toHaveText("02 / 07");
+  await expect(page.locator("#tour-tela-consulta")).toBeVisible();
+  // Escolher uma aba desliga o avanço; o botão passa a oferecer tocar de novo.
+  await page.getByRole("tab", { name: /Logo, cores e fontes/ }).click();
+  await expect(page.locator(".tour-auto")).toHaveAttribute("aria-pressed", "false");
+  await page.clock.runFor(30_000);
+  await expect(page.locator(".tour-cont")).toHaveText("05 / 07");
+});
+
+test.describe("movimento reduzido, no tour", () => {
+  test("as telas aparecem prontas e nada avança sozinho", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.clock.install();
+    await abrir(page, "/");
+    await page.locator("#plataforma .tour-ctrl").scrollIntoViewIfNeeded();
+    await expect(page.locator(".tour")).not.toHaveAttribute("data-tocando", /.*/);
+    const opacidades = await page.locator("#tour-tela-manual .passo").evaluateAll((els) => els.map((e) => getComputedStyle(e).opacity));
+    expect(opacidades.length).toBeGreaterThan(0);
+    expect(new Set(opacidades)).toEqual(new Set(["1"]));
+    await page.clock.runFor(30_000);
+    await expect(page.locator(".tour-cont")).toHaveText("01 / 07");
+  });
+});
+
+test("a captura da plataforma abre ampliada, rola, e fecha por Esc, pelo botão e pelo fundo", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await abrir(page, "/materiais");
+  const captura = page.locator(".tela-real-abrir").first();
+  await captura.scrollIntoViewIfNeeded();
+  await captura.click();
+  const visor = page.locator(".bm-site .visor");
+  await expect(visor).toBeVisible();
+  // No celular o desenho é bem mais largo que a janela: é isso que o torna legível, rolando de lado.
+  const larguras = await visor.locator(".visor-img").evaluate((i) => ({ imagem: i.getBoundingClientRect().width, janela: window.innerWidth }));
+  expect(larguras.imagem).toBeGreaterThanOrEqual(1100);
+  expect(larguras.imagem).toBeGreaterThan(larguras.janela);
+  await expect(visor.getByRole("button", { name: "Fechar" })).toBeFocused();
+
+  await page.keyboard.press("Escape");
+  await expect(visor).toHaveCount(0);
+  await expect(captura).toBeFocused();
+
+  await captura.click();
+  await visor.getByRole("button", { name: "Fechar" }).click();
+  await expect(visor).toHaveCount(0);
+
+  await captura.click();
+  // A imagem não fecha ao toque (quem explora toca nela); o espaço vazio embaixo dela, sim.
+  await visor.locator(".visor-img").click();
+  await expect(visor).toBeVisible();
+  await visor.click({ position: { x: 5, y: 838 } });
+  await expect(visor).toHaveCount(0);
 });

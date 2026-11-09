@@ -396,3 +396,22 @@ test("na medida da pergunta (26/09): quantidade → número e nomes; conta confe
   // A regra dos valores continua, agora quando a pergunta os PEDE.
   assert.match(pt, /Quando a pergunta PEDE valores técnicos/);
 });
+
+test("o Vini responde no idioma da INTERFACE e traduz o trecho citado, dizendo que é tradução", () => {
+  // Manual em português, interface em inglês: a resposta sai em inglês, a citação no original, e a tradução rotulada.
+  const emIngles = buildChatSystemPrompt([], { ...MARCA, interfaceLanguage: "en" });
+  assert.match(emIngles, /A interface da pessoa está em inglês\. Escreva a resposta inteira em inglês, mesmo com o manual em português/);
+  assert.match(emIngles, /tradução rotulada como "Translation:"/);
+  assert.match(emIngles, /rótulos de status exatamente como indicado acima/);
+  assert.match(buildAnalysisSystemPrompt([], { ...MARCA, interfaceLanguage: "en" }), /Escreva a resposta inteira em inglês/);
+
+  // Manual em inglês, interface em português.
+  const emPortugues = buildChatSystemPrompt([], { ...MARCA, language: "en", interfaceLanguage: "pt-BR" });
+  assert.match(emPortugues, /The person's interface is in Portuguese\. Write the whole answer in Portuguese, even though the manual is in English/);
+  assert.match(emPortugues, /labeled "Tradução:"/);
+
+  // Mesmo idioma, ou sem idioma da interface: o prompt é exatamente o de antes.
+  const base = buildChatSystemPrompt([], MARCA);
+  assert.equal(buildChatSystemPrompt([], { ...MARCA, interfaceLanguage: "pt-BR" }), base);
+  assert.doesNotMatch(base, /interface da pessoa/);
+});

@@ -1,8 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { artigoDaTela } from "@/lib/ajuda/da-tela";
+import { caminhoDoSite, idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
 
 /**
  * O painel Ajuda da moldura — 17/10/2026, decisão do André (opção A): um item
@@ -24,6 +26,9 @@ type ItemDaLista = { slug: string; titulo: string; resumo: string; categoria: st
 type Aberto = { slug: string; titulo: string; html: string };
 
 export function AjudaDaMoldura() {
+  const t = useTranslations("ajudaDaMoldura");
+  const lang = useLocale();
+  const locale = idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE;
   const pathname = usePathname() ?? "";
   const [aberto, setAberto] = useState(false);
   const [artigo, setArtigo] = useState<Aberto | null>(null);
@@ -38,8 +43,8 @@ export function AjudaDaMoldura() {
     setErro("");
     const r = await fetch(`/api/ajuda?slug=${encodeURIComponent(slug)}`, { cache: "no-store" }).catch(() => null);
     const corpo = r ? await r.json().catch(() => ({})) : {};
-    if (r?.ok) { setArtigo(corpo); setVerLista(false); } else setErro(corpo.message ?? "Não foi possível abrir a ajuda agora.");
-  }, []);
+    if (r?.ok) { setArtigo(corpo); setVerLista(false); } else setErro(corpo.message ?? t("erroAbrir"));
+  }, [t]);
 
   // Abrir: guarda quem abriu (para devolver o foco), busca a lista e o artigo da tela.
   useEffect(() => {
@@ -88,18 +93,18 @@ export function AjudaDaMoldura() {
       className="fixed bottom-[4.5rem] right-0 top-[var(--shell-topbar)] z-40 flex w-[min(440px,100vw)] flex-col border-b border-l border-platform-border bg-platform-panel shadow-[0_0_24px_rgba(0,22,33,0.12)]">
       <header className="flex items-center justify-between gap-3 border-b border-platform-border px-5 py-3">
         <h2 id={idDoTitulo} className="min-w-0 truncate font-display text-[17px] font-semibold tracking-tight text-platform-text">
-          {verLista || !artigo ? "Ajuda" : artigo.titulo}
+          {verLista || !artigo ? t("titulo") : artigo.titulo}
         </h2>
         <button ref={fechar} type="button" data-ajuda-fechar onClick={fecharPainel}
           className="flex-none rounded-[var(--radius-control)] border border-platform-border px-2.5 py-1 text-sm text-platform-text">
-          Fechar
+          {t("fechar")}
         </button>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
         {erro && <p role="alert" className="text-sm text-platform-text">{erro}</p>}
         {verLista || !artigo ? (
           <>
-            {!artigo && !erro && <p className="mb-3 text-sm text-platform-text-muted">Não há um artigo para esta tela. Escolha um assunto:</p>}
+            {!artigo && !erro && <p className="mb-3 text-sm text-platform-text-muted">{t("semArtigo")}</p>}
             <ul data-ajuda-lista className="flex flex-col">
               {(lista ?? []).map((a) => (
                 <li key={a.slug} className="border-t border-platform-border first:border-t-0">
@@ -117,10 +122,10 @@ export function AjudaDaMoldura() {
       </div>
       <footer className="flex items-center justify-between gap-3 border-t border-platform-border px-5 py-3 text-[13px] text-platform-text-muted">
         {artigo && !verLista
-          ? <button type="button" data-ajuda-outros onClick={() => setVerLista(true)} className="underline underline-offset-4 hover:text-platform-text">Outros assuntos</button>
+          ? <button type="button" data-ajuda-outros onClick={() => setVerLista(true)} className="underline underline-offset-4 hover:text-platform-text">{t("outrosAssuntos")}</button>
           : <span />}
-        <a href={artigo && !verLista ? `/ajuda/${artigo.slug}` : "/ajuda"} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-platform-text">
-          Abrir na Central de ajuda
+        <a href={artigo && !verLista ? caminhoDoSite(locale, `/ajuda/${artigo.slug}`) : caminhoDoSite(locale, "/ajuda")} target="_blank" rel="noreferrer" className="underline underline-offset-4 hover:text-platform-text">
+          {t("abrirCentral")}
         </a>
       </footer>
     </aside>

@@ -70,7 +70,7 @@ end $f$;
 
 create function pg_temp.registrar(p_caso text, p_esperado text, p_obtido text) returns void
 language sql as $f$
-  insert into resultado (caso, esperado, obtido, passou) values (p_caso, p_esperado, replace(replace(p_obtido, 'true', 't'), 'false', 'f'), p_esperado = replace(replace(p_obtido, 'true', 't'), 'false', 'f'));
+  insert into resultado (caso, esperado, obtido, passou) values (p_caso, p_esperado, replace(replace(p_obtido, 'true', 't'), 'false', 'f'), coalesce(p_esperado = replace(replace(p_obtido, 'true', 't'), 'false', 'f'), false));
 $f$;
 
 -- ─── O mundo ────────────────────────────────────────────────────────────────
@@ -240,6 +240,49 @@ begin
   perform pg_temp.registrar('cada reserva ficou no registro, com motivo', 't',
     (select (count(*) >= 7 and count(*) filter (where motivo is null or btrim(motivo) = '') = 0)::text
        from private.registro_da_equipe where acao = 'reservar envio de e-mail'));
+end $$;
+
+
+-- ─── 7. O idioma de cada destinatário (29/10/2026) ──────────────────────────
+do $$
+declare m mundo; f uuid; g uuid; h uuid;
+begin
+  select * into m from mundo;
+  insert into public.cadastros_gratuitos (email, nome, cargo, respostas, primeira_origem, ultima_origem, aceite_marketing, aceite_versao, aceite_em, confirmado_em, criado_em)
+    values ('prova-f@email.test', 'Fiona', 'designer', '{"idioma":"en"}', 'grids', 'grids', true, '2026-10-18', now(), now(), now() - interval '10 days') returning id into f;
+  insert into public.cadastros_gratuitos (email, nome, cargo, respostas, primeira_origem, ultima_origem, aceite_marketing, aceite_versao, aceite_em, confirmado_em, criado_em)
+    values ('prova-g@email.test', 'Gabi', 'designer', '{"idioma":"pt-BR"}', 'grids', 'grids', true, '2026-10-18', now(), now(), now() - interval '9 days') returning id into g;
+  insert into public.cadastros_gratuitos (email, nome, cargo, respostas, primeira_origem, ultima_origem, aceite_marketing, aceite_versao, aceite_em, confirmado_em, criado_em)
+    values ('prova-h@email.test', 'Hugo', 'designer', '{"idioma":"xx"}', 'grids', 'grids', true, '2026-10-18', now(), now(), now() - interval '8 days') returning id into h;
+
+end $$;
+
+do $$
+declare m mundo; r jsonb;
+begin
+  select * into m from mundo;
+  perform set_config('request.jwt.claims', json_build_object('sub', m.equipe, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  r := public.console_email_reservar('campanha-i', null, null, 25, 'prova');
+  execute 'reset role';
+  perform set_config('request.jwt.claims', '', true);
+
+  perform pg_temp.registrar('idioma: respostas.idioma = en devolve en', 'en',
+    (select x ->> 'idioma' from jsonb_array_elements(r) x where x ->> 'email' = 'prova-f@email.test'));
+  perform pg_temp.registrar('idioma: respostas.idioma = pt-BR devolve pt-BR', 'pt-BR',
+    (select x ->> 'idioma' from jsonb_array_elements(r) x where x ->> 'email' = 'prova-g@email.test'));
+  perform pg_temp.registrar('idioma: valor desconhecido cai no padrao pt-BR', 'pt-BR',
+    (select x ->> 'idioma' from jsonb_array_elements(r) x where x ->> 'email' = 'prova-h@email.test'));
+  perform pg_temp.registrar('idioma: sem a chave nas respostas cai no padrao pt-BR', 'pt-BR',
+    (select x ->> 'idioma' from jsonb_array_elements(r) x where x ->> 'email' = 'prova-b@email.test'));
+  perform pg_temp.registrar('idioma: todo item devolvido traz idioma (so en ou pt-BR)', 't',
+    (select (count(*) > 0 and bool_and(x ->> 'idioma' in ('en', 'pt-BR')))::text from jsonb_array_elements(r) x));
+  perform pg_temp.registrar('idioma: os campos de antes continuam no retorno', 't',
+    (select bool_and(x ? 'cadastro_id' and x ? 'email' and x ? 'nome' and x ? 'token' and x ? 'aceite_em')::text from jsonb_array_elements(r) x));
+  perform pg_temp.registrar('idioma: fora da equipe continua recusando (42501)', '42501',
+    pg_temp.como(m.dono, $q$select public.console_email_reservar('campanha-i', null, null, 5, 'prova')$q$));
+  perform pg_temp.registrar('idioma: anonimo continua recusando', '42501',
+    pg_temp.anonimo($q$select public.console_email_reservar('campanha-i', null, null, 5, 'prova')$q$));
 end $$;
 
 select case when passou then 'ok   ' else 'FALHA' end as st, caso, esperado, obtido from resultado order by ordem;

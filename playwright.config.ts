@@ -17,7 +17,8 @@ import { defineConfig, devices } from "@playwright/test";
  * fonte do sistema e vira ruído que se aprende a ignorar. As asserções são
  * estruturais, de geometria e de comportamento.
  */
-const PORTA = 3210;
+// PORTA_DO_E2E: outra worktree pode já ocupar a 3210 com o código dela.
+const PORTA = Number(process.env.PORTA_DO_E2E ?? 3210);
 
 /**
  * As suítes que rodam nos três motores — casadas pelo NOME DO ARQUIVO.
@@ -43,11 +44,20 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Localmente, 3 trabalhadores (o padrão seria metade dos núcleos). Cada um abre um navegador
+  // enquanto o `next dev` compila a rota nova com todos os núcleos; com 4 a carga da máquina chegou
+  // a mais de 100 e testes de site, que passam isolados e no CI, estouravam o tempo de acordar a página.
+  workers: process.env.CI ? 1 : 3,
   reporter: process.env.CI ? [["github"], ["list"]] : [["list"]],
 
   use: {
     baseURL: `http://localhost:${PORTA}`,
+    /*
+     * Quem usa o produto é brasileiro: sem escolha no botão, o idioma da interface
+     * segue o navegador (`escolherIdioma`), e o Playwright nasce em en-US. `idioma.spec.ts`
+     * troca isto por teste.
+     */
+    locale: "pt-BR",
     /*
      * Quem já se cadastrou (cookie `bm_cadastro`): as ferramentas gratuitas
      * pedem o cadastro na primeira vez que a pessoa baixa, e os testes de
@@ -92,6 +102,9 @@ export default defineConfig({
       testMatch: NOS_TRES_MOTORES,
     },
   ],
+
+  // Compila as páginas do site em fila antes dos testes (ver o comentário do arquivo).
+  globalSetup: "./e2e/aquecer-o-servidor.ts",
 
   webServer: {
     command: `npm run dev -- --port ${PORTA}`,

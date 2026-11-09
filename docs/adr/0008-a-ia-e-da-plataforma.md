@@ -1,6 +1,7 @@
 # ADR-0008 — A IA é da plataforma
 
-- **Status:** **aceito**
+- **Status:** **aceito** — desde 06/11/2026 vale para o **plano com IA**; o ADR-0009 acrescenta o
+  plano sem IA, em que a conta traz a própria
 - **Data:** decidido em 28/09/2026; registrado e aplicado ao Vini em 29/09/2026
 - **Decidido por:** André, na conversa de 28/09/2026 sobre as Configurações do assinante
 - **Relaciona-se com:** ADR-0003 (produto hospedado multi-marca), ADR-0004 (o produto age na criação)

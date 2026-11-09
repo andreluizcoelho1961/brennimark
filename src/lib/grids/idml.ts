@@ -14,6 +14,7 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+import type { Tradutor } from "../i18n/tradutor";
 import { zipSync, strToU8 } from "fflate";
 import type { Camada, Grid } from "./calcular";
 
@@ -27,17 +28,18 @@ const n = (v: number) => {
 };
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-type DefCamada = { id: string; nome: string; cor: string };
+/** O nome de cada camada vem do catálogo (`idml.camadas.<chave>`), no idioma de quem baixa. */
+type DefCamada = { id: string; cor: string };
 
 export const CAMADAS: Record<Camada | "rotacionado" | "conteudo" | "logo", DefCamada> = {
-  conteudo: { id: "ly_conteudo", nome: "Conteúdo", cor: "Blue" },
-  grid: { id: "ly_grid", nome: "Grid — proposta do Brennimark", cor: "Cyan" },
-  zonas: { id: "ly_zonas", nome: "Zonas do hierárquico", cor: "Purple" },
-  segura: { id: "ly_segura", nome: "Área segura da plataforma", cor: "Red" },
-  dobras: { id: "ly_dobras", nome: "Dobras (lombada e orelhas)", cor: "Green" },
-  sobreposto: { id: "ly_sobreposto", nome: "Desconstrução — grid sobreposto", cor: "Magenta" },
-  rotacionado: { id: "ly_rotacionado", nome: "Desconstrução — grid rotacionado", cor: "Orange" },
-  logo: { id: "ly_logo", nome: "Logo — área de proteção do manual", cor: "Red" },
+  conteudo: { id: "ly_conteudo", cor: "Blue" },
+  grid: { id: "ly_grid", cor: "Cyan" },
+  zonas: { id: "ly_zonas", cor: "Purple" },
+  segura: { id: "ly_segura", cor: "Red" },
+  dobras: { id: "ly_dobras", cor: "Green" },
+  sobreposto: { id: "ly_sobreposto", cor: "Magenta" },
+  rotacionado: { id: "ly_rotacionado", cor: "Orange" },
+  logo: { id: "ly_logo", cor: "Red" },
 };
 
 /**
@@ -85,7 +87,7 @@ const FORMATO_DO_LINK: Record<LogoNoDocumento["formato"], string> = {
   png: "$ID/Portable Network Graphics (PNG)", jpeg: "$ID/JPEG",
 };
 
-function elementosDoLogo(l: LogoNoDocumento, meio: number): string {
+function elementosDoLogo(l: LogoNoDocumento, meio: number, t: Tradutor): string {
   const { x, y, w, h } = l.quadro;
   const lw = l.limites.dir - l.limites.esq;
   const s = w / lw;
@@ -102,7 +104,7 @@ function elementosDoLogo(l: LogoNoDocumento, meio: number): string {
   const quadro = `<Rectangle Self="rc_logo" Name="Logo" ContentType="GraphicType" StoryTitle="$ID/" ItemLayer="${CAMADAS.logo.id}" ItemTransform="1 0 0 1 0 0" AppliedObjectStyle="ObjectStyle/$ID/[Normal Graphics Frame]">${caminhoRet(x, y - meio, x + w, y + h - meio)}${conteudo}</Rectangle>`;
   const p = l.protecao;
   const protecao = p
-    ? `<Rectangle Self="rc_protecao" Name="Área de proteção do logo" ContentType="Unassigned" StoryTitle="$ID/" ItemLayer="${CAMADAS.logo.id}" Nonprinting="true" StrokeWeight="0.5" StrokeColor="Color/AreaDeProtecao" FillColor="Swatch/None" ItemTransform="1 0 0 1 0 0" AppliedObjectStyle="ObjectStyle/$ID/[None]">${caminhoRet(p.x, p.y - meio, p.x + p.w, p.y + p.h - meio)}</Rectangle>`
+    ? `<Rectangle Self="rc_protecao" Name="${esc(t("idml.protecaoDoLogo"))}" ContentType="Unassigned" StoryTitle="$ID/" ItemLayer="${CAMADAS.logo.id}" Nonprinting="true" StrokeWeight="0.5" StrokeColor="Color/AreaDeProtecao" FillColor="Swatch/None" ItemTransform="1 0 0 1 0 0" AppliedObjectStyle="ObjectStyle/$ID/[None]">${caminhoRet(p.x, p.y - meio, p.x + p.w, p.y + p.h - meio)}</Rectangle>`
     : "";
   return protecao + quadro;
 }
@@ -117,7 +119,8 @@ function caminho(pontos: [number, number][], aberto: boolean) {
 }
 
 /** Os arquivos XML do pacote, por caminho — separado do zip para os testes lerem. */
-export function arquivosDoIdml(g: Grid, marca?: MarcaNoDocumento): Record<string, string> {
+/** `t` é o tradutor ligado a `ferramentas.grids`: os nomes das camadas e amostras que o InDesign mostra. */
+export function arquivosDoIdml(g: Grid, marca: MarcaNoDocumento | undefined, t: Tradutor): Record<string, string> {
   const meio = g.altura / 2;
   const interna = g.largura - g.margens.esq - g.margens.dir;
   const posicoes = g.colunasNaMargem
@@ -144,7 +147,7 @@ export function arquivosDoIdml(g: Grid, marca?: MarcaNoDocumento): Record<string
   const spread = `${CAB}<idPkg:Spread ${NS} DOMVersion="${DOM}"><Spread Self="sp1" PageCount="1" BindingLocation="0" AllowPageShuffle="true" ItemTransform="1 0 0 1 0 0" ShowMasterItems="true" PageTransitionType="None">`
     + `<Page Self="pg1" Name="1" AppliedMaster="n" GeometricBounds="0 0 ${n(g.altura)} ${n(g.largura)}" ItemTransform="1 0 0 1 0 ${n(-meio)}" MasterPageTransform="1 0 0 1 0 0" OverrideList="" TabOrder="" GridStartingPoint="TopOutside" UseMasterGrid="true">`
     + `<Properties><PageColor type="enumeration">UseMasterColor</PageColor></Properties><MarginPreference ${margem}/></Page>`
-    + `${guias.join("")}${linhas.join("")}${marca?.logo ? elementosDoLogo(marca.logo, meio) : ""}</Spread></idPkg:Spread>`;
+    + `${guias.join("")}${linhas.join("")}${marca?.logo ? elementosDoLogo(marca.logo, meio, t) : ""}</Spread></idPkg:Spread>`;
 
   const unid = g.unidade === "mm" ? "Millimeters" : "Pixels";
   const prefs = `${CAB}<idPkg:Preferences ${NS} DOMVersion="${DOM}">`
@@ -160,7 +163,7 @@ export function arquivosDoIdml(g: Grid, marca?: MarcaNoDocumento): Record<string
     + '<Color Self="Color/Paper" Model="Process" Space="CMYK" ColorValue="0 0 0 0" Name="Paper" ColorEditable="true" ColorRemovable="false" Visible="true" SwatchCreatorID="7937"/>'
     + '<Color Self="Color/Registration" Model="Registration" Space="CMYK" ColorValue="100 100 100 100" Name="Registration" ColorEditable="false" ColorRemovable="false" Visible="true" SwatchCreatorID="7937"/>'
     + (g.rotacionado ? '<Color Self="Color/GridRotacionado" Model="Process" Space="RGB" ColorValue="255 140 0" Name="Guia do grid rotacionado" ColorEditable="true" ColorRemovable="true" Visible="true" SwatchCreatorID="7937"/>' : "")
-    + (marca?.logo?.protecao ? '<Color Self="Color/AreaDeProtecao" Model="Process" Space="RGB" ColorValue="230 38 38" Name="Guia da área de proteção" ColorEditable="true" ColorRemovable="true" Visible="true" SwatchCreatorID="7937"/>' : "")
+    + (marca?.logo?.protecao ? '<Color Self="Color/AreaDeProtecao" Model="Process" Space="RGB" ColorValue="230 38 38" Name="${esc(t("idml.guiaDaProtecao"))}" ColorEditable="true" ColorRemovable="true" Visible="true" SwatchCreatorID="7937"/>' : "")
     + (marca?.cores ?? []).map((c, i) => c.cmyk
       ? `<Color Self="Color/Marca${i + 1}" Model="Process" Space="CMYK" ColorValue="${c.cmyk.map(n).join(" ")}" Name="${esc(c.nome)}" ColorEditable="true" ColorRemovable="true" Visible="true" SwatchCreatorID="7937"/>`
       : `<Color Self="Color/Marca${i + 1}" Model="Process" Space="RGB" ColorValue="${c.rgb.join(" ")}" Name="${esc(c.nome)}" ColorEditable="true" ColorRemovable="true" Visible="true" SwatchCreatorID="7937"/>`).join("")
@@ -198,7 +201,7 @@ export function arquivosDoIdml(g: Grid, marca?: MarcaNoDocumento): Record<string
   const camadas = ordemComLogo.filter((c) => usadas.has(c) || c === "grid").map((c) => {
     const d = CAMADAS[c];
     const guia = c !== "conteudo" && c !== "logo";
-    const nome = c === "grid" && marca ? `Grid — ${marca.origemDoGrid}` : d.nome;
+    const nome = c === "grid" && marca ? t("idml.gridDaMarca", { origem: marca.origemDoGrid }) : t(`idml.camadas.${c}`);
     return `<Layer Self="${d.id}" Name="${esc(nome)}" Visible="true" Locked="${guia}" IgnoreWrap="false" ShowGuides="true" LockGuides="false" UI="true" Expendable="true" Printable="${!guia}"><Properties><LayerColor type="enumeration">${d.cor}</LayerColor></Properties></Layer>`;
   });
 
@@ -222,8 +225,8 @@ export function arquivosDoIdml(g: Grid, marca?: MarcaNoDocumento): Record<string
 }
 
 /** O pacote .idml: `mimetype` primeiro e sem compressão, o resto comprimido. */
-export function montarIdml(g: Grid, marca?: MarcaNoDocumento): Uint8Array {
-  const arquivos = arquivosDoIdml(g, marca);
+export function montarIdml(g: Grid, marca: MarcaNoDocumento | undefined, t: Tradutor): Uint8Array {
+  const arquivos = arquivosDoIdml(g, marca, t);
   const zip: Record<string, [Uint8Array, { level: 0 | 6 }]> = {
     mimetype: [strToU8("application/vnd.adobe.indesign-idml-package"), { level: 0 }],
   };

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { localeDeFormato } from "@/platform/locale";
 import { useEffect, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
@@ -34,7 +35,7 @@ export function AvisoDaCobranca() {
 
   if (!s || (s.acesso !== "tolerancia" && s.acesso !== "so_leitura")) return null;
   const ate = s.soLeituraAPartirDe
-    ? new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { day: "numeric", month: "long" }).format(new Date(s.soLeituraAPartirDe))
+    ? new Intl.DateTimeFormat(localeDeFormato(isEnglish), { day: "numeric", month: "long" }).format(new Date(s.soLeituraAPartirDe))
     : "";
 
   return (

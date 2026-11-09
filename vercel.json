@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["gru1"],
   "crons": [
     {
       "path": "/api/manutencao/materiais-orfaos",
@@ -12,6 +13,10 @@
     {
       "path": "/api/manutencao/contas-canceladas",
       "schedule": "53 6 * * *"
+    },
+    {
+      "path": "/api/manutencao/demonstracao",
+      "schedule": "29 7 * * *"
     }
   ]
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useIsEnglish } from "@/platform/locale-client";
@@ -35,7 +36,7 @@ export function TrocaDeSenha({
   const [erro, setErro] = useState("");
   const [trocou, setTrocou] = useState(false);
 
-  const prazo = new Date(validaAte).toLocaleString(isEnglish ? "en-GB" : "pt-BR", {
+  const prazo = new Date(validaAte).toLocaleString(localeDeFormato(isEnglish), {
     day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
   });
 

@@ -29,6 +29,11 @@ export type SnapshotDeUso =
       unknown: true;
       /** O fluxo acabou SEM motivo de parada do provedor — o uso que ele relatou, se relatou, é parcial. */
       fluxoSemFim?: true;
+      /**
+       * `settledMicros` é uma ESTIMATIVA do que a chamada custou (entrada medida
+       * em caracteres, saída no teto), e não o teto da reserva (23/10/2026).
+       */
+      estimado?: true;
     };
 
 /**
@@ -78,7 +83,9 @@ export type MotivoDeRecusa =
   | "sem_orcamento_configurado"
   | "orcamento_do_workspace_esgotado"
   | "orcamento_mensal_esgotado"
-  | "orcamento_da_marca_esgotado";
+  | "orcamento_da_marca_esgotado"
+  | "franquia_esgotada"
+  | "vini_desligado_para_voce";
 
 /** O estado do LEDGER para esta execução — não confundir com o resultado da chamada. */
 export type StatusDaExecucao = "reserved" | "settled" | "released";
@@ -318,6 +325,8 @@ export async function expirarReservasAntigas(
 export function mensagemDeOrcamento(
   motivo: MotivoDeRecusa | "erro_de_consulta",
   ingles: boolean,
+  /** Quem paga o modelo (ADR-0009): na IA própria o teto é da agência, e quem o muda é ela. */
+  modo: "plataforma" | "propria" = "plataforma",
 ): string {
   /*
    * A IA é da PLATAFORMA (28/09/2026): o cliente não configura nada, então
@@ -343,6 +352,25 @@ export function mensagemDeOrcamento(
     return ingles
       ? "The assistant is paused for this account. Contact Brennimark support."
       : "O Vini está pausado nesta conta. Fale com o suporte da Brennimark.";
+  }
+  // O interruptor por pessoa (08/11/2026): quem administra a conta desligou o Vini para esta pessoa.
+  if (motivo === "vini_desligado_para_voce") {
+    return ingles
+      ? "Vini is turned off for you in this account. Ask the account administrator if you need it."
+      : "O Vini está desligado para você nesta conta. Se precisar dele, peça a quem administra a conta.";
+  }
+  // A franquia de perguntas do plano (08/11/2026): acabou, volta no mês seguinte.
+  if (motivo === "franquia_esgotada") {
+    return ingles
+      ? "This account used all of this month's Vini questions. Vini is back at the start of next month."
+      : "Esta conta usou todas as perguntas do Vini deste mês. Ele volta no início do mês que vem.";
+  }
+  // IA própria (ADR-0009): o teto é da agência, então quem o muda é a dona da conta, não o suporte.
+  if (modo === "propria" && (motivo === "orcamento_do_workspace_esgotado" || motivo === "orcamento_mensal_esgotado")) {
+    const hoje = motivo === "orcamento_do_workspace_esgotado";
+    return ingles
+      ? `This account reached the spending limit your agency set for ${hoje ? "today" : "this month"}. Whoever administers the account can change it in Settings › AI.`
+      : `Esta conta chegou ao limite de gasto que a sua agência definiu para ${hoje ? "hoje" : "este mês"}. Quem administra a conta pode mudá-lo em Configurações › IA.`;
   }
   if (motivo === "orcamento_do_workspace_esgotado" || motivo === "orcamento_da_marca_esgotado") {
     return ingles

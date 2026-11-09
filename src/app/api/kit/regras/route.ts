@@ -1,6 +1,9 @@
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
+import { inEnglish } from "@/platform/locale";
 import { NextResponse } from "next/server";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { COLUNAS_DAS_REGRAS, CHAVES_DAS_REGRAS, deLinhaDaRegra, type ChaveDaRegra, type RegraDoLogo } from "@/lib/kit/regras";
+import { getTranslations } from "next-intl/server";
 import { escolherDesenhos, type VarianteDoKit } from "@/lib/kit/materiais-do-kit";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { fonteDaAssinatura } from "@/lib/kit/fonte-da-assinatura";
@@ -21,6 +24,7 @@ const SEM_CACHE = { "Cache-Control": "private, no-store" };
 const VALIDADE_DA_MINIATURA_S = 600;
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await conteudoDaRota(request);
   if (!r.ok) return r.resposta;
   const { contexto, auth } = r;
@@ -39,7 +43,7 @@ export async function GET(request: Request) {
     auth.supabase.from("tipografia_da_marca").select("segmento, substituta, pagina").eq("brand_id", brandId).eq("uso", "texto").eq("status", "ready"),
   ]);
   if (regras.error || variantes.error) {
-    return NextResponse.json({ message: "Não foi possível ler os Materiais da marca." }, { status: 503, headers: SEM_CACHE });
+    return NextResponse.json({ message: (isEnglish ? "Couldn't read the brand's Materials." : "Não foi possível ler os Materiais da marca.") }, { status: 503, headers: SEM_CACHE });
   }
 
   // As miniaturas, assinadas com a SESSÃO numa ida só, e só as da pasta desta
@@ -68,23 +72,24 @@ export async function GET(request: Request) {
   return NextResponse.json({
     marca: contexto.brand.brand.name,
     regras: (regras.data ?? []).map((l) => deLinhaDaRegra(l as Record<string, unknown>)).filter((x): x is RegraDoLogo => x !== null),
-    desenhos: escolherDesenhos(lista),
+    desenhos: escolherDesenhos(lista, await getTranslations({ locale: isEnglish ? "en" : "pt-BR", namespace: "ferramentas.arquivos" })),
     versoes: lista,
     coresDaMarca: [...new Set((paleta.data ?? []).map((c) => String((c as { hex: string }).hex)))].slice(0, 12),
     // Falhar ao ler a tipografia não derruba o Kit: a assinatura fica em Arial.
-    fonteDaAssinatura: texto.error ? null : fonteDaAssinatura((texto.data ?? []) as { segmento: string; substituta: string | null; pagina: number | null }[]),
+    fonteDaAssinatura: texto.error ? null : fonteDaAssinatura((texto.data ?? []) as { segmento: string; substituta: string | null; pagina: number | null }[], await getTranslations({ locale: isEnglish ? "en" : "pt-BR", namespace: "ferramentas.kit" })),
     podeEditar: contexto.capabilities.includes("editar"),
     podeAprovar: contexto.capabilities.includes("aprovar"),
   }, { headers: SEM_CACHE });
 }
 
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await conteudoDaRota(request);
   if (!r.ok) return r.resposta;
   const { contexto, auth } = r;
   if (!contexto.brand) return NextResponse.json({ error: "sem_marca" }, { status: 409 });
   if (!contexto.capabilities.includes("editar")) {
-    return NextResponse.json({ message: "Só quem edita esta marca corrige as regras." }, { status: 403 });
+    return NextResponse.json({ message: (isEnglish ? "Only people who edit this brand correct the rules." : "Só quem edita esta marca corrige as regras.") }, { status: 403 });
   }
 
   const corpo = await request.json().catch(() => null);
@@ -93,14 +98,14 @@ export async function PATCH(request: Request) {
   const pagina = corpo?.pagina === null || corpo?.pagina === undefined || corpo?.pagina === "" ? null : Number(corpo.pagina);
   const descricao = typeof corpo?.descricao === "string" ? corpo.descricao.slice(0, 200) : "";
   if (!CHAVES_DAS_REGRAS.includes(chave) || !Number.isFinite(valor) || (pagina !== null && !(Number.isInteger(pagina) && pagina >= 1))) {
-    return NextResponse.json({ message: "Valor inválido." }, { status: 400 });
+    return NextResponse.json({ message: (isEnglish ? "Invalid value." : "Valor inválido.") }, { status: 400 });
   }
 
   const linha = { workspace_id: auth.workspaceId, brand_id: contexto.brand.id, chave, valor, pagina, descricao };
   const { data, error } = await auth.supabase.from("regras_do_logo")
     .upsert(linha, { onConflict: "brand_id,chave" }).select(COLUNAS_DAS_REGRAS).single();
-  if (error?.code === "23514") return NextResponse.json({ message: "Esse valor está fora do que uma regra de logo admite." }, { status: 400 });
-  if (error?.code === "42501") return NextResponse.json({ message: "Só quem edita esta marca corrige as regras." }, { status: 403 });
-  if (error || !data) return NextResponse.json({ message: "Não foi possível guardar a regra." }, { status: 500 });
+  if (error?.code === "23514") return NextResponse.json({ message: (isEnglish ? "That value is outside what a logo rule allows." : "Esse valor está fora do que uma regra de logo admite.") }, { status: 400 });
+  if (error?.code === "42501") return NextResponse.json({ message: (isEnglish ? "Only people who edit this brand correct the rules." : "Só quem edita esta marca corrige as regras.") }, { status: 403 });
+  if (error || !data) return NextResponse.json({ message: (isEnglish ? "Couldn't save the rule." : "Não foi possível guardar a regra.") }, { status: 500 });
   return NextResponse.json({ regra: deLinhaDaRegra(data as Record<string, unknown>) }, { headers: SEM_CACHE });
 }

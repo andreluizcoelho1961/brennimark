@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  rotuloDePaginas,
   agrupar, dividir, ehPreenchimento, ehVisualDominante, faixaLegivel, fimDe, inicioDe, moverPagina, normalizar,
   paginasDe, renomear, unir, validarInvariantes, MAXIMO_DE_SECOES, type Secao,
 } from "./secoes";
@@ -186,6 +187,16 @@ test("o titulo visual so resolve o que o indice deixou em aberto", () => {
   assert.equal(secoes[1].titulo, "Cor");
   assert.equal(secoes[1].metodo, "heading");
   assert.ok(secoes[1].confianca < 1, "geometria nao prova intencao");
+});
+
+test("o rótulo da seção sem nome sai no idioma de quem importa", () => {
+  const paginas = Array.from({ length: 20 }, (_, i) => soCorpo(i + 1, `corpo ${i + 1}`));
+  const en = agrupar({ paginas, idioma: "en" }).secoes.map((s) => s.titulo);
+  assert.deepEqual(en, ["Pages 1–8", "Pages 9–16", "Pages 17–20"]);
+  assert.equal(rotuloDePaginas(5, 5, "en"), "Page 5");
+  assert.equal(rotuloDePaginas(5, 5, "pt-BR"), "Página 5");
+  // Sem o argumento, o padrão do produto continua sendo o português.
+  assert.deepEqual(agrupar({ paginas }).secoes.map((s) => s.titulo), ["Páginas 1–8", "Páginas 9–16", "Páginas 17–20"]);
 });
 
 test("sem indice e sem titulo, blocos de oito com procedencia no rotulo", () => {

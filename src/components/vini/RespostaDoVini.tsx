@@ -3,8 +3,8 @@
 import { Fragment, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { parseBrandCitations } from "@/lib/ai/citations";
-import { blocosDeMarkdown, enfases } from "@/lib/ai/markdown-leve";
-import { destinoDaCitacao, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
+import { blocosDeMarkdown, enfases, envolvidoEmEnfase } from "@/lib/ai/markdown-leve";
+import { destinoDaCitacao, tituloJaDizAsPaginas, type MapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { useStatusLabels } from "@/platform/brand-vocabulary-client";
 import { useIsEnglish } from "@/platform/locale-client";
 import type { DocStatus } from "@/content/docs";
@@ -35,12 +35,20 @@ export function RespostaDoVini({
   const router = useRouter();
 
   function linha(texto: string, chave: string): ReactNode {
+    // "*Nota: … [Fonte: …] … .*": a ênfase que atravessa a citação vale para o parágrafo todo.
+    const envolvido = envolvidoEmEnfase(texto);
+    if (envolvido && parseBrandCitations(texto, rotulos).some((parte) => parte.type !== "text")) {
+      return envolvido.tipo === "italico"
+        ? <em key={chave}>{linha(envolvido.dentro, `${chave}e`)}</em>
+        : <strong key={chave} className="font-semibold">{linha(envolvido.dentro, `${chave}n`)}</strong>;
+    }
     return parseBrandCitations(texto, rotulos).map((parte, i) => {
       if (parte.type === "text") {
         return (
           <Fragment key={`${chave}-${i}`}>
             {enfases(parte.value).map((e, j) =>
               e.tipo === "negrito" ? <strong key={j} className="font-semibold">{e.valor}</strong>
+              : e.tipo === "codigo" ? <code key={j} className="rounded-[3px] bg-platform-panel-muted px-1 font-mono text-[0.92em]">{e.valor}</code>
               : e.tipo === "italico" ? <em key={j}>{e.valor}</em>
               : <Fragment key={j}>{e.valor}</Fragment>)}
           </Fragment>
@@ -64,13 +72,15 @@ export function RespostaDoVini({
           title={destino.complemento
             ? (isEnglish ? "Open the supplement" : "Abrir o complemento")
             : destino.pagina
-              ? (isEnglish ? `Open the manual at page ${destino.pagina}` : `Abrir o manual na página ${destino.pagina}`)
+              ? tituloJaDizAsPaginas(parte.title)
+                ? (isEnglish ? `Open the manual at page ${destino.pagina}, where this section starts` : `Abrir o manual na página ${destino.pagina}, onde este trecho começa`)
+                : (isEnglish ? `Open the manual at page ${destino.pagina}` : `Abrir o manual na página ${destino.pagina}`)
               : (isEnglish ? "Open the manual" : "Abrir o manual")}
           className="mx-0.5 inline-flex flex-wrap items-baseline gap-1 border-b border-platform-border font-medium text-platform-text transition-colors hover:border-platform-signal focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
         >
           {destino.complemento && <span className="text-platform-text-muted">{isEnglish ? "Supplement:" : "Complemento:"}</span>}
           <span>{parte.title}</span>
-          {destino.pagina && <span className="text-platform-text-muted">{isEnglish ? "p." : "p."} {destino.pagina}</span>}
+          {destino.pagina && !tituloJaDizAsPaginas(parte.title) && <span className="text-platform-text-muted">{isEnglish ? "p." : "p."} {destino.pagina}</span>}
           <span className={`font-display text-[9px] font-bold uppercase tracking-wide ${parte.statusKey ? COR_DO_ESTADO[parte.statusKey] : "text-platform-text-muted"}`}>
             {parte.status}
           </span>

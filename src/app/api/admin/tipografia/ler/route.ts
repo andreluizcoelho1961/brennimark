@@ -6,7 +6,7 @@ import { resolveChatRouting } from "@/lib/ai/settings";
 import { capacidadesDe } from "@/lib/ai/catalogo";
 import { lerPaginasVistas, modeloVePaginas } from "@/lib/ai/paginas-para-ver";
 import { lerManualInteiro } from "@/lib/ai/manual-inteiro";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -16,13 +16,12 @@ import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import {
   MAXIMO_DE_PAGINAS_DA_TIPOGRAFIA, instrucoesDaTipografia, lerPaginasPedidas, lerTipografia, lerTipografiaDaIA, paginasDaTipografia,
 } from "@/lib/tipografia/tipografia";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const TEMPO_DA_LEITURA_MS = 90_000;
 export const maxDuration = 120;
 
-const t = (en: string, pt: string) => (isEnglish ? en : pt);
 const recusa = (status: number, error: string, message: string) => NextResponse.json({ error, message }, { status });
 
 /**
@@ -44,6 +43,8 @@ const recusa = (status: number, error: string, message: string) => NextResponse.
  * continua valendo nos dois casos.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (en: string, pt: string) => (isEnglish ? en : pt);
   const portao = await portaoDeIA(request, "chat");
   if (!portao.ok) return portao.resposta;
   const { auth } = portao;
@@ -96,10 +97,13 @@ export async function POST(request: Request) {
   let executionId: string | undefined;
   // Desfaz a reserva do teto se a leitura não acontecer (falha da IA, orçamento recusado).
   let devolver: (() => Promise<void>) | null = null;
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   try {
     const routing = await resolveChatRouting(workspaceId);
+    modoDaIA = routing.modo;
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
       return recusa(503, code, message);
     }
     const attempts = routing.attempts.filter((a) => modeloVePaginas(capacidadesDe(a.config.provider, a.config.model)));
@@ -133,7 +137,7 @@ export async function POST(request: Request) {
       auth.supabase, serviceClient, auth.user.id, pedido,
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
-    if (!decisao.pode) { await devolver?.(); return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish)); }
+    if (!decisao.pode) { await devolver?.(); return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish, modoDaIA)); }
 
     const inicio = Date.now();
     let motivoDoFim: PromiseLike<string> | null = null;
@@ -220,7 +224,7 @@ export async function POST(request: Request) {
   } catch (error) {
     await devolver?.();
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "tipografia", code, detalheTecnico, executionId }));
     return recusa(502, code, message);
   }

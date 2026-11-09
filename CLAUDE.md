@@ -36,7 +36,10 @@ Os ADRs vigentes, em ordem:
 - [`docs/adr/0007`](./docs/adr/0007-biblioteca-de-assets-da-marca.md) — a biblioteca de assets da
   marca, a entrega governada por link com prazo, e a hospedagem de fonte
 - [`docs/adr/0008`](./docs/adr/0008-a-ia-e-da-plataforma.md) — a IA é da plataforma: nenhuma conta
-  escolhe ou configura IA; rotas no Console, chaves na Vercel
+  escolhe ou configura IA; rotas no Console, chaves na Vercel (vale para o plano com IA)
+- [`docs/adr/0009`](./docs/adr/0009-a-ia-depende-do-plano.md) — a IA depende do plano: com IA é da
+  plataforma; sem IA a conta conecta a própria (chave cifrada, nunca revelada). Direção aceita,
+  **nada construído**; banco e preços esperam o OK do André
 
 `docs/ARCHITECTURE.md`, `docs/PRODUCT_ARCHITECTURE.md` e `docs/BRENNIMARK_MATRIX.md` são
 **históricos** e estão marcados como tal. Onde divergirem dos ADRs, valem os ADRs.
@@ -76,12 +79,17 @@ dizia o contrário ("não hospeda fonte licenciada de cliente algum"), e caiu po
 produto: quem trabalha na marca baixa o logo e tudo mais, e sem a fonte o texto renderiza errado no
 primeiro arquivo aberto. O que a hospedagem OBRIGA, e sem o que ela não se sustenta:
 
-- **termo assinado pelo assinante ANTES de ligar a hospedagem** — a responsabilidade pela licença é
-  dele, e sem texto assinado ela continua com quem serve o arquivo;
-- **aceite registrado no upload**, com autor e data;
+- **termo aceito pelo assinante ANTES de a fonte entrar** — a responsabilidade pela licença é dele, e
+  sem texto aceito ela continua com quem serve o arquivo. Desde 03/11/2026 o termo é uma versão
+  numerada (`versoes_do_termo_de_fonte`) e o aceite é **a cada envio**; a v1 ainda não passou por
+  advogado (ver `docs/plan/briefing-advogado-termo-de-fonte.md`);
+- **aceite registrado no upload**, com autor, data e versão (o banco carimba, não o pedido);
 - **servida só para download, a membro autenticado daquela marca** — nunca URL pública, nunca
-  webfont, sem hotlink e sem CDN;
-- **procedimento de retirada**, se uma foundry notificar.
+  webfont, sem hotlink e sem CDN, e **nunca em link de entrega**;
+- **procedimento de retirada** (`retirada_em`), se uma foundry notificar: só quem administra retira.
+
+Está no ar para todas as marcas (ADR-0007 §3.4): kit de fontes e "baixar todos os materiais da
+marca" em Materiais, e "Baixar esta fonte" na Tipografia.
 
 ## Honestidade editorial — não negociável
 
@@ -100,8 +108,10 @@ cliente dele.
 Nunca importar `@ai-sdk/*` direto de código de feature — sempre via `getModel()` em
 `src/lib/ai/provider.ts`. Resolução da rota em `src/lib/ai/settings.ts`.
 
-**A IA é da plataforma — mudou em 29/09/2026, ver ADR-0008.** Nenhuma conta escolhe ou configura
-IA. O Vini lê as rotas do Console (`rotas_de_ia_da_plataforma()`, só chave de serviço) e a chave de
+**A IA é da plataforma — mudou em 29/09/2026, ver ADR-0008. Desde 06/11/2026 isso vale para o plano
+COM IA; o ADR-0009 prevê o plano SEM IA, em que o administrador da conta conecta a própria IA (chave
+cifrada na conta, oculta o tempo todo, trocada em vez de revelada, sem cair na IA da plataforma).
+Ainda NÃO está construído: hoje, no código, nenhuma conta escolhe ou configura IA.** O Vini lê as rotas do Console (`rotas_de_ia_da_plataforma()`, só chave de serviço) e a chave de
 cada provedor da Vercel (`BRENNIMARK_CHAVE_<PROVEDOR>`, `src/lib/ai/chaves-da-plataforma.ts`). A
 chave nunca vai ao banco nem a tela nenhuma; o Console mostra só se ela existe. O orçamento continua
 por conta. **Manual de cliente real nunca passa por chave de plano gratuito.**
@@ -203,6 +213,9 @@ Garantia que ninguém reexecuta é garantia que alguém remove numa refatoraçã
 
 - `scripts/prova-de-concorrencia-ai-ledger.sh` — as travas do razão de IA
 - `scripts/prova-manifesto-por-pagina.sh` — as constraints do documento-fonte
+- `scripts/prova-teto-e-franquia-da-ia.sh` — na IA própria o teto em dólar é da agência (nasce sem teto, a dona define); franquia de perguntas do plano; as travas continuam; autorização negativa (outra conta não lê nem define)
+- `scripts/prova-ia-por-plano.sh` — o modo de IA no plano, as chaves por conta (ninguém de navegador
+  lê o cifrado), o registro append-only e o interruptor do Vini por pessoa (ADR-0009)
 - `scripts/prova-licencas-do-fonts.sh` e `scripts/prova-concorrencia-licencas-do-fonts.sh` — as licenças do beta do
   Brennimark Fonts: só a equipe alcança, limite de computadores, validade, revogação e a corrida no último lugar.
   A chave que ASSINA os certificados (`BRENNIMARK_CHAVE_LICENCAS_FONTS`, Ed25519) mora só na Vercel: nunca no banco,

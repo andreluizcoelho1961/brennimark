@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { autenticacaoDaRota, conteudoDaRota, donoDaRota } from "@/lib/brennimark/contexto-da-rota";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
 import { parseTheme } from "@/lib/brennimark/brand-row";
 import { NOME_MAXIMO, normalizarNomeDaMarca } from "@/lib/brennimark/nome-da-marca";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 async function contextoDeAdministracao(request: Request) {
   const resolvido = await conteudoDaRota(request);
@@ -45,11 +45,11 @@ async function retomarLimpezaNaConta(request: Request) {
 
 const marcaSumiu = (resposta: NextResponse | null) => resposta?.status === 404;
 
-const SEM_PERMISSAO = {
+const SEM_PERMISSAO = (isEnglish: boolean) => ({
   message: isEnglish
     ? "Only owners can delete a brand."
     : "Apenas quem administra pode excluir uma marca.",
-};
+});
 
 /**
  * Apagar uma marca, e limpar o que ficou para trás.
@@ -64,11 +64,12 @@ const SEM_PERMISSAO = {
  * aconteceu, e o que resta é terminar de limpar.
  */
 export async function DELETE(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await contextoDeAdministracao(request);
   if (!resolvido.ok && marcaSumiu(resolvido.resposta)) return retomarLimpezaNaConta(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const auth = resolvido.ok ? resolvido.auth : null;
-  if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
+  if (!auth) return NextResponse.json(SEM_PERMISSAO(isEnglish), { status: 403 });
   const marcaDoEndereco = resolvido.ok ? resolvido.brand : null;
 
   const entrada = await request.json().catch(() => null);
@@ -119,27 +120,28 @@ export async function DELETE(request: Request) {
  * próxima exclusão para ser tentada de novo.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await contextoDeAdministracao(request);
   // Drenar não depende de a marca existir: a fila é da conta.
   if (!resolvido.ok && marcaSumiu(resolvido.resposta)) return retomarLimpezaNaConta(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const auth = resolvido.ok ? resolvido.auth : null;
-  if (!auth) return NextResponse.json(SEM_PERMISSAO, { status: 403 });
+  if (!auth) return NextResponse.json(SEM_PERMISSAO(isEnglish), { status: 403 });
 
   const fila = await drenarFilaDeExclusao(auth);
   return NextResponse.json({ ok: true, ...fila });
 }
 
-const SEM_PERMISSAO_TEMA = {
+const SEM_PERMISSAO_TEMA = (isEnglish: boolean) => ({
   message: isEnglish
     ? "Only owners can edit the brand's visual identity."
     : "Apenas quem administra pode editar a identidade visual da marca.",
-};
-const TEMA_INVALIDO = {
+});
+const TEMA_INVALIDO = (isEnglish: boolean) => ({
   message: isEnglish
     ? "Review the theme values — every color is required."
     : "Revise os valores do tema — toda cor é obrigatória.",
-};
+});
 
 /**
  * Grava o tema de uma marca já existente.
@@ -155,10 +157,11 @@ const TEMA_INVALIDO = {
  * precisa mudar.
  */
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await contextoDeAdministracao(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const contexto = resolvido.ok ? resolvido : null;
-  if (!contexto) return NextResponse.json(SEM_PERMISSAO_TEMA, { status: 403 });
+  if (!contexto) return NextResponse.json(SEM_PERMISSAO_TEMA(isEnglish), { status: 403 });
 
   const input = await request.json().catch(() => null);
 
@@ -191,7 +194,7 @@ export async function PATCH(request: Request) {
   }
 
   const tema = parseTheme(input?.theme);
-  if (!tema) return NextResponse.json(TEMA_INVALIDO, { status: 400 });
+  if (!tema) return NextResponse.json(TEMA_INVALIDO(isEnglish), { status: 400 });
 
   const { error } = await contexto.auth.supabase
     .from("brands")

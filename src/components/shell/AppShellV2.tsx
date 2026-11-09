@@ -13,6 +13,7 @@ import { NavigationDrawer } from "./NavigationDrawer";
 import { AjudaDaMoldura } from "@/components/ajuda/AjudaDaMoldura";
 import { PlatformTopBar } from "./PlatformTopBar";
 import { AvisoDaCobranca } from "./AvisoDaCobranca";
+import { FaixaDoTour } from "@/components/demonstracao/FaixaDoTour";
 import type { ShellSection } from "./navigation";
 
 /**
@@ -294,6 +295,7 @@ export function AppShellV2({
              * `<main>` ao redor, que já tinha `overflow-y-auto`.
              */}
             <AvisoDaCobranca />
+            <FaixaDoTour />
             <div data-palco className="mx-auto min-h-full max-w-[1200px] overflow-hidden lg:rounded-[var(--radius-entry)] lg:border lg:border-platform-border">
               {children}
             </div>

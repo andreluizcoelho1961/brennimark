@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { COLUNAS_DA_PALETA, deLinha, lerCorEscrita, type MotivoDaRecusa } from "@/lib/paleta/paleta";
 import { conferirPaleta } from "@/lib/paleta/conferencia";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * A ficha da paleta da marca — 27/09/2026.
@@ -19,7 +19,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
  * ATUAL da marca.
  */
 
-function recusa(motivo: MotivoDaRecusa, paginas: number | null) {
+function recusa(motivo: MotivoDaRecusa, paginas: number | null, isEnglish: boolean) {
   const mensagens: Record<MotivoDaRecusa, [string, string]> = {
     nome: ["Give the color a name (up to 80 characters).", "Dê um nome à cor (até 80 caracteres)."],
     papel: ["Choose primary or support.", "Escolha principal ou apoio."],
@@ -35,11 +35,11 @@ function recusa(motivo: MotivoDaRecusa, paginas: number | null) {
   return NextResponse.json({ message: isEnglish ? en : pt }, { status: 400 });
 }
 
-const SO_QUEM_EDITA = () => NextResponse.json(
+const SO_QUEM_EDITA = (isEnglish: boolean) => NextResponse.json(
   { message: isEnglish ? "Only who edits this brand changes the palette." : "Só quem edita esta marca altera a paleta." },
   { status: 403 },
 );
-const FALHOU = () => NextResponse.json(
+const FALHOU = (isEnglish: boolean) => NextResponse.json(
   { message: isEnglish ? "Couldn't save the color." : "Não foi possível guardar a cor." },
   { status: 500 },
 );
@@ -52,25 +52,27 @@ async function corDoCorpo(request: Request, supabase: Parameters<typeof lerManua
 }
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;
 
   const { lida, paginas } = await corDoCorpo(request, auth.supabase, workspaceId, brandId);
-  if (!lida.ok) return recusa(lida.motivo, paginas);
+  if (!lida.ok) return recusa(lida.motivo, paginas, isEnglish);
 
   const { data, error } = await auth.supabase.from("paleta_da_marca")
     .insert({ workspace_id: workspaceId, brand_id: brandId, ...lida.cor })
     .select(COLUNAS_DA_PALETA)
     .single();
   // 42501: a policy recusou — quem pediu não edita esta marca.
-  if (error?.code === "42501") return SO_QUEM_EDITA();
-  if (error || !data) return FALHOU();
+  if (error?.code === "42501") return SO_QUEM_EDITA(isEnglish);
+  if (error || !data) return FALHOU(isEnglish);
   const [cor] = await conferirPaleta(auth.supabase, brandId, [deLinha(data as Record<string, unknown>)]);
   return NextResponse.json({ cor }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;
@@ -78,19 +80,20 @@ export async function PATCH(request: Request) {
   const { corpo, lida, paginas } = await corDoCorpo(request, auth.supabase, workspaceId, brandId);
   const id = typeof corpo?.id === "string" ? corpo.id : "";
   if (!id) return NextResponse.json({ message: isEnglish ? "Choose a color." : "Escolha uma cor." }, { status: 400 });
-  if (!lida.ok) return recusa(lida.motivo, paginas);
+  if (!lida.ok) return recusa(lida.motivo, paginas, isEnglish);
 
   const { data, error } = await auth.supabase.from("paleta_da_marca")
     .update(lida.cor)
     .eq("id", id).eq("workspace_id", workspaceId).eq("brand_id", brandId)
     .select(COLUNAS_DA_PALETA);
-  if (error) return FALHOU();
-  if (!data || data.length === 0) return SO_QUEM_EDITA();
+  if (error) return FALHOU(isEnglish);
+  if (!data || data.length === 0) return SO_QUEM_EDITA(isEnglish);
   const [cor] = await conferirPaleta(auth.supabase, brandId, [deLinha(data[0] as Record<string, unknown>)]);
   return NextResponse.json({ cor });
 }
 
 export async function DELETE(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;
@@ -103,7 +106,7 @@ export async function DELETE(request: Request) {
     .delete()
     .eq("id", id).eq("workspace_id", workspaceId).eq("brand_id", brandId)
     .select("id");
-  if (error) return FALHOU();
-  if (!data || data.length === 0) return SO_QUEM_EDITA();
+  if (error) return FALHOU(isEnglish);
+  if (!data || data.length === 0) return SO_QUEM_EDITA(isEnglish);
   return NextResponse.json({ removida: id });
 }

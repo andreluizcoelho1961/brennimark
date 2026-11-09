@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { cabecalhosDeSaida, ehSaidaEmUmClique, lerAcaoDeEmail, TETO_POR_ENVIO } from "./marketing";
 
+test("o teste aceita o idioma en e trata qualquer outro valor como pt-BR", () => {
+  assert.deepEqual(lerAcaoDeEmail({ acao: "teste", campanha: "convite-fonts-beta", idioma: "en" }), { ok: true, acao: { acao: "teste", campanha: "convite-fonts-beta", idioma: "en" } });
+  assert.deepEqual(lerAcaoDeEmail({ acao: "teste", campanha: "convite-fonts-beta", idioma: "fr" }), { ok: true, acao: { acao: "teste", campanha: "convite-fonts-beta", idioma: "pt-BR" } });
+});
+
 test("os cabeçalhos de saída seguem o RFC 8058: endereço https e o corpo de um clique", () => {
   const h = cabecalhosDeSaida("https://www.brennimark.com/api/sair/abc");
   assert.equal(h["List-Unsubscribe"], "<https://www.brennimark.com/api/sair/abc>");
@@ -29,7 +34,7 @@ test("o pedido do Console exige campanha que existe, e lê cargos e equipes só 
   );
   assert.equal(lerAcaoDeEmail({ acao: "resumo", campanha: "convite-fonts-beta", cargos: ["rei"] }).ok, false);
   assert.equal(lerAcaoDeEmail({ acao: "resumo", campanha: "convite-fonts-beta", equipes: "so-eu" }).ok, false);
-  assert.deepEqual(lerAcaoDeEmail({ acao: "teste", campanha: "convite-fonts-beta" }), { ok: true, acao: { acao: "teste", campanha: "convite-fonts-beta" } });
+  assert.deepEqual(lerAcaoDeEmail({ acao: "teste", campanha: "convite-fonts-beta" }), { ok: true, acao: { acao: "teste", campanha: "convite-fonts-beta", idioma: "pt-BR" } });
 });
 
 test("enviar pede de 1 ao teto por clique, inteiro", () => {

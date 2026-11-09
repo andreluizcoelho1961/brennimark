@@ -1,5 +1,6 @@
 "use client";
 
+import type { Tradutor } from "../i18n/tradutor";
 import { zipSync, strToU8 } from "fflate";
 import { motivoDoCabecalho } from "@/lib/kit/formatos";
 import type { Grid } from "./calcular";
@@ -23,25 +24,26 @@ export type LogoMedido = {
   previa: string;
 };
 
-export async function medirLogo(bytes: Uint8Array, arquivo: string, mime: string): Promise<LogoMedido> {
+/** `t` é o tradutor ligado a `ferramentas.arquivos`: as recusas saem no idioma da tela. */
+export async function medirLogo(bytes: Uint8Array, arquivo: string, mime: string, t: Tradutor): Promise<LogoMedido> {
   const formato = formatoParaOInDesign(arquivo, mime);
-  if (!formato) throw new Error(`O InDesign não coloca ${arquivo}. Use PDF, AI, SVG, PNG ou JPG nos Materiais.`);
+  if (!formato) throw new Error(t("recusa.indesignNaoColoca", { arquivo }));
   let previa = "";
   let limites: LogoMedido["limites"];
   if (formato === "pdf") {
-    const r = await limitesDoPdf(bytes, arquivo);
+    const r = await limitesDoPdf(bytes, arquivo, t);
     limites = r.limites; previa = r.previa;
   } else {
-    limites = formato === "svg" ? limitesDoSvg(new TextDecoder().decode(bytes)) : formato === "png" ? limitesDoPng(bytes) : await limitesDoJpeg(bytes);
+    limites = formato === "svg" ? limitesDoSvg(new TextDecoder().decode(bytes), t) : formato === "png" ? limitesDoPng(bytes) : await limitesDoJpeg(bytes);
     previa = URL.createObjectURL(new Blob([bytes as BlobPart], { type: formato === "svg" ? "image/svg+xml" : `image/${formato}` }));
   }
   const w = limites.dir - limites.esq, h = limites.inf - limites.sup;
-  if (!(w > 0 && h > 0)) throw new Error(`Não foi possível medir ${arquivo}.`);
+  if (!(w > 0 && h > 0)) throw new Error(t("recusa.naoMedir", { arquivo }));
   return { formato, limites, aspecto: h / w, previa };
 }
 
-async function limitesDoPdf(bytes: Uint8Array, arquivo: string): Promise<{ limites: LogoMedido["limites"]; previa: string }> {
-  const motivo = motivoDoCabecalho(String.fromCharCode(...bytes.subarray(0, 1024)), arquivo);
+async function limitesDoPdf(bytes: Uint8Array, arquivo: string, t: Tradutor): Promise<{ limites: LogoMedido["limites"]; previa: string }> {
+  const motivo = motivoDoCabecalho(String.fromCharCode(...bytes.subarray(0, 1024)), arquivo, t);
   if (motivo) throw new Error(motivo);
   const { prepararAmbienteDePdf } = await import("@/lib/import/stream-iteravel");
   prepararAmbienteDePdf();
@@ -63,7 +65,7 @@ async function limitesDoPdf(bytes: Uint8Array, arquivo: string): Promise<{ limit
     for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
       if (data[(y * c.width + x) * 4 + 3] > 8) { if (x < minX) minX = x; if (x > maxX) maxX = x; if (y < minY) minY = y; if (y > maxY) maxY = y; }
     }
-    if (maxX < 0) throw new Error(`A primeira página de ${arquivo} está vazia.`);
+    if (maxX < 0) throw new Error(t("recusa.paginaVazia", { arquivo }));
     const recorte = document.createElement("canvas");
     recorte.width = maxX - minX + 1;
     recorte.height = maxY - minY + 1;
@@ -80,10 +82,10 @@ async function limitesDoPdf(bytes: Uint8Array, arquivo: string): Promise<{ limit
 
 const POR_UNIDADE: Record<string, number> = { "": 1, px: 1, pt: 1, pc: 12, in: 72, cm: 72 / 2.54, mm: 72 / 25.4 };
 
-export function limitesDoSvg(texto: string): LogoMedido["limites"] {
+export function limitesDoSvg(texto: string, t: Tradutor): LogoMedido["limites"] {
   const doc = new DOMParser().parseFromString(texto, "image/svg+xml");
   const raiz = doc.documentElement;
-  if (raiz.nodeName.toLowerCase() !== "svg") throw new Error("Este SVG não pôde ser lido.");
+  if (raiz.nodeName.toLowerCase() !== "svg") throw new Error(t("recusa.svgIlegivel"));
   const medida = (v: string | null) => {
     const m = /^\s*([\d.]+)\s*(px|pt|pc|in|cm|mm)?\s*$/i.exec(v ?? "");
     return m ? Number(m[1]) * POR_UNIDADE[(m[2] ?? "").toLowerCase()] : null;
@@ -95,7 +97,7 @@ export function limitesDoSvg(texto: string): LogoMedido["limites"] {
     else if (w === null) w = h! * (vb[2] / vb[3]);
     else if (h === null) h = w * (vb[3] / vb[2]);
   }
-  if (!(w! > 0 && h! > 0)) throw new Error("O SVG não diz o próprio tamanho (falta o viewBox).");
+  if (!(w! > 0 && h! > 0)) throw new Error(t("recusa.svgSemTamanho"));
   return { esq: 0, sup: 0, dir: w!, inf: h! };
 }
 
@@ -133,9 +135,10 @@ async function limitesDoJpeg(b: Uint8Array): Promise<LogoMedido["limites"]> {
 }
 
 /** O pacote: o .idml, a pasta Links com o logo e o LEIA-ME. */
-export function montarPacoteDoGrid(d: { base: string; grid: Grid; marca: MarcaNoDocumento; logo: { nome: string; bytes: Uint8Array } | null; leiaMe: string }): Uint8Array {
+/** `t` é o tradutor ligado a `ferramentas.grids` (os nomes das camadas do .idml). */
+export function montarPacoteDoGrid(d: { base: string; grid: Grid; marca: MarcaNoDocumento; logo: { nome: string; bytes: Uint8Array } | null; leiaMe: string }, t: Tradutor): Uint8Array {
   const conteudo: Record<string, [Uint8Array, { level: 0 | 6 }]> = {
-    [`${d.base}.idml`]: [montarIdml(d.grid, d.marca), { level: 0 }],
+    [`${d.base}.idml`]: [montarIdml(d.grid, d.marca, t), { level: 0 }],
     "LEIA-ME.txt": [strToU8(d.leiaMe), { level: 6 }],
   };
   if (d.logo) conteudo[`Links/${d.logo.nome}`] = [d.logo.bytes, { level: 6 }];

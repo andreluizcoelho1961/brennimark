@@ -14,7 +14,7 @@ export function registrarFalhaNaFila(rota: string, executionId: string) {
     console.warn(JSON.stringify({
       level: "warn", msg: "ai_tentativa_falhou", rota, indice,
       provider: attempt.config.provider, model: attempt.config.model,
-      code: classifyAIError(raiz).code, executionId,
+      code: classifyAIError(raiz, false).code, executionId,
     }));
   };
 }

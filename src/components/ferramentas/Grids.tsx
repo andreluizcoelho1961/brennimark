@@ -1,7 +1,8 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
+import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId, textoDoFormato, type Formato, type TipoDeGrid } from "@/lib/grids/formatos";
 import { calcularGrid, escolhasPadrao, formatar, type Escolhas, type Grid, type Proporcao } from "@/lib/grids/calcular";
 import { montarIdml } from "@/lib/grids/idml";
 import { montarPdf } from "@/lib/grids/pdf";
@@ -28,27 +29,23 @@ const ROTULO = "font-mono text-[11px] uppercase tracking-[0.08em] text-platform-
 const PASSO = "font-display text-[17px] font-semibold tracking-tight text-platform-text";
 const CAMPO = "w-full rounded-[var(--radius-control)] border border-platform-border bg-platform-panel px-3 py-2 text-sm text-platform-text";
 
-const TIPOS: { id: TipoDeGrid; nome: string; dica: string }[] = [
-  { id: "manuscrito", nome: "Manuscrito", dica: "um bloco de texto" },
-  { id: "colunas", nome: "Colunas", dica: "colunas e medianiz" },
-  { id: "modular", nome: "Modular", dica: "colunas × linhas" },
-  { id: "hierarquico", nome: "Hierárquico", dica: "zonas pelo conteúdo" },
+/** Os nomes e as dicas vêm do catálogo (`ui.tipo.<id>`, `ui.proporcao.<chave>`, `ui.zonasDoGrid.<chave>`). */
+const TIPOS: { id: TipoDeGrid }[] = [{ id: "manuscrito" }, { id: "colunas" }, { id: "modular" }, { id: "hierarquico" }];
+
+const PROPORCOES: { id: Proporcao; chave: string }[] = [
+  { id: "unidade", chave: "unidade" },
+  { id: "2:3:4:6", chave: "classica" },
+  { id: "van-de-graaf", chave: "vanDeGraaf" },
+  { id: "aurea", chave: "aurea" },
 ];
 
-const PROPORCOES: { id: Proporcao; nome: string }[] = [
-  { id: "unidade", nome: "Margens da proposta (unidade)" },
-  { id: "2:3:4:6", nome: "2 : 3 : 4 : 6 (clássica de livro)" },
-  { id: "van-de-graaf", nome: "Cânone de Van de Graaf" },
-  { id: "aurea", nome: "Seção áurea" },
-];
-
-const ZONAS: { nome: string; pesos: number[] }[] = [
-  { nome: "1 : 2", pesos: [1, 2] },
-  { nome: "2 : 3", pesos: [2, 3] },
-  { nome: "1 : φ (áurea)", pesos: [1, 1.618] },
-  { nome: "1 : 2 : 1", pesos: [1, 2, 1] },
-  { nome: "1 : 3 : 1,2 (logo · mensagem · chamada)", pesos: [1, 3, 1.2] },
-  { nome: "1 : 4", pesos: [1, 4] },
+const ZONAS: { chave: string; pesos: number[] }[] = [
+  { chave: "z1", pesos: [1, 2] },
+  { chave: "z2", pesos: [2, 3] },
+  { chave: "z3", pesos: [1, 1.618] },
+  { chave: "z4", pesos: [1, 2, 1] },
+  { chave: "z5", pesos: [1, 3, 1.2] },
+  { chave: "z6", pesos: [1, 4] },
 ];
 
 const COR = {
@@ -86,12 +83,15 @@ export type ModoMarca = {
 };
 
 export function Grids({ marca }: { marca?: ModoMarca } = {}) {
+  const t = useTranslations("ferramentas.grids");
+  const decimal = t("separadorDecimal");
   const { pedir, dialogo } = useCadastroParaBaixar("grids", { ativo: !marca });
   const [formatoId, setFormatoId] = useState("a4");
   const formato = formatoPorId(formatoId);
   const inicial = (f: Formato) => (marca ? marca.aplicar(f) : escolhasPadrao(f));
   const [escolhas, setEscolhas] = useState<Escolhas>(() => inicial(formatoPorId("a4")));
-  const grid = useMemo(() => calcularGrid(formato, escolhas), [formato, escolhas]);
+  const grid = useMemo(() => calcularGrid(formato, escolhas, t), [formato, escolhas, t]);
+  const textoDe = (f: Formato) => textoDoFormato(f, t);
   const un = formato.unidade;
   const mudar = (parte: Partial<Escolhas>) => setEscolhas((e) => ({ ...e, ...parte }));
   // Sinal de "ligado" para os testes de navegador: escolher antes de o React
@@ -107,7 +107,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
 
   const base = `grid-${formato.id}-${escolhas.tipo}`;
   const baixar = (tipo: "idml" | "pdf") => {
-    const bytes = tipo === "idml" ? montarIdml(grid) : montarPdf(grid);
+    const bytes = tipo === "idml" ? montarIdml(grid, undefined, t) : montarPdf(grid);
     salvarArquivo(new Blob([bytes as BlobPart], { type: tipo === "idml" ? "application/vnd.adobe.indesign-idml-package" : "application/pdf" }), `${base}.${tipo}`);
   };
 
@@ -116,7 +116,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
     <label className="flex flex-col gap-1">
       <span className="text-[12px] text-platform-text-muted">{rotulo}</span>
       <span className="flex items-center gap-1.5">
-        <input data-grids-campo={atributo} inputMode="decimal" className={CAMPO} defaultValue={String(valor).replace(".", ",")} key={`${formato.id}-${atributo}-${valor}`}
+        <input data-grids-campo={atributo} inputMode="decimal" className={CAMPO} defaultValue={String(valor).replace(".", decimal)} key={`${formato.id}-${atributo}-${valor}`}
           onBlur={(e) => aoMudar(numero(e.target.value, valor))} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} step={passo} />
         <span className="w-6 text-[12px] text-platform-text-muted">{sufixo}</span>
       </span>
@@ -128,129 +128,127 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
       {dialogo}
       <aside className="flex flex-col gap-7 border-platform-border p-6 lg:border-r">
         <section className="flex flex-col gap-3">
-          <p className={ROTULO}>Passo 1</p>
-          <h2 className={PASSO}>O formato</h2>
+          <p className={ROTULO}>{t("ui.passo", { n: 1 })}</p>
+          <h2 className={PASSO}>{t("ui.formato.titulo")}</h2>
           <Dica texto={dicaDe("grids-formato")} lado="baixo"><select data-grids-formato className={CAMPO} value={formatoId} onChange={(e) => trocarFormato(e.target.value)}>
             {GRUPOS.map((g) => (
-              <optgroup key={g.id} label={g.nome}>
+              <optgroup key={g.id} label={t(`grupos.${g.id}`)}>
                 {FORMATOS.filter((f) => f.grupo === g.id && (marca || FORMATOS_GRATIS.has(f.id))).map((f) => (
-                  <option key={f.id} value={f.id}>{f.nome} — {String(f.largura).replace(".", ",")} × {String(f.altura).replace(".", ",")} {f.unidade}</option>
+                  <option key={f.id} value={f.id}>{textoDe(f).nome} — {String(f.largura).replace(".", decimal)} × {String(f.altura).replace(".", decimal)} {f.unidade}</option>
                 ))}
               </optgroup>
             ))}
-            {!marca && <option disabled data-grids-formatos-bloqueados>{`+ ${FORMATOS.length - FORMATOS_GRATIS.size} formatos, como livro, cartaz e carreiras: no plano de assinatura`}</option>}
+            {!marca && <option disabled data-grids-formatos-bloqueados>{t("ui.formato.bloqueados", { n: FORMATOS.length - FORMATOS_GRATIS.size })}</option>}
           </select></Dica>
           <p data-grids-fonte className="text-[12px] leading-snug text-platform-text-muted">
-            Medida: {formato.fonte}.{formato.corpo ? ` Corpo de texto da proposta: ${formato.corpo}.` : ""}
+            {t("ui.formato.medida", { fonte: textoDe(formato).fonte, corpo: textoDe(formato).corpo ? t("ui.formato.corpo", { corpo: textoDe(formato).corpo! }) : "" })}
           </p>
           {formato.livro && (
             <div className="grid grid-cols-2 gap-3">
-              {campoNumero("Lombada", escolhas.livro.lombada, (v) => mudar({ livro: { ...escolhas.livro, lombada: Math.max(0, v) } }), "mm", "lombada")}
-              {campoNumero("Orelha (cada)", escolhas.livro.orelha, (v) => mudar({ livro: { ...escolhas.livro, orelha: Math.max(0, v) } }), "mm", "orelha")}
-              <p className="col-span-2 text-[12px] leading-snug text-platform-text-muted">A lombada depende do papel e do número de páginas: confirme a medida com a gráfica.</p>
+              {campoNumero(t("ui.formato.lombada"), escolhas.livro.lombada, (v) => mudar({ livro: { ...escolhas.livro, lombada: Math.max(0, v) } }), "mm", "lombada")}
+              {campoNumero(t("ui.formato.orelha"), escolhas.livro.orelha, (v) => mudar({ livro: { ...escolhas.livro, orelha: Math.max(0, v) } }), "mm", "orelha")}
+              <p className="col-span-2 text-[12px] leading-snug text-platform-text-muted">{t("ui.formato.lombadaNota")}</p>
             </div>
           )}
         </section>
 
         <section className="flex flex-col gap-3">
-          <p className={ROTULO}>Passo 2</p>
-          <h2 className={PASSO}>O tipo de grid</h2>
-          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Tipo de grid">
-            {TIPOS.map((t) => (
-              <Dica key={t.id} texto={dicaDe("grids-tipo")} lado="cima"><button type="button" data-grids-tipo={t.id} aria-pressed={escolhas.tipo === t.id} onClick={() => mudar({ tipo: t.id })}
-                className={`flex flex-col items-start rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors ${escolhas.tipo === t.id ? "border-platform-text" : "border-platform-border hover:border-platform-text"}`}>
-                <span className="text-sm font-medium text-platform-text">{t.nome}</span>
-                <span className="text-[12px] text-platform-text-muted">{t.dica}</span>
+          <p className={ROTULO}>{t("ui.passo", { n: 2 })}</p>
+          <h2 className={PASSO}>{t("ui.tipo.titulo")}</h2>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label={t("ui.tipo.aria")}>
+            {TIPOS.map((tp) => (
+              <Dica key={tp.id} texto={dicaDe("grids-tipo")} lado="cima"><button type="button" data-grids-tipo={tp.id} aria-pressed={escolhas.tipo === tp.id} onClick={() => mudar({ tipo: tp.id })}
+                className={`flex flex-col items-start rounded-[var(--radius-control)] border px-3 py-2 text-left transition-colors ${escolhas.tipo === tp.id ? "border-platform-text" : "border-platform-border hover:border-platform-text"}`}>
+                <span className="text-sm font-medium text-platform-text">{t(`ui.tipo.${tp.id}.nome`)}</span>
+                <span className="text-[12px] text-platform-text-muted">{t(`ui.tipo.${tp.id}.dica`)}</span>
               </button></Dica>
             ))}
           </div>
 
           {escolhas.tipo === "manuscrito" && !formato.livro && (
             <label className="flex flex-col gap-1">
-              <span className="text-[12px] text-platform-text-muted">Proporção das margens</span>
+              <span className="text-[12px] text-platform-text-muted">{t("ui.proporcao.rotulo")}</span>
               <select data-grids-proporcao className={CAMPO} value={escolhas.proporcao} onChange={(e) => mudar({ proporcao: e.target.value as Proporcao })}>
-                {PROPORCOES.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                {PROPORCOES.map((p) => <option key={p.id} value={p.id}>{t(`ui.proporcao.${p.chave}`)}</option>)}
               </select>
             </label>
           )}
           {escolhas.tipo === "hierarquico" && !formato.livro && (
             <label className="flex flex-col gap-1">
-              <span className="text-[12px] text-platform-text-muted">Divisão das zonas</span>
-              <select data-grids-zonas className={CAMPO} value={ZONAS.find((z) => z.pesos.join() === escolhas.zonas.join())?.nome ?? ""} onChange={(e) => mudar({ zonas: ZONAS.find((z) => z.nome === e.target.value)!.pesos })}>
+              <span className="text-[12px] text-platform-text-muted">{t("ui.zonasDoGrid.rotulo")}</span>
+              <select data-grids-zonas className={CAMPO} value={ZONAS.find((z) => z.pesos.join() === escolhas.zonas.join())?.chave ?? ""} onChange={(e) => mudar({ zonas: ZONAS.find((z) => z.chave === e.target.value)!.pesos })}>
                 {!ZONAS.some((z) => z.pesos.join() === escolhas.zonas.join()) && <option value="">{escolhas.zonas.join(" : ")}</option>}
-                {ZONAS.map((z) => <option key={z.nome} value={z.nome}>{z.nome}</option>)}
+                {ZONAS.map((z) => <option key={z.chave} value={z.chave}>{t(`ui.zonasDoGrid.${z.chave}`)}</option>)}
               </select>
             </label>
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            {escolhas.tipo !== "manuscrito" && campoNumero("Colunas", escolhas.colunas, (v) => mudar({ colunas: Math.min(24, Math.max(1, Math.round(v))) }), "", "colunas")}
-            {escolhas.tipo === "modular" && campoNumero("Linhas", escolhas.linhas, (v) => mudar({ linhas: Math.min(40, Math.max(1, Math.round(v))) }), "", "linhas")}
-            {escolhas.tipo !== "manuscrito" && campoNumero("Medianiz", escolhas.medianiz, (v) => mudar({ medianiz: Math.max(0, v) }), unidadeDoCampo, "medianiz")}
-            {campoNumero("Linha de base", escolhas.linhaDeBase, (v) => mudar({ linhaDeBase: Math.max(1, v) }), un === "mm" ? "pt" : "px", "linha-de-base")}
+            {escolhas.tipo !== "manuscrito" && campoNumero(t("ui.campos.colunas"), escolhas.colunas, (v) => mudar({ colunas: Math.min(24, Math.max(1, Math.round(v))) }), "", "colunas")}
+            {escolhas.tipo === "modular" && campoNumero(t("ui.campos.linhas"), escolhas.linhas, (v) => mudar({ linhas: Math.min(40, Math.max(1, Math.round(v))) }), "", "linhas")}
+            {escolhas.tipo !== "manuscrito" && campoNumero(t("ui.campos.medianiz"), escolhas.medianiz, (v) => mudar({ medianiz: Math.max(0, v) }), unidadeDoCampo, "medianiz")}
+            {campoNumero(t("ui.campos.linhaDeBase"), escolhas.linhaDeBase, (v) => mudar({ linhaDeBase: Math.max(1, v) }), un === "mm" ? "pt" : "px", "linha-de-base")}
           </div>
           {(escolhas.tipo !== "manuscrito" || escolhas.proporcao === "unidade" || formato.livro) && (
             <div className="grid grid-cols-4 gap-2">
-              {campoNumero("Superior", escolhas.margens.sup, (v) => mudar({ margens: { ...escolhas.margens, sup: Math.max(0, v) } }), "", "margem-sup")}
-              {campoNumero("Inferior", escolhas.margens.inf, (v) => mudar({ margens: { ...escolhas.margens, inf: Math.max(0, v) } }), "", "margem-inf")}
-              {campoNumero("Esquerda", escolhas.margens.esq, (v) => mudar({ margens: { ...escolhas.margens, esq: Math.max(0, v) } }), "", "margem-esq")}
-              {campoNumero("Direita", escolhas.margens.dir, (v) => mudar({ margens: { ...escolhas.margens, dir: Math.max(0, v) } }), "", "margem-dir")}
-              <p className="col-span-4 -mt-1 text-[12px] text-platform-text-muted">Margens em {unidadeDoCampo}.</p>
+              {campoNumero(t("ui.campos.sup"), escolhas.margens.sup, (v) => mudar({ margens: { ...escolhas.margens, sup: Math.max(0, v) } }), "", "margem-sup")}
+              {campoNumero(t("ui.campos.inf"), escolhas.margens.inf, (v) => mudar({ margens: { ...escolhas.margens, inf: Math.max(0, v) } }), "", "margem-inf")}
+              {campoNumero(t("ui.campos.esq"), escolhas.margens.esq, (v) => mudar({ margens: { ...escolhas.margens, esq: Math.max(0, v) } }), "", "margem-esq")}
+              {campoNumero(t("ui.campos.dir"), escolhas.margens.dir, (v) => mudar({ margens: { ...escolhas.margens, dir: Math.max(0, v) } }), "", "margem-dir")}
+              <p className="col-span-4 -mt-1 text-[12px] text-platform-text-muted">{t("ui.campos.margensEm", { un: unidadeDoCampo })}</p>
             </div>
           )}
         </section>
 
         {!formato.livro && !marca && (
           <section className="flex flex-col gap-3" data-grids-desconstrucao-bloqueada>
-            <p className={ROTULO}>Passo 3 · assinante</p>
-            <h2 className={PASSO}>Desconstrução</h2>
-            <p className="text-[12.5px] leading-snug text-platform-text-muted">Grid sobreposto e grid rotacionado, cada um numa camada própria do InDesign, são do plano de assinatura.</p>
+            <p className={ROTULO}>{t("ui.passo3Assinante")}</p>
+            <h2 className={PASSO}>{t("ui.desconstrucao.titulo")}</h2>
+            <p className="text-[12.5px] leading-snug text-platform-text-muted">{t("ui.desconstrucao.bloqueada")}</p>
           </section>
         )}
 
         {!formato.livro && marca && (
           <section className="flex flex-col gap-3">
-            <p className={ROTULO}>Passo 3 · opcional</p>
-            <h2 className={PASSO}>Desconstrução</h2>
+            <p className={ROTULO}>{t("ui.passo3Opcional")}</p>
+            <h2 className={PASSO}>{t("ui.desconstrucao.titulo")}</h2>
             <Dica texto={dicaDe("grids-sobreposto")} lado="cima"><label className="flex items-center gap-2 text-sm text-platform-text">
               <input type="checkbox" data-grids-sobreposto checked={escolhas.sobreposto.ativo} onChange={(e) => mudar({ sobreposto: { ...escolhas.sobreposto, ativo: e.target.checked } })} />
-              Grid sobreposto
+              {t("ui.desconstrucao.sobreposto")}
             </label></Dica>
-            {escolhas.sobreposto.ativo && campoNumero("Colunas do grid sobreposto", escolhas.sobreposto.colunas, (v) => mudar({ sobreposto: { ...escolhas.sobreposto, colunas: Math.min(24, Math.max(1, Math.round(v))) } }), "", "sobreposto-colunas")}
+            {escolhas.sobreposto.ativo && campoNumero(t("ui.desconstrucao.colunasSobreposto"), escolhas.sobreposto.colunas, (v) => mudar({ sobreposto: { ...escolhas.sobreposto, colunas: Math.min(24, Math.max(1, Math.round(v))) } }), "", "sobreposto-colunas")}
             <Dica texto={dicaDe("grids-rotacionado")} lado="cima"><label className="flex items-center gap-2 text-sm text-platform-text">
               <input type="checkbox" data-grids-rotacionado checked={escolhas.rotacionado.ativo} onChange={(e) => mudar({ rotacionado: { ...escolhas.rotacionado, ativo: e.target.checked } })} />
-              Grid rotacionado
+              {t("ui.desconstrucao.rotacionado")}
             </label></Dica>
             {escolhas.rotacionado.ativo && (
               <label className="flex flex-col gap-1">
-                <span className="text-[12px] text-platform-text-muted">Ângulo · {escolhas.rotacionado.angulo}°</span>
+                <span className="text-[12px] text-platform-text-muted">{t("ui.desconstrucao.angulo", { a: escolhas.rotacionado.angulo })}</span>
                 <input data-grids-angulo type="range" min={-45} max={45} value={escolhas.rotacionado.angulo} onChange={(e) => mudar({ rotacionado: { ...escolhas.rotacionado, angulo: +e.target.value } })} />
               </label>
             )}
-            <p className="text-[12px] leading-snug text-platform-text-muted">Cada um vem numa camada própria do InDesign, que não imprime: ligue e desligue no painel Camadas.</p>
+            <p className="text-[12px] leading-snug text-platform-text-muted">{t("ui.desconstrucao.camadas")}</p>
           </section>
         )}
 
         {marca?.secao({ grid, formato, escolhas, mudar })}
 
         <section className="flex flex-col gap-3">
-          <p className={ROTULO}>Passo {formato.livro ? 3 : 4}</p>
-          <h2 className={PASSO}>Baixar</h2>
+          <p className={ROTULO}>{t("ui.passo", { n: formato.livro ? 3 : 4 })}</p>
+          <h2 className={PASSO}>{t("ui.baixar.titulo")}</h2>
           <Dica texto={dicaDe(marca ? "grids-baixar-idml" : "grids-baixar-idml-gratis")} lado="cima"><button type="button" data-grids-baixar-idml onClick={() => (marca ? marca.baixar({ grid, formato, escolhas }) : pedir(() => baixar("idml")))}
-            disabled={grid.avisos.some((a) => a.startsWith("As margens somam")) || Boolean(marca?.baixando)}
+            disabled={grid.margensExcedem || Boolean(marca?.baixando)}
             className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
-            {marca ? (marca.baixando ? "Montando o pacote…" : "Baixar para o InDesign (.idml + Links)") : "Baixar para o InDesign (.idml)"}
+            {marca ? (marca.baixando ? t("ui.baixar.montando") : t("ui.baixar.idmlMarca")) : t("ui.baixar.idml")}
           </button></Dica>
           <Dica texto={dicaDe("grids-baixar-pdf")} lado="cima"><button type="button" data-grids-baixar-pdf onClick={() => (marca?.baixarPdf ? marca.baixarPdf({ grid, formato, escolhas }) : pedir(() => baixar("pdf")))} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">
-            PDF de referência (outros programas)
+            {t("ui.baixar.pdf")}
           </button></Dica>
           <p className="text-[12px] leading-snug text-platform-text-muted">
-            {marca
-              ? "Um .zip com o .idml, a pasta Links com o logo e o LEIA-ME. O .idml também abre no Affinity Publisher."
-              : "O .idml também abre no Affinity Publisher. Logo, cores e estilos de texto da marca já posicionados: no plano de assinatura."}
+            {marca ? t("ui.baixar.notaMarca") : t("ui.baixar.notaGratis")}
           </p>
           <button type="button" data-grids-restaurar onClick={() => setEscolhas(inicial(formato))} className="self-start text-[12.5px] text-platform-text-muted underline">
-            {marca ? "Voltar ao grid da marca" : "Voltar à proposta do Brennimark"}
+            {marca ? t("ui.baixar.restaurarMarca") : t("ui.baixar.restaurarProposta")}
           </button>
         </section>
       </aside>
@@ -258,21 +256,21 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
       <section className="flex min-w-0 flex-col gap-4 p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-[13px] text-platform-text-muted">
-            <span className="font-medium text-platform-text">{formato.nome}</span> · {TIPOS.find((t) => t.id === escolhas.tipo)!.nome}
-            {" · "}{grid.colunas.n} {grid.colunas.n === 1 ? "coluna" : "colunas"}{grid.linhas.length ? ` × ${grid.linhas.length} linhas` : ""}
-            {" · "}linha de base {un === "mm" ? `${escolhas.linhaDeBase} pt` : `${escolhas.linhaDeBase} px`}
+            <span className="font-medium text-platform-text">{textoDe(formato).nome}</span> · {t(`ui.tipo.${escolhas.tipo}.nome`)}
+            {" · "}{t("ui.resumo.colunas", { n: grid.colunas.n })}{grid.linhas.length ? ` ${t("ui.resumo.linhas", { n: grid.linhas.length })}` : ""}
+            {" · "}{t("ui.resumo.linhaDeBase", { v: escolhas.linhaDeBase, u: un === "mm" ? "pt" : "px" })}
           </p>
           {marca
-            ? <p data-grids-origem className="text-[12.5px] text-platform-text-muted">Grid: {marca.origem(formato, escolhas)}</p>
-            : <p data-grids-proposta className="font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted">proposta do Brennimark</p>}
+            ? <p data-grids-origem className="text-[12.5px] text-platform-text-muted">{t("ui.resumo.origem", { origem: marca.origem(formato, escolhas) })}</p>
+            : <p data-grids-proposta className="font-mono text-[11px] uppercase tracking-[0.08em] text-platform-text-muted">{t("ui.resumo.proposta")}</p>}
         </div>
         <Previa grid={grid} sobre={marca?.sobrePrevia?.({ grid, formato, escolhas })} />
         <Legenda grid={grid} />
-        {formato.seguraNota && <p className="text-[12.5px] text-platform-text-muted">Área segura: {formato.seguraNota}.</p>}
+        {textoDe(formato).seguraNota && <p className="text-[12.5px] text-platform-text-muted">{t("ui.resumo.areaSegura", { nota: textoDe(formato).seguraNota! })}</p>}
         {grid.avisos.map((a) => <p key={a} data-grids-aviso className="rounded-[var(--radius-control)] border border-platform-border px-3 py-2 text-[12.5px] text-platform-text">{a}</p>)}
         <p className="text-[12px] text-platform-text-muted">
-          Margens: {formatar(grid.margens.sup, un)} · {formatar(grid.margens.inf, un)} · {formatar(grid.margens.esq, un)} · {formatar(grid.margens.dir, un)}
-          {grid.sangria > 0 ? ` · sangria ${formatar(grid.sangria, un)}` : ""}
+          {t("ui.resumo.margens", { sup: formatar(grid.margens.sup, un, decimal), inf: formatar(grid.margens.inf, un, decimal), esq: formatar(grid.margens.esq, un, decimal), dir: formatar(grid.margens.dir, un, decimal) })}
+          {grid.sangria > 0 ? t("ui.resumo.sangria", { v: formatar(grid.sangria, un, decimal) }) : ""}
         </p>
       </section>
     </div>
@@ -280,6 +278,7 @@ export function Grids({ marca }: { marca?: ModoMarca } = {}) {
 }
 
 function Previa({ grid: g, sobre }: { grid: ReturnType<typeof calcularGrid>; sobre?: ReactNode }) {
+  const t = useTranslations("ferramentas.grids");
   const s = g.sangria;
   const fino = Math.max(g.largura, g.altura) / 900;
   const interior = { x: g.margens.esq, y: g.margens.sup, w: g.largura - g.margens.esq - g.margens.dir, h: g.altura - g.margens.sup - g.margens.inf };
@@ -289,7 +288,7 @@ function Previa({ grid: g, sobre }: { grid: ReturnType<typeof calcularGrid>; sob
   return (
     <div className="grid place-items-center rounded-[var(--radius-panel)] border border-platform-border bg-[#e9edf0] p-6">
       <svg data-grids-previa viewBox={`${-s - fino * 4} ${-s - fino * 4} ${g.largura + 2 * s + fino * 8} ${g.altura + 2 * s + fino * 8}`}
-        className="max-h-[70vh] w-full" role="img" aria-label="Prévia do grid">
+        className="max-h-[70vh] w-full" role="img" aria-label={t("ui.resumo.previaAria")}>
         {s > 0 && <rect x={-s} y={-s} width={g.largura + 2 * s} height={g.altura + 2 * s} fill="none" stroke="#c9302c" strokeWidth={fino} strokeDasharray={`${fino * 4} ${fino * 3}`} />}
         <rect x={0} y={0} width={g.largura} height={g.altura} fill="#ffffff" stroke="#9aa5ad" strokeWidth={fino} />
         {g.linhas.length > 0
@@ -318,14 +317,15 @@ function Previa({ grid: g, sobre }: { grid: ReturnType<typeof calcularGrid>; sob
 }
 
 function Legenda({ grid: g }: { grid: ReturnType<typeof calcularGrid> }) {
-  const itens: [string, string][] = [["colunas e módulos", COR.traco], ["linha de base", COR.base]];
-  if (g.colunasNaMargem) itens.push(["margens", COR.margem]);
-  if (g.zonas.length && g.colunasNaMargem) itens.push(["zonas", COR.zona]);
-  if (!g.colunasNaMargem) itens.push(["dobras", COR.dobra]);
-  if (g.segura) itens.push(["área segura da plataforma", COR.segura]);
-  if (g.sangria > 0) itens.push(["sangria", "#c9302c"]);
-  if (g.sobreposto.length) itens.push(["grid sobreposto", COR.sobreposto]);
-  if (g.rotacionado) itens.push(["grid rotacionado", COR.rotacionado]);
+  const t = useTranslations("ferramentas.grids");
+  const itens: [string, string][] = [[t("ui.legenda.colunasEModulos"), COR.traco], [t("ui.legenda.linhaDeBase"), COR.base]];
+  if (g.colunasNaMargem) itens.push([t("ui.legenda.margens"), COR.margem]);
+  if (g.zonas.length && g.colunasNaMargem) itens.push([t("ui.legenda.zonas"), COR.zona]);
+  if (!g.colunasNaMargem) itens.push([t("ui.legenda.dobras"), COR.dobra]);
+  if (g.segura) itens.push([t("ui.legenda.segura"), COR.segura]);
+  if (g.sangria > 0) itens.push([t("ui.legenda.sangria"), "#c9302c"]);
+  if (g.sobreposto.length) itens.push([t("ui.legenda.sobreposto"), COR.sobreposto]);
+  if (g.rotacionado) itens.push([t("ui.legenda.rotacionado"), COR.rotacionado]);
   return (
     <ul data-grids-legenda className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-platform-text-muted">
       {itens.map(([nome, cor]) => (

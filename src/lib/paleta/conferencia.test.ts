@@ -44,6 +44,26 @@ test("um dígito trocado vira 'conferir', dizendo qual código não bateu", () =
   assert.deepEqual(conferirNoTexto(cor({ rgb: "60 30 201" }), PAGINA), { estado: "conferir", faltam: ["RGB"] });
 });
 
+test("tabela com o rótulo no cabeçalho: o Pantone solto confere, e o que não tem Pantone não exige", () => {
+  // O manual do Brennimark (v0.3, p. 14–15): "PANTONE · REF." na linha de cima, "172 C" na de baixo.
+  const TABELA = `
+Brasa            HEX           RGB          CMYK · REF.        PANTONE · REF.
+                 #FF4103       255 / 65 / 3   0 / 85 / 100 / 0   172 C
+Noite Polar      #001621       0 / 22 / 33    100 / 65 / 40 / 85   Black 6 C
+Gelo             #F2F5F6       242 / 245 / 246  3 / 1 / 1 / 0     — (papel branco)
+`;
+  assert.deepEqual(conferirNoTexto(cor({ hex: "#FF4103", rgb: "255 / 65 / 3", cmyk: "0 / 85 / 100 / 0", pms: "172 C" }), TABELA), { estado: "conferida" });
+  // "—": a cor declara que não tem Pantone. Nada a procurar.
+  assert.deepEqual(conferirNoTexto(cor({ hex: "#F2F5F6", pms: "- (papel branco)" }), TABELA), { estado: "conferida" });
+  assert.deepEqual(conferirNoTexto(cor({ pms: "n/a" }), TABELA), { estado: "conferida" });
+  // Sem a palavra Pantone/PMS na página, o número solto NÃO vale.
+  assert.deepEqual(conferirNoTexto(cor({ pms: "172 C" }), "Brasa  #FF4103  172 C"), { estado: "conferir", faltam: ["PMS"] });
+  // Um número pequeno e sem letra casaria com um canal de cor: não vale solto.
+  assert.deepEqual(conferirNoTexto(cor({ pms: "65" }), TABELA), { estado: "conferir", faltam: ["PMS"] });
+  // E outro código com o mesmo começo não confere: "17" não é "172 C".
+  assert.deepEqual(conferirNoTexto(cor({ pms: "17 C" }), TABELA), { estado: "conferir", faltam: ["PMS"] });
+});
+
 test("sem página, ou sem texto da página, não há o que conferir", () => {
   assert.deepEqual(conferirNoTexto(cor({ hex: "#C83022", pagina: null }), PAGINA), { estado: "sem-pagina" });
   assert.deepEqual(conferirNoTexto(cor({ hex: "#C83022" }), null), { estado: "sem-pagina" });

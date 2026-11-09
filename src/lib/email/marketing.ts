@@ -5,7 +5,7 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 import { CARGOS, EQUIPES } from "../cadastro/cadastro";
-import { campanhaDe } from "./campanhas";
+import { campanhaDe, idiomaDoDestinatario, type Idioma } from "./campanhas";
 
 /** Quantas pessoas no máximo por clique. O banco recusa acima disso (`console_email_reservar`). */
 export const TETO_POR_ENVIO = 25;
@@ -31,7 +31,7 @@ export function ehSaidaEmUmClique(corpo: string): boolean {
 
 export type AcaoDeEmail =
   | { acao: "resumo"; campanha: string; cargos: string[]; equipes: string[] }
-  | { acao: "teste"; campanha: string }
+  | { acao: "teste"; campanha: string; idioma: Idioma }
   | { acao: "enviar"; campanha: string; cargos: string[]; equipes: string[]; limite: number };
 
 const CARGOS_IDS: ReadonlySet<string> = new Set(CARGOS.map((c) => c.id));
@@ -50,7 +50,7 @@ export function lerAcaoDeEmail(corpo: unknown): { ok: true; acao: AcaoDeEmail } 
   const campanha = campanhaDe(c.campanha);
   if (!campanha) return { ok: false, motivo: "Escolha uma campanha." };
 
-  if (c.acao === "teste") return { ok: true, acao: { acao: "teste", campanha: campanha.id } };
+  if (c.acao === "teste") return { ok: true, acao: { acao: "teste", campanha: campanha.id, idioma: idiomaDoDestinatario(c.idioma) } };
 
   if (c.acao !== "resumo" && c.acao !== "enviar") return { ok: false, motivo: "Ação desconhecida." };
   const cargos = lista(c.cargos, CARGOS_IDS);

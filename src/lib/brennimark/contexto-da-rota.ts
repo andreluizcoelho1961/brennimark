@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { resolveWorkspaceContext, type WorkspaceContext } from "./workspace-context";
 import type { Alvo } from "./selecao";
 import { podeUsar, type Utilidade } from "../ai/permissao";
+import { ehVisitanteDoTour, textoDeAssinante } from "../demonstracao/visitante";
+import { idiomaDaSessao } from "../idioma-da-sessao";
+import { inEnglish } from "../../platform/locale";
 import { getBrennimarkAuthContext, resolverWorkspaceAtivo, type BrennimarkAuthContext } from "./server";
 
 /**
@@ -205,11 +208,23 @@ export type PortaoDeIA =
 export async function portaoDeIA(
   request: Request,
   utilidade: Utilidade,
+  opcoes: { visitanteDoTour?: "permitir" } = {},
 ): Promise<PortaoDeIA> {
   const resolvido = await conteudoDaRota(request);
   if (!resolvido.ok) return resolvido;
 
   const { contexto, auth } = resolvido;
+  /*
+   * O visitante do tour (25/10/2026) só usa o chat do Vini e as conversas dele,
+   * e as rotas que o permitem dizem isso AQUI, com o contador na própria rota.
+   * Qualquer outra rota de IA recusa — copiloto de prompts, leitura de regras,
+   * sugestão de paleta, análise de imagem. É a cerca do "2 perguntas, nada mais",
+   * no servidor: esconder o botão não fecha a rota. O padrão é recusar, para uma
+   * rota de IA nova nascer fechada ao visitante.
+   */
+  if (ehVisitanteDoTour(auth.user) && opcoes.visitanteDoTour !== "permitir") {
+    return { ok: false, resposta: NextResponse.json({ error: "tour_sem_ia", message: textoDeAssinante(inEnglish(await idiomaDaSessao())) }, { status: 403 }) };
+  }
   if (!contexto.brand) {
     return { ok: false, resposta: NextResponse.json({ error: "no_brand" }, { status: 409 }) };
   }
@@ -230,6 +245,22 @@ export async function portaoDeIA(
           ok: false,
           resposta: NextResponse.json({ error: "sem_permissao" }, { status: 403 }),
         };
+  }
+
+  /*
+   * O interruptor do Vini por pessoa (ADR-0009 §6): quem administra a conta pode
+   * desligar o Vini para uma pessoa — a gráfica que só baixa o logo, por
+   * exemplo —, em qualquer plano. Vale para o chat e a análise de peça; o
+   * histórico de conversas continua legível. Sem linha na tabela, o Vini está
+   * ligado. A pergunta usa a sessão de quem pede (a função só responde sobre
+   * quem pergunta), e falhar ao perguntar RECUSA: na dúvida, não se gasta IA.
+   * 403 com código próprio, para a interface dizer o motivo em vez de "sem permissão".
+   */
+  if (utilidade !== "history") {
+    const { data: pode, error } = await auth.supabase.rpc("posso_usar_o_vini", { p_workspace_id: auth.workspaceId });
+    if (error || pode !== true) {
+      return { ok: false, resposta: NextResponse.json({ error: "vini_desligado" }, { status: 403 }) };
+    }
   }
 
   return { ok: true, contexto, auth, brand: contexto.brand };

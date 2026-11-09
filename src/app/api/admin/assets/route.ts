@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, caminhoDeMiniatura } from "@/lib/storage/caminhos";
 import { drenarFilaDeExclusao } from "@/lib/import/limpeza";
@@ -11,7 +12,6 @@ import { caminhosADescartar, lerEnvio, tamanhoDoContentRange } from "@/lib/asset
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 /**
  * A miniatura: PNG pequeno, gerado no navegador de quem envia (fatia 5). Não é
  * obrigatória — EPS e AI sem compatibilidade PDF não geram —, e falhar em
@@ -54,6 +54,7 @@ async function ownerContext(request: Request) {
  * o arquivo e recusa.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;
@@ -114,6 +115,9 @@ export async function POST(request: Request) {
     storage_path: path, file_name: envio.fileName, mime_type: envio.mimeType,
     size_bytes: tamanhoReal, status: "ready", created_by: context.auth.user.id,
     miniatura_path: miniaturaPath,
+    // A versão do termo aceita no envio da fonte. Quem aceitou e quando, o
+    // BANCO carimba a partir da sessão.
+    ...(envio.termoVersao ? { termo_versao: envio.termoVersao } : {}),
   });
   if (error) {
     // Registro duplicado: o arquivo já pertence ao pedido que registrou
@@ -174,6 +178,7 @@ export async function POST(request: Request) {
  * entre apagar de propósito e apagar sem querer.
  */
 export async function DELETE(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;
@@ -226,12 +231,63 @@ export async function DELETE(request: Request) {
  * mesma coisa, que é como um acervo vira uma pasta bagunçada.
  */
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await ownerContext(request);
   if (!resolvido.ok && resolvido.resposta) return resolvido.resposta;
   const context = resolvido.ok ? resolvido.contexto : null;
   if (!context) return NextResponse.json({ message: isEnglish ? "Only the owner can change assets." : "Apenas o proprietário pode alterar assets." }, { status: 403 });
   const input = await request.json().catch(() => null);
   const id = typeof input?.id === "string" ? input.id : "";
+
+  /*
+   * RETIRAR uma fonte a pedido da fundição (03/11/2026, ADR-0007 §3, condição
+   * 3). Quem decide é o banco: só quem ADMINISTRA a marca altera `retirada_em`
+   * (`brand_assets_retirada_so_admin`). Retirada é registrada, não apagada: o
+   * arquivo deixa de ser servido, e quem já baixou continua no registro de
+   * downloads — é com ele que se avisa quem recebeu.
+   */
+  if (input && input.retirar === true) {
+    const motivo = typeof input.motivo === "string" ? input.motivo.trim() : "";
+    if (!id || !motivo || motivo.length > 500) {
+      return NextResponse.json({ message: isEnglish ? "Say why the font is being withdrawn (up to 500 characters)." : "Diga por que a fonte está sendo retirada (até 500 caracteres)." }, { status: 400 });
+    }
+    const { data: fonte } = await context.auth.supabase.from("brand_assets")
+      .select("id, item:brand_asset_items!inner(tipo)").eq("id", id).eq("brand_id", context.brandId).maybeSingle();
+    const tipoDoItem = (fonte?.item as unknown as { tipo?: string } | null)?.tipo;
+    if (!fonte || tipoDoItem !== "fonte") {
+      return NextResponse.json({ message: isEnglish ? "Only fonts can be withdrawn." : "Só fonte pode ser retirada." }, { status: 404 });
+    }
+    const { error: erroDaRetirada } = await context.auth.supabase.from("brand_assets")
+      .update({ retirada_em: new Date().toISOString(), retirada_motivo: motivo })
+      .eq("id", id).eq("brand_id", context.brandId).is("retirada_em", null);
+    if (erroDaRetirada) {
+      return NextResponse.json({ message: erroDaRetirada.code === "42501"
+        ? (isEnglish ? "Only whoever administers the brand can withdraw a font." : "Só quem administra a marca pode retirar uma fonte.")
+        : (isEnglish ? "Couldn't withdraw the font." : "Não foi possível retirar a fonte.") }, { status: erroDaRetirada.code === "42501" ? 403 : 500 });
+    }
+    return NextResponse.json({ ok: true, retirada: true });
+  }
+
+  /*
+   * Corrigir o nome exibido e a descrição (22/10/2026, pedido do André): errar
+   * o nome obrigava a apagar e subir o arquivo de novo. Só texto muda aqui — o
+   * arquivo, os eixos e o item continuam como entraram. Quem pode alterar
+   * decide a RLS, a mesma da reativação.
+   */
+  if (input && "label" in input) {
+    const label = typeof input.label === "string" ? input.label.trim() : "";
+    const description = typeof input.description === "string" ? input.description.trim() : "";
+    if (!id || !label || label.length > 120 || description.length > 500) {
+      return NextResponse.json({ message: isEnglish ? "Give the file a name (up to 120 characters)." : "Dê um nome ao arquivo (até 120 caracteres)." }, { status: 400 });
+    }
+    const { data, error } = await context.auth.supabase.from("brand_assets")
+      .update({ label, description })
+      .eq("id", id).eq("brand_id", context.brandId)
+      .select("id").maybeSingle();
+    if (error) return NextResponse.json({ message: isEnglish ? "Couldn't rename the asset." : "Não foi possível renomear o asset." }, { status: 500 });
+    if (!data) return NextResponse.json({ message: isEnglish ? "Asset not found." : "Asset não encontrado." }, { status: 404 });
+    return NextResponse.json({ ok: true, renomeado: true });
+  }
 
   const { data, error } = await context.auth.supabase.from("brand_assets")
     // `substituido_por` sai junto: um asset em uso que ainda apontasse para o

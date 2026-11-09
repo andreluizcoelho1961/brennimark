@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { ehTipoDeItem } from "@/lib/assets/eixos";
+import { ehLicenca } from "@/lib/assets/fonte";
 
 /**
  * Os itens da biblioteca — o "Logo" que reúne as variantes (ADR-0007 §2.2).
@@ -11,9 +13,8 @@ import { ehTipoDeItem } from "@/lib/assets/eixos";
  * construção. Quem AUTORIZA é a RLS de `brand_asset_items`, por capacidade na
  * marca; o portão aqui só decide a resposta.
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
-async function donoDaMarca(request: Request) {
+async function donoDaMarca(request: Request, isEnglish: boolean) {
   const r = await marcaDaRota(request);
   if (!r.ok) return { ok: false as const, resposta: r.resposta };
   if (r.papel !== "owner") {
@@ -31,8 +32,22 @@ function textoCurto(valor: unknown, maximo: number): string | null {
   return limpo.length <= maximo ? limpo : null;
 }
 
+/**
+ * A licença de um item de FONTE (ADR-0007 §3.3): tipo, titular e como obter.
+ * Mostrada a quem baixa. Fora da fonte, não há licença: o campo é ignorado.
+ */
+function lerLicenca(corpo: unknown): { ok: true; campos: Record<string, string | null> } | { ok: false } {
+  const c = (corpo ?? {}) as Record<string, unknown>;
+  if (!ehLicenca(c.licencaTipo)) return { ok: false };
+  const titular = textoCurto(c.licencaTitular ?? "", 120);
+  const comoObter = textoCurto(c.licencaComoObter ?? "", 500);
+  if (titular === null || comoObter === null) return { ok: false };
+  return { ok: true, campos: { licenca_tipo: c.licencaTipo, licenca_titular: titular || null, licenca_como_obter: comoObter || null } };
+}
+
 export async function POST(request: Request) {
-  const r = await donoDaMarca(request);
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const r = await donoDaMarca(request, isEnglish);
   if (!r.ok) return r.resposta;
   const { contexto } = r;
   const corpo = await request.json().catch(() => null);
@@ -41,12 +56,17 @@ export async function POST(request: Request) {
   if (!ehTipoDeItem(corpo?.tipo) || !nome || descricao === null) {
     return NextResponse.json({ message: isEnglish ? "Give the item a type and a name." : "Dê ao item um tipo e um nome." }, { status: 400 });
   }
+  const licenca = corpo.tipo === "fonte" ? lerLicenca(corpo) : null;
+  if (licenca && !licenca.ok) {
+    return NextResponse.json({ message: isEnglish ? "Say what kind of license this font has." : "Diga que tipo de licença esta fonte tem." }, { status: 400 });
+  }
   const { data, error } = await contexto.auth.supabase.from("brand_asset_items")
     .insert({
       workspace_id: contexto.workspaceId, brand_id: contexto.brandId,
       tipo: corpo.tipo, nome, descricao, created_by: contexto.auth.user.id,
+      ...(licenca?.ok ? licenca.campos : {}),
     })
-    .select("id, tipo, nome, descricao, ordem").single();
+    .select("id, tipo, nome, descricao, ordem, licenca_tipo, licenca_titular, licenca_como_obter").single();
   if (error || !data) {
     return NextResponse.json({ message: isEnglish ? "Couldn't create the item." : "Não foi possível criar o item." }, { status: error?.code === "42501" ? 403 : 500 });
   }
@@ -55,7 +75,8 @@ export async function POST(request: Request) {
 
 /** Renomear e descrever. O tipo não muda aqui: com arquivos, o banco recusa. */
 export async function PATCH(request: Request) {
-  const r = await donoDaMarca(request);
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const r = await donoDaMarca(request, isEnglish);
   if (!r.ok) return r.resposta;
   const { contexto } = r;
   const corpo = await request.json().catch(() => null);
@@ -65,8 +86,13 @@ export async function PATCH(request: Request) {
   if (!id || !nome || descricao === null) {
     return NextResponse.json({ message: isEnglish ? "Give the item a name." : "Dê um nome ao item." }, { status: 400 });
   }
+  // A licença só chega quando o corpo a traz (item de fonte); sem ela, só texto.
+  const licenca = corpo && "licencaTipo" in corpo ? lerLicenca(corpo) : null;
+  if (licenca && !licenca.ok) {
+    return NextResponse.json({ message: isEnglish ? "Check the license details." : "Revise os dados da licença." }, { status: 400 });
+  }
   const { data, error } = await contexto.auth.supabase.from("brand_asset_items")
-    .update({ nome, descricao, updated_at: new Date().toISOString() })
+    .update({ nome, descricao, updated_at: new Date().toISOString(), ...(licenca?.ok ? licenca.campos : {}) })
     .eq("id", id).eq("brand_id", contexto.brandId)
     .select("id").maybeSingle();
   if (error) return NextResponse.json({ message: isEnglish ? "Couldn't update the item." : "Não foi possível alterar o item." }, { status: 500 });
@@ -82,7 +108,8 @@ export async function PATCH(request: Request) {
  * "não foi possível" diante de um botão de remover parece defeito, e é regra.
  */
 export async function DELETE(request: Request) {
-  const r = await donoDaMarca(request);
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const r = await donoDaMarca(request, isEnglish);
   if (!r.ok) return r.resposta;
   const { contexto } = r;
   const corpo = await request.json().catch(() => null);

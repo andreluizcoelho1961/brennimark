@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { conteudoDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { lerTextoDoComplemento, mensagemDaRecusa, type Complemento } from "@/lib/complementos/complementos";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const SEM_CACHE = { "Cache-Control": "private, no-store" };
 
 /**
@@ -15,6 +15,7 @@ const SEM_CACHE = { "Cache-Control": "private, no-store" };
  * só decide o que a TELA mostra.
  */
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await conteudoDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { contexto, auth } = resolvido;
@@ -48,6 +49,7 @@ export async function GET(request: Request) {
 
 /** Cria um complemento — nasce como rascunho, só de quem edita. */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await conteudoDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { contexto, auth } = resolvido;

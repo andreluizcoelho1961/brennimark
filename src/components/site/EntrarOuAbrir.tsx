@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useSyncExternalStore } from "react";
+import { useTranslations } from "next-intl";
 import { DESTINO_PADRAO } from "@/platform/destino-de-retorno";
 
 /**
@@ -18,12 +20,15 @@ import { DESTINO_PADRAO } from "@/platform/destino-de-retorno";
  * `useSyncExternalStore`); a troca acontece no navegador, para a página
  * continuar sendo gerada no deploy, igual para todos.
  *
- * É um `<a>` comum, não `next/link`: a passagem para a plataforma recarrega a
- * página, e o site sai inteiro da memória antes de a moldura do produto entrar.
+ * A passagem para a plataforma recarrega a página (o site e o produto têm raízes
+ * de layout diferentes), e o site sai inteiro da memória antes de a moldura do
+ * produto entrar. Pelo `<Link>` o Next faz isso sozinho; o pré-carregamento
+ * fica desligado para o site não pedir `/login` ao servidor em segundo plano.
  */
 const COOKIE_DE_SESSAO = /(?:^|;\s*)sb-[^=]+-auth-token(?:\.\d+)?=/;
 
-export function EntrarOuAbrir({ className, rotulo = "Entrar" }: { className: string; rotulo?: string }) {
+export function EntrarOuAbrir({ className, rotulo }: { className: string; rotulo?: string }) {
+  const t = useTranslations("site.chrome");
   const comSessao = useSyncExternalStore(
     semAssinatura,
     () => COOKIE_DE_SESSAO.test(document.cookie),
@@ -32,12 +37,12 @@ export function EntrarOuAbrir({ className, rotulo = "Entrar" }: { className: str
 
   return comSessao ? (
     <a className={className} href={DESTINO_PADRAO} data-porta="plataforma">
-      Abrir a plataforma
+      {t("abrirPlataforma")}
     </a>
   ) : (
-    <a className={className} href="/login" data-porta="entrar">
-      {rotulo}
-    </a>
+    <Link className={className} href="/login" prefetch={false} data-porta="entrar">
+      {rotulo ?? t("entrar")}
+    </Link>
   );
 }
 

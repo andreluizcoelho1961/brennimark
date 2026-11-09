@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { escolherDesenhos, nomeDaVariante, opcoesDoPapel, type VarianteDoKit } from "./materiais-do-kit";
+import { escolherDesenhos as escolherDesenhosBase, nomeDaVariante as nomeDaVarianteBase, opcoesDoPapel, type VarianteDoKit } from "./materiais-do-kit";
+import { textoDaRecusa } from "./formatos";
+import { comTradutor, tradutorDeTeste } from "../i18n/catalogo-de-teste";
+
+const pt = tradutorDeTeste("ferramentas.arquivos");
+const en = tradutorDeTeste("ferramentas.arquivos", "en");
+const escolherDesenhos = comTradutor(escolherDesenhosBase, pt);
+const nomeDaVariante = comTradutor(nomeDaVarianteBase, pt);
 
 const v = (id: string, extra: Partial<VarianteDoKit>): VarianteDoKit => ({
   id, itemId: "i", tipo: "logo", arquivo: `${id}.png`, mime: "image/png",
@@ -84,7 +91,7 @@ test("as opções de cada papel: da melhor para a pior; a que não abre vem por 
   assert.deepEqual(opcoesDoPapel(todas, "simbolo").map((o) => o.variante.id), ["ico"]);
   const eps = opcoesDoPapel(todas, "logo").at(-1)!;
   assert.equal(eps.abre, false);
-  assert.match(eps.motivo ?? "", /EPS/);
+  assert.match(eps.recusa ? textoDaRecusa(eps.recusa, pt) : "", /EPS/);
 });
 
 test("o nome da versão: o rótulo dos Materiais, ou os atributos e o formato", () => {
@@ -92,4 +99,8 @@ test("o nome da versão: o rótulo dos Materiais, ou os atributos e o formato", 
   assert.equal(nomeDaVariante(v("a", { lockup: "vertical", cor: "monocromatico", polaridade: "negativo", arquivo: "a.ai" })), "Vertical · monocromático · negativo · AI");
   assert.equal(nomeDaVariante(v("a", { rotulo: "Versão preferencial", arquivo: "a.pdf" })), "Versão preferencial · PDF");
   assert.equal(nomeDaVariante(v("a", { tipo: "icone", hierarquia: null, lockup: null, cor: null, polaridade: null, arquivo: "a.png" })), "Símbolo · PNG");
+});
+
+test("o nome da versão sai no idioma pedido", () => {
+  assert.equal(nomeDaVarianteBase(v("x", { lockup: "vertical", polaridade: "negativo", arquivo: "x.svg" }), en), "Vertical · color · negative · SVG");
 });

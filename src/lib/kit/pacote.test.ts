@@ -1,10 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { GRUPOS_DO_KIT, ITENS_DO_KIT } from "./tamanhos";
-import { fonteDaAssinatura } from "./fonte-da-assinatura";
+import { GRUPOS_DO_KIT, ITENS_DO_KIT, nomeDoArquivo } from "./tamanhos";
+import { comTradutor, tradutorDeTeste } from "../i18n/catalogo-de-teste";
+
+import { fonteDaAssinatura as fonteDaAssinaturaBase } from "./fonte-da-assinatura";
 import {
-  abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, enderecoDoSite, escaparHtml, favicoIco, leiaMe, manifestDoSite, trechoDoHead,
+  abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo as avisosDoArquivoBase, encaixe, enderecoDoSite, escaparHtml, favicoIco, leiaMe as leiaMeBase, manifestDoSite as manifestDoSiteBase, trechoDoHead as trechoDoHeadBase,
 } from "./pacote";
+
+const pt = tradutorDeTeste("ferramentas.kit");
+const en = tradutorDeTeste("ferramentas.kit", "en");
+const ptArq = tradutorDeTeste("ferramentas.arquivos");
+const enArq = tradutorDeTeste("ferramentas.arquivos", "en");
+const fonteDaAssinatura = comTradutor(fonteDaAssinaturaBase, pt);
+const avisosDoArquivo = comTradutor(avisosDoArquivoBase, ptArq);
+const manifestDoSite = comTradutor(manifestDoSiteBase, pt);
+const trechoDoHead = comTradutor(trechoDoHeadBase, pt);
+const leiaMe = (nome: string, comSimbolo: boolean, comAssinatura: boolean, regras?: Parameters<typeof leiaMeBase>[3]) => leiaMeBase(nome, comSimbolo, comAssinatura, regras, pt);
 
 // ─── A tabela ──────────────────────────────────────────────────────────────
 
@@ -113,7 +125,7 @@ test("o manifest e o trecho do <head> apontam para os arquivos do pacote", () =>
   assert.equal(m.name, "Acme");
   assert.deepEqual(m.icons.map((i: { src: string }) => i.src), ["/android-192.png", "/android-512.png", "/android-adaptavel-512.png"]);
   assert.equal(m.icons[2].purpose, "maskable");
-  for (const i of m.icons) assert.ok(ITENS_DO_KIT.some((x) => "/" + x.arquivo === i.src), i.src);
+  for (const i of m.icons) assert.ok(ITENS_DO_KIT.some((x) => "/" + nomeDoArquivo(x, pt) === i.src), i.src);
   assert.match(trechoDoHead(true), /favicon\.svg/);
   assert.doesNotMatch(trechoDoHead(false), /favicon\.svg/);
 });
@@ -211,4 +223,20 @@ test("o LEIA-ME do Kit diz a fonte da assinatura só quando há assinatura", () 
   const regras = { protecao: 0, reducao: { logo: null, simbolo: null }, abaixo: [], fonteDaAssinatura: { nome: "Verdana", origem: "a substituta que o manual indica (p. 30)" } };
   assert.match(leiaMe("Bancada", false, true, regras), /A assinatura usa Verdana, a substituta que o manual indica \(p\. 30\); onde ela não existir, o e-mail mostra Arial\./);
   assert.doesNotMatch(leiaMe("Bancada", false, false, regras), /Verdana/);
+});
+
+test("o pacote em inglês: pastas, arquivos, manifest e LEIA-ME no idioma", () => {
+  const nomes = ITENS_DO_KIT.map((i) => nomeDoArquivo(i, en));
+  assert.equal(new Set(nomes).size, nomes.length, "nome repetido em inglês");
+  for (const n of nomes) assert.match(n, /^[a-z0-9-]+\.png$/, n);
+  const m = JSON.parse(manifestDoSiteBase("Acme", "#ffffff", en));
+  assert.deepEqual(m.icons.map((i: { src: string }) => i.src), ["/android-192.png", "/android-512.png", "/android-adaptive-512.png"]);
+  assert.match(trechoDoHeadBase(true, en), /link-image-1200x630\.png/);
+  const texto = leiaMeBase("Acme", true, true, undefined, en);
+  assert.match(texto, /At small sizes/);
+  assert.match(texto, /^social\/\s+social network profiles/m);
+  assert.match(texto, /signature-logo-600\.png/);
+  assert.doesNotMatch(texto, /redes\/|assinatura-logo/);
+  assert.match(avisosDoArquivoBase({ tipo: "image/jpeg", largura: 600, altura: 150 }, enArq)[0], /JPG has no transparent/);
+  assert.equal(fonteDaAssinaturaBase([{ segmento: "", substituta: "Verdana", pagina: 30 }], en)?.origem, "the substitute the manual indicates (p. 30)");
 });

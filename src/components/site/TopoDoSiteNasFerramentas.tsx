@@ -1,3 +1,4 @@
+import { AvisoDeIdioma } from "./AvisoDeIdioma";
 import { Cabecalho } from "./Cabecalho";
 import { ComportamentoDoSite } from "./ComportamentoDoSite";
 import { fonteDoSite } from "./fonte";
@@ -25,6 +26,8 @@ export function TopoDoSiteNasFerramentas() {
     <div className={`bm-site on-page on-tool ${fonteDoSite.variable}`} data-topo-do-site>
       <SimbolosDoSite />
       <Cabecalho />
+      {/* Quem chega de `/en/tools/...` cai aqui em português; sem o aviso, não saberia por quê. */}
+      <AvisoDeIdioma />
       <DialogoDeDemonstracao />
       <ComportamentoDoSite />
     </div>

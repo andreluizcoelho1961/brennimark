@@ -6,6 +6,7 @@ import { baixarPrancha } from "./baixarPrancha";
 import { analiseEmMarkdown, tomDoVeredito } from "@/lib/ai/peca";
 import type { AnalysisVerdict } from "@/lib/ai/analysis-result";
 import { RespostaDoVini } from "./RespostaDoVini";
+import { AcessibilidadeDaPeca } from "./AcessibilidadeDaPeca";
 import type { useAnaliseDaPeca } from "./useAnaliseDaPeca";
 
 /**
@@ -63,6 +64,8 @@ export function PainelDaAnalise({
         <img src={peca.dataUrl} alt={t(`Peça: ${peca.nome}`, `Piece: ${peca.nome}`)} className="mx-auto max-h-[28dvh] w-auto object-contain" />
         <figcaption className="border-t border-platform-border px-3 py-1.5 text-[12px] text-platform-text-muted">{peca.nome}</figcaption>
       </figure>
+
+      <AcessibilidadeDaPeca dataUrl={peca.dataUrl} />
 
       {etapa && (
         <div role="status" data-analise-progresso className="space-y-2 text-[13px]">

@@ -62,7 +62,7 @@ const GENERICOS = [
   /^se[cç][ãa]o\s*(padr[ãa]o|\d+)?$/i,
   /^section\s*\d*$/i,
   /^p[áa]g(ina)?s?\.?\s*[\d–—-]+$/i,
-  /^page\s*\d+$/i,
+  /^pages?\s*[\d\s,–—-]+$/i,
   /^cap[íi]tulo\s*\d*$/i,
   /^chapter\s*\d*$/i,
   /^[\d\s.,–—-]+$/,

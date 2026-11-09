@@ -5,6 +5,7 @@ import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { codigosDaCor, ordenarPaleta, type Papel } from "@/lib/paleta/paleta";
 import type { CorConferida as CorDaPaleta, Conferencia } from "@/lib/paleta/conferencia";
+import { ContrasteDaPaleta } from "@/components/admin/ContrasteDaPaleta";
 import { Dica } from "@/components/shell/Dica";
 import { textoDaDica } from "@/components/shell/dicas";
 
@@ -379,6 +380,8 @@ export function PaletaDaMarca({
           ))}
         </ul>
       )}
+
+      <ContrasteDaPaleta cores={cores} />
     </section>
   );
 }

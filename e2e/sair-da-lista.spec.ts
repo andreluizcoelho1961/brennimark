@@ -50,7 +50,7 @@ test("cadastro que já não existe é dito com clareza, e falha do servidor deix
   await page.route("**/api/cadastro/saida", (r) => r.fulfill({ json: { ok: true, achou: false } }));
   await page.goto(`/sair/${TOKEN}`);
   await page.locator("[data-saida-sair]").click();
-  await expect(page.locator("[data-saida-resultado=nao-achou]")).toBeVisible();
+  await expect(page.locator("[data-saida-resultado=sem-cadastro]")).toBeVisible();
 
   await page.unroute("**/api/cadastro/saida");
   await page.route("**/api/cadastro/saida", (r) => r.fulfill({ status: 500, json: { message: "x" } }));

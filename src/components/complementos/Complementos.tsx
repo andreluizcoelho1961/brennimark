@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import {
@@ -24,7 +25,7 @@ function useT() {
 
 function useData() {
   const isEnglish = useIsEnglish();
-  return (iso: string) => new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", {
+  return (iso: string) => new Intl.DateTimeFormat(localeDeFormato(isEnglish), {
     day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo",
   }).format(new Date(iso));
 }

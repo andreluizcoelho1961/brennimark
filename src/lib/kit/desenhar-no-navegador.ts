@@ -1,11 +1,12 @@
 "use client";
 
+import type { Tradutor } from "../i18n/tradutor";
 import { zip, type Zippable } from "fflate";
-import { pastaDoGrupo, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "./tamanhos";
+import { nomeDoArquivo, pastaDoGrupo, ITENS_DO_KIT, type Grupo, type ItemDoKit } from "./tamanhos";
 import {
   abaixoDaReducao, alturaDoItem, assinaturaHtml, avisosDoArquivo, encaixe, favicoIco, leiaMe, manifestDoSite, trechoDoHead, type DadosDaAssinatura, type ReducaoMinima, type RegrasInformadas,
 } from "./pacote";
-import { formatoDoArquivo, motivoDoCabecalho } from "./formatos";
+import { formatoDoArquivo, motivoDoCabecalho, textoDaRecusa } from "./formatos";
 
 /**
  * O Brennimark Kit no NAVEGADOR (09/10/2026): carrega o logo de quem usa,
@@ -69,11 +70,11 @@ export function fundoEscuro(fundo: Fundo): boolean {
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b) < 0.4;
 }
 
-function abrirImagem(url: string): Promise<HTMLImageElement> {
+function abrirImagem(url: string, t: Tradutor): Promise<HTMLImageElement> {
   return new Promise((resolver, rejeitar) => {
     const img = new Image();
     img.onload = () => resolver(img);
-    img.onerror = () => rejeitar(new Error("Não foi possível abrir este arquivo como imagem."));
+    img.onerror = () => rejeitar(new Error(t("recusa.naoAbreComoImagem")));
     img.src = url;
   });
 }
@@ -82,11 +83,11 @@ function abrirImagem(url: string): Promise<HTMLImageElement> {
  * SVG sem `width`/`height` abre com 0 × 0 (ou 300 × 150) num <img>. Damos a ele
  * um tamanho grande, na proporção do `viewBox`, para o canvas ter detalhe.
  */
-function svgComTamanho(texto: string): string {
+function svgComTamanho(texto: string, t: Tradutor): string {
   const doc = new DOMParser().parseFromString(texto, "image/svg+xml");
   const raiz = doc.documentElement;
   if (raiz.nodeName.toLowerCase() !== "svg" || doc.getElementsByTagName("parsererror").length) {
-    throw new Error("Este SVG não pôde ser lido.");
+    throw new Error(t("recusa.svgIlegivel"));
   }
   const vb = (raiz.getAttribute("viewBox") ?? "").trim().split(/[\s,]+/).map(Number);
   let largura = parseFloat(raiz.getAttribute("width") ?? "");
@@ -96,7 +97,7 @@ function svgComTamanho(texto: string): string {
     largura = p >= 1 ? LADO_MAXIMO : LADO_MAXIMO * p;
     altura = largura / p;
   } else if (!(largura > 0 && altura > 0)) {
-    throw new Error("O SVG não diz o próprio tamanho (falta o viewBox).");
+    throw new Error(t("recusa.svgSemTamanho"));
   } else {
     raiz.setAttribute("viewBox", `0 0 ${largura} ${altura}`);
     const p = largura / altura;
@@ -109,7 +110,7 @@ function svgComTamanho(texto: string): string {
 }
 
 /** Corta a sobra transparente em volta: a margem do Kit não pode somar à do arquivo. */
-function semSobra(origem: CanvasImageSource, largura: number, altura: number): HTMLCanvasElement {
+function semSobra(origem: CanvasImageSource, largura: number, altura: number, t: Tradutor): HTMLCanvasElement {
   const k = Math.min(1, LADO_MAXIMO / Math.max(largura, altura));
   const L = Math.max(1, Math.round(largura * k));
   const A = Math.max(1, Math.round(altura * k));
@@ -130,7 +131,7 @@ function semSobra(origem: CanvasImageSource, largura: number, altura: number): H
       }
     }
   }
-  if (maxX < 0) throw new Error("A imagem está toda transparente.");
+  if (maxX < 0) throw new Error(t("recusa.imagemTransparente"));
   const cortado = document.createElement("canvas");
   cortado.width = maxX - minX + 1;
   cortado.height = maxY - minY + 1;
@@ -138,12 +139,13 @@ function semSobra(origem: CanvasImageSource, largura: number, altura: number): H
   return cortado;
 }
 
-export async function carregarDesenho(arquivo: File): Promise<Desenho> {
+/** `t` é o tradutor ligado a `ferramentas.arquivos`: as recusas e os avisos saem no idioma da tela. */
+export async function carregarDesenho(arquivo: File, t: Tradutor): Promise<Desenho> {
   const formato = formatoDoArquivo(arquivo.name, arquivo.type);
-  if (formato.tipo === "fora") throw new Error(formato.motivo);
+  if (formato.tipo === "fora") throw new Error(textoDaRecusa(formato, t));
   if (formato.tipo === "pdf") {
-    const pagina = await desenharPdf(arquivo);
-    const fonte = semSobra(pagina, pagina.width, pagina.height);
+    const pagina = await desenharPdf(arquivo, t);
+    const fonte = semSobra(pagina, pagina.width, pagina.height, t);
     return { fonte, largura: fonte.width, altura: fonte.height, tipo: "application/pdf", svg: null, avisos: [] };
   }
   const tipo = formato.mime;
@@ -151,16 +153,16 @@ export async function carregarDesenho(arquivo: File): Promise<Desenho> {
   let url: string;
   if (tipo === "image/svg+xml") {
     svg = await arquivo.text();
-    url = URL.createObjectURL(new Blob([svgComTamanho(svg)], { type: "image/svg+xml" }));
+    url = URL.createObjectURL(new Blob([svgComTamanho(svg, t)], { type: "image/svg+xml" }));
   } else {
     url = URL.createObjectURL(arquivo);
   }
   try {
-    const img = await abrirImagem(url);
-    const fonte = semSobra(img, img.naturalWidth, img.naturalHeight);
+    const img = await abrirImagem(url, t);
+    const fonte = semSobra(img, img.naturalWidth, img.naturalHeight, t);
     return {
       fonte, largura: fonte.width, altura: fonte.height, tipo, svg,
-      avisos: avisosDoArquivo({ tipo, largura: img.naturalWidth, altura: img.naturalHeight }),
+      avisos: avisosDoArquivo({ tipo, largura: img.naturalWidth, altura: img.naturalHeight }, t),
     };
   } finally {
     URL.revokeObjectURL(url);
@@ -177,9 +179,9 @@ const SEM_FUNDO = "rgba(0,0,0,0)";
  * desenha só esse trecho em alta resolução. Um logo pequeno numa prancheta
  * A4 sairia borrado se a página inteira fosse desenhada e depois recortada.
  */
-async function desenharPdf(arquivo: File): Promise<HTMLCanvasElement> {
+async function desenharPdf(arquivo: File, t: Tradutor): Promise<HTMLCanvasElement> {
   const bytes = new Uint8Array(await arquivo.arrayBuffer());
-  const motivo = motivoDoCabecalho(String.fromCharCode(...bytes.subarray(0, 1024)), arquivo.name);
+  const motivo = motivoDoCabecalho(String.fromCharCode(...bytes.subarray(0, 1024)), arquivo.name, t);
   if (motivo) throw new Error(motivo);
   const { prepararAmbienteDePdf } = await import("../import/stream-iteravel");
   prepararAmbienteDePdf();
@@ -188,7 +190,7 @@ async function desenharPdf(arquivo: File): Promise<HTMLCanvasElement> {
   const tarefa = pdfjs.getDocument({ data: bytes });
   try {
     const documento = await tarefa.promise.catch(() => {
-      throw new Error(`Não foi possível abrir ${arquivo.name}. Quem edita a marca pode exportar em SVG ou PDF e enviar nos Materiais.`);
+      throw new Error(t("recusa.naoAbriu", { arquivo: arquivo.name }));
     });
     const pagina = await documento.getPage(1);
     const base = pagina.getViewport({ scale: 1 });
@@ -212,7 +214,7 @@ async function desenharPdf(arquivo: File): Promise<HTMLCanvasElement> {
         }
       }
     }
-    if (maxX < 0) throw new Error(`A primeira página de ${arquivo.name} está vazia.`);
+    if (maxX < 0) throw new Error(t("recusa.paginaVazia", { arquivo: arquivo.name }));
     // Um pixel de folga de cada lado: a passada pequena arredonda.
     const x0 = Math.max(0, minX - 1) / k1;
     const y0 = Math.max(0, minY - 1) / k1;
@@ -364,15 +366,17 @@ export async function montarPacote(
   e: Escolhas,
   nome: string,
   assinatura: DadosDaAssinatura & { enderecoDoLogo: string },
-  aoAvancar?: (prontos: number, total: number) => void,
+  aoAvancar: ((prontos: number, total: number) => void) | undefined,
+  t: Tradutor,
 ): Promise<Blob> {
   const conteudo: Zippable = {};
+  const pasta = (g: Grupo) => pastaDoGrupo(g, t);
   const itens = itensDoPacote(grupos, e);
   const icos: { tamanho: number; bytes: Uint8Array }[] = [];
   let prontos = 0;
   for (const item of itens) {
     const bytes = await pngDe(desenharItem(item, e));
-    conteudo[`${pastaDoGrupo(item.grupo)}/${item.arquivo}`] = [bytes, { level: 0 }];
+    conteudo[`${pastaDoGrupo(item.grupo, t)}/${nomeDoArquivo(item, t)}`] = [bytes, { level: 0 }];
     if (item.ico) icos.push({ tamanho: item.largura, bytes });
     aoAvancar?.(++prontos, itens.length);
     // Devolve a vez ao navegador: a tela não congela num pacote de 40 imagens.
@@ -380,27 +384,27 @@ export async function montarPacote(
   }
 
   if (grupos.includes("site")) {
-    conteudo["site/favicon.ico"] = [favicoIco(icos), { level: 0 }];
+    conteudo[`${pasta("site")}/favicon.ico`] = [favicoIco(icos), { level: 0 }];
     const svgPequeno = desenhoPequeno(e).svg;
-    if (svgPequeno) conteudo["site/favicon.svg"] = [texto(svgPequeno), { level: 6 }];
-    conteudo["site/site.webmanifest"] = [texto(manifestDoSite(nome || "Site", corDoFundo(e.fundo) ?? "#ffffff")), { level: 6 }];
-    conteudo["site/COLE-NO-SITE.html"] = [texto(trechoDoHead(Boolean(svgPequeno))), { level: 6 }];
+    if (svgPequeno) conteudo[`${pasta("site")}/favicon.svg`] = [texto(svgPequeno), { level: 6 }];
+    conteudo[`${pasta("site")}/site.webmanifest`] = [texto(manifestDoSite(nome || t("pacote.siteSemNome"), corDoFundo(e.fundo) ?? "#ffffff", t)), { level: 6 }];
+    conteudo[`${pasta("site")}/${t("extras.coleNoSite")}`] = [texto(trechoDoHead(Boolean(svgPequeno), t)), { level: 6 }];
   }
   if (grupos.includes("email")) {
-    const endereco = assinatura.enderecoDoLogo.trim() || "assinatura-logo-600.png";
-    conteudo["email/assinatura.html"] = [texto(
-      `<!doctype html><html lang="pt-BR"><meta charset="utf-8"><title>Assinatura de e-mail</title>\n`
-      + `<!-- Abra este arquivo no navegador, selecione a assinatura, copie e cole nas configurações do seu e-mail. -->\n`
+    const endereco = assinatura.enderecoDoLogo.trim() || nomeDoArquivo({ arquivo: "assinatura-logo-600.png" }, t);
+    conteudo[`${pasta("email")}/${t("extras.assinatura")}`] = [texto(
+      `<!doctype html><html lang="${t("pacote.idiomaHtml")}"><meta charset="utf-8"><title>${t("pacote.tituloAssinatura")}</title>\n`
+      + `<!-- ${t("pacote.comentarioAssinatura")} -->\n`
       + assinaturaHtml(assinatura, endereco) + "\n",
     ), { level: 6 }];
   }
   if (grupos.includes("apresentacao")) {
-    if (e.logo.svg) conteudo["apresentacao/logotipo.svg"] = [texto(e.logo.svg), { level: 6 }];
-    if (e.vertical?.svg) conteudo["apresentacao/logotipo-vertical.svg"] = [texto(e.vertical.svg), { level: 6 }];
-    if (e.simbolo?.svg) conteudo["apresentacao/simbolo.svg"] = [texto(e.simbolo.svg), { level: 6 }];
+    if (e.logo.svg) conteudo[`${pasta("apresentacao")}/${t("extras.logotipo")}`] = [texto(e.logo.svg), { level: 6 }];
+    if (e.vertical?.svg) conteudo[`${pasta("apresentacao")}/${t("extras.logotipoVertical")}`] = [texto(e.vertical.svg), { level: 6 }];
+    if (e.simbolo?.svg) conteudo[`${pasta("apresentacao")}/${t("extras.simbolo")}`] = [texto(e.simbolo.svg), { level: 6 }];
   }
-  const abaixo = itens.map((i) => ({ i, m: medirItem(i, e) })).filter((x) => x.m.abaixoDe).map((x) => `${pastaDoGrupo(x.i.grupo)}/${x.i.arquivo} (${Math.round(x.m.largura)} px; mínimo ${x.m.abaixoDe} px)`);
-  conteudo["LEIA-ME.txt"] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo, fontes: e.fontesDasRegras, fonteDaAssinatura: assinatura.fonte ?? null })), { level: 6 }];
+  const abaixo = itens.map((i) => ({ i, m: medirItem(i, e) })).filter((x) => x.m.abaixoDe).map((x) => `${pastaDoGrupo(x.i.grupo, t)}/${nomeDoArquivo(x.i, t)} ${t("pacote.abaixoItem", { largura: Math.round(x.m.largura), minimo: x.m.abaixoDe! })}`);
+  conteudo[t("extras.leiaMe")] = [texto(leiaMe(nome, Boolean(e.usarSimboloNosPequenos && e.simbolo), grupos.includes("email"), { protecao: e.protecao, reducao: e.reducao, abaixo, fontes: e.fontesDasRegras, fonteDaAssinatura: assinatura.fonte ?? null }, t)), { level: 6 }];
 
   const bytes = await new Promise<Uint8Array>((resolver, rejeitar) => zip(conteudo, (erro, dados) => (erro ? rejeitar(erro) : resolver(dados))));
   return new Blob([bytes as BlobPart], { type: "application/zip" });

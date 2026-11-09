@@ -29,7 +29,7 @@ test("cadastro que saiu da lista ou não existe é dito com clareza", async ({ p
   await page.route("**/api/cadastro/confirmar", (r) => r.fulfill({ json: { ok: true, achou: false } }));
   await page.goto(`/confirmar/${TOKEN}`);
   await page.locator("[data-confirmacao-confirmar]").click();
-  await expect(page.locator("[data-confirmacao-resultado=nao-achou]")).toContainText("Não foi possível confirmar");
+  await expect(page.locator("[data-confirmacao-resultado=sem-cadastro]")).toContainText("Não foi possível confirmar");
 });
 
 test("falha do servidor deixa tentar de novo", async ({ page }) => {

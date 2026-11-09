@@ -210,13 +210,18 @@ export function Registros({ marcas }: { marcas: Marca[] }) {
                     <tbody>
                       {linhas.map((l) => (
                         <tr key={l.id} data-linha-de-registro className="border-b border-platform-border align-top">
-                          <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-platform-text-muted">{quandoCurto(l.quando)}</td>
+                          <td className="whitespace-nowrap py-2 pr-4 font-mono text-xs text-platform-text-muted">{quandoCurto(l.quando, new Date(), isEnglish)}</td>
                           <td className="py-2 pr-4 text-platform-text">{l.marca}</td>
                           {consulta.aba === "downloads" && "tipo" in l && <>
                             <td className="py-2 pr-4 text-platform-text">{l.pessoa}</td>
                             <td className="py-2 pr-4 text-platform-text">
                               {l.oque}
                               <span className="ml-2 font-mono text-xs text-platform-text-muted">{l.arquivo}</span>
+                              {l.previa && (
+                                <span data-previa-do-kit className="block text-xs text-platform-text-muted">
+                                  {t("Loaded into the tool to measure and draw — not downloaded to keep", "Carregado na ferramenta para medir e desenhar — não foi baixado para guardar")}
+                                </span>
+                              )}
                               {l.tipo === "link" && (
                                 <span data-via-link className="block text-xs text-platform-text-muted">
                                   {t(`By delivery link "${l.via}" · name and email typed by the person, not verified`, `Por link de entrega "${l.via}" · nome e e-mail digitados pela pessoa, sem verificação`)}

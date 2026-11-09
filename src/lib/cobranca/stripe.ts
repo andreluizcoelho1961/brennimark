@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { assinaturaDoStripe, type AssinaturaDoStripe } from "./stripe-traducao";
 import type { AssinaturaNoProvedor } from "./webhook";
 import type { ParametrosDoCheckout } from "./compra";
+import type { ParametrosDoCheckoutDePacote } from "./pacotes";
 import { CHAVE_DA_PROVA_NO_STRIPE, type SessaoDaCompra } from "./senha-na-volta";
 
 export { lerAvisoAssinado } from "./aviso-assinado";
@@ -58,6 +59,13 @@ export async function buscarSessaoNoStripe(chave: string, idDaSessao: string): P
 
 /** Abre a página de pagamento do Stripe e devolve o endereço dela. */
 export async function criarCheckoutNoStripe(chave: string, parametros: ParametrosDoCheckout): Promise<string> {
+  const sessao = await new Stripe(chave).checkout.sessions.create(parametros as Stripe.Checkout.SessionCreateParams);
+  if (!sessao.url) throw new Error("o Stripe não devolveu o endereço do checkout");
+  return sessao.url;
+}
+
+/** Abre a página de pagamento avulso (pacote de perguntas) e devolve o endereço dela. */
+export async function criarCheckoutDePacoteNoStripe(chave: string, parametros: ParametrosDoCheckoutDePacote): Promise<string> {
   const sessao = await new Stripe(chave).checkout.sessions.create(parametros as Stripe.Checkout.SessionCreateParams);
   if (!sessao.url) throw new Error("o Stripe não devolveu o endereço do checkout");
   return sessao.url;

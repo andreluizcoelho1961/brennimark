@@ -6,7 +6,7 @@ import { resolveChatRouting } from "@/lib/ai/settings";
 import { capacidadesDe } from "@/lib/ai/catalogo";
 import { lerPaginasVistas, modeloVePaginas } from "@/lib/ai/paginas-para-ver";
 import { lerManualInteiro } from "@/lib/ai/manual-inteiro";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -17,14 +17,13 @@ import { conferirPaleta } from "@/lib/paleta/conferencia";
 import {
   instrucoesDaSugestao, lerPaginasPedidas, lerSugestaoComDiagnostico, paginasDaPaleta, soOQueFalta, MAXIMO_DE_PAGINAS_DA_SUGESTAO,
 } from "@/lib/paleta/sugestao";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const TEMPO_DA_LEITURA_MS = 90_000;
 
 export const maxDuration = 120;
 
-const t = (en: string, pt: string) => (isEnglish ? en : pt);
 const recusa = (status: number, error: string, message: string) => NextResponse.json({ error, message }, { status });
 
 /**
@@ -40,6 +39,8 @@ const recusa = (status: number, error: string, message: string) => NextResponse.
  * rota confere antes só para não gastar IA com quem vai ser recusado.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (en: string, pt: string) => (isEnglish ? en : pt);
   const portao = await portaoDeIA(request, "chat");
   if (!portao.ok) return portao.resposta;
   const { auth } = portao;
@@ -92,10 +93,13 @@ export async function POST(request: Request) {
   const enviadas = vistas.map((v) => v.pagina);
 
   let executionId: string | undefined;
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   try {
     const routing = await resolveChatRouting(workspaceId);
+    modoDaIA = routing.modo;
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
       return recusa(503, code, message);
     }
     // Só quem vê imagem lê uma tabela de amostras.
@@ -119,7 +123,7 @@ export async function POST(request: Request) {
       auth.supabase, serviceClient, auth.user.id, pedido,
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
-    if (!decisao.pode) return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish));
+    if (!decisao.pode) return recusa(503, decisao.motivo, mensagemDeBloqueio(decisao.motivo, isEnglish, modoDaIA));
 
     const inicio = Date.now();
     // Por que a IA parou — "length" é resposta cortada pelo teto de saída.
@@ -221,7 +225,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "paleta", code, detalheTecnico, executionId }));
     return recusa(502, code, message);
   }

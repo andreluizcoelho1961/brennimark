@@ -1,6 +1,8 @@
 "use client";
 
+import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
+import { idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
 import {
   ajustarATela, enderecoDaJanela, geometriaInicial, CHAVE_DO_ARMAZENAMENTO, lerGeometria, nomeDaJanela, recursosDaJanela,
   type FerramentaEmJanela,
@@ -24,6 +26,9 @@ import {
  * Abre só com um clique: o navegador bloqueia janela que ninguém pediu.
  */
 export function AbrirEmJanela({ ferramenta }: { ferramenta: FerramentaEmJanela }) {
+  const t = useTranslations("ferramentas.comum");
+  const lang = useLocale();
+  const idioma = idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE;
   const [cabe, setCabe] = useState(false);
   const [aviso, setAviso] = useState("");
 
@@ -43,9 +48,9 @@ export function AbrirEmJanela({ ferramenta }: { ferramenta: FerramentaEmJanela }
     let salva = null;
     try { salva = lerGeometria(localStorage.getItem(CHAVE_DO_ARMAZENAMENTO(ferramenta))); } catch { /* sem armazenamento: usa o padrão */ }
     const geometria = salva ? ajustarATela(salva, tela) : geometriaInicial(ferramenta, tela);
-    const janela = window.open(`${enderecoDaJanela(ferramenta)}#janela`, nomeDaJanela(ferramenta), recursosDaJanela(geometria));
+    const janela = window.open(`${enderecoDaJanela(ferramenta, idioma)}#janela`, nomeDaJanela(ferramenta), recursosDaJanela(geometria));
     if (!janela) {
-      setAviso("O navegador bloqueou a janela. Permita pop-ups para este site e tente de novo.");
+      setAviso(t("janela.bloqueada"));
       return;
     }
     setAviso("");
@@ -61,7 +66,7 @@ export function AbrirEmJanela({ ferramenta }: { ferramenta: FerramentaEmJanela }
         className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-platform-border px-3 py-1.5 text-sm text-platform-text hover:border-platform-text"
       >
         <span aria-hidden className="font-mono text-[12px]">⧉</span>
-        Abrir em janela
+        {t("janela.abrir")}
       </button>
       {aviso && <p role="alert" data-janela-aviso className="basis-full text-[12.5px] text-platform-danger sm:absolute sm:right-0 sm:top-full sm:mt-2 sm:w-64 sm:text-right">{aviso}</p>}
     </>

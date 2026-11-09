@@ -64,9 +64,9 @@ export function PainelDeEmail() {
   const quantidade = Math.min(Number(limite) || 0, resumo?.alcance ?? 0);
   const limiteValido = Number.isInteger(Number(limite)) && Number(limite) >= 1 && Number(limite) <= TETO_POR_ENVIO;
 
-  async function testar() {
+  async function testar(idioma: "pt-BR" | "en") {
     setOcupado(true); setAviso(null);
-    const r = await chamar({ acao: "teste", campanha: campanhaId });
+    const r = await chamar({ acao: "teste", campanha: campanhaId, idioma });
     setAviso(r.ok ? { tipo: "ok", texto: `Teste enviado para ${String(r.dados.para)}. Confira a caixa de entrada e o spam.` } : { tipo: "erro", texto: r.mensagem });
     setOcupado(false);
   }
@@ -143,7 +143,7 @@ export function PainelDeEmail() {
           <div className="border border-platform-border p-3"><dt className="text-xs text-platform-text-muted">Já enviados desta campanha</dt><dd data-enviados className="text-lg font-bold">{resumo?.enviados ?? "–"}</dd></div>
           <div className="border border-platform-border p-3"><dt className="text-xs text-platform-text-muted">Falhas (voltam na próxima rodada)</dt><dd data-falhas className="text-lg font-bold">{resumo?.falhas ?? "–"}</dd></div>
         </dl>
-        <p className="mt-2 text-xs text-platform-text-muted">Elegível é quem aceitou receber, confirmou o e-mail e não saiu. Cada pessoa recebe cada campanha uma única vez.</p>
+        <p className="mt-2 text-xs text-platform-text-muted">Elegível é quem aceitou receber, confirmou o e-mail e não saiu. Cada pessoa recebe cada campanha uma única vez, no idioma da tela em que se cadastrou (texto e rodapé).</p>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-[8rem_1fr]">
           <label className="block">
@@ -158,7 +158,8 @@ export function PainelDeEmail() {
         <p className="mt-1 text-xs text-platform-text-muted">No máximo {TETO_POR_ENVIO} por clique, para ir devagar.</p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button type="button" className={BOTAO_LINHA} disabled={ocupado || !configurado} onClick={testar}>Enviar teste para mim</button>
+          <button type="button" className={BOTAO_LINHA} disabled={ocupado || !configurado} onClick={() => testar("pt-BR")}>Enviar teste para mim</button>
+          <button type="button" className={BOTAO_LINHA} disabled={ocupado || !configurado} onClick={() => testar("en")}>Enviar teste em inglês</button>
           {!confirmando ? (
             <button type="button" className={BOTAO} disabled={ocupado || !configurado || !limiteValido || motivo.trim().length < 3 || quantidade < 1}
               onClick={() => setConfirmadaPara(escolha)}>

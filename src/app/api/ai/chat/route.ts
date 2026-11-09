@@ -17,22 +17,24 @@ import { capacidadesDe } from "@/lib/ai/catalogo";
 import { comPaginasVistas, lerPaginasVistas, modeloVePaginas, paginasParaVer, type PaginaVista } from "@/lib/ai/paginas-para-ver";
 import { lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 import { lerPaleta, trechosDaFicha } from "@/lib/paleta/paleta";
+import { trechosDoContraste } from "@/lib/paleta/contraste";
 import { lerTipografia, trechosDaTipografia } from "@/lib/tipografia/tipografia";
 import { limitarMensagens, type Trecho } from "@/lib/ai/recuperacao";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { ehVisitanteDoTour, lerEstadoDoTour, motivoDoContador, statusDoLimite, textoDoLimite } from "@/lib/demonstracao/visitante";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
 import { brandPromptContext } from "@/lib/brennimark/context";
 import type { BrandPromptContext } from "@/lib/ai/brand-context";
 import { evaluateChatInitialText } from "@/lib/ai/chat-quality";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 // Mensagem de erro é do produto, não do manual: quem lê é quem está usando o
 // Brennimark. Enquanto a preferência de idioma não tem onde ser guardada, o
 // padrão do produto responde por todo mundo — e a fonte é uma só.
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const CHAT_TIMEOUT_MS = 60_000;
 
 export const maxDuration = 120;
@@ -50,7 +52,7 @@ export const maxDuration = 120;
  * evidência. Um é uma afirmação sobre o manual; o outro é a confissão de que
  * não deu para consultá-lo.
  */
-function conhecimentoIndisponivel() {
+function conhecimentoIndisponivel(isEnglish: boolean) {
   return NextResponse.json(
     {
       error: "knowledge_unavailable",
@@ -63,6 +65,7 @@ function conhecimentoIndisponivel() {
 }
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const body = await request.json().catch(() => null);
   const recebidas = body?.messages as ModelMessage[] | undefined;
   // Histórico limitado pelas duas pontas antes de qualquer outra coisa: as
@@ -75,6 +78,8 @@ export async function POST(request: Request) {
   }
 
   let attempts: ResolvedChatAttempt[];
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   let firstChunkTimeoutMs: number;
   let trechos: Trecho[] = [];
   // O manual inteiro, quando lido (decisão de 26/09/2026). Vazio = só a busca.
@@ -90,6 +95,14 @@ export async function POST(request: Request) {
   // O motivo de parada que o provedor informa, preenchido no despacho e lido
   // no fim do fluxo. Promessas do SDK: só resolvem quando o texto acaba.
   let fimDoProvedor: { unificado: PromiseLike<string>; bruto: PromiseLike<string | undefined> } | null = null;
+  // O visitante do tour cuja pergunta foi cobrada e ainda pode ser devolvida (a resposta não começou).
+  let perguntaDoTourGasta: string | null = null;
+  const devolverPerguntaDoTour = async () => {
+    if (!perguntaDoTourGasta) return;
+    const quem = perguntaDoTourGasta;
+    perguntaDoTourGasta = null;
+    await createServiceClient().rpc("demonstracao_devolver_pergunta", { p_user: quem }).then(undefined, () => undefined);
+  };
   try {
     /*
      * O portão do G1, no servidor.
@@ -99,9 +112,28 @@ export async function POST(request: Request) {
      * esconde o link de quem não pode — mas esconder um link não fecha a rota,
      * e quem souber a URL chegava aqui do mesmo jeito.
      */
-    const portao = await portaoDeIA(request, "chat");
+    const portao = await portaoDeIA(request, "chat", { visitanteDoTour: "permitir" });
     if (!portao.ok) return portao.resposta;
-    brandPrompt = brandPromptContext(portao.brand);
+    brandPrompt = brandPromptContext(portao.brand, isEnglish ? "en" : "pt-BR");
+
+    /*
+     * O contador do tour (25/10/2026). O visitante do tour tem 2 perguntas e o
+     * tour inteiro tem um teto por dia; a cobrança é do BANCO, numa instrução
+     * atômica, ANTES de qualquer trabalho caro (busca, manual, provedor). Se a
+     * resposta nem chega a começar, a pergunta é devolvida: quem não recebeu
+     * nada não perde nada. Depois da primeira palavra, não se devolve.
+     */
+    if (ehVisitanteDoTour(portao.auth.user)) {
+      const gasto = await createServiceClient().rpc("demonstracao_gastar_pergunta", { p_user: portao.auth.user.id });
+      const motivo = gasto.error ? "desconhecido" : motivoDoContador(gasto.data);
+      if (motivo !== "ok") {
+        return NextResponse.json(
+          { error: "tour_limite", motivo, message: textoDoLimite(motivo, isEnglish) },
+          { status: statusDoLimite(motivo) },
+        );
+      }
+      perguntaDoTourGasta = portao.auth.user.id;
+    }
     // O cliente PODE enviar o próprio execution_id (torna um retry de rede
     // idempotente ponta a ponta, e é o identificador comum entre a
     // requisição, a reserva e o ledger); sem ele, um novo é gerado aqui —
@@ -127,16 +159,18 @@ export async function POST(request: Request) {
     );
     // A falha da busca interrompe AQUI, antes de resolver o roteamento e antes
     // de qualquer chamada ao provedor.
-    if (!recuperacao.ok) return conhecimentoIndisponivel();
+    if (!recuperacao.ok) { await devolverPerguntaDoTour(); return conhecimentoIndisponivel(isEnglish); }
     trechos = recuperacao.trechos;
     const routing = await resolveChatRouting(portao.auth.workspaceId);
+    modoDaIA = routing.modo;
     // Sem perfil configurado, `attempts` vem vazio — resultado, não exceção.
     // Interrompe AQUI: sem isto, `executarComOrcamento` chegaria a
     // `prepareStreamWithFallback` com uma lista vazia e lançaria um erro
     // genérico sem nome, e a pessoa veria "erro desconhecido" em vez da
     // mensagem que diz a quem pedir.
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
+      await devolverPerguntaDoTour();
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     // A fila inteira: principal e reserva. A reserva abaixo é da PRIMEIRA;
@@ -160,7 +194,11 @@ export async function POST(request: Request) {
      * derruba a conversa: o manual continua lá, e o log diz que a ficha caiu.
      */
     const paleta = await lerPaleta(portao.auth.supabase, portao.brand.id);
-    if (paleta.ok) ficha = trechosDaFicha(paleta.cores, brandPrompt.language === "en");
+    if (paleta.ok) {
+      const ingles = brandPrompt.language === "en";
+      // O contraste dos pares (06/11/2026) sai da MESMA leitura: é conta sobre a ficha, sem IA.
+      ficha = [...trechosDaFicha(paleta.cores, ingles), ...trechosDoContraste(paleta.cores, ingles)];
+    }
     // A ficha da tipografia (15/10/2026), do mesmo jeito: falhar não derruba a conversa.
     const tipografia = await lerTipografia(portao.auth.supabase, portao.brand.id);
     if (tipografia.ok) ficha = [...ficha, ...trechosDaTipografia(tipografia.fontes, brandPrompt.language === "en")];
@@ -205,8 +243,9 @@ export async function POST(request: Request) {
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {
+      await devolverPerguntaDoTour();
       return NextResponse.json(
-        { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) },
+        { error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish, modoDaIA) },
         { status: 503 },
       );
     }
@@ -233,12 +272,14 @@ export async function POST(request: Request) {
       onAttemptFailure: registrarFalhaNaFila("chat", executionId),
       onReservaRecusada: registrarReservaRecusada("chat", executionId),
       dispatch: (attempt, abortSignal, tetoDeSaida) => {
+        const sistema = cabeNo(attempt)
+          ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha, complementos)
+          : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha, complementos);
+        const mensagensDaChamada = veNo(attempt) ? comPaginasVistas(messages, vistas, isEnglish) : messages;
         const result = streamText({
           model: getModel(attempt.config),
-          system: cabeNo(attempt)
-            ? buildChatSystemPrompt(manual, brandPrompt, perguntaDasMensagens(messages), "inteiro", ficha, complementos)
-            : buildChatSystemPrompt(trechos, brandPrompt, perguntaDasMensagens(messages), "trechos", ficha, complementos),
-          messages: veNo(attempt) ? comPaginasVistas(messages, vistas, isEnglish) : messages,
+          system: sistema,
+          messages: mensagensDaChamada,
           providerOptions: getChatProviderOptions(attempt.config),
           abortSignal,
           timeout: { totalMs: CHAT_TIMEOUT_MS },
@@ -250,9 +291,17 @@ export async function POST(request: Request) {
         });
         // Guardado para o fim do fluxo: é o provedor dizendo POR QUE parou.
         fimDoProvedor = { unificado: result.finishReason, bruto: result.rawFinishReason };
-        return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result) };
+        // Os caracteres de texto que de fato foram ao provedor: se a resposta cair
+        // sem o uso real, a cobrança é por eles (`liquidacaoSemUsoMicros`), não pelo teto.
+        const caracteresDeEntrada = sistema.length + (mensagensDaChamada as { content?: unknown }[]).reduce(
+          (soma, m) => soma + (typeof m.content === "string" ? m.content.length : 0), 0);
+        return { textStream: textoOuErro(result.fullStream), usage: result.usage, fim: fimDoFluxo(result), caracteresDeEntrada };
       },
     });
+
+    // A primeira palavra chegou: a pergunta do tour está gasta de verdade, nada mais a devolve.
+    const visitanteDoTour = perguntaDoTourGasta;
+    perguntaDoTourGasta = null;
 
     console.info(JSON.stringify({
       level: "info", msg: "ai_primeira_palavra", rota: "chat", ms: Date.now() - inicioDaEspera,
@@ -331,16 +380,25 @@ export async function POST(request: Request) {
     // administra consegue rastrear uma execução específica sem precisar de
     // outro id.
     response.headers.set("X-AI-Execution-Id", executionId);
+    // Quantas perguntas o visitante do tour ainda tem (a faixa do tour mostra "1 de 2").
+    // É só aviso: a resposta já começou e a pergunta está gasta; falhar aqui não pode derrubá-la.
+    if (visitanteDoTour) {
+      try {
+        const estado = lerEstadoDoTour((await createServiceClient().rpc("demonstracao_estado", { p_user: visitanteDoTour })).data);
+        if (estado) response.headers.set("X-Tour-Perguntas-Restantes", String(estado.restantes));
+      } catch { /* a faixa confere de novo na próxima pergunta */ }
+    }
     // As páginas dos trechos entregues ao modelo, para a citação levar ao PDF
     // (ver `lib/ai/paginas-citadas.ts`: a página nunca é pedida ao modelo).
     response.headers.set(CABECALHO_DE_PAGINAS, codificarMapa(mapaDePaginas([...ficha, ...(manual.length > 0 ? manual : trechos)])));
     return response;
   } catch (error) {
+    await devolverPerguntaDoTour();
     // executarComOrcamento já libera a reserva antes de repassar o erro —
     // este catch cobre tanto as falhas anteriores a ela (portão, busca,
     // roteamento) quanto o que ela deixa passar.
     const rootError = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(rootError);
+    const { code, message, detalheTecnico } = classifyAIError(rootError, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { caminhoPublico } from "./caminhos-publicos";
+import { caminhoPublico, decisaoDeIdiomaDoSite, ehDoSite } from "./caminhos-publicos";
 
 test("login e retorno da autenticação continuam abertos", () => {
   assert.equal(caminhoPublico("/login"), true);
@@ -110,6 +110,11 @@ test("o Cores gratuito é público pelo caminho exato", () => {
   assert.equal(caminhoPublico("/api/cadastro"), true);
   assert.equal(caminhoPublico("/api/cadastros"), false);
   assert.equal(caminhoPublico("/api/cadastro/qualquer"), false);
+  assert.equal(caminhoPublico("/demonstracao"), true);
+  assert.equal(caminhoPublico("/demonstracao/x"), false);
+  assert.equal(caminhoPublico("/api/demonstracao/entrar"), true);
+  assert.equal(caminhoPublico("/api/demonstracao/entrar/x"), false);
+  assert.equal(caminhoPublico("/api/demonstracao"), false);
   // A saída da lista (17/10/2026): a página por prefixo, a rota pelo caminho exato.
   assert.equal(caminhoPublico("/sair/3f2504e0-4f89-41d3-9a0c-0305e82c3301"), true);
   assert.equal(caminhoPublico("/sairx"), false);
@@ -142,4 +147,53 @@ test("os artigos da Central de ajuda passam sem sessão, e só sob /ajuda/", () 
   // vizinhos: nada que apenas comece com as mesmas letras
   assert.equal(caminhoPublico("/ajudax"), false);
   assert.equal(caminhoPublico("/ajuda-interna"), false);
+});
+
+test("o idioma do site: sem prefixo reescreve por dentro, /pt-BR volta, /en segue", () => {
+  assert.deepEqual(decisaoDeIdiomaDoSite("/"), { tipo: "reescrever", para: "/pt-BR" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/vini"), { tipo: "reescrever", para: "/pt-BR/vini" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/ferramentas/kit"), { tipo: "reescrever", para: "/pt-BR/ferramentas/kit" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/ajuda/primeiros-passos"), { tipo: "reescrever", para: "/pt-BR/ajuda/primeiros-passos" });
+  // Duas URLs para a mesma página dividiriam links e buscador.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR"), { tipo: "redirecionar", para: "/", permanente: true, aviso: false });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BR/vini"), { tipo: "redirecionar", para: "/vini", permanente: true, aviso: false });
+});
+
+test("o site em inglês: endereço traduzido reescreve, pasta em português redireciona, sem tradução volta ao português", () => {
+  // Traduzida, com o mesmo nome de pasta: nada a fazer.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/manifesto"), { tipo: "nenhuma" });
+  // Traduzida, com endereço diferente: reescreve para a pasta (única, em português).
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/agencies"), { tipo: "reescrever", para: "/en/agencias" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/font-license"), { tipo: "reescrever", para: "/en/licenca-de-fontes" });
+  // Ainda sem tradução: vai à equivalente em português, com aviso, e é provisório (307).
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/security"), { tipo: "reescrever", para: "/en/seguranca" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/materials"), { tipo: "reescrever", para: "/en/materiais" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/terms"), { tipo: "reescrever", para: "/en/termos" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/help"), { tipo: "reescrever", para: "/en/ajuda" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/kit"), { tipo: "reescrever", para: "/en/ferramentas/kit" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/tools/window/kit"), { tipo: "reescrever", para: "/en/ferramentas/janela/kit" });
+  // Pasta em português com prefixo: vira o endereço traduzido (uma URL por página).
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/agencias"), { tipo: "redirecionar", para: "/en/agencies", permanente: true, aviso: false });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/ajuda"), { tipo: "redirecionar", para: "/en/help", permanente: true, aviso: false });
+  // O que não existe no site segue para o 404.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/nao-existe"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/en/login"), { tipo: "nenhuma" });
+});
+
+test("a plataforma e a API nunca são reescritas para o site", () => {
+  for (const p of ["/login", "/docs", "/w/conta/b/marca/docs", "/api/idioma", "/assinar", "/esqueci-senha", "/receber/abc", "/dev/marcas", "/console"]) {
+    assert.deepEqual(decisaoDeIdiomaDoSite(p), { tipo: "nenhuma" }, p);
+    assert.equal(ehDoSite(p), false, p);
+  }
+  // Prefixos parecidos não enganam: `/envia` não é `/en`, `/pt-BRx` não é `/pt-BR`.
+  assert.deepEqual(decisaoDeIdiomaDoSite("/envia"), { tipo: "nenhuma" });
+  assert.deepEqual(decisaoDeIdiomaDoSite("/pt-BRx"), { tipo: "nenhuma" });
+});
+
+test("o site em inglês passa sem sessão, e a lookalike não", () => {
+  assert.equal(caminhoPublico("/en"), true);
+  assert.equal(caminhoPublico("/en/vini"), true);
+  assert.equal(caminhoPublico("/envia"), false);
+  assert.equal(caminhoPublico("/entrar"), false);
 });

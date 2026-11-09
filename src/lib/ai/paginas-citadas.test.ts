@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { codificarMapa, decodificarMapa, destinoDaCitacao, mapaDePaginas } from "./paginas-citadas";
+import { codificarMapa, decodificarMapa, destinoDaCitacao, mapaDePaginas, tituloJaDizAsPaginas } from "./paginas-citadas";
 
 /**
  * A citação leva à página — e a página vem do servidor, nunca do modelo.
@@ -43,4 +43,12 @@ test("citação sem página conhecida abre o manual, sem inventar lugar", () => 
   assert.deepEqual(destinoDaCitacao("/docs/inventada", { "/docs/cores": 12 }, base, "7"), {
     href: "/w/conta/b/marca/docs/original", pagina: null,
   });
+});
+
+test("título de seção sem nome já diz as páginas, e título com nome não", () => {
+  assert.equal(tituloJaDizAsPaginas("Páginas 9–16"), true);
+  assert.equal(tituloJaDizAsPaginas("Pages 9–16"), true);
+  assert.equal(tituloJaDizAsPaginas("Páginas 1–5, 9"), true);
+  assert.equal(tituloJaDizAsPaginas("Área de proteção"), false);
+  assert.equal(tituloJaDizAsPaginas("Páginas de produto"), false);
 });

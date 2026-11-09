@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { platformIdentity } from "@/platform/identity";
 import { destinoAoTrocarDeMarca } from "@/lib/brennimark/selecao";
 
@@ -32,7 +33,7 @@ import { destinoAoTrocarDeMarca } from "@/lib/brennimark/selecao";
  * que fica pronta. Se alguma frente for abandonada, a linha correspondente sai
  * daqui no mesmo commit.
  */
-export function TelaInicial({
+export async function TelaInicial({
   opcoes,
   novaMarca,
 }: {
@@ -46,6 +47,8 @@ export function TelaInicial({
   novaMarca?: string;
 }) {
   const uma = opcoes.length === 1;
+  const t = await getTranslations("telaInicial");
+  const negrito = (c: React.ReactNode) => <strong className="font-medium text-platform-text">{c}</strong>;
 
   return (
     <div className="px-[var(--space-shell-5)] py-[var(--space-shell-7,3rem)]">
@@ -55,11 +58,10 @@ export function TelaInicial({
         </p>
 
         <h1 className="mt-[var(--space-shell-4)] text-[clamp(1.5rem,3vw,2rem)] font-semibold tracking-tight text-platform-text">
-          Bem-vindo ao {platformIdentity.displayName}
+          {t("bemVindo", { nome: platformIdentity.displayName })}
         </h1>
         <p className="mt-[var(--space-shell-3)] max-w-[42rem] text-[15px] leading-relaxed text-platform-text-muted">
-          O manual da marca, os arquivos e a inteligência que entende os dois — no
-          mesmo lugar.
+          {t("subtitulo")}
         </p>
 
         {/*
@@ -70,30 +72,18 @@ export function TelaInicial({
           honestidade editorial do projeto virada para fora.
         */}
         <ul className="mt-[var(--space-shell-4)] flex max-w-[42rem] flex-col gap-[var(--space-shell-2)] text-[15px] leading-relaxed text-platform-text-muted">
-          <li>
-            <strong className="font-medium text-platform-text">Ler</strong> o manual como o
-            estúdio diagramou, com índice e busca
-          </li>
-          <li>
-            <strong className="font-medium text-platform-text">Baixar</strong> logo, ícones,
-            paleta, fontes e fotos, com a regra que governa cada arquivo
-          </li>
-          <li>
-            <strong className="font-medium text-platform-text">Perguntar</strong> ao assistente,
-            que responde citando a página do manual
-          </li>
-          <li>
-            <strong className="font-medium text-platform-text">Conferir</strong> a sua peça e
-            gerar prompts com o DNA da marca
-          </li>
+          <li>{t.rich("ler", { b: negrito })}</li>
+          <li>{t.rich("baixar", { b: negrito })}</li>
+          <li>{t.rich("perguntar", { b: negrito })}</li>
+          <li>{t.rich("conferir", { b: negrito })}</li>
         </ul>
 
         <p className="mt-[var(--space-shell-4)] text-[15px] text-platform-text-muted">
-          Escolha uma marca para começar.
+          {t("escolha")}
         </p>
 
         <h2 className="mt-[var(--space-shell-7,3rem)] text-[13px] font-medium uppercase tracking-[0.08em] text-platform-text-muted">
-          {uma ? "Sua marca" : "Suas marcas"}
+          {uma ? t("tituloUma") : t("tituloVarias")}
         </h2>
 
         {/*
@@ -102,7 +92,7 @@ export function TelaInicial({
           sem mudar de desenho.
         */}
         <ul
-          aria-label={uma ? "1 marca disponível" : `${opcoes.length} marcas disponíveis`}
+          aria-label={t("disponiveis", { count: opcoes.length })}
           className="mt-[var(--space-shell-4)] grid grid-cols-1 gap-[var(--space-shell-3)] sm:grid-cols-2 lg:grid-cols-3"
         >
           {opcoes.map((opcao) => (
@@ -130,8 +120,8 @@ export function TelaInicial({
                 data-card-nova-marca
                 className="flex min-h-[7rem] flex-col items-start justify-between rounded-[var(--radius-control)] border border-dashed border-platform-border p-[var(--space-shell-4)] text-platform-text-muted hover:border-platform-signal-soft hover:text-platform-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
               >
-                <span className="text-[17px] font-medium leading-tight">+ Nova marca</span>
-                <span className="text-[12px]">Enviar o manual em PDF</span>
+                <span className="text-[17px] font-medium leading-tight">{t("novaMarca")}</span>
+                <span className="text-[12px]">{t("enviarManual")}</span>
               </Link>
             </li>
           )}

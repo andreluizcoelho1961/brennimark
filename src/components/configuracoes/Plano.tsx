@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import type { PlanoDaConta } from "@/lib/cobranca/plano-da-conta";
@@ -47,7 +48,7 @@ export function Plano() {
     setErro(corpo.message ?? t("Couldn't open the subscription page.", "Não foi possível abrir a página da assinatura."));
   }
 
-  const data = (iso: string | null) => (iso ? new Intl.DateTimeFormat(isEnglish ? "en-US" : "pt-BR", { dateStyle: "long" }).format(new Date(iso)) : "—");
+  const data = (iso: string | null) => (iso ? new Intl.DateTimeFormat(localeDeFormato(isEnglish), { dateStyle: "long" }).format(new Date(iso)) : "—");
 
   if (erro && !dados) return <p role="alert" className="text-sm text-platform-text">{erro}</p>;
   if (!dados) return <p className="text-sm text-platform-text-muted">{t("Loading…", "Carregando…")}</p>;

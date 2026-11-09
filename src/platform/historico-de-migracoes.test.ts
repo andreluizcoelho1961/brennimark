@@ -57,6 +57,40 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  // `ia_propria_teto_e_franquia` saiu daqui em 08/11/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261108140544`. Conferido depois: coluna da franquia,
+  // restrição antiga removida, `anon` sem execute nas funções novas, a reserva só para service_role.
+  // `ia_por_plano` saiu daqui em 07/11/2026: aplicada ao banco hospedado com autorização nominal
+  // do André, carimbada `20261107184907`; conferido depois: RLS ligada nas três tabelas novas,
+  // `chaves_de_ia_da_conta` sem nenhum privilégio para anon/authenticated/service_role, `anon` sem
+  // execute em nenhuma função nova, `chave_de_ia_para_uso`, `registrar_teste_de_chave_de_ia` e
+  // `pessoa_pode_usar_o_vini` só para service_role, os quatro planos em `plataforma` e a
+  // assinatura existente intacta.
+  // `fonte_hospedada` saiu daqui em 03/11/2026: aplicada ao banco hospedado com autorização
+  // nominal do André, carimbada `20261103183313`; conferido depois: termo v1 com impressão digital
+  // igual ao texto, RLS ligada, `authenticated` só com select, `anon` sem privilégio, as duas
+  // funções DEFINER com search_path vazio e sem execute para anon/authenticated, gatilho novo,
+  // cinco constraints novas, e as contagens (93 arquivos, 33 itens) intactas.
+  // `downloads_da_paleta` saiu daqui em 03/11/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261103172241`; conferido depois: RLS ligada,
+  // duas policies (insert e select), `anon` sem privilégio, `authenticated` só com select e
+  // insert, as duas funções SECURITY DEFINER com search_path vazio e sem execute para
+  // anon/authenticated, e a função de conta removida com a linha nova.
+  // `download_finalidade` saiu daqui em 30/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261030211547`; coluna `finalidade` NOT NULL
+  // default 'download', check `brand_asset_downloads_finalidade_check`, privilégios de
+  // anon/authenticated intactos e as 57 linhas existentes como `download`.
+  // `pessoas_sem_visitantes_do_tour` saiu daqui em 29/10/2026: aplicada ao banco hospedado
+  // com autorização nominal do André, carimbada `20261029145030`; impressão digital igual à
+  // do local (corpo da função, SECURITY DEFINER, search_path vazio e privilégios).
+  // `email_marketing_idioma_do_destinatario` saiu daqui em 29/10/2026: aplicada ao banco
+  // hospedado com autorização nominal do André, carimbada `20261029130404`; impressão digital
+  // igual à do local (corpo da função, SECURITY DEFINER, search_path vazio e privilégios:
+  // anon e public sem execute, authenticated com).
+  // `idioma_da_interface` saiu daqui em 24/10/2026: aplicada ao banco hospedado com
+  // autorização nominal do André, carimbada `20261024000900`; impressão digital igual
+  // à do local (7 itens: coluna, constraint, as 3 políticas, RLS e privilégios de
+  // anon/authenticated). Os 6 perfis existentes ficaram com `locale` vazio.
   // `envios_de_email` saiu daqui em 21/10/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261021204259`; impressão digital igual
   // à do local (19 itens: colunas, constraints, índice, RLS, privilégios de
@@ -67,9 +101,12 @@ const PENDENTES_ESPERADAS: string[] = [
   // à do local (48 itens: colunas, constraints, índices, RLS, privilégios de
   // anon/authenticated e as 6 funções, com corpo e acesso), fora os privilégios
   // padrão da `service_role` no hospedado.
-  // Tour de demonstração, fatia 1 (17/10/2026): NÃO aplicada ao banco hospedado.
-  // Sai daqui quando o André autorizar a aplicação e ela for carimbada.
-  "tour_de_demonstracao",
+  // As três migrations do tour de demonstração saíram daqui em 25/10/2026: aplicadas
+  // ao banco hospedado com autorização nominal do André, carimbadas `20261025212445`
+  // (tour_de_demonstracao), `20261025212511` (tour_visitante_do_servidor) e
+  // `20261025212520` (tour_devolver_e_estado). Impressão digital igual à do local
+  // (50 itens: colunas, constraints, índices, política, RLS e as 9 funções, com corpo e
+  // acesso), fora os privilégios padrão da `service_role` no hospedado.
   // `cadastros_confirmacao_por_email` saiu daqui em 18/10/2026: aplicada ao banco
   // hospedado com autorização nominal do André, carimbada `20261018144415`;
   // impressão digital igual à do local (72 itens: colunas, constraints, índice,

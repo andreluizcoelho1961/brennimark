@@ -9,6 +9,11 @@
  *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
+export type Idioma = "pt-BR" | "en";
+
+/** O texto de uma campanha num idioma. O português é o corpo da campanha; o inglês vai em `en`. */
+export type TextoDaCampanha = { assunto: string; paragrafos: string[]; botao?: { rotulo: string; caminho: string } };
+
 export type Campanha = {
   id: string;
   rotulo: string;
@@ -16,6 +21,13 @@ export type Campanha = {
   paragrafos: string[];
   /** `caminho` é relativo ao site (`/fonts`); o servidor monta o endereço inteiro. */
   botao?: { rotulo: string; caminho: string };
+  /**
+   * A mesma campanha em inglês, OBRIGATÓRIA: quem se cadastrou pela tela em inglês recebe o
+   * e-mail inteiro em inglês (texto e rodapé legal), nunca um corpo em português com rodapé
+   * em inglês. O `caminho` do botão continua o do português; o servidor o leva ao site em
+   * inglês.
+   */
+  en: { assunto: string; paragrafos: string[]; botao?: { rotulo: string } };
 };
 
 export const CAMPANHAS: readonly Campanha[] = [
@@ -32,8 +44,33 @@ export const CAMPANHAS: readonly Campanha[] = [
       "Beta para os 50 primeiros. Gratuito por 90 dias.",
     ],
     botao: { rotulo: "Pedir o meu convite", caminho: "/fonts" },
+    en: {
+      assunto: "Brennimark Fonts: one kit per brand, one click to activate",
+      paragrafos: [
+        "Hi, {nome}.",
+        "Brennimark Fonts. The font manager built for people who work with brands.",
+        "One type kit per client, versioned. One click, and the brand's fonts are active in your working session, protected from conflicts with the fonts already on your system.",
+        "Pick the document and the kit, then open InDesign, Illustrator or Photoshop with the client's fonts ready.",
+        "Full glyph and OpenType preview. Similar fonts, found in your own library. Watched folders. Mac and Windows.",
+        "Beta for the first 50. Free for 90 days.",
+      ],
+      botao: { rotulo: "Request my invite" },
+    },
   },
 ];
+
+/** O texto da campanha no idioma de quem recebe. O caminho do botão é sempre o do português. */
+export function textoDaCampanha(c: Campanha, idioma: Idioma): TextoDaCampanha {
+  if (idioma === "en") {
+    return { assunto: c.en.assunto, paragrafos: c.en.paragrafos, botao: c.botao && c.en.botao ? { rotulo: c.en.botao.rotulo, caminho: c.botao.caminho } : undefined };
+  }
+  return { assunto: c.assunto, paragrafos: c.paragrafos, botao: c.botao };
+}
+
+/** O idioma que o banco devolve por destinatário; qualquer coisa fora de `en` é o padrão do produto. */
+export function idiomaDoDestinatario(valor: unknown): Idioma {
+  return valor === "en" ? "en" : "pt-BR";
+}
 
 export function campanhaDe(id: unknown): Campanha | null {
   return CAMPANHAS.find((c) => c.id === id) ?? null;

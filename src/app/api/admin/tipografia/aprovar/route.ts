@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { COLUNAS_DA_TIPOGRAFIA, deLinhaDaTipografia } from "@/lib/tipografia/tipografia";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 const MAXIMO_POR_PEDIDO = 50;
 
 /**
@@ -15,6 +15,7 @@ const MAXIMO_POR_PEDIDO = 50;
  * pedido não virar "nenhuma aprovada" para as legítimas.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;

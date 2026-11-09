@@ -69,3 +69,18 @@ export function caminhosNoKit(raiz: string, variantes: readonly VarianteDoKit[])
 
 /** Até quantos arquivos um kit leva — um pedido, uma rota, uma leva de links. */
 export const MAXIMO_DO_KIT = 60;
+
+export type FinalidadeDoDownload = "download" | "previa";
+
+/**
+ * Por que o original saiu do servidor. `previa`: a ferramenta (Kit, Grids)
+ * precisa dele no navegador para medir e desenhar — a pessoa não pediu para
+ * guardar nada. Qualquer outra coisa é `download`.
+ *
+ * `previa` só vale para UM arquivo: um pedido de vários é kit, e kit é sempre
+ * download. Sem isso, "previa" viraria rótulo para levar a pasta inteira sem
+ * parecer que levou.
+ */
+export function finalidadeDoDownload(pedida: unknown, ids: string[] | null): FinalidadeDoDownload {
+  return pedida === "previa" && ids !== null && ids.length === 1 ? "previa" : "download";
+}

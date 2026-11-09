@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * Os downloads iniciados desta marca — "visível ao assinante", item 18 do ADR-0007.
@@ -22,6 +22,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
 const LIMITE = 100;
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, brandId } = resolvido;

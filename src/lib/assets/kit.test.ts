@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { caminhosNoKit, nomeDoKit, pastaDaVariante, segmentoSeguro } from "./kit";
+import { caminhosNoKit, finalidadeDoDownload, nomeDoKit, pastaDaVariante, segmentoSeguro } from "./kit";
 import type { Eixos } from "./eixos";
 
 const logo = (p: Partial<Eixos>): Eixos => ({
@@ -46,4 +46,14 @@ test("nome de arquivo do cliente não escapa da pasta", () => {
 test("o nome do kit é marca-item.zip, sem acento nem espaço", () => {
   assert.equal(nomeDoKit("Sony Vaio", "Logotipo principal"), "sony-vaio-logotipo-principal.zip");
   assert.equal(nomeDoKit("", ""), "marca-materiais.zip");
+});
+
+test("só um arquivo pode ser prévia; kit é sempre download", () => {
+  assert.equal(finalidadeDoDownload("previa", ["a"]), "previa");
+  assert.equal(finalidadeDoDownload("previa", ["a", "b"]), "download");
+  assert.equal(finalidadeDoDownload("previa", null), "download");
+  assert.equal(finalidadeDoDownload("previa", []), "download");
+  assert.equal(finalidadeDoDownload(undefined, ["a"]), "download");
+  assert.equal(finalidadeDoDownload("download", ["a"]), "download");
+  assert.equal(finalidadeDoDownload("qualquer", ["a"]), "download");
 });

@@ -156,6 +156,15 @@ export function ehVisualDominante(secao: Secao): boolean {
   return totalDeCaracteres < TETO_DE_CARACTERES_VISUAL;
 }
 
+export type IdiomaDoRotulo = "pt-BR" | "en";
+
+/** O nome de uma seção sem título: diz de onde veio. "Páginas 9–16" / "Pages 9–16". */
+export function rotuloDePaginas(inicio: number, fim: number, idioma: IdiomaDoRotulo): string {
+  const en = idioma === "en";
+  if (inicio === fim) return `${en ? "Page" : "Página"} ${inicio}`;
+  return `${en ? "Pages" : "Páginas"} ${inicio}–${fim}`;
+}
+
 /** "Páginas 40–47" ou "Páginas 1–5, 9". Contíguo ou não, sem mentir. */
 export function faixaLegivel(secao: Secao): string {
   return secao.sourcePageRanges
@@ -310,12 +319,19 @@ export function agrupar({
   outline = [],
   repetidos = new Set<string>(),
   removidosAntes = [],
+  idioma = "pt-BR",
 }: {
   paginas: readonly PaginaExtraida[];
   outline?: readonly ItemDeOutline[];
   repetidos?: ReadonlySet<string>;
   /** O que já saiu antes de chegar aqui (o menu, por posição), para entrar na mesma lista. */
   removidosAntes?: readonly RemocaoDeExtracao[];
+  /**
+   * O idioma do rótulo de uma seção que não conseguiu nome ("Páginas 9–16" /
+   * "Pages 9–16"). É o da interface de quem importa: o rótulo aparece nas
+   * citações do Vini e na lista de regras, e em inglês não pode vir em português.
+   */
+  idioma?: IdiomaDoRotulo;
 }): Agrupamento {
   const linhasPorPagina = new Map<number, Linha[]>();
   const ignoradas: PaginaIgnorada[] = [];
@@ -337,7 +353,7 @@ export function agrupar({
   }
 
   const total = Math.max(...paginas.map((p) => p.numero));
-  const fronteiras = calcularFronteiras({ comTexto, total, outline, linhasPorPagina });
+  const fronteiras = calcularFronteiras({ comTexto, total, outline, linhasPorPagina, idioma });
 
   const secoes: Secao[] = fronteiras.map((fronteira, indice) => {
     const proxima = fronteiras[indice + 1];
@@ -425,11 +441,13 @@ function calcularFronteiras({
   total,
   outline,
   linhasPorPagina,
+  idioma,
 }: {
   comTexto: number[];
   total: number;
   outline: readonly ItemDeOutline[];
   linhasPorPagina: Map<number, Linha[]>;
+  idioma: IdiomaDoRotulo;
 }): { pagina: number; titulo: string; metodo: MetodoDeDeteccao; confianca: number }[] {
   const porPagina = new Map<
     number,
@@ -459,7 +477,7 @@ function calcularFronteiras({
   // manual ficaria fora de qualquer seção, e a invariante de cobertura cairia.
   const primeira = comTexto[0];
   if (fronteiras.length === 0 || fronteiras[0].pagina > primeira) {
-    fronteiras.unshift(...blocosDeFallback(primeira, (fronteiras[0]?.pagina ?? total + 1) - 1));
+    fronteiras.unshift(...blocosDeFallback(primeira, (fronteiras[0]?.pagina ?? total + 1) - 1, idioma));
   }
 
   // Vãos longos entre fronteiras viram blocos: uma seção de 200 páginas não é
@@ -469,21 +487,21 @@ function calcularFronteiras({
     const inicio = fronteiras[i].pagina;
     const fim = (fronteiras[i + 1]?.pagina ?? total + 1) - 1;
     if (fim - inicio + 1 > PAGINAS_POR_BLOCO) {
-      completas.push(...blocosDeFallback(inicio + PAGINAS_POR_BLOCO, fim));
+      completas.push(...blocosDeFallback(inicio + PAGINAS_POR_BLOCO, fim, idioma));
     }
   }
 
   return completas.sort((a, b) => a.pagina - b.pagina);
 }
 
-function blocosDeFallback(de: number, ate: number) {
+function blocosDeFallback(de: number, ate: number, idioma: IdiomaDoRotulo) {
   const blocos = [];
   for (let inicio = de; inicio <= ate; inicio += PAGINAS_POR_BLOCO) {
     const fim = Math.min(inicio + PAGINAS_POR_BLOCO - 1, ate);
     blocos.push({
       pagina: inicio,
       // O rótulo diz de onde veio. Não inventa nome de capítulo.
-      titulo: inicio === fim ? `Página ${inicio}` : `Páginas ${inicio}–${fim}`,
+      titulo: rotuloDePaginas(inicio, fim, idioma),
       metodo: "page-range" as const,
       confianca: 0.2,
     });

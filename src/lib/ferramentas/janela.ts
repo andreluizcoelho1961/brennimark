@@ -10,18 +10,19 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
+import { IDIOMA_PADRAO_DO_SITE, caminhoDoSite, type IdiomaDoSite } from "../site/idiomas";
+
 export const FERRAMENTAS_EM_JANELA = ["kit", "cores", "grids"] as const;
 export type FerramentaEmJanela = (typeof FERRAMENTAS_EM_JANELA)[number];
 
-export const NOMES_DAS_FERRAMENTAS: Record<FerramentaEmJanela, string> = { kit: "Kit", cores: "Cores", grids: "Grids" };
 
 export function ehFerramentaEmJanela(valor: unknown): valor is FerramentaEmJanela {
   return typeof valor === "string" && (FERRAMENTAS_EM_JANELA as readonly string[]).includes(valor);
 }
 
 /** A ferramenta na página normal do site, e na janela solta. */
-export const enderecoNormal = (f: FerramentaEmJanela) => `/ferramentas/${f}`;
-export const enderecoDaJanela = (f: FerramentaEmJanela) => `/ferramentas/janela/${f}`;
+export const enderecoNormal = (f: FerramentaEmJanela, idioma: IdiomaDoSite = IDIOMA_PADRAO_DO_SITE) => caminhoDoSite(idioma, `/ferramentas/${f}`);
+export const enderecoDaJanela = (f: FerramentaEmJanela, idioma: IdiomaDoSite = IDIOMA_PADRAO_DO_SITE) => caminhoDoSite(idioma, `/ferramentas/janela/${f}`);
 
 /**
  * O nome da janela: abrir de novo com o MESMO nome traz a janela que já existe

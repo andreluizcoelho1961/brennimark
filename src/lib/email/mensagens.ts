@@ -5,8 +5,15 @@
  * externa, sem rastreio): chega igual em qualquer cliente de e-mail, e o
  * texto puro é o que filtros de spam e leitores de tela leem primeiro.
  *
+ * O IDIOMA é o de quem recebe (ver `idiomaDoEmail`): cada função recebe `t`, o
+ * tradutor ligado ao trecho `email` do catálogo, e escreve a mensagem inteira
+ * nele — assunto, corpo, botão e rodapé. O e-mail à equipe (pedido de exportação)
+ * segue em português.
+ *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
+import type { Tradutor } from "../i18n/tradutor";
+
 export type Mensagem = { assunto: string; texto: string; html: string };
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -14,28 +21,25 @@ export function escaparHtml(valor: string): string {
   return valor.replace(/[&<>"']/g, (c) => ESCAPES[c]);
 }
 
-function html(paragrafos: string[], botao?: { rotulo: string; link: string }): string {
+function html(paragrafos: string[], t: Tradutor, botao?: { rotulo: string; link: string }): string {
   const corpo = paragrafos.map((p) => `<p style="margin:0 0 16px">${escaparHtml(p)}</p>`).join("");
   const acao = botao
     ? `<p style="margin:24px 0"><a href="${escaparHtml(botao.link)}" style="display:inline-block;padding:12px 20px;border:1px solid #111;color:#111;text-decoration:none;font-weight:700">${escaparHtml(botao.rotulo)}</a></p>`
-    + `<p style="margin:0 0 16px;font-size:12px;color:#555">Se o botão não abrir, copie este endereço no navegador:<br>${escaparHtml(botao.link)}</p>`
+    + `<p style="margin:0 0 16px;font-size:12px;color:#555">${escaparHtml(t("html.seOBotaoNaoAbrir"))}<br>${escaparHtml(botao.link)}</p>`
     : "";
-  return `<!doctype html><html lang="pt-BR"><body style="margin:0;padding:24px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.5;color:#111;background:#fff">`
+  return `<!doctype html><html lang="${t("meta.lang")}"><body style="margin:0;padding:24px;font-family:system-ui,-apple-system,Segoe UI,sans-serif;font-size:15px;line-height:1.5;color:#111;background:#fff">`
     + `<p style="margin:0 0 24px;font-size:12px;font-weight:700;letter-spacing:.2em;text-transform:uppercase">Brennimark</p>`
     + corpo + acao + `</body></html>`;
 }
 
 /** O link de "Esqueci a senha". Quem não pediu não precisa fazer nada. */
-export function mensagemDeRecuperacao(p: { link: string; validoPorMinutos: number }): Mensagem {
-  const paragrafos = [
-    "Recebemos um pedido para criar uma nova senha para este e-mail no Brennimark.",
-    `O link abaixo vale por ${p.validoPorMinutos} minutos e serve uma vez.`,
-  ];
-  const fim = "Se não foi você, ignore esta mensagem: a sua senha continua a mesma.";
+export function mensagemDeRecuperacao(p: { link: string; validoPorMinutos: number }, t: Tradutor): Mensagem {
+  const paragrafos = [t("recuperacao.p1"), t("recuperacao.p2", { min: p.validoPorMinutos })];
+  const fim = t("recuperacao.fim");
   return {
-    assunto: "Crie uma nova senha no Brennimark",
-    texto: [...paragrafos, "", `Criar nova senha: ${p.link}`, "", fim].join("\n"),
-    html: html([...paragrafos], { rotulo: "Criar nova senha", link: p.link }).replace("</body>", `<p style="margin:0;font-size:12px;color:#555">${escaparHtml(fim)}</p></body>`),
+    assunto: t("recuperacao.assunto"),
+    texto: [...paragrafos, "", `${t("recuperacao.acao")}: ${p.link}`, "", fim].join("\n"),
+    html: html([...paragrafos], t, { rotulo: t("recuperacao.acao"), link: p.link }).replace("</body>", `<p style="margin:0;font-size:12px;color:#555">${escaparHtml(fim)}</p></body>`),
   };
 }
 
@@ -44,22 +48,22 @@ export function mensagemDeRecuperacao(p: { link: string; validoPorMinutos: numbe
  * leva link de acesso: quem não criou a senha na volta do pagamento usa
  * "Esqueci a senha" — e é o clique no e-mail que prova que o e-mail é dele.
  */
-export function mensagemDeBoasVindas(p: { conta: string | null; linkDeEntrar: string; linkDeSenha: string }): Mensagem {
+export function mensagemDeBoasVindas(p: { conta: string | null; linkDeEntrar: string; linkDeSenha: string }, t: Tradutor): Mensagem {
   const paragrafos = [
-    p.conta ? `A assinatura da conta ${p.conta} está ativa.` : "A sua assinatura do Brennimark está ativa.",
-    "Se você criou a senha na página de pagamento, é só entrar com este e-mail.",
-    `Se ainda não criou, ou fechou a página antes, crie agora em ${p.linkDeSenha}`,
+    p.conta ? t("boasVindas.comConta", { conta: p.conta }) : t("boasVindas.semConta"),
+    t("boasVindas.p2"),
+    t("boasVindas.p3", { link: p.linkDeSenha }),
   ];
   return {
-    assunto: "Sua assinatura do Brennimark está ativa",
-    texto: [...paragrafos, "", `Entrar: ${p.linkDeEntrar}`].join("\n"),
-    html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
+    assunto: t("boasVindas.assunto"),
+    texto: [...paragrafos, "", t("entrar", { link: p.linkDeEntrar })].join("\n"),
+    html: html(paragrafos, t, { rotulo: t("boasVindas.acao"), link: p.linkDeEntrar }),
   };
 }
 
-/** A data como o assinante lê, no horário de Brasília: "8 de novembro de 2026". */
-export function dataPorExtenso(iso: string): string {
-  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" })
+/** A data como o assinante lê, no horário de Brasília: "8 de novembro de 2026" / "November 8, 2026". */
+export function dataPorExtenso(iso: string, t: Tradutor): string {
+  return new Intl.DateTimeFormat(t("meta.locale"), { day: "numeric", month: "long", year: "numeric", timeZone: "America/Sao_Paulo" })
     .format(new Date(iso));
 }
 
@@ -74,36 +78,23 @@ export function mensagemDeCancelamento(p: {
   tipo: "arrependimento" | "falta-de-pagamento" | "no-fim-do-periodo" | "imediato";
   ate: string | null;
   linkDeEntrar: string;
-}): Mensagem {
-  const daConta = p.conta ? `da conta ${p.conta}` : "do Brennimark";
+}, t: Tradutor): Mensagem {
+  const daConta = p.conta ? t("cancelamento.daConta", { conta: p.conta }) : t("cancelamento.doBrennimark");
   const abertura: Record<typeof p.tipo, string[]> = {
-    "arrependimento": [
-      `A assinatura ${daConta} foi cancelada.`,
-      "Como o cancelamento foi feito em até 7 dias da contratação, devolvemos o valor pago, por inteiro, no mesmo cartão da compra. O estorno já foi pedido ao Stripe e aparece na fatura conforme o prazo da operadora do cartão.",
-      "O acesso completo terminou agora.",
-    ],
-    "falta-de-pagamento": [
-      `A assinatura ${daConta} foi cancelada porque o pagamento não foi concluído depois das tentativas de cobrança.`,
-    ],
+    "arrependimento": [t("cancelamento.arrependimento1", { daConta }), t("cancelamento.arrependimento2"), t("cancelamento.arrependimento3")],
+    "falta-de-pagamento": [t("cancelamento.falta", { daConta })],
     "no-fim-do-periodo": [
-      `Confirmamos o cancelamento da assinatura ${daConta}.`,
-      p.ate
-        ? `O acesso completo continua até ${dataPorExtenso(p.ate)}, o fim do período já pago, e não haverá nova cobrança.`
-        : "O acesso completo continua até o fim do período já pago, e não haverá nova cobrança.",
+      t("cancelamento.fim1", { daConta }),
+      p.ate ? t("cancelamento.fimComData", { data: dataPorExtenso(p.ate, t) }) : t("cancelamento.fimSemData"),
     ],
-    "imediato": [
-      `A assinatura ${daConta} foi cancelada, e não haverá nova cobrança.`,
-    ],
+    "imediato": [t("cancelamento.imediato", { daConta })],
   };
-  const depois = [
-    `${p.tipo === "no-fim-do-periodo" ? "Depois disso, a" : "A"} conta fica guardada só para leitura por 12 meses: dá para consultar, baixar e exportar o que é seu (Configurações › Plano › Exportar tudo). Avisamos 30 dias antes do fim desse prazo.`,
-    "Se mudar de ideia, é só assinar de novo.",
-  ];
+  const depois = [p.tipo === "no-fim-do-periodo" ? t("cancelamento.depoisNoFim") : t("cancelamento.depois"), t("cancelamento.mudarDeIdeia")];
   const paragrafos = [...abertura[p.tipo], ...depois];
   return {
-    assunto: p.tipo === "arrependimento" ? "Assinatura cancelada e valor devolvido" : "Sua assinatura do Brennimark foi cancelada",
-    texto: [...paragrafos, "", `Entrar: ${p.linkDeEntrar}`].join("\n"),
-    html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
+    assunto: p.tipo === "arrependimento" ? t("cancelamento.assuntoArrependimento") : t("cancelamento.assunto"),
+    texto: [...paragrafos, "", t("entrar", { link: p.linkDeEntrar })].join("\n"),
+    html: html(paragrafos, t, { rotulo: t("boasVindas.acao"), link: p.linkDeEntrar }),
   };
 }
 
@@ -112,18 +103,18 @@ export function mensagemDeCancelamento(p: {
  * antes do fim desse prazo". Diz a data, o que sai, o que fica e o que fazer
  * para guardar o conteúdo.
  */
-export function mensagemDeAvisoDeExclusao(p: { conta: string | null; excluirEm: string; linkDeEntrar: string; contato: string }): Mensagem {
-  const daConta = p.conta ? `A conta ${p.conta}` : "A sua conta do Brennimark";
+export function mensagemDeAvisoDeExclusao(p: { conta: string | null; excluirEm: string; linkDeEntrar: string; contato: string }, t: Tradutor): Mensagem {
+  const daConta = p.conta ? t("exclusao.daConta", { conta: p.conta }) : t("exclusao.suaConta");
   const paragrafos = [
-    `${daConta} foi cancelada há quase 12 meses e está guardada só para leitura.`,
-    `Em ${dataPorExtenso(p.excluirEm)}, como dizem os Termos, o conteúdo dela será excluído definitivamente: marcas, manuais, arquivos e os acessos das pessoas convidadas.`,
-    `Para guardar uma cópia, exporte até lá: entre na conta e, em Configurações › Plano, clique em Exportar tudo. Se não conseguir, escreva para ${p.contato}, e entregamos os arquivos originais e um índice do conteúdo em até 15 dias.`,
-    "Dados que a lei manda guardar, como os de cobrança, ficam pelo prazo legal. Se quiser voltar a usar o Brennimark, é só assinar de novo.",
+    t("exclusao.p1", { daConta }),
+    t("exclusao.p2", { data: dataPorExtenso(p.excluirEm, t) }),
+    t("exclusao.p3", { contato: p.contato }),
+    t("exclusao.p4"),
   ];
   return {
-    assunto: "Sua conta do Brennimark será excluída em 30 dias",
-    texto: [...paragrafos, "", `Entrar: ${p.linkDeEntrar}`].join("\n"),
-    html: html(paragrafos, { rotulo: "Entrar no Brennimark", link: p.linkDeEntrar }),
+    assunto: t("exclusao.assunto"),
+    texto: [...paragrafos, "", t("entrar", { link: p.linkDeEntrar })].join("\n"),
+    html: html(paragrafos, t, { rotulo: t("boasVindas.acao"), link: p.linkDeEntrar }),
   };
 }
 
@@ -131,15 +122,15 @@ export function mensagemDeAvisoDeExclusao(p: { conta: string | null; excluirEm: 
  * O aviso à EQUIPE de que uma conta pediu a exportação: quem, quando e o
  * prazo de 15 dias. A entrega é marcada no Console.
  */
-export function mensagemDePedidoDeExportacao(p: { conta: string; pedidoPor: string | null; pedidoEm: string; prazo: string; linkDoConsole: string }): Mensagem {
+export function mensagemDePedidoDeExportacao(p: { conta: string; pedidoPor: string | null; pedidoEm: string; prazo: string; linkDoConsole: string }, t: Tradutor): Mensagem {
   const paragrafos = [
-    `A conta ${p.conta} pediu a exportação do conteúdo em ${dataPorExtenso(p.pedidoEm)}${p.pedidoPor ? `, por ${p.pedidoPor}` : ""}.`,
-    `Prazo prometido nos Termos: ${dataPorExtenso(p.prazo)} (15 dias). Entregue os arquivos originais e um índice do conteúdo, e marque como entregue no Console.`,
+    t("equipe.p1", { conta: p.conta, data: dataPorExtenso(p.pedidoEm, t), por: p.pedidoPor ? t("equipe.por", { quem: p.pedidoPor }) : "" }),
+    t("equipe.p2", { data: dataPorExtenso(p.prazo, t) }),
   ];
   return {
-    assunto: `Pedido de exportação: ${p.conta}`,
-    texto: [...paragrafos, "", `Console: ${p.linkDoConsole}`].join("\n"),
-    html: html(paragrafos, { rotulo: "Abrir o Console", link: p.linkDoConsole }),
+    assunto: t("equipe.assunto", { conta: p.conta }),
+    texto: [...paragrafos, "", t("equipe.console", { link: p.linkDoConsole })].join("\n"),
+    html: html(paragrafos, t, { rotulo: t("equipe.abrir"), link: p.linkDoConsole }),
   };
 }
 
@@ -148,16 +139,13 @@ export function mensagemDePedidoDeExportacao(p: { conta: string; pedidoPor: stri
  * mensagem de serviço, sem nada de propaganda: pede um clique para provar que o
  * endereço é de quem se inscreveu. Quem não clicar não recebe marketing nenhum.
  */
-export function mensagemDeConfirmacaoDaLista(p: { link: string; linkDeSair: string }): Mensagem {
-  const paragrafos = [
-    "Você pediu para receber e-mails do Brennimark, com novidades e conteúdo para quem trabalha com marcas.",
-    "Para confirmar que este e-mail é seu, clique no botão abaixo. Sem a confirmação, não enviamos nada.",
-  ];
-  const fim = `Se não foi você, ignore esta mensagem: nada será enviado. Para apagar o seu cadastro, use ${p.linkDeSair}`;
+export function mensagemDeConfirmacaoDaLista(p: { link: string; linkDeSair: string }, t: Tradutor): Mensagem {
+  const paragrafos = [t("confirmacaoDaLista.p1"), t("confirmacaoDaLista.p2")];
+  const fim = t("confirmacaoDaLista.fim", { link: p.linkDeSair });
   return {
-    assunto: "Confirme o seu e-mail no Brennimark",
-    texto: [...paragrafos, "", `Confirmar: ${p.link}`, "", fim].join("\n"),
-    html: html(paragrafos, { rotulo: "Confirmar o meu e-mail", link: p.link }).replace("</body>", `<p style="margin:0;font-size:12px;color:#555">${escaparHtml(fim)}</p></body>`),
+    assunto: t("confirmacaoDaLista.assunto"),
+    texto: [...paragrafos, "", t("confirmacaoDaLista.confirmar", { link: p.link }), "", fim].join("\n"),
+    html: html(paragrafos, t, { rotulo: t("confirmacaoDaLista.acao"), link: p.link }).replace("</body>", `<p style="margin:0;font-size:12px;color:#555">${escaparHtml(fim)}</p></body>`),
   };
 }
 
@@ -175,19 +163,19 @@ export function mensagemDeMarketing(p: {
   linkDeSair: string;
   linkDaPolitica: string;
   empresa: { nome: string; cnpj: string; endereco: string };
-}): Mensagem {
-  const motivo = `Você recebe este e-mail porque se cadastrou nas ferramentas gratuitas do Brennimark em ${p.quando} e confirmou o seu e-mail.`;
-  const quem = `Brennimark, operado por ${p.empresa.nome}, CNPJ ${p.empresa.cnpj}, ${p.empresa.endereco}.`;
-  const sair = `Para parar de receber estes e-mails ou apagar o seu cadastro: ${p.linkDeSair}`;
-  const politica = `Política de Privacidade: ${p.linkDaPolitica}`;
+}, t: Tradutor): Mensagem {
+  const motivo = t("marketing.motivo", { quando: p.quando });
+  const quem = t("marketing.quem", { nome: p.empresa.nome, cnpj: p.empresa.cnpj, endereco: p.empresa.endereco });
+  const sair = t("marketing.sair", { link: p.linkDeSair });
+  const politica = t("marketing.politica", { link: p.linkDaPolitica });
 
   const rodapeHtml =
     `<hr style="border:0;border-top:1px solid #ddd;margin:32px 0 16px">`
     + `<p style="margin:0 0 8px;font-size:12px;color:#555">${escaparHtml(motivo)}</p>`
     + `<p style="margin:0 0 8px;font-size:12px;color:#555">${escaparHtml(quem)}</p>`
     + `<p style="margin:0 0 8px;font-size:12px;color:#555">`
-    + `<a href="${escaparHtml(p.linkDeSair)}" style="color:#111">Sair da lista ou apagar o meu cadastro</a>`
-    + ` &middot; <a href="${escaparHtml(p.linkDaPolitica)}" style="color:#111">Política de Privacidade</a></p>`;
+    + `<a href="${escaparHtml(p.linkDeSair)}" style="color:#111">${escaparHtml(t("marketing.sairLink"))}</a>`
+    + ` &middot; <a href="${escaparHtml(p.linkDaPolitica)}" style="color:#111">${escaparHtml(t("marketing.politicaLink"))}</a></p>`;
 
   return {
     assunto: p.assunto,
@@ -196,6 +184,6 @@ export function mensagemDeMarketing(p: {
       ...(p.botao ? ["", `${p.botao.rotulo}: ${p.botao.link}`] : []),
       "", "--", motivo, quem, sair, politica,
     ].join("\n"),
-    html: html(p.paragrafos, p.botao).replace("</body>", `${rodapeHtml}</body>`),
+    html: html(p.paragrafos, t, p.botao).replace("</body>", `${rodapeHtml}</body>`),
   };
 }

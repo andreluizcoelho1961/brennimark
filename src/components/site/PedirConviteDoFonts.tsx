@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { FormularioDeCadastro } from "@/components/ferramentas/CadastroParaBaixar";
 
 /**
@@ -10,13 +11,14 @@ import { FormularioDeCadastro } from "@/components/ferramentas/CadastroParaBaixa
  * convite sai à mão, por e-mail, na ordem do pedido.
  */
 export function PedirConviteDoFonts({ rotulo }: { rotulo: string }) {
+  const t = useTranslations("site.fonts");
   const [aberto, setAberto] = useState(false);
   const [feito, setFeito] = useState(false);
 
   if (feito) {
     return (
       <p data-fonts-pedido-feito role="status" className="fx-pedido">
-        <b>Pedido recebido.</b> Vamos avaliar e escrever para você, na ordem dos pedidos. As vagas são 50.
+        {t.rich("pedidoFeito", { b: (trecho) => <b>{trecho}</b> })}
       </p>
     );
   }

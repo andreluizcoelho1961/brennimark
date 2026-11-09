@@ -13,7 +13,7 @@ const LOGO_MIN = { id: "r2", chave: "reducao_minima_logo", valor: 120, descricao
 const SIMB_MIN = { id: "r3", chave: "reducao_minima_simbolo", valor: 24, descricao: "24 px", pagina: 13, origem: "ia", status: "draft" };
 
 async function fingir(page: Page, opcoes: { regras?: unknown[]; semLogo?: boolean; fonteDaAssinatura?: { nome: string; origem: string } } = {}) {
-  const chamadas = { ler: 0, aprovar: [] as string[][], baixados: 0 };
+  const chamadas = { ler: 0, aprovar: [] as string[][], baixados: 0, levados: [] as { itemId: string; ids: string[] }[] };
   let regras = opcoes.regras ?? [AREA];
   await page.route("**/api/kit/regras/ler", (r) => {
     chamadas.ler += 1;
@@ -35,6 +35,13 @@ async function fingir(page: Page, opcoes: { regras?: unknown[]; semLogo?: boolea
     },
   } }));
   await page.route("**/api/assets/kit", (r) => {
+    // "Baixar" avisa o servidor (`download`) antes de montar o ZIP; a leitura
+    // do original para desenhar (`previa`) é outra coisa.
+    const pedido = r.request().postDataJSON() as { finalidade?: string; itemId: string; ids: string[] };
+    if (pedido.finalidade === "download") {
+      chamadas.levados.push({ itemId: pedido.itemId, ids: pedido.ids });
+      return r.fulfill({ json: { nome: "kit.zip", arquivos: [] } });
+    }
     chamadas.baixados += 1;
     return r.fulfill({ json: { nome: "kit.zip", arquivos: [{ url: "https://storage.prova.test/acme.svg", caminho: "acme.svg" }] } });
   });
@@ -69,6 +76,8 @@ test("o logo vem dos Materiais, a regra que falta é lida do manual uma vez, e c
   // O LEIA-ME diz de que página veio cada regra, e se está aprovada.
   const baixando = page.waitForEvent("download");
   await page.locator("[data-kit-baixar-tudo]").click();
+  await baixando;
+  expect(chamadas.levados, "o clique em Baixar registra a versão levada, como download").toEqual([{ itemId: "i1", ids: ["v1"] }]);
   const zip = unzipSync(new Uint8Array(await readFile((await (await baixando).path())!)));
   const leia = strFromU8(zip["LEIA-ME.txt"]);
   expect(leia).toContain("Área de proteção aplicada: 25% da altura do logo, do manual, p. 12, aprovada.");
@@ -101,13 +110,19 @@ test("as versões (10/10/2026): o Kit marca a melhor de cada papel, a pessoa tro
   const eps = { ...base, id: "eps", arquivo: "acme.eps", mime: "application/postscript", lockup: "horizontal", hierarquia: "secundario" };
   const ico = { ...base, id: "ico", itemId: "i2", tipo: "icone", arquivo: "acme-s.svg", mime: "image/svg+xml", hierarquia: null, lockup: null };
   const baixados: string[] = [];
+  const levados: { itemId: string; ids: string[] }[] = [];
   await page.route("**/api/kit/regras", (r) => r.fulfill({ json: {
     marca: "Acme", regras: [AREA, LOGO_MIN, SIMB_MIN], coresDaMarca: [], podeEditar: false, podeAprovar: false,
     desenhos: { logo: h, vertical: vert, simbolo: ico, negativo: null, semLogoPorque: null },
     versoes: [h, h2, vert, eps, ico],
   } }));
   await page.route("**/api/assets/kit", (r) => {
-    const id = (r.request().postDataJSON() as { ids: string[] }).ids[0];
+    const pedido = r.request().postDataJSON() as { finalidade?: string; itemId: string; ids: string[] };
+    if (pedido.finalidade === "download") {
+      levados.push({ itemId: pedido.itemId, ids: pedido.ids });
+      return r.fulfill({ json: { nome: "kit.zip", arquivos: [] } });
+    }
+    const id = pedido.ids[0];
     baixados.push(id);
     return r.fulfill({ json: { nome: "kit.zip", arquivos: [{ url: `https://storage.prova.test/${id}.svg`, caminho: `${id}.svg` }] } });
   });
@@ -143,6 +158,11 @@ test("as versões (10/10/2026): o Kit marca a melhor de cada papel, a pessoa tro
   const baixando = page.waitForEvent("download");
   await page.locator("[data-kit-baixar-tudo]").click();
   const zip = unzipSync(new Uint8Array(await readFile((await (await baixando).path())!)));
+  // Versões de itens diferentes viram pedidos diferentes: o logo e o vertical
+  // são do item i1, o símbolo do i2.
+  expect([...levados].sort((a, b) => a.itemId.localeCompare(b.itemId))).toEqual([
+    { itemId: "i1", ids: ["h", "vert"] }, { itemId: "i2", ids: ["ico"] },
+  ]);
   const png = zip["apresentacao/logotipo-vertical-2000.png"];
   expect(png, "o vertical entra na apresentação").toBeTruthy();
   const dv = new DataView(png.buffer, png.byteOffset, png.byteLength);

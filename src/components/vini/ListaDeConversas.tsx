@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { localeDeFormato } from "@/platform/locale";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import { useIsEnglish } from "@/platform/locale-client";
 import type { MensagemDoVini } from "./useConversaDaMarca";
@@ -92,7 +93,7 @@ export function ListaDeConversas({
     if (c.id === atual) aoApagarAtual();
   }
 
-  const quando = (iso: string) => new Date(iso).toLocaleString(isEnglish ? "en-GB" : "pt-BR", {
+  const quando = (iso: string) => new Date(iso).toLocaleString(localeDeFormato(isEnglish), {
     day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
   });
 

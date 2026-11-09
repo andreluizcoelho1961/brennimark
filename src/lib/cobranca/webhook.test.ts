@@ -43,6 +43,7 @@ function portasFalsas(opcoes: {
       return opcoes.assinatura ?? PAGA;
     },
     async garantirLogin(email, nome, idAssinatura) { chamadas.push(`login ${email}`); logins.push({ nome, idAssinatura }); },
+    async creditarPacote(c) { chamadas.push(`pacote ${c.pacote.codigo} ${c.workspaceId}`); return opcoes.falharEm !== "pacote-repetido"; },
     async sincronizar(a) {
       chamadas.push(`sincronizar ${a.idAssinatura} ${a.situacao}`);
       if (opcoes.falharEm === "sincronizar") throw new Error("sincronizar: 22023 cobranca_preco_desconhecido");
@@ -207,7 +208,7 @@ test("cancelou no Portal, depois dos 7 dias: um e-mail com a data do fim do aces
     "receber evt_1", "buscar sub_1", "login dona@agencia.com", "sincronizar sub_1 ativa",
     "pedido sub_1 sim", "reservar aviso sub_1", "e-mail no-fim-do-periodo", "concluir evt_1 processado",
   ]);
-  assert.deepEqual(emails, [{ email: "dona@agencia.com", conta: "Agência Exemplo", tipo: "no-fim-do-periodo", ate: "2026-11-08T13:37:12.000Z" }]);
+  assert.deepEqual(emails, [{ email: "dona@agencia.com", conta: "Agência Exemplo", tipo: "no-fim-do-periodo", ate: "2026-11-08T13:37:12.000Z", moeda: "BRL" }]);
 });
 
 test("arrependimento: estorna, registra o estorno e SÓ DEPOIS avisa", async () => {

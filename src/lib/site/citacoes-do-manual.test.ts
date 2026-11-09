@@ -5,13 +5,14 @@ import path from "node:path";
 
 /**
  * O site cita páginas do manual do Brennimark, e o manual de exemplo dentro da
- * plataforma é a edição de demonstração, de 33 páginas (30/09/2026). Quem
- * visita o site e abre o manual precisa achar a regra na página citada.
+ * plataforma é a edição de demonstração. Desde 22/10/2026 é a versão 0.3, de
+ * 42 páginas (era a de 33, de 30/09/2026): o manual que inaugura a plataforma.
+ * Quem visita o site e abre o manual precisa achar a regra na página citada.
  *
  * A versão completa (v0.2) tem 64 páginas e numeração diferente: uma citação
  * copiada dela aponta para outra página, ou para uma que não existe.
  */
-const PAGINAS_DA_DEMONSTRACAO = 33;
+const PAGINAS_DA_DEMONSTRACAO = 42;
 const PASTA = path.join(process.cwd(), "src/components/site");
 
 function arquivosDoSite(pasta: string): string[] {
@@ -22,7 +23,11 @@ function arquivosDoSite(pasta: string): string[] {
   });
 }
 
-const fontes = arquivosDoSite(PASTA).map((arquivo) => ({
+// Desde a fatia 5 (24/10/2026) o texto das páginas mora nos catálogos de tradução, e não no
+// JSX: sem eles aqui, as citações sairiam do alcance deste teste sem ninguém ver.
+const CATALOGOS = ["src/i18n/mensagens/pt-BR.json", "src/i18n/mensagens/en.json"].map((a) => path.join(process.cwd(), a));
+
+const fontes = [...arquivosDoSite(PASTA), ...CATALOGOS].map((arquivo) => ({
   arquivo: path.relative(process.cwd(), arquivo),
   texto: readFileSync(arquivo, "utf8"),
 }));
@@ -37,15 +42,32 @@ test("toda página citada existe na edição de demonstração", () => {
       if (ultima > PAGINAS_DA_DEMONSTRACAO) fora.push(`${arquivo}: "${m[0]}"`);
     }
   }
-  assert.ok(citacoes > 10, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
+  // Eram mais de dez quando as telas eram desenhadas em código; agora são capturas
+  // reais (23/10/2026) e as citações moram dentro das imagens. Sobram as do texto.
+  assert.ok(citacoes >= 1, `a busca de citações não achou quase nada (${citacoes}); o padrão mudou?`);
   assert.deepEqual(fora, [], "página além da edição de demonstração");
+});
+
+// Na v0.3 a área de proteção do logotipo e a do símbolo ficaram numa página só
+// (a 10), e a paleta primária passou à 14. Citação com a numeração antiga leva a
+// pessoa à página errada sem dar erro nenhum.
+test("as citações usam a numeração da versão 0.3", () => {
+  const tudo = fontes.map((f) => f.texto).join("\n");
+  assert.doesNotMatch(tudo, /Manual, p\. 9\b|Área de proteção do símbolo · p\.|Cores, p\. 13|p\. 24–26|p\. 4–12/);
+  // As citações "Manual, p. 10" e "Cores, p. 14" moravam nas telas e no prompt desenhados;
+  // agora são capturas reais. O que ainda se escreve usa a numeração nova.
+  assert.match(tudo, /Área de proteção · p\. 10\b/);
+  // E a mesma citação, no inglês, aponta para a mesma página.
+  assert.match(tudo, /Protection area · p\. 10\b/);
 });
 
 test("o fólio e a contagem do manual são os da edição de demonstração", () => {
   const folios = fontes.flatMap(({ arquivo, texto }) =>
     [...texto.matchAll(/<span>(\d+) \/ (\d+)<\/span>/g)].map((m) => ({ arquivo, total: Number(m[2]) })),
   );
-  assert.ok(folios.length >= 2, "o fólio do visualizador sumiu do site");
+  // O visualizador do manual agora é captura real (22–23/10/2026), com o fólio
+  // dentro da própria imagem: não sobra fólio ESCRITO no código. Se um voltar,
+  // tem de ser da edição de demonstração (42 páginas).
   for (const f of folios) assert.equal(f.total, PAGINAS_DA_DEMONSTRACAO, `fólio em ${f.arquivo}`);
 
   for (const { arquivo, texto } of fontes) {

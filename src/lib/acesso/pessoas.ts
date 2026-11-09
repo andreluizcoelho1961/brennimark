@@ -92,6 +92,11 @@ export type Pessoa = {
   nome?: string | null;
   /** Só para login com senha provisória criado por ESTA conta. */
   senhaProvisoriaAte?: string | null;
+  /**
+   * O interruptor "usa o Vini". `null` = não se aplica: quem administra sempre usa, e quem ainda
+   * não entrou (pendente) não tem linha de membro para desligar.
+   */
+  usaOVini?: boolean | null;
 };
 
 /**

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { BIBLIOTECAS, COMO_CONHECEU, EQUIPES, MARCAS, SISTEMAS, TEXTO_DO_ACEITE, VERSAO_DO_ACEITE, comMarcaDoConvite, lerRespostaDoRegistro, validarCadastro } from "./cadastro";
+import { ACEITES, idiomaDoCadastro, BIBLIOTECAS, COMO_CONHECEU, EQUIPES, MARCAS, SISTEMAS, TEXTO_DO_ACEITE, VERSAO_DO_ACEITE, comMarcaDoConvite, lerRespostaDoRegistro, validarCadastro } from "./cadastro";
 
 const valido = { email: "Ana@Agencia.test ", nome: "  Ana   Souza ", origem: "kit" };
 
@@ -98,4 +98,16 @@ test("só um {confirmar: true, token uuid} manda o e-mail; o resto vale como nã
   for (const ruim of [null, undefined, "x", 1, {}, { confirmar: false, token: null }, { confirmar: true }, { confirmar: true, token: "x" }, { confirmar: "true", token: TOKEN }, { confirmar: true, token: `${TOKEN}'--` }]) {
     assert.deepEqual(lerRespostaDoRegistro(ruim), { confirmar: false });
   }
+});
+
+test("cada idioma tem o seu texto de aceite e a sua versão (data), e o idioma da tela segue com o cadastro", () => {
+  for (const { versao } of Object.values(ACEITES)) assert.match(versao, /^\d{4}-\d{2}-\d{2}$/);
+  assert.notEqual(ACEITES["pt-BR"].versao, ACEITES.en.versao, "textos diferentes não podem dividir a mesma versão");
+  assert.match(ACEITES.en.texto, /confirm by email/);
+  assert.equal(idiomaDoCadastro("en"), "en");
+  assert.equal(idiomaDoCadastro("de"), "pt-BR");
+  const r = validarCadastro({ ...valido, idioma: "en" });
+  assert.ok(r.ok && r.dados.idioma === "en");
+  const padrao = validarCadastro(valido);
+  assert.ok(padrao.ok && padrao.dados.idioma === "pt-BR");
 });

@@ -9,7 +9,7 @@ import { guardarTroca } from "@/lib/ai/guardar-conversa";
 import { CABECALHO_DE_PAGINAS, codificarMapa, mapaDePaginas } from "@/lib/ai/paginas-citadas";
 import { buscarTrechos } from "@/lib/ai/buscar";
 import { portaoDeIA } from "@/lib/brennimark/contexto-da-rota";
-import { classifyAIError, semProvedorConfigurado } from "@/lib/ai/errors";
+import { classifyAIError, semProvedorConfigurado, type ModoDaIA } from "@/lib/ai/errors";
 import { executarEmFila, decidirExecucao, mensagemDeBloqueio } from "@/lib/ai/execucao";
 import { registrarFalhaNaFila, registrarReservaRecusada } from "@/lib/ai/log-da-fila";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -17,7 +17,8 @@ import {
   CABECALHO_DE_REGRAS, MAX_CARACTERES_DA_DESCRICAO, consultaDoPrompt, ehTipoDePrompt, regrasDosTrechos, regrasPermitidas,
   resumoDasRegras, separarRegras, sistemaDoCopiloto,
 } from "@/lib/ai/copiloto";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 
 /**
  * O copiloto de criação — fatia 4c (ADR-0004 §3.1 e §3.2).
@@ -40,8 +41,6 @@ import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
  * gera prompt (ADR-0004 §3.6), onde o assistente foi contratado. O consumo vai
  * ao razão como operação `prompt` — por marca e por operação (§3.4).
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
-const t = (pt: string, en: string) => (isEnglish ? en : pt);
 const PROMPT_TIMEOUT_MS = 60_000;
 /**
  * A espera pela PRIMEIRA palavra do prompt: no mínimo 45 s.
@@ -57,6 +56,8 @@ const ESPERA_MINIMA_DO_PROMPT_MS = 45_000;
 export const maxDuration = 120;
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
+  const t = (pt: string, en: string) => (isEnglish ? en : pt);
   const corpo = await request.json().catch(() => null);
   const etapa = corpo?.etapa === "gerar" ? "gerar" : corpo?.etapa === "regras" ? "regras" : null;
   const descricao = typeof corpo?.descricao === "string" ? corpo.descricao.trim() : "";
@@ -75,6 +76,8 @@ export async function POST(request: Request) {
 
   let executionId: string | undefined;
   let fimDoProvedor: { unificado: PromiseLike<string>; bruto: PromiseLike<string | undefined> } | null = null;
+  // De quem é a IA que atende (ADR-0009): a mensagem de erro muda se a chave é da agência.
+  let modoDaIA: ModoDaIA = "plataforma";
   try {
     const portao = await portaoDeIA(request, "chat");
     if (!portao.ok) return portao.resposta;
@@ -101,8 +104,10 @@ export async function POST(request: Request) {
     const trechosPermitidos = recuperacao.trechos.filter((tr) => slugs.has(tr.documentSlug));
 
     const routing = await resolveChatRouting(portao.auth.workspaceId);
+
+    modoDaIA = routing.modo;
     if (routing.attempts.length === 0) {
-      const { code, message } = semProvedorConfigurado();
+      const { code, message } = semProvedorConfigurado(isEnglish, routing.modo);
       return NextResponse.json({ error: code, message }, { status: 503 });
     }
     // A fila inteira; a decisão abaixo é da primeira (ver `executarEmFila`).
@@ -122,7 +127,7 @@ export async function POST(request: Request) {
       { provider: attempts[0].config.provider, model: attempts[0].config.model },
     );
     if (!decisao.pode) {
-      return NextResponse.json({ error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish) }, { status: 503 });
+      return NextResponse.json({ error: decisao.motivo, message: mensagemDeBloqueio(decisao.motivo, isEnglish, modoDaIA) }, { status: 503 });
     }
 
     const sistema = sistemaDoCopiloto(permitidas, tipo, portao.brand.brand.name);
@@ -228,7 +233,7 @@ export async function POST(request: Request) {
     return resposta;
   } catch (error) {
     const raiz = error instanceof AggregateError ? (error.errors.at(-1) ?? error) : error;
-    const { code, message, detalheTecnico } = classifyAIError(raiz);
+    const { code, message, detalheTecnico } = classifyAIError(raiz, isEnglish, modoDaIA);
     console.error(JSON.stringify({ level: "error", msg: "ai_error", rota: "prompt", code, detalheTecnico, executionId }));
     return NextResponse.json({ error: code, message }, { status: 502 });
   }

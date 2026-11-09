@@ -133,10 +133,8 @@ export function montarContexto({
     userEmail: auth?.email || undefined,
     // Slug vazio redirecionaria para /docs/ e produziria laço.
     defaultDocSlug: slug ? slug : null,
-    // Sem argumento, de propósito e por enquanto: não existe preferência de
-    // idioma guardada em lugar nenhum. Quando existir, ela entra AQUI — e
-    // vários módulos que hoje leem PRODUCT_LOCALE direto terão de passar a
-    // receber este valor. Ver a dívida descrita em platform/locale.ts.
+    // O padrão do produto. Quem escolhe o idioma da PESSOA é `resolveWorkspaceContext`
+    // (workspace-context.ts), que sobrescreve este campo com `escolherIdioma`.
     locale: resolveInterfaceLocale(),
   };
 }
@@ -228,9 +226,10 @@ export async function carregarWorkspaceContext<A extends AuthShape>(deps: {
  * os campos, um deles acabaria esquecendo o papel ou o idioma e caindo em um
  * padrão — que foi exatamente como a instância global sobreviveu até aqui.
  */
-export function brandPromptContext(marca: ActiveBrand): BrandPromptContext {
+export function brandPromptContext(marca: ActiveBrand, idiomaDaInterface?: string): BrandPromptContext {
   return {
     language: marca.metadata.language,
+    interfaceLanguage: idiomaDaInterface,
     chatRole: marca.ai.chatRole,
     analysisRole: marca.ai.analysisRole,
     // Esquecer esta linha não quebrava nada: o campo é opcional, e o prompt

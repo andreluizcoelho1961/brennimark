@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { normalizarPaginasDaRegra, MAXIMO_DE_PAGINAS_DA_REGRA } from "@/lib/assets/regra";
 import { citarPaginas, lerManualDaMarca } from "@/lib/assets/regra-do-manual";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * Liga um item de Materiais às páginas do manual que o regem — fatia 5.
@@ -17,6 +17,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
  * ATUAL da marca.
  */
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const resolvido = await marcaDaRota(request);
   if (!resolvido.ok) return resolvido.resposta;
   const { auth, workspaceId, brandId } = resolvido;

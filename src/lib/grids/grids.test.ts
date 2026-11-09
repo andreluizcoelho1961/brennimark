@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { strFromU8, unzipSync } from "fflate";
-import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId } from "./formatos";
-import { PT_POR_MM, calcularGrid, escolhasPadrao, margensClassicas, recortar, type Escolhas } from "./calcular";
-import { arquivosDoIdml, montarIdml } from "./idml";
+import { FORMATOS, FORMATOS_GRATIS, GRUPOS, formatoPorId, textoDoFormato } from "./formatos";
+import { PT_POR_MM, calcularGrid as calcularGridBase, escolhasPadrao, margensClassicas, recortar, type Escolhas } from "./calcular";
+import { arquivosDoIdml as arquivosDoIdmlBase, montarIdml as montarIdmlBase } from "./idml";
+import { comTradutor, tradutorDeTeste } from "../i18n/catalogo-de-teste";
 import { montarPdf } from "./pdf";
 
+const pt = tradutorDeTeste("ferramentas.grids");
+const en = tradutorDeTeste("ferramentas.grids", "en");
+const calcularGrid = comTradutor(calcularGridBase, pt);
+const arquivosDoIdml = (g: Parameters<typeof arquivosDoIdmlBase>[0], marca?: Parameters<typeof arquivosDoIdmlBase>[1]) => arquivosDoIdmlBase(g, marca, pt);
+const montarIdml = (g: Parameters<typeof montarIdmlBase>[0], marca?: Parameters<typeof montarIdmlBase>[1]) => montarIdmlBase(g, marca, pt);
 const perto = (a: number, b: number, tol = 0.01) => assert.ok(Math.abs(a - b) <= tol, `${a} ≠ ${b}`);
 const grid = (id: string, mudar: Partial<Escolhas> = {}) => {
   const f = formatoPorId(id);
@@ -17,7 +23,10 @@ test("a tabela aprovada: todo formato tem fonte, tamanho e unidade coerentes", (
   for (const f of FORMATOS) {
     assert.ok(!ids.has(f.id), `id repetido: ${f.id}`);
     ids.add(f.id);
-    assert.ok(f.fonte.length > 3, `${f.id} sem fonte`);
+    for (const t of [pt, en]) {
+      const texto = textoDoFormato(f, t);
+      assert.ok(texto.nome.length > 1 && texto.fonte.length > 3, `${f.id} sem nome ou fonte no catálogo`);
+    }
     assert.ok(f.largura > 0 && f.altura > 0);
     assert.equal(f.sangria > 0, f.unidade === "mm", `${f.id}: sangria só nos impressos`);
     assert.ok(f.margensU || f.margensMm !== undefined);
@@ -173,4 +182,23 @@ test("PDF de referência: cabeçalho, página no tamanho da peça e índice de o
   assert.ok(pdf.slice(xref).startsWith("xref"));
   const obj4 = Number(/0000000000 65535 f \n(?:\d{10} 00000 n \n){3}(\d{10})/.exec(pdf)![1]);
   assert.ok(pdf.slice(obj4).startsWith("4 0 obj"));
+});
+
+test("o que é texto sai no idioma pedido: formato, aviso, zona e camada do IDML", () => {
+  const a4 = formatoPorId("a4");
+  assert.deepEqual(textoDoFormato(a4, en), { nome: "A4", fonte: "ISO 216", corpo: "9.5 / 12 pt", seguraNota: undefined });
+  assert.equal(textoDoFormato(a4, pt).corpo, "9,5 / 12 pt");
+  assert.equal(textoDoFormato(formatoPorId("post-4x5"), en).corpo, "title 96/108 · text 32/36");
+  assert.match(textoDoFormato(formatoPorId("stories"), en).seguraNota ?? "", /safe area/);
+  // Capa de livro: as zonas e o aviso da lombada.
+  const livro = formatoPorId("livro-14x21");
+  const g = calcularGridBase(livro, { ...escolhasPadrao(livro), livro: { lombada: 3, orelha: 80 } }, en);
+  assert.ok(g.zonas.some((z) => z.nome === "Spine"));
+  assert.ok(g.avisos.some((a) => /Thin spine/.test(a)));
+  // O IDML do inglês nomeia as camadas em inglês; o do português, em português.
+  const xmlEn = Object.values(arquivosDoIdmlBase(calcularGridBase(a4, escolhasPadrao(a4), en), undefined, en)).join("\n");
+  assert.match(xmlEn, /Name="Content"/);
+  assert.match(xmlEn, /Name="Grid — Brennimark's proposal"/);
+  const xmlPt = Object.values(arquivosDoIdmlBase(calcularGridBase(a4, escolhasPadrao(a4), pt), undefined, pt)).join("\n");
+  assert.match(xmlPt, /Name="Conteúdo"/);
 });

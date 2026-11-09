@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { platformIdentity } from "@/platform/identity";
 
 /**
@@ -20,7 +21,7 @@ import { platformIdentity } from "@/platform/identity";
  * "enviar o primeiro manual" o levaria à tela de importação, que o devolve
  * para cá por não ser quem administra. Laço fechado, e nenhuma explicação.
  */
-export function EmptyBrandState({
+export async function EmptyBrandState({
   podeImportar = false,
   contaImportar = "/docs",
 }: {
@@ -33,6 +34,7 @@ export function EmptyBrandState({
    *  quando não há marca, e um caminho com `brandKey` seria um link morto. */
   contaImportar?: string;
 }) {
+  const t = await getTranslations("estadoVazio");
   return (
     <div className="flex min-h-full items-center justify-center px-[var(--space-shell-5)] py-[var(--space-shell-8,4rem)]">
       <div className="max-w-[34rem]">
@@ -41,13 +43,11 @@ export function EmptyBrandState({
         </p>
 
         <h1 className="mt-[var(--space-shell-4)] text-[clamp(1.75rem,3.6vw,2.5rem)] font-semibold leading-[1.1] tracking-tight text-platform-text">
-          {podeImportar ? "Nenhuma marca por aqui ainda" : "Você ainda não tem acesso a uma marca"}
+          {podeImportar ? t("tituloImportar") : t("tituloSemAcesso")}
         </h1>
 
         <p className="mt-[var(--space-shell-4)] text-[15px] leading-relaxed text-platform-text-muted">
-          {podeImportar
-            ? "Um manual de marca costuma ser um PDF que ninguém lê e onde ninguém acha nada. Aqui ele vira um sistema que responde perguntas — e que mostra de onde veio cada resposta."
-            : "O acesso é concedido marca a marca. Peça a quem administra a conta para liberar as marcas com que você vai trabalhar, e elas aparecem aqui."}
+          {podeImportar ? t("textoImportar") : t("textoSemAcesso")}
         </p>
 
         {podeImportar && (
@@ -55,7 +55,7 @@ export function EmptyBrandState({
             href={contaImportar}
             className="mt-[var(--space-shell-5)] inline-flex min-h-11 items-center rounded-[var(--radius-control)] bg-platform-panel px-[var(--space-shell-4)] text-[14px] font-medium text-platform-text hover:bg-platform-signal-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-platform-focus"
           >
-            Enviar o primeiro manual
+            {t("botao")}
           </Link>
         )}
 
@@ -65,13 +65,9 @@ export function EmptyBrandState({
         {podeImportar && (
           <>
           <div className="mt-[var(--space-shell-6)] border-t border-platform-border pt-[var(--space-shell-4)]">
-            <h2 className="text-[13px] font-semibold text-platform-text">Como uma marca começa</h2>
+            <h2 className="text-[13px] font-semibold text-platform-text">{t("comoComeca")}</h2>
             <ol className="mt-[var(--space-shell-3)] flex flex-col gap-[var(--space-shell-3)]">
-              {[
-                ["Envie o manual em PDF", "O texto é extraído e vira um rascunho estruturado."],
-                ["Revise o rascunho", "Nada é publicado sem alguém confirmar. O que não foi aprovado fica marcado como rascunho."],
-                ["Publique", "A partir daí a marca responde perguntas, valida peças e entrega os arquivos certos."],
-              ].map(([titulo, texto], i) => (
+              {([1, 2, 3] as const).map((n) => [t(`passo${n}Titulo`), t(`passo${n}Texto`)]).map(([titulo, texto], i) => (
                 <li key={titulo} className="flex gap-[var(--space-shell-3)]">
                   <span className="mt-[2px] flex-none font-mono text-[11px] text-platform-text-muted">
                     {String(i + 1).padStart(2, "0")}

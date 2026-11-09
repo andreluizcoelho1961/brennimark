@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { marcaDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { BUCKETS, caminhoDeAsset } from "@/lib/storage/caminhos";
 import { conferirEixos, ehTipoDeItem, lerEixos, rotulo } from "@/lib/assets/eixos";
 import { TAMANHO_MAXIMO_DE_MATERIAL, TIPOS_ACEITOS } from "@/lib/assets/conferir-arquivo";
 import { PRAZO_DO_ENVIO_MS, assinarEnvio } from "@/lib/assets/envio";
+import { tipoDaFonte } from "@/lib/assets/fonte";
 
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 /**
  * PREPARAR o envio de um material — passo 1 de 2 (24/09/2026).
@@ -24,6 +25,7 @@ const isEnglish = inEnglish(PRODUCT_LOCALE);
  * O conteúdo real é conferido no passo 2, sobre os bytes que chegaram.
  */
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await marcaDaRota(request);
   if (!r.ok) return r.resposta;
   if (r.papel !== "owner") {
@@ -55,9 +57,30 @@ export async function POST(request: Request) {
   // O item e os eixos ANTES de o arquivo subir: a recusa custa uma requisição
   // curta, e diz QUAL eixo falta. A autoridade continua sendo o banco.
   const { data: item } = await r.auth.supabase.from("brand_asset_items")
-    .select("id, tipo").eq("id", itemId).eq("workspace_id", r.workspaceId).eq("brand_id", r.brandId).maybeSingle();
+    .select("id, tipo, licenca_tipo").eq("id", itemId).eq("workspace_id", r.workspaceId).eq("brand_id", r.brandId).maybeSingle();
   if (!item || !ehTipoDeItem(item.tipo)) {
     return NextResponse.json({ message: isEnglish ? "Choose an item of this brand." : "Escolha um item desta marca." }, { status: 400 });
+  }
+  // A fonte (ADR-0007 §3): termo aceito NESTE envio, licença dita no item e
+  // formato de instalar. O banco confere tudo de novo; aqui a pessoa descobre
+  // antes de 25 MB subirem.
+  let termoVersao: string | null = null;
+  if (item.tipo === "fonte") {
+    if (tipoDaFonte(fileName) !== mimeType) {
+      return NextResponse.json({ message: isEnglish ? "Fonts must be OTF, TTF or TTC files. Webfonts (WOFF) aren't hosted." : "Fonte só em arquivo OTF, TTF ou TTC. Webfont (WOFF) não é hospedada." }, { status: 400 });
+    }
+    if (!item.licenca_tipo) {
+      return NextResponse.json({ message: isEnglish ? "Say what kind of license this font has (edit the item) before uploading." : "Diga que tipo de licença esta fonte tem (edite o item) antes de enviar." }, { status: 400 });
+    }
+    if (corpo?.termoAceito !== true) {
+      return NextResponse.json({ message: isEnglish ? "Accept the font hosting terms to upload a font." : "Aceite o termo de hospedagem de fonte para enviar uma fonte." }, { status: 400 });
+    }
+    const { data: vigente } = await r.auth.supabase.from("versoes_do_termo_de_fonte")
+      .select("versao").order("publicada_em", { ascending: false }).limit(1).maybeSingle();
+    if (!vigente) {
+      return NextResponse.json({ message: isEnglish ? "The font hosting terms aren't available right now." : "O termo de hospedagem de fonte não está disponível agora." }, { status: 503 });
+    }
+    termoVersao = vigente.versao;
   }
   const lidos = lerEixos((nome) => corpo?.[nome]);
   if ("invalido" in lidos) {
@@ -66,7 +89,7 @@ export async function POST(request: Request) {
   const conferencia = conferirEixos(item.tipo, lidos.eixos);
   if (!conferencia.ok) {
     const message = conferencia.motivo === "exige-termo"
-      ? (isEnglish ? "Fonts can only be uploaded after the license term is signed." : "Fonte só pode ser enviada depois de assinado o termo de licença.")
+      ? (isEnglish ? "Accept the font hosting terms to upload a font." : "Aceite o termo de hospedagem de fonte para enviar uma fonte.")
       : conferencia.motivo === "falta"
         ? (isEnglish ? `${rotulo(item.tipo, true)} needs ${rotulo(conferencia.eixo, true).toLowerCase()}.` : `${rotulo(item.tipo, false)} precisa de ${rotulo(conferencia.eixo, false).toLowerCase()}.`)
         : (isEnglish ? `${rotulo(conferencia.eixo, true)} doesn't apply to ${rotulo(item.tipo, true).toLowerCase()}.` : `${rotulo(conferencia.eixo, false)} não se aplica a ${rotulo(item.tipo, false).toLowerCase()}.`);
@@ -84,7 +107,7 @@ export async function POST(request: Request) {
 
   const autorizacao = assinarEnvio({
     workspaceId: r.workspaceId, brandId: r.brandId, userId: r.auth.user.id, itemId: item.id,
-    caminho, label, description, fileName, mimeType, sizeBytes, eixos: lidos.eixos, substitui,
+    caminho, label, description, fileName, mimeType, sizeBytes, eixos: lidos.eixos, substitui, termoVersao,
     expira: Date.now() + PRAZO_DO_ENVIO_MS,
   }, chave);
 

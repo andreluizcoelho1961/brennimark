@@ -35,7 +35,7 @@ test("o manual original só oferece a retomada no estado incompleto", () => {
    * estado anterior precisa existir.
    */
   const pagina = fs.readFileSync(
-    path.join(process.cwd(), "src/app/w/[workspaceSlug]/b/[brandKey]/docs/original/page.tsx"),
+    path.join(process.cwd(), "src/app/(plataforma)/w/[workspaceSlug]/b/[brandKey]/docs/original/page.tsx"),
     "utf8",
   );
   assert.match(

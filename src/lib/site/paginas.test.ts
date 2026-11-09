@@ -11,21 +11,21 @@ import { CAMINHOS_DO_SITE, CAPITULOS_DA_HOME, PAGINAS_DO_SITE } from "./paginas"
  * criada só como pasta ficaria atrás do login para quem visita; uma entrada
  * na lista sem pasta abriria sem sessão um endereço que ninguém desenhou.
  */
-const PASTA_DO_SITE = path.join(process.cwd(), "src/app/(site)");
+const PASTA_DO_SITE = path.join(process.cwd(), "src/app/[lang]");
 
 test("cada página da lista tem a sua rota", () => {
   for (const { slug } of PAGINAS_DO_SITE) {
-    assert.ok(existsSync(path.join(PASTA_DO_SITE, slug, "page.tsx")), `falta src/app/(site)/${slug}/page.tsx`);
+    assert.ok(existsSync(path.join(PASTA_DO_SITE, slug, "page.tsx")), `falta src/app/[lang]/${slug}/page.tsx`);
   }
 });
 
 test("cada rota do site está na lista", () => {
   const pastas = readdirSync(PASTA_DO_SITE, { withFileTypes: true })
-    // `previa-do-site.png` é arquivo gerado (rota com extensão), não página.
-    .filter((e) => e.isDirectory() && !e.name.includes("."))
+    // `ferramentas` tem os próprios caminhos exatos (`FERRAMENTAS_DO_SITE`), e não é página do menu.
+    .filter((e) => e.isDirectory() && !e.name.includes(".") && e.name !== "ferramentas")
     .map((e) => e.name);
   const slugs = new Set(PAGINAS_DO_SITE.map((p) => p.slug));
-  for (const pasta of pastas) assert.ok(slugs.has(pasta), `src/app/(site)/${pasta} não está em PAGINAS_DO_SITE`);
+  for (const pasta of pastas) assert.ok(slugs.has(pasta), `src/app/[lang]/${pasta} não está em PAGINAS_DO_SITE`);
 });
 
 test("os caminhos do site são a home e as páginas, e nada mais", () => {

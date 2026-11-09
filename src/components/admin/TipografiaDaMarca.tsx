@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useIsEnglish } from "@/platform/locale-client";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import {
@@ -17,9 +17,11 @@ import { textoDaDica } from "@/components/shell/dicas";
  * como rascunho; uma pessoa confere e aprova. Só a aprovada entra em silêncio
  * no Grids, no Kit e no Vini (ADR-0004 §3.2).
  *
- * Guarda o NOME da fonte, nunca o arquivo. A tela não desenha a fonte da
- * marca: ela não é hospedada (ADR-0007), e o nome escrito é o que o designer
- * procura no menu de fontes. Tudo aqui usa os tokens da plataforma.
+ * Guarda o NOME da fonte, nunca o arquivo. O arquivo mora em Materiais, onde a
+ * fonte é hospedada para baixar (ADR-0007 §3, 03/11/2026): quando há uma fonte
+ * com esse nome lá, a linha ganha "Baixar esta fonte". A tela não DESENHA a
+ * fonte da marca (nada de webfont), e o nome escrito é o que o designer procura
+ * no menu de fontes. Tudo aqui usa os tokens da plataforma.
  */
 
 type Rascunho = {
@@ -71,6 +73,23 @@ export function TipografiaDaMarca({
   const [lendo, setLendo] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [paginasDaLeitura, setPaginasDaLeitura] = useState("");
+  // As fontes que a marca tem em Materiais (ADR-0007 §3): é de lá que se baixa.
+  // Falhar em ler não atrapalha: a tipografia continua sendo só os nomes.
+  const [hospedadas, setHospedadas] = useState<{ id: string; nome: string }[]>([]);
+  useEffect(() => {
+    let cancelado = false;
+    void (async () => {
+      const r = await fetch(comAlvo("/api/assets", alvo), { cache: "no-store" }).catch(() => null);
+      const d = r?.ok ? await r.json().catch(() => null) : null;
+      if (cancelado || !d) return;
+      const comArquivo = new Set<string>((d.assets ?? []).filter((a: { baixavel: boolean; descontinuadoEm: string | null }) => a.baixavel && !a.descontinuadoEm).map((a: { itemId: string }) => a.itemId));
+      setHospedadas((d.itens ?? []).filter((i: { id: string; tipo: string }) => i.tipo === "fonte" && comArquivo.has(i.id)).map((i: { id: string; nome: string }) => ({ id: i.id, nome: i.nome })));
+    })();
+    return () => { cancelado = true; };
+  }, [alvo]);
+  const chave = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  const itemDaFonte = (f: FonteDaMarca) => hospedadas.find((h) => chave(h.nome) === chave(f.familia)) ?? hospedadas.find((h) => chave(f.familia) && chave(h.nome).includes(chave(f.familia)));
+  const materiais = alvo.workspaceSlug && alvo.brandKey ? `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs/biblioteca` : "/docs/biblioteca";
 
   const emRascunho = fontes.filter((f) => f.status === "draft");
   const aprovadas = fontes.length - emRascunho.length;
@@ -360,6 +379,9 @@ export function TipografiaDaMarca({
                   >
                     {f.status === "ready" ? t("Approved", "Aprovada") : t("Draft", "Rascunho")}
                   </span>
+                  {itemDaFonte(f) && (
+                    <a data-baixar-esta-fonte href={`${materiais}/${itemDaFonte(f)!.id}`} className={BOTAO}>{t("Download this font", "Baixar esta fonte")}</a>
+                  )}
                   {podeAprovar && f.status === "draft" && (
                     <button type="button" data-aprovar-fonte disabled={ocupado} onClick={() => aprovar([f.id])} className={BOTAO}>{t("Approve", "Aprovar")}</button>
                   )}

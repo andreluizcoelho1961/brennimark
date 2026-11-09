@@ -36,6 +36,22 @@ async function comResposta(page: Page, corpo = RESPOSTA, enviados?: unknown[]) {
   });
 }
 
+/** Uma resposta diferente por pedido (a última se repete): para as quedas e as retomadas. */
+async function comRespostas(page: Page, corpos: string[], enviados?: unknown[]) {
+  let vez = 0;
+  await page.route("**/api/ai/chat**", async (rota) => {
+    enviados?.push(rota.request().postDataJSON());
+    const corpo = corpos[Math.min(vez, corpos.length - 1)];
+    vez++;
+    await rota.fulfill({
+      status: 200,
+      contentType: "text/plain; charset=utf-8",
+      headers: { "X-Brennimark-Paginas": encodeURIComponent(JSON.stringify({ "/docs/cores": 12 })) },
+      body: corpo,
+    });
+  });
+}
+
 async function perguntar(page: Page, texto: string) {
   await page.locator("[data-botao-do-vini]").click();
   const campo = page.getByRole("textbox", { name: "Pergunta para o Vini" });
@@ -188,11 +204,66 @@ test("conexão caída no meio: o aviso diz isso, e 'Perguntar de novo' está ao 
   await perguntar(page, "quais as cores da marca?");
 
   await expect(page.locator("[data-vini-aviso]")).toContainText("a conexão com a IA caiu no meio da resposta");
+  // A janela já refez a pergunta sozinha UMA vez (23/10/2026) antes de avisar.
+  expect(enviados).toHaveLength(2);
   const aoLado = page.locator("[data-vini-janela] [data-incompleta] [data-perguntar-de-novo]");
   await expect(aoLado).toHaveText("Perguntar de novo");
+  // "Perguntar de novo" também ganha a sua reconexão automática: mais dois pedidos.
   await aoLado.click();
-  await expect.poll(() => enviados.length).toBe(2);
-  expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "quais as cores da marca?" }] });
+  await expect.poll(() => enviados.length).toBe(4);
+  expect(enviados[2]).toMatchObject({ messages: [{ role: "user", content: "quais as cores da marca?" }] });
+});
+
+test("a conexão cai uma vez: a janela refaz a pergunta sozinha e a pessoa só vê a resposta inteira", async ({ page }) => {
+  // 23/10/2026: o Gemini derrubou duas respostas seguidas no meio, e a pessoa
+  // tinha de clicar. Uma queda é passageira: a segunda tentativa, logo em
+  // seguida, costuma responder inteira.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comRespostas(page, ["O logo pode ir sobre foto, desde que⁣[[brennimark:incompleta:conexao]]", "O logo pode ir sobre foto, desde que a área seja uniforme."], enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "posso usar o logo sobre foto?");
+
+  const resposta = page.locator("[data-vini-janela] [data-resposta-do-vini]");
+  await expect(resposta).toContainText("desde que a área seja uniforme.");
+  await expect(page.locator("[data-incompleta]")).toHaveCount(0);
+  await expect(page.locator("[data-vini-aviso]")).toHaveCount(0);
+  expect(enviados).toHaveLength(2);
+  // A MESMA pergunta, sem o pedaço que caiu.
+  expect(enviados[1]).toMatchObject({ messages: [{ role: "user", content: "posso usar o logo sobre foto?" }] });
+});
+
+test("só a queda de conexão e o erro do provedor se repetem sozinhos: o filtro de conteúdo, não", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const enviados: unknown[] = [];
+  await comRespostas(page, ["Resposta cortada⁣[[brennimark:incompleta:length]]"], enviados);
+  await page.goto(MARCA);
+  await perguntar(page, "pergunta longa?");
+  await expect(page.locator("[data-vini-aviso]")).toContainText("tamanho máximo");
+  expect(enviados).toHaveLength(1);
+});
+
+test("o itálico que atravessa uma citação não deixa asterisco cru na tela", async ({ page }) => {
+  // 23/10/2026: "*Nota: … [Fonte: …] … .*" aparecia com os asteriscos à mostra.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comResposta(page, "Sim, pode.\n\n*Nota: o manual não traz essa diretriz [Fonte: Cores — UNDER REVIEW · /docs/cores], mas ela vem de um complemento.*");
+  await page.goto(MARCA);
+  await perguntar(page, "posso?");
+  const resposta = page.locator("[data-vini-janela] [data-resposta-do-vini]");
+  await expect(resposta).toContainText("mas ela vem de um complemento.");
+  await expect(resposta).not.toContainText("*");
+  await expect(resposta.locator("em [data-citacao]")).toHaveCount(1);
+});
+
+test("trecho entre crases vira código na tela, sem as crases cruas", async ({ page }) => {
+  // 23/10/2026: "margem mínima de `2x` até a borda" aparecia com as crases.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await comResposta(page, "A margem mínima é de `2x` até a borda.");
+  await page.goto(MARCA);
+  await perguntar(page, "margem?");
+  const resposta = page.locator("[data-vini-janela] [data-resposta-do-vini]");
+  await expect(resposta.locator("code")).toHaveText("2x");
+  await expect(resposta).not.toContainText("`");
 });
 
 test("resposta inteira não ganha aviso nenhum", async ({ page }) => {
@@ -616,4 +687,120 @@ test("sem rede, a lista de conversas diz que falhou em vez de ficar carregando",
   const lista = page.locator("[data-lista-de-conversas]");
   await expect(lista.getByRole("alert")).toHaveText("Sem conexão: não foi possível carregar suas conversas.");
   await expect(lista).not.toContainText("Carregando");
+});
+
+/*
+ * O Vini em pessoa (22/10/2026): pequeno, em cima da janela, andando. Só
+ * existe com a janela aberta — o vídeo não carrega para quem não chamou o
+ * Vini —, é decorativo e, com "reduzir movimento", fica parado no pôster.
+ */
+test("o Vini aparece em cima da janela aberta, e só nela", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(MARCA);
+  const boneco = page.locator("[data-vini-andando]");
+  await expect(boneco).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Pergunte ao Vini" }).click();
+  await expect(boneco).toHaveAttribute("aria-hidden", "true");
+  const janela = await page.locator("[data-vini-janela]").boundingBox();
+  const caixa = await boneco.boundingBox();
+  // De pé na borda de cima: o pé encosta no topo da janela (a folga é a
+  // janela ainda subindo, na animação de entrada).
+  expect(Math.abs(caixa!.y + caixa!.height - janela!.y)).toBeLessThan(8);
+  await expect(boneco.locator("video")).toHaveAttribute("src", /\/site\/vini\.(webm|mov)$/);
+
+  await page.keyboard.press("Escape");
+  await expect(boneco).toHaveCount(0);
+});
+
+test("nas janelas altas (prompt), o Vini continua inteiro na tela", async ({ page }) => {
+  // 22/10/2026: a janela alta ia quase até o topo, e o Vini, por cima dela,
+  // ficava cortado fora da tela. A altura agora reserva o lugar dele.
+  for (const altura of [900, 700]) {
+    await page.setViewportSize({ width: 1440, height: altura });
+    await page.goto(MARCA);
+    await page.getByRole("button", { name: "Pergunte ao Vini" }).click();
+    await page.getByRole("button", { name: "Gerar prompt com o DNA da marca" }).click();
+    await expect(page.locator("[data-vini-janela]")).toHaveAttribute("data-modo", "prompt");
+    const caixa = await page.locator("[data-vini-andando]").boundingBox();
+    expect(caixa!.y).toBeGreaterThanOrEqual(0);
+  }
+});
+
+test("com 'reduzir movimento', o Vini fica parado e o vídeo não carrega", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(MARCA);
+  await page.getByRole("button", { name: "Pergunte ao Vini" }).click();
+  const boneco = page.locator("[data-vini-andando]");
+  await expect(boneco.locator("video")).toHaveAttribute("poster", /.+/);
+  await expect(boneco.locator("video")).not.toHaveAttribute("src", /.+/);
+  await page.waitForTimeout(2000);
+  await expect(page.locator(".vini-passo[data-andando]")).toHaveCount(0);
+});
+
+test("a acessibilidade da peça mede o contraste, simula daltonismo e sugere só cor aprovada", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route("**/api/cores/paleta", (r) => r.fulfill({ json: {
+    marca: "Marca de Bancada",
+    paleta: [
+      { nome: "Azul Noite", hex: "#0B1F3A", status: "ready", pagina: 1, cmyk: null, pms: null, rgb: null },
+      { nome: "Branco", hex: "#FFFFFF", status: "ready", pagina: 1, cmyk: null, pms: null, rgb: null },
+      { nome: "Amarelo Rascunho", hex: "#FFD400", status: "draft", pagina: 2, cmyk: null, pms: null, rgb: null },
+    ],
+  } }));
+  await page.goto(MARCA);
+  // Uma peça de 40x20: metade esquerda vermelha (texto), metade direita verde (fundo).
+  const base64 = await page.evaluate(() => {
+    const c = document.createElement("canvas");
+    c.width = 40; c.height = 20;
+    const x = c.getContext("2d")!;
+    x.fillStyle = "#C0392B"; x.fillRect(0, 0, 20, 20);
+    x.fillStyle = "#2E8B3A"; x.fillRect(20, 0, 20, 20);
+    return c.toDataURL("image/png").split(",")[1];
+  });
+  await page.locator("[data-botao-do-vini]").click();
+  await page.locator("[data-arquivo-da-peca]").setInputFiles({ name: "cartaz.png", mimeType: "image/png", buffer: Buffer.from(base64, "base64") });
+
+  const painel = page.locator("[data-acessibilidade-da-peca]");
+  await expect(painel).toBeVisible();
+  const tela = painel.locator("[data-acessibilidade-canvas]");
+  await expect(painel.locator("[data-proximo-clique]")).toHaveText("Clique na cor do TEXTO");
+
+  // Fatia 3: a peça vista com protanopia muda de pixels; amostrar continua lendo a ORIGINAL.
+  const pixel = () => tela.evaluate((c: HTMLCanvasElement) => Array.from(c.getContext("2d")!.getImageData(5, 10, 1, 1).data));
+  const antes = await pixel();
+  await painel.locator('[data-daltonismo="protanopia"]').click();
+  await expect(tela).toHaveAttribute("data-modo", "protanopia");
+  // A simulação diz que não é sugestão de cor.
+  await expect(painel).toContainText("não um laudo nem uma sugestão de cor");
+  expect(await pixel()).not.toEqual(antes);
+  await painel.locator('[data-daltonismo="normal"]').click();
+  expect(await pixel()).toEqual(antes);
+  await painel.locator('[data-daltonismo="deuteranopia"]').click();
+
+  // Fatia 2: clique no texto e no fundo, ainda com a simulação na tela.
+  const caixa = (await tela.boundingBox())!;
+  await tela.click({ position: { x: caixa.width * 0.25, y: caixa.height / 2 } });
+  await expect(painel.locator('[data-amostra="texto"]')).toContainText("#C0392B");
+  await expect(painel.locator("[data-proximo-clique]")).toHaveText("Agora clique na cor do FUNDO");
+  await tela.click({ position: { x: caixa.width * 0.75, y: caixa.height / 2 } });
+  await expect(painel.locator('[data-amostra="fundo"]')).toContainText("#2E8B3A");
+
+  const medida = painel.locator("[data-medida]");
+  await expect(medida.locator("[data-razao]")).toHaveAttribute("data-razao", /^1\.2\d$/);
+  await expect(medida.locator('[data-passa="nao"]')).toHaveCount(3);
+  await expect(medida.locator("[data-sob-daltonismo]")).toContainText("protanopia");
+
+  // Fatia 4: texto comum — só o Branco aprovado como fundo resolve; rascunho nunca entra.
+  await expect(medida.locator("[data-ajuste]")).toHaveAttribute("data-ajuste", "sugestoes");
+  await expect(medida.locator('[data-sugestao="fundo"]').first()).toContainText("Branco");
+  await expect(medida.locator("[data-ajuste]")).not.toContainText("Amarelo Rascunho");
+  // Texto grande (3:1): o Azul Noite aprovado também serve como cor do texto.
+  await medida.locator("[data-uso-do-ajuste]").selectOption("texto-grande");
+  await expect(medida.locator('[data-sugestao="texto"]').first()).toContainText("Azul Noite");
+
+  // Limpar zera as amostras.
+  await painel.locator("[data-limpar-amostras]").click();
+  await expect(painel.locator("[data-medida]")).toHaveCount(0);
 });

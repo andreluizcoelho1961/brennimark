@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CAMPANHAS, campanhaDe, personalizar, primeiroNome } from "./campanhas";
+import { CAMPANHAS, campanhaDe, idiomaDoDestinatario, personalizar, primeiroNome, textoDaCampanha } from "./campanhas";
 
 test("todo id de campanha cabe na constraint do banco e não se repete", () => {
   const ids = CAMPANHAS.map((c) => c.id);
@@ -40,4 +40,35 @@ test("nenhuma campanha promete o que o Fonts ainda não faz (relatório do app, 
     const texto = [c.assunto, ...c.paragrafos].join(" ");
     for (const p of proibidos) assert.doesNotMatch(texto, p, `${c.id} promete algo que ainda não existe: ${p}`);
   }
+});
+
+test("toda campanha existe nos dois idiomas, com a mesma forma, e o inglês não é cópia do português", () => {
+  for (const c of CAMPANHAS) {
+    const en = textoDaCampanha(c, "en");
+    const pt = textoDaCampanha(c, "pt-BR");
+    assert.ok(en.assunto.length >= 5 && en.assunto.length <= 120, `assunto em inglês de ${c.id}`);
+    assert.equal(en.paragrafos.length, pt.paragrafos.length, `${c.id}: parágrafos diferentes entre os idiomas`);
+    assert.equal(Boolean(en.botao), Boolean(pt.botao), `${c.id}: botão só em um dos idiomas`);
+    assert.equal(en.botao?.caminho, pt.botao?.caminho);
+    assert.notEqual(en.assunto, pt.assunto);
+    assert.notDeepEqual(en.paragrafos, pt.paragrafos);
+    // A saudação leva o nome nos dois idiomas, e sem nome não sobra vírgula solta.
+    assert.ok(en.paragrafos[0].includes("{nome}") === pt.paragrafos[0].includes("{nome}"), `${c.id}: saudação`);
+    assert.equal(personalizar(en.paragrafos[0], ""), "Hi.");
+    assert.equal(personalizar(en.paragrafos[0], "Ana Maria"), "Hi, Ana.");
+  }
+});
+
+test("o inglês também não promete o que o Fonts ainda não faz", () => {
+  const proibidos = [/automatic(ally)?|by itself|on their own/i, /missing fonts/i, /plug-?in/i, /google fonts/i, /\bsync(s|ed|ing)?\b|synchroni[sz]/i, /permanent install/i, /\bcloud\b/i];
+  for (const c of CAMPANHAS) {
+    const texto = [c.en.assunto, ...c.en.paragrafos].join(" ");
+    for (const p of proibidos) assert.doesNotMatch(texto, p, `${c.id} (en) promete algo que ainda não existe: ${p}`);
+  }
+});
+
+test("o idioma do destinatário vem do banco e o desconhecido cai no padrão", () => {
+  assert.equal(idiomaDoDestinatario("en"), "en");
+  assert.equal(idiomaDoDestinatario("pt-BR"), "pt-BR");
+  for (const v of [undefined, null, "", "EN", "fr", 7, {}]) assert.equal(idiomaDoDestinatario(v), "pt-BR");
 });

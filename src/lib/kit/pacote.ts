@@ -6,6 +6,8 @@
  *
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
+import { nomeDoArquivo, pastaDoGrupo, type Grupo } from "./tamanhos";
+import type { Tradutor } from "../i18n/tradutor";
 import type { ItemDoKit } from "./tamanhos";
 
 export type Retangulo = { x: number; y: number; largura: number; altura: number };
@@ -117,11 +119,12 @@ export function favicoIco(pngs: readonly { tamanho: number; bytes: Uint8Array }[
   return saida;
 }
 
-export function manifestDoSite(nome: string, corDoFundo: string): string {
+export function manifestDoSite(nome: string, corDoFundo: string, t: Tradutor): string {
+  const arq = (id: string) => `/${nomeDoArquivo({ arquivo: `${id}.png` }, t)}`;
   const icones = [
-    { src: "/android-192.png", sizes: "192x192", type: "image/png" },
-    { src: "/android-512.png", sizes: "512x512", type: "image/png" },
-    { src: "/android-adaptavel-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    { src: arq("android-192"), sizes: "192x192", type: "image/png" },
+    { src: arq("android-512"), sizes: "512x512", type: "image/png" },
+    { src: arq("android-adaptavel-512"), sizes: "512x512", type: "image/png", purpose: "maskable" },
   ];
   return JSON.stringify(
     { name: nome, short_name: nome, icons: icones, theme_color: corDoFundo, background_color: corDoFundo, display: "standalone" },
@@ -130,15 +133,15 @@ export function manifestDoSite(nome: string, corDoFundo: string): string {
   ) + "\n";
 }
 
-export function trechoDoHead(temSvg: boolean): string {
+export function trechoDoHead(temSvg: boolean, t: Tradutor): string {
   return [
-    "<!-- Cole dentro do <head> de todas as páginas do site. Os arquivos da pasta",
-    "     site/ vão na raiz do site (o mesmo lugar do index.html). -->",
+    t("pacote.cabecalho1"),
+    t("pacote.cabecalho2"),
     '<link rel="icon" href="/favicon.ico" sizes="48x48">',
     ...(temSvg ? ['<link rel="icon" href="/favicon.svg" type="image/svg+xml">'] : []),
-    '<link rel="apple-touch-icon" href="/apple-touch-icon.png">',
+    `<link rel="apple-touch-icon" href="/${nomeDoArquivo({ arquivo: "apple-touch-icon.png" }, t)}">`,
     '<link rel="manifest" href="/site.webmanifest">',
-    '<meta property="og:image" content="/compartilhamento-1200x630.png">',
+    `<meta property="og:image" content="/${nomeDoArquivo({ arquivo: "compartilhamento-1200x630.png" }, t)}">`,
     "",
   ].join("\n");
 }
@@ -206,44 +209,47 @@ export type RegrasInformadas = {
   fonteDaAssinatura?: { nome: string; origem: string } | null;
 };
 
-export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean, regras?: RegrasInformadas): string {
+/** `t` é o tradutor ligado a `ferramentas.kit`: o LEIA-ME sai no idioma de quem baixa. */
+export function leiaMe(nome: string, comSimbolo: boolean, comAssinatura: boolean, regras: RegrasInformadas | undefined, t: Tradutor): string {
+  const informada = t("pacote.informadaPorVoce");
+  /** O nome da pasta com a barra, alinhado em 14 colunas, mais 2 espaços como no LEIA-ME de sempre. */
+  const pasta = (g: Grupo) => `${pastaDoGrupo(g, t)}/`.padEnd(14);
   const linhasDasRegras = !regras ? [] : [
-    regras.protecao > 0 ? `Área de proteção aplicada: ${Math.round(regras.protecao * 100)}% da altura do logo, ${regras.fontes?.protecao ?? "informada por você"}.` : "",
-    regras.reducao.logo ? `Redução mínima do logotipo: ${regras.reducao.logo} px de largura, ${regras.fontes?.logo ?? "informada por você"}.` : "",
-    regras.reducao.simbolo ? `Redução mínima do símbolo: ${regras.reducao.simbolo} px de largura, ${regras.fontes?.simbolo ?? "informada por você"}.` : "",
-    ...(regras.abaixo.length ? ["", "ATENÇÃO — nestes arquivos o desenho ficou abaixo da redução mínima:", ...regras.abaixo.map((a) => `  ${a}`)] : []),
+    regras.protecao > 0 ? t("pacote.protecaoAplicada", { pct: Math.round(regras.protecao * 100), fonte: regras.fontes?.protecao ?? informada }) : "",
+    regras.reducao.logo ? t("pacote.reducaoLogo", { px: regras.reducao.logo, fonte: regras.fontes?.logo ?? informada }) : "",
+    regras.reducao.simbolo ? t("pacote.reducaoSimbolo", { px: regras.reducao.simbolo, fonte: regras.fontes?.simbolo ?? informada }) : "",
+    ...(regras.abaixo.length ? ["", t("pacote.atencaoAbaixo"), ...regras.abaixo.map((a) => `  ${a}`)] : []),
   ];
   return [
-    `Kit da marca ${nome || "(sem nome)"} — gerado pelo Brennimark Kit.`,
-    "Tudo foi feito no seu computador; nenhum arquivo saiu dele.",
+    t("pacote.titulo", { nome: nome || t("pacote.semNome") }),
+    t("pacote.tudoNoComputador"),
     "",
-    "site/           ícones do site, imagem de link, manifest e o código para colar no <head> (COLE-NO-SITE.html).",
-    "redes/          perfis e capas das redes sociais. Perfis são recortados em círculo: o desenho já cabe nele.",
-    "endomarketing/  LinkedIn, Gupy, Glassdoor, Viva Engage, Teams, Slack, Google Workspace, videochamada e papel de parede.",
-    "email/          logo da assinatura e a assinatura pronta (assinatura.html).",
-    "apresentacao/   logotipo e símbolo em alta resolução, para fundo claro, escuro e uma cor.",
+    t("pacote.pastaSite", { pasta: pasta("site"), colar: t("extras.coleNoSite") }),
+    t("pacote.pastaRedes", { pasta: pasta("redes") }),
+    t("pacote.pastaEndomarketing", { pasta: pasta("endomarketing") }),
+    t("pacote.pastaEmail", { pasta: pasta("email"), assinatura: t("extras.assinatura") }),
+    t("pacote.pastaApresentacao", { pasta: pasta("apresentacao") }),
     "",
-    comSimbolo
-      ? "Nos tamanhos pequenos (ícones e perfis) entrou o símbolo; nos grandes, o logotipo inteiro."
-      : "Sem símbolo separado, o logotipo inteiro entrou também nos tamanhos pequenos — confira se fica legível.",
-    comAssinatura ? "A assinatura usa o endereço da imagem: hospede assinatura-logo-600.png no site e troque o endereço." : "",
+    comSimbolo ? t("pacote.comSimbolo") : t("pacote.semSimbolo"),
+    comAssinatura ? t("pacote.assinaturaEndereco", { arquivo: nomeDoArquivo({ arquivo: "assinatura-logo-600.png" }, t) }) : "",
     comAssinatura && regras?.fonteDaAssinatura
-      ? `A assinatura usa ${regras.fonteDaAssinatura.nome}, ${regras.fonteDaAssinatura.origem}; onde ela não existir, o e-mail mostra Arial.`
+      ? t("pacote.assinaturaFonte", { nome: regras.fonteDaAssinatura.nome, origem: regras.fonteDaAssinatura.origem })
       : "",
     "",
     ...linhasDasRegras,
     "",
-    regras?.fontes ? "" : "No Brennimark, o Kit lê o manual da sua marca e aplica a área de proteção e a redução mínima sozinho.",
+    regras?.fontes ? "" : t("pacote.noBrennimark"),
     "",
   ].filter((l, i, todas) => l !== "" || todas[i - 1] !== "").join("\n");
 }
 
 /** Avisos sobre o arquivo enviado: o que vai sair borrado, antes de baixar. */
-export function avisosDoArquivo(arquivo: { tipo: string; largura: number; altura: number }): string[] {
+/** `t` é o tradutor ligado a `ferramentas.arquivos`. */
+export function avisosDoArquivo(arquivo: { tipo: string; largura: number; altura: number }, t: Tradutor): string[] {
   const avisos: string[] = [];
-  if (arquivo.tipo === "image/jpeg") avisos.push("JPG não tem fundo transparente: o retângulo do fundo vai aparecer em volta do logo. Se tiver, use SVG ou PNG.");
+  if (arquivo.tipo === "image/jpeg") avisos.push(t("aviso.jpg"));
   if (arquivo.tipo !== "image/svg+xml" && Math.max(arquivo.largura, arquivo.altura) < 1024) {
-    avisos.push(`A imagem tem ${arquivo.largura} × ${arquivo.altura} px. Nos tamanhos grandes (capas, banner, papel de parede) ela vai sair borrada. Se tiver, use o SVG.`);
+    avisos.push(t("aviso.pequena", { largura: arquivo.largura, altura: arquivo.altura }));
   }
   return avisos;
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { PRODUCT_LOCALE, inEnglish } from "@/platform/locale";
+import { inEnglish } from "@/platform/locale";
+import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { workspaceDaRota } from "@/lib/brennimark/contexto-da-rota";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -32,7 +33,6 @@ import { gerarSenhaProvisoria, prazoDaSenhaProvisoria } from "@/lib/acesso/senha
  * de serviço o escreve, e o banco o lê para recusar acesso a senha provisória
  * e para impedir que outra conta dê acesso a este login.
  */
-const isEnglish = inEnglish(PRODUCT_LOCALE);
 
 const RECUSAS: Record<string, [string, string]> = {
   nome: ["Escreva o nome da pessoa.", "Write the person's name."],
@@ -46,7 +46,7 @@ const RECUSAS: Record<string, [string, string]> = {
 };
 
 /** A recusa do banco, traduzida. Código desconhecido não vira frase inventada. */
-function mensagemDoBanco(code: string | undefined, message: string | undefined): [string, number] {
+function mensagemDoBanco(code: string | undefined, message: string | undefined, isEnglish: boolean): [string, number] {
   if (code === "42501") {
     return [isEnglish ? "Only an administrator can manage access." : "Só quem administra a conta gerencia o acesso.", 403];
   }
@@ -65,21 +65,29 @@ function mensagemDoBanco(code: string | undefined, message: string | undefined):
 }
 
 export async function GET(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await workspaceDaRota(request);
   if (!r.ok) return r.resposta;
   const supabase = await createClient();
 
   // As marcas vêm pela RLS normal: quem administra a conta as alcança todas, e
   // é essa mesma lista que o formulário oferece.
-  const [pessoas, marcas] = await Promise.all([
+  const [pessoas, usos, marcas] = await Promise.all([
     supabase.rpc("pessoas_da_conta", { p_workspace_id: r.workspaceId }),
+    supabase.rpc("usos_do_vini_da_conta", { p_workspace_id: r.workspaceId }),
     supabase.from("brands").select("id, name").eq("workspace_id", r.workspaceId).order("name"),
   ]);
 
   if (pessoas.error) {
-    const [message, status] = mensagemDoBanco(pessoas.error.code, pessoas.error.message);
+    const [message, status] = mensagemDoBanco(pessoas.error.code, pessoas.error.message, isEnglish);
     return NextResponse.json({ message }, { status });
   }
+
+  // O interruptor "usa o Vini" por e-mail. Se a leitura falhar, a lista ainda abre: sem o
+  // interruptor, nunca com um valor inventado.
+  const usaOVini = new Map<string, boolean>(
+    (usos.data ?? []).map((u: { email: string; usa_o_vini: boolean }) => [u.email, u.usa_o_vini]),
+  );
 
   return NextResponse.json({
     pessoas: (pessoas.data ?? []).map((p: {
@@ -88,12 +96,14 @@ export async function GET(request: Request) {
     }) => ({
       email: p.email, nome: p.nome, papel: p.papel, marcas: p.marcas ?? [], pendente: p.pendente,
       desde: p.desde, senhaProvisoriaAte: p.senha_provisoria_ate,
+      usaOVini: p.papel === "consulta" && !p.pendente && usaOVini.has(p.email) ? usaOVini.get(p.email)! : null,
     })),
     marcas: (marcas.data ?? []).map((b) => ({ id: b.id, nome: b.name })),
   });
 }
 
 export async function POST(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await workspaceDaRota(request);
   if (!r.ok) return r.resposta;
 
@@ -115,7 +125,7 @@ export async function POST(request: Request) {
     p_nome: conferido.concessao.nome,
   });
   if (error) {
-    const [message, status] = mensagemDoBanco(error.code, error.message);
+    const [message, status] = mensagemDoBanco(error.code, error.message, isEnglish);
     return NextResponse.json({ message }, { status });
   }
   if (data !== "pendente") return NextResponse.json({ resultado: data });
@@ -163,6 +173,7 @@ export async function POST(request: Request) {
  * Sem essa regra, este botão trocaria a senha de qualquer login pelo e-mail.
  */
 export async function PATCH(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await workspaceDaRota(request);
   if (!r.ok) return r.resposta;
 
@@ -184,7 +195,7 @@ export async function PATCH(request: Request) {
           : "Não há senha provisória a renovar para esta pessoa.",
       }, { status: 409 });
     }
-    const [message, status] = mensagemDoBanco(error?.code, error?.message);
+    const [message, status] = mensagemDoBanco(error?.code, error?.message, isEnglish);
     return NextResponse.json({ message }, { status });
   }
 
@@ -208,6 +219,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const isEnglish = inEnglish(await idiomaDaSessao());
   const r = await workspaceDaRota(request);
   if (!r.ok) return r.resposta;
 
@@ -223,7 +235,7 @@ export async function DELETE(request: Request) {
     p_workspace_id: r.workspaceId, p_email: email, p_marca: marca,
   });
   if (error) {
-    const [message, status] = mensagemDoBanco(error.code, error.message);
+    const [message, status] = mensagemDoBanco(error.code, error.message, isEnglish);
     return NextResponse.json({ message }, { status });
   }
   return NextResponse.json({ resultado: data });

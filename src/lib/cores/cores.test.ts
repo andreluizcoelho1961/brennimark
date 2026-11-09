@@ -4,6 +4,10 @@ import {
   compararComAMarca, contraste, deltaE2000, fraseDaComparacao, hexParaRgb, hsbParaRgb, lerCodigo, nomeDaCor, paletaEmAse, paletaEmCss, paletaEmJson,
   paletaEmTexto, rgbParaCmyk, rgbParaHex, rgbParaHsb, simularDaltonismo, veredito, type CorDaMarca,
 } from "./cores";
+import { tradutorDeTeste } from "../i18n/catalogo-de-teste";
+
+const pt = tradutorDeTeste("ferramentas.cores");
+const en = tradutorDeTeste("ferramentas.cores", "en");
 
 test("HEX, RGB e HSB são a mesma cor", () => {
   assert.deepEqual(hexParaRgb("#FF4103"), [255, 65, 3]);
@@ -33,12 +37,20 @@ test("ler o código que a pessoa cola", () => {
 });
 
 test("o nome em português sai de regras", () => {
-  assert.equal(nomeDaCor("#FFFFFF"), "branco");
-  assert.equal(nomeDaCor("#000000"), "preto");
-  assert.match(nomeDaCor("#FF4103"), /^laranja avermelhado.*vivo$/);
-  assert.equal(nomeDaCor("#001621"), "azul muito escuro");
-  assert.equal(nomeDaCor("#B0C3CA"), "azul acinzentado");
-  assert.match(nomeDaCor("#808080"), /^cinza/);
+  assert.equal(nomeDaCor("#FFFFFF", pt), "branco");
+  assert.equal(nomeDaCor("#000000", pt), "preto");
+  assert.match(nomeDaCor("#FF4103", pt), /^laranja avermelhado.*vivo$/);
+  assert.equal(nomeDaCor("#001621", pt), "azul muito escuro");
+  assert.equal(nomeDaCor("#B0C3CA", pt), "azul acinzentado");
+  assert.match(nomeDaCor("#808080", pt), /^cinza/);
+});
+
+test("o nome da cor sai no idioma pedido, com as partes na ordem de cada língua", () => {
+  assert.equal(nomeDaCor("#FFFFFF", en), "white");
+  assert.equal(nomeDaCor("#001621", en), "very dark blue");
+  assert.equal(nomeDaCor("#B0C3CA", en), "grayish blue");
+  assert.match(nomeDaCor("#FF4103", en), /^vivid reddish orange$|reddish orange$/);
+  assert.match(nomeDaCor("#808080", en), /gray$/);
 });
 
 test("contraste e veredito pela regra internacional", () => {
@@ -46,8 +58,8 @@ test("contraste e veredito pela regra internacional", () => {
   assert.equal(contraste("#777777", "#777777"), 1);
   assert.deepEqual(veredito(21), { textoPequeno: "AAA", textoGrande: "AAA", iconesEBotoes: "passa" });
   assert.deepEqual(veredito(4.6), { textoPequeno: "AA", textoGrande: "AAA", iconesEBotoes: "passa" });
-  assert.deepEqual(veredito(3.2), { textoPequeno: "não passa", textoGrande: "AA", iconesEBotoes: "passa" });
-  assert.deepEqual(veredito(2), { textoPequeno: "não passa", textoGrande: "não passa", iconesEBotoes: "não passa" });
+  assert.deepEqual(veredito(3.2), { textoPequeno: "falha", textoGrande: "AA", iconesEBotoes: "passa" });
+  assert.deepEqual(veredito(2), { textoPequeno: "falha", textoGrande: "falha", iconesEBotoes: "falha" });
 });
 
 test("daltonismo: cinza continua cinza; vermelho muda para quem não vê vermelho", () => {
@@ -68,19 +80,19 @@ const APOIO: CorDaMarca = { nome: "Azul de apoio", hex: "#0B4F9E", status: "draf
 test("é a cor da marca: igual, quase igual e diferente", () => {
   const igual = compararComAMarca("#FF4103", [BRASA, NOITE, APOIO]);
   assert.equal(igual.tipo, "igual");
-  assert.equal(fraseDaComparacao(igual), "É Brasa (#FF4103), aprovada — manual, p. 13.");
+  assert.equal(fraseDaComparacao(igual, pt), "É Brasa (#FF4103), aprovada — manual, p. 13.");
   const quase = compararComAMarca("#F7430A", [BRASA, NOITE]); // ΔE ≈ 1,4
   assert.equal(quase.tipo, "quase");
-  assert.match(fraseDaComparacao(quase), /^Praticamente Brasa/);
+  assert.match(fraseDaComparacao(quase, pt), /^Praticamente Brasa/);
   const longe = compararComAMarca("#22AA44", [BRASA, NOITE]);
   assert.equal(longe.tipo, "diferente");
-  assert.match(fraseDaComparacao(longe), /^Não é uma cor da marca/);
+  assert.match(fraseDaComparacao(longe, pt), /^Não é uma cor da marca/);
 });
 
 test("rascunho nunca vira cor da marca: aparece identificado", () => {
   const c = compararComAMarca("#0B4F9E", [BRASA, NOITE, APOIO]);
   assert.ok(c.tipo !== "sem-paleta" && !c.aprovada);
-  assert.match(fraseDaComparacao(c), /ainda está em RASCUNHO/);
+  assert.match(fraseDaComparacao(c, pt), /ainda está em RASCUNHO/);
   assert.equal(compararComAMarca("#123456", []).tipo, "sem-paleta");
 });
 
@@ -102,7 +114,7 @@ test("as exportações: CSS sem nomes repetidos, JSON com CMYK aproximado, texto
 test("a frase não repete o código quando a cor do manual não tem nome", () => {
   const paleta = [{ nome: "#E00B39", hex: "#e00b39", status: "ready" as const, pagina: 22, cmyk: null, pms: null, rgb: null }];
   const longe = compararComAMarca("#FF4103", paleta);
-  assert.equal(fraseDaComparacao(longe), "Não é uma cor da marca. A mais próxima é #E00B39, e a diferença é visível.");
+  assert.equal(fraseDaComparacao(longe, pt), "Não é uma cor da marca. A mais próxima é #E00B39, e a diferença é visível.");
   const igual = compararComAMarca("#E00B39", [{ ...paleta[0], nome: "e00b39" }]);
-  assert.equal(fraseDaComparacao(igual), "É #E00B39, aprovada — manual, p. 22.");
+  assert.equal(fraseDaComparacao(igual, pt), "É #E00B39, aprovada — manual, p. 22.");
 });

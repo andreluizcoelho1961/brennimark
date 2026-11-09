@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { blocosDeMarkdown, enfases } from "./markdown-leve";
+import { blocosDeMarkdown, enfases, envolvidoEmEnfase, semMatematica } from "./markdown-leve";
 
 /**
  * O Markdown das respostas — o que o ensaio de 18/09 mostrou cru.
@@ -95,4 +95,56 @@ test("--- vira separador, e não texto cru (ensaio de 26/09/2026)", () => {
 
 test("dois traços não são separador: continuam texto", () => {
   assert.deepEqual(blocosDeMarkdown("--"), [{ tipo: "paragrafo", texto: "--" }]);
+});
+
+test("LaTeX simples sai sem os cifrões — foi o que o Vini escreveu em 23/10/2026", () => {
+  assert.equal(semMatematica("a medida $x$ é igual à altura da letra B"), "a medida x é igual à altura da letra B");
+  assert.equal(semMatematica("um terço ($1/3$) da altura"), "um terço (1/3) da altura");
+  assert.equal(semMatematica("$\\frac{1}{3}$ da altura e $2 \\times x$ de margem"), "1/3 da altura e 2 × x de margem");
+  assert.equal(semMatematica("proporção de $25\\%$ da largura"), "proporção de 25% da largura");
+  assert.equal(semMatematica("$\\text{altura do B}$"), "altura do B");
+});
+
+test("preço e outros cifrões não viram fórmula", () => {
+  for (const texto of ["custa R$ 5,00 e US$ 10 por mês", "de R$5 a R$10", "só US$5", "um $ solto", "5$ e 6$"]) {
+    assert.equal(semMatematica(texto), texto);
+  }
+});
+
+test("a resposta formatada não mostra o cifrão da fórmula", () => {
+  const blocos = blocosDeMarkdown("* A medida $x$ vale um terço ($1/3$).");
+  assert.deepEqual(blocos, [{ tipo: "lista", ordenada: false, itens: ["A medida x vale um terço (1/3)."] }]);
+});
+
+test("itálico e negrito que envolvem o parágrafo inteiro são reconhecidos — mesmo atravessando uma citação", () => {
+  const nota = "*Nota: o manual não traz essa diretriz [Fonte: O logotipo nas peças — PRONTO · /docs/o-logotipo-nas-pecas], mas ela vem de um complemento.*";
+  assert.deepEqual(envolvidoEmEnfase(nota), {
+    tipo: "italico",
+    dentro: "Nota: o manual não traz essa diretriz [Fonte: O logotipo nas peças — PRONTO · /docs/o-logotipo-nas-pecas], mas ela vem de um complemento.",
+  });
+  assert.deepEqual(envolvidoEmEnfase("**Atenção: veja [Fonte: A — PRONTO · /docs/a] antes.**"), { tipo: "negrito", dentro: "Atenção: veja [Fonte: A — PRONTO · /docs/a] antes." });
+  // O que NÃO é parágrafo envolvido: duas ênfases separadas, multiplicação, texto comum.
+  assert.equal(envolvidoEmEnfase("*um* e *dois*"), null);
+  assert.equal(envolvidoEmEnfase("**um** e **dois**"), null);
+  assert.equal(envolvidoEmEnfase("5 * 3 * 2"), null);
+  assert.equal(envolvidoEmEnfase("texto comum"), null);
+  assert.equal(envolvidoEmEnfase("*aberto sem fechar"), null);
+});
+
+test("trecho entre crases vira código, sem as crases e sem ser lido como ênfase", () => {
+  // 23/10/2026: o Vini escreveu "margem mínima de `2x` até a borda", e as crases apareciam cruas.
+  assert.deepEqual(enfases("margem mínima de `2x` até a borda"), [
+    { tipo: "texto", valor: "margem mínima de " },
+    { tipo: "codigo", valor: "2x" },
+    { tipo: "texto", valor: " até a borda" },
+  ]);
+  // O que está dentro das crases não é ênfase.
+  assert.deepEqual(enfases("use `a*b*c` e **isto**"), [
+    { tipo: "texto", valor: "use " },
+    { tipo: "codigo", valor: "a*b*c" },
+    { tipo: "texto", valor: " e " },
+    { tipo: "negrito", valor: "isto" },
+  ]);
+  // Crase sem par fica como texto.
+  assert.deepEqual(enfases("uma crase ` solta"), [{ tipo: "texto", valor: "uma crase ` solta" }]);
 });

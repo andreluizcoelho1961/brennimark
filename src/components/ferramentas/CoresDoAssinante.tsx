@@ -1,8 +1,10 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { comAlvo, useAlvo } from "@/platform/alvo-client";
 import type { CorDaMarca } from "@/lib/cores/cores";
+import { registrarDownloadDaPaleta } from "@/lib/cores/registrar-download-da-paleta";
 import { Cores } from "./Cores";
 
 /**
@@ -11,6 +13,7 @@ import { Cores } from "./Cores";
  * de uma marca (especificação v2.2, §1½).
  */
 export function CoresDoAssinante() {
+  const t = useTranslations("ferramentas.cores");
   const alvo = useAlvo();
   const [dados, setDados] = useState<{ marca: string; paleta: CorDaMarca[] } | null>(null);
   const [erro, setErro] = useState("");
@@ -22,13 +25,15 @@ export function CoresDoAssinante() {
       const corpo = r ? await r.json().catch(() => ({})) : {};
       if (cancelado) return;
       if (r?.ok) setDados(corpo);
-      else setErro(corpo.message ?? "Não foi possível ler a paleta agora.");
+      else setErro(corpo.message ?? t("assinante.erro"));
     })();
     return () => { cancelado = true; };
-  }, [alvo]);
+  }, [alvo, t]);
 
   if (erro) return <p role="alert" className="m-6 text-sm text-platform-text">{erro}</p>;
-  if (!dados) return <p className="m-6 text-sm text-platform-text-muted">Abrindo as cores da marca…</p>;
+  if (!dados) return <p className="m-6 text-sm text-platform-text-muted">{t("assinante.abrindo")}</p>;
   const base = alvo.workspaceSlug && alvo.brandKey ? `/w/${alvo.workspaceSlug}/b/${alvo.brandKey}/docs` : "/docs";
-  return <Cores marca={{ nome: dados.marca, paleta: dados.paleta, linkDaPagina: (p) => `${base}/original?pagina=${p}` }} />;
+  return <Cores marca={{ nome: dados.marca, paleta: dados.paleta, linkDaPagina: (p) => `${base}/original?pagina=${p}`,
+    aoBaixar: (formato, cores) => registrarDownloadDaPaleta({ endereco: comAlvo("/api/cores/paleta/baixada", alvo), formato, cores, padrao: t("assinante.erroRegistrar") }),
+  }} />;
 }

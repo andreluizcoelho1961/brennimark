@@ -19,7 +19,8 @@
  * Sem importação com `@/`: a suíte de unidade compila com `tsconfig.tests.json`.
  */
 
-import { formatoDoArquivo, pesoDoFormato } from "./formatos";
+import type { Tradutor } from "../i18n/tradutor";
+import { formatoDoArquivo, pesoDoFormato, textoDaRecusa, type MotivoDaRecusa } from "./formatos";
 
 export type VarianteDoKit = {
   id: string;
@@ -53,7 +54,8 @@ export type DesenhosDaMarca = {
   semLogoPorque: string | null;
 };
 
-export type OpcaoDoPapel = { variante: VarianteDoKit; abre: boolean; motivo: string | null };
+/** `recusa` diz por que o Kit não abre o arquivo (o texto sai de `textoDaRecusa`); nulo quando abre. */
+export type OpcaoDoPapel = { variante: VarianteDoKit; abre: boolean; recusa: { motivo: MotivoDaRecusa; extensao: string } | null };
 
 function pontos(v: VarianteDoKit, polaridade: "positivo" | "negativo", lockup: "horizontal" | "vertical" = "horizontal"): number {
   if (v.polaridade && v.polaridade !== polaridade) return -1;
@@ -88,35 +90,34 @@ export function opcoesDoPapel(variantes: readonly VarianteDoKit[], papel: Papel)
   return candidatas(variantes, papel)
     .map((v) => {
       const f = formatoDoArquivo(v.arquivo, v.mime);
-      return { variante: v, abre: f.tipo !== "fora", motivo: f.tipo === "fora" ? f.motivo : null, p: pontosDoPapel(v, papel) };
+      return { variante: v, abre: f.tipo !== "fora", recusa: f.tipo === "fora" ? { motivo: f.motivo, extensao: f.extensao } : null, p: pontosDoPapel(v, papel) };
     })
     .sort((a, b) => Number(b.abre) - Number(a.abre) || b.p - a.p)
-    .map(({ variante, abre, motivo }) => ({ variante, abre, motivo }));
+    .map(({ variante, abre, recusa }) => ({ variante, abre, recusa }));
 }
 
 function melhor(variantes: readonly VarianteDoKit[], papel: Papel): VarianteDoKit | null {
   return opcoesDoPapel(variantes, papel).find((o) => o.abre)?.variante ?? null;
 }
 
-const NOMES: Record<string, string> = {
-  horizontal: "Horizontal", vertical: "Vertical", colorido: "colorido", monocromatico: "monocromático",
-  positivo: "positivo", negativo: "negativo", cmyk: "CMYK", secundario: "secundário",
-};
+/** Os atributos que a versão diz de si; o texto de cada um está em `variante.*` do catálogo. */
+const ATRIBUTOS_COM_NOME = new Set(["horizontal", "vertical", "colorido", "monocromatico", "positivo", "negativo", "cmyk", "secundario"]);
 
 /** Como a versão aparece na escolha: o rótulo dos Materiais, ou os atributos e o formato. */
-export function nomeDaVariante(v: VarianteDoKit): string {
+/** `t` é o tradutor ligado a `ferramentas.arquivos`. */
+export function nomeDaVariante(v: VarianteDoKit, t: Tradutor): string {
   const ext = /\.([a-z0-9]+)$/i.exec(v.arquivo)?.[1]?.toUpperCase() ?? "";
   if (v.rotulo?.trim()) return `${v.rotulo.trim()}${ext ? ` · ${ext}` : ""}`;
   // "Positivo" é o normal: só o negativo se diz.
   const partes = [v.lockup, v.cor, v.polaridade === "negativo" ? v.polaridade : null, v.hierarquia === "secundario" ? v.hierarquia : null, v.espacoDeCor === "cmyk" ? v.espacoDeCor : null]
-    .filter((x): x is string => Boolean(x)).map((x) => NOMES[x] ?? x);
-  if (v.tipo === "icone" && partes.length === 0) partes.push("Símbolo");
+    .filter((x): x is string => Boolean(x)).map((x) => (ATRIBUTOS_COM_NOME.has(x) ? t(`variante.${x}`) : x));
+  if (v.tipo === "icone" && partes.length === 0) partes.push(t("variante.simbolo"));
   if (ext) partes.push(ext);
   const nome = partes.join(" · ");
   return nome.charAt(0).toUpperCase() + nome.slice(1);
 }
 
-export function escolherDesenhos(variantes: readonly VarianteDoKit[]): DesenhosDaMarca {
+export function escolherDesenhos(variantes: readonly VarianteDoKit[], t: Tradutor): DesenhosDaMarca {
   const logo = melhor(variantes, "logo");
   // O vertical só como papel próprio: se o melhor logotipo já é o vertical
   // (a marca não tem horizontal), ele cuida dos dois.
@@ -127,7 +128,7 @@ export function escolherDesenhos(variantes: readonly VarianteDoKit[]): DesenhosD
   let semLogoPorque: string | null = null;
   if (!logo) {
     const fora = opcoesDoPapel(variantes, "logo").find((o) => !o.abre);
-    if (fora) semLogoPorque = `O logotipo nos Materiais (${fora.variante.arquivo}) não abre aqui. ${fora.motivo ?? ""}`.trim();
+    if (fora) semLogoPorque = `${t("recusa.logoNosMateriais", { arquivo: fora.variante.arquivo })} ${fora.recusa ? textoDaRecusa(fora.recusa, t) : ""}`.trim();
   }
   return { logo, vertical, negativo, simbolo: melhor(variantes, "simbolo"), semLogoPorque };
 }
