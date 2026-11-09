@@ -112,6 +112,11 @@ begin
   perform pg_temp.registrar('B8 authenticated não valida dispositivo', '42501', pg_temp.chamar('authenticated', da,
     format('select * from public.validar_dispositivo_fonts(%L)', pg_temp.h(1))));
 
+  perform pg_temp.registrar('B9 anon NEM EXECUTA aprovar (o banco nega, não só a função)', 'false',
+    has_function_privilege('anon', 'public.aprovar_pareamento_fonts(uuid, uuid)', 'execute')::text);
+  perform pg_temp.registrar('B10 authenticated executa aprovar', 'true',
+    has_function_privilege('authenticated', 'public.aprovar_pareamento_fonts(uuid, uuid)', 'execute')::text);
+
   -- C
   perform pg_temp.registrar('C1 segredo errado não revela o estado', 'null', pg_temp.valor('anon', null,
     format('select estado from public.consultar_pareamento_fonts(%L, %L)', pid, pg_temp.h(99))));

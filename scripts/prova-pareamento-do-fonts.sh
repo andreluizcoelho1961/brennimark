@@ -13,5 +13,5 @@ if ! docker exec "$CONTAINER" true 2>/dev/null; then
   exit 1
 fi
 
-{ printf '\\set ON_ERROR_STOP on\nbegin;\n'; cat "$MIGRATION"; cat "$AQUI/prova-pareamento-do-fonts.sql"; } \
+{ printf '\\set ON_ERROR_STOP on\nbegin;\n'; cat "$MIGRATION" "$AQUI"/../supabase/migrations/*_fonts_pareamento_aprovar_sem_anon.sql; cat "$AQUI/prova-pareamento-do-fonts.sql"; } \
   | docker exec -i "$CONTAINER" psql -U postgres -q -f -
