@@ -332,6 +332,8 @@ const PENDENTES_ESPERADAS: string[] = [
   // aplicada ao banco hospedado por autorização nominal do proprietário,
   // carimbada `20260911155633`. Conteúdo aplicado idêntico ao arquivo validado
   // em `6ca600e`; RLS, grants e SECURITY DEFINER conferidos depois.
+  "fonts_pareamento_teto_global", // M2 da auditoria de 09/11/2026: aguardando o OK nominal do André
+  "indices_chave_e_policy_de_brand_members", // banco da auditoria de 09/11/2026: aguardando o OK nominal do André
 ];
 
 /**
