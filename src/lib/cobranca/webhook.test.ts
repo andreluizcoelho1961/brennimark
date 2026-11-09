@@ -43,6 +43,7 @@ function portasFalsas(opcoes: {
       return opcoes.assinatura ?? PAGA;
     },
     async garantirLogin(email, nome, idAssinatura) { chamadas.push(`login ${email}`); logins.push({ nome, idAssinatura }); },
+    async creditarPacote(c) { chamadas.push(`pacote ${c.pacote.codigo} ${c.workspaceId}`); return opcoes.falharEm !== "pacote-repetido"; },
     async sincronizar(a) {
       chamadas.push(`sincronizar ${a.idAssinatura} ${a.situacao}`);
       if (opcoes.falharEm === "sincronizar") throw new Error("sincronizar: 22023 cobranca_preco_desconhecido");

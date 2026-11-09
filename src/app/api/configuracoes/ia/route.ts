@@ -22,13 +22,13 @@ type Cliente = Awaited<ReturnType<typeof createClient>>;
 async function lerUso(supabase: Cliente, workspaceId: string) {
   const { data } = await supabase.rpc("uso_do_vini_da_conta", { p_workspace_id: workspaceId });
   const u = data as {
-    franquia: number | null; perguntas_no_mes: number; volta_em: string;
+    franquia: number | null; franquia_do_plano: number | null; perguntas_de_pacotes: number; perguntas_no_mes: number; volta_em: string;
     teto_diario_micros: number | null; teto_mensal_micros: number | null;
     gasto_hoje_micros: number; gasto_no_mes_micros: number;
   } | null;
   if (!u) return null;
   return {
-    franquia: u.franquia, perguntasNoMes: u.perguntas_no_mes, voltaEm: u.volta_em,
+    franquia: u.franquia, franquiaDoPlano: u.franquia_do_plano, perguntasDePacotes: u.perguntas_de_pacotes ?? 0, perguntasNoMes: u.perguntas_no_mes, voltaEm: u.volta_em,
     tetoDiarioMicros: u.teto_diario_micros, tetoMensalMicros: u.teto_mensal_micros,
     gastoHojeMicros: u.gasto_hoje_micros, gastoNoMesMicros: u.gasto_no_mes_micros,
   };

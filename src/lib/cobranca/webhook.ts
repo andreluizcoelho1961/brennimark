@@ -22,6 +22,8 @@
  * pagou e não ganhou conta.
  */
 
+import { compraDePacoteDoAviso, type CompraDePacote } from "./pacotes";
+
 export type Situacao = "ativa" | "em_atraso" | "cancelada" | "incompleta";
 
 export const TIPOS_TRATADOS = new Set([
@@ -97,6 +99,12 @@ export type Portas = {
    * pode criar a senha dele (`senha-na-volta.ts`).
    */
   garantirLogin(email: string, nome: string | null, idAssinatura: string, moeda: string): Promise<void>;
+  /**
+   * Credita o pacote avulso de perguntas. Devolve true se creditou agora e false se a sessão já
+   * estava creditada (aviso repetido). Conta sem franquia faz subir um erro: o pagamento existe e
+   * não pode sumir calado.
+   */
+  creditarPacote(compra: CompraDePacote): Promise<boolean>;
   sincronizar(assinatura: AssinaturaNoProvedor & { situacao: Situacao; emailDoTitular: string }): Promise<string | null>;
   /**
    * Registra (ou esquece) o pedido de cancelamento — `cobranca_pedido_de_cancelamento`.
@@ -195,6 +203,19 @@ export async function processarAviso(provedor: string, aviso: Aviso, portas: Por
   };
 
   if (!TIPOS_TRATADOS.has(aviso.type)) return concluir("ignorado", "tipo não tratado", null, null);
+
+  // Pagamento avulso (pacote de perguntas): não há assinatura nem conta a abrir.
+  try {
+    const compra = compraDePacoteDoAviso(aviso);
+    if (compra) {
+      const creditou = await portas.creditarPacote(compra);
+      return await concluir("processado", creditou ? `pacote ${compra.pacote.codigo} creditado` : "pacote já creditado", null, null);
+    }
+  } catch (erro) {
+    const detalhe = erro instanceof Error ? erro.message : "erro desconhecido";
+    await portas.concluir(provedor, aviso.id, "falhou", detalhe, null);
+    throw erro;
+  }
 
   const idAssinatura = assinaturaDoAviso(aviso);
   if (!idAssinatura) return concluir("ignorado", "aviso sem assinatura", null, null);
