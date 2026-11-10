@@ -123,8 +123,16 @@ grave nessas tabelas. As chaves antigas seguem cifradas em AES-256-GCM (`src/lib
 chamador, mantido para ler esse dado): nunca retornar `api_key_ciphertext` nem `api_key_iv`, e não
 apagar `AI_SETTINGS_ENCRYPTION_KEY` da Vercel.
 
-Qualquer função `SECURITY DEFINER` nova precisa de `revoke execute` de `anon` e `authenticated`, e
-`search_path` vazio com nomes qualificados.
+Toda função `SECURITY DEFINER` nova precisa de `search_path` vazio com nomes qualificados e de
+`revoke execute` de `anon` (o hospedado dá EXECUTE a `anon` por padrão em função nova, e
+`revoke … from public` não o tira). **`authenticated`: a regra "revogar de todas" NÃO é a prática e
+quebraria o app.** As funções que o navegador chama por RPC (`console_*`, `conceder_acesso`,
+`guardar_chave_de_ia`…) ficam executáveis por `authenticated` e a proteção real é a checagem DENTRO do
+corpo (`private.eh_da_equipe()`, `auth.uid()` + papel/associação). Função só do servidor leva também
+`revoke` de `authenticated` e `grant` a `service_role`. Quem expõe uma função nova a `authenticated`
+precisa acrescentá-la à lista aprovada de `scripts/prova-funcoes-executaveis.sql` (a prova falha
+sem isso) e ter conferido o corpo; toda `console_*` nova entra sozinha no teste de recusa à equipe.
+`anon` só executa as duas do pareamento do Fonts.
 
 ## Banco
 
@@ -216,6 +224,9 @@ Garantia que ninguém reexecuta é garantia que alguém remove numa refatoraçã
 - `scripts/prova-teto-e-franquia-da-ia.sh` — na IA própria o teto em dólar é da agência (nasce sem teto, a dona define); franquia de perguntas do plano; as travas continuam; autorização negativa (outra conta não lê nem define)
 - `scripts/prova-ia-por-plano.sh` — o modo de IA no plano, as chaves por conta (ninguém de navegador
   lê o cifrado), o registro append-only e o interruptor do Vini por pessoa (ADR-0009)
+- `scripts/prova-funcoes-executaveis.sh` — o catálogo de funções `SECURITY DEFINER` expostas: `anon` só no
+  pareamento do Fonts, `authenticated` só na lista aprovada, e as ~30 `console_*` recusam (42501) quem não é da equipe
+- `scripts/prova-limites-de-taxa.sh` — o limite de taxa por IP das rotas públicas (só a chave de serviço o alcança)
 - `scripts/prova-licencas-do-fonts.sh` e `scripts/prova-concorrencia-licencas-do-fonts.sh` — as licenças do beta do
   Brennimark Fonts: só a equipe alcança, limite de computadores, validade, revogação e a corrida no último lugar.
   A chave que ASSINA os certificados (`BRENNIMARK_CHAVE_LICENCAS_FONTS`, Ed25519) mora só na Vercel: nunca no banco,
