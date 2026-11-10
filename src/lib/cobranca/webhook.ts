@@ -105,6 +105,11 @@ export type Portas = {
    * não pode sumir calado.
    */
   creditarPacote(compra: CompraDePacote): Promise<boolean>;
+  /**
+   * Avisa a equipe de que um pagamento avulso NÃO foi creditado (primeira falha do aviso; as repetições
+   * do Stripe não avisam de novo). Falha ao avisar nunca esconde a falha original.
+   */
+  alertarPacoteNaoCreditado?(alerta: { idDoAviso: string; sessao: string | null; workspaceId: string | null; pacote: string | null; detalhe: string }): Promise<void>;
   sincronizar(assinatura: AssinaturaNoProvedor & { situacao: Situacao; emailDoTitular: string }): Promise<string | null>;
   /**
    * Registra (ou esquece) o pedido de cancelamento — `cobranca_pedido_de_cancelamento`.
@@ -205,15 +210,25 @@ export async function processarAviso(provedor: string, aviso: Aviso, portas: Por
   if (!TIPOS_TRATADOS.has(aviso.type)) return concluir("ignorado", "tipo não tratado", null, null);
 
   // Pagamento avulso (pacote de perguntas): não há assinatura nem conta a abrir.
+  let compra: CompraDePacote | null = null;
   try {
-    const compra = compraDePacoteDoAviso(aviso);
+    compra = compraDePacoteDoAviso(aviso);
     if (compra) {
       const creditou = await portas.creditarPacote(compra);
       return await concluir("processado", creditou ? `pacote ${compra.pacote.codigo} creditado` : "pacote já creditado", null, null);
     }
   } catch (erro) {
-    const detalhe = erro instanceof Error ? erro.message : "erro desconhecido";
+    const motivo = erro instanceof Error ? erro.message : "erro desconhecido";
+    // O que a equipe precisa para o conserto manual: a sessão, a conta e o pacote, no próprio registro do aviso.
+    const sessaoDoAviso = typeof (aviso.data?.object as { id?: unknown } | undefined)?.id === "string" ? (aviso.data.object as { id: string }).id : null;
+    const sessao = compra?.sessao ?? sessaoDoAviso;
+    const detalhe = `${motivo}${sessao ? ` [sessao=${sessao}${compra ? ` conta=${compra.workspaceId} pacote=${compra.pacote.codigo}` : ""}]` : ""}`;
     await portas.concluir(provedor, aviso.id, "falhou", detalhe, null);
+    if (recebimento === "novo" && portas.alertarPacoteNaoCreditado) {
+      await portas.alertarPacoteNaoCreditado({
+        idDoAviso: aviso.id, sessao, workspaceId: compra?.workspaceId ?? null, pacote: compra?.pacote.codigo ?? null, detalhe,
+      }).catch(() => undefined);
+    }
     throw erro;
   }
 
