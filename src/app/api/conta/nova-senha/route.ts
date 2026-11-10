@@ -1,3 +1,4 @@
+import { FRASE_DE_SENHA_VAZADA, senhaVazada } from "@/lib/acesso/senha-vazada";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -39,6 +40,8 @@ export async function POST(request: Request) {
     } as const;
     return NextResponse.json({ message: frases[recusa] }, { status: 400 });
   }
+
+  if (await senhaVazada(corpo?.senha as string)) return NextResponse.json({ message: FRASE_DE_SENHA_VAZADA.pt }, { status: 400 });
 
   const servico = createServiceClient();
   const { error } = await servico.auth.admin.updateUserById(user.id, {

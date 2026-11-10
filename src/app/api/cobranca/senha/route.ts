@@ -1,3 +1,4 @@
+import { FRASE_DE_SENHA_VAZADA, senhaVazada } from "@/lib/acesso/senha-vazada";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { inEnglish } from "@/platform/locale";
 import { NextResponse, type NextRequest } from "next/server";
@@ -129,6 +130,10 @@ export async function POST(request: NextRequest) {
       diferentes: (isEnglish ? "The two passwords don't match." : "As duas senhas não são iguais."),
     } as const;
     return NextResponse.json({ ...leitura, message: frases[recusa] }, { status: 400 });
+  }
+
+  if (await senhaVazada(corpo.senha as string)) {
+    return NextResponse.json({ ...leitura, message: isEnglish ? FRASE_DE_SENHA_VAZADA.en : FRASE_DE_SENHA_VAZADA.pt }, { status: 400 });
   }
 
   const servico = createServiceClient();
