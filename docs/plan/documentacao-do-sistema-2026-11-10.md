@@ -117,7 +117,7 @@ Teste de referência por caso: `e2e/*.spec.ts` (navegador) e provas `scripts/pro
   não lê a B). Função `SECURITY DEFINER` nova: `revoke` de `anon`/`authenticated` e `search_path` vazio.
 - Histórico de migrations do repositório = ledger de produção (`supabase/historico-remoto.txt`).
 - Nunca apagar, reescrever ou normalizar dados, histórico ou assets em silêncio.
-- `Brandville` não pode aparecer em interface, venda, domínio ou contrato.
+- O codinome técnico legado não pode voltar a aparecer em interface, venda, domínio ou contrato.
 
 Regras de preço e franquia (R$ 29/100 e R$ 119/500 perguntas, escada de planos) estão em
 `pacotes.ts`, nas migrations e na memória do projeto, **não** num documento de produto único — ver §8.
@@ -232,7 +232,7 @@ vêm da plataforma/teste e por isso não estão em `.env.example`.
    rota sem proteção, mas nada **impede** a próxima de esquecer; a defesa real é RLS, que é a certa.
    Recomendação: teste automático que lista as rotas e exige um marcador de autorização declarado
    (público, sessão, equipe, cron, webhook).
-7. **Nome do produto "de trabalho"** ainda não definitivo; `Brandville` barrado por teste.
+7. **Nome do produto "de trabalho"** ainda não definitivo; o codinome legado é barrado por `src/platform/codinome.test.ts`.
 8. **Pendência de segurança em aberto, de ação do André:** ativar Turnstile (variáveis acima) e conferir
    regra de limite no Firewall da Vercel (plano Free: 1 regra por projeto; o plano pago amplia). O
    limite no banco (#249) já cobre as quatro rotas sem depender disso.
