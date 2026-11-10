@@ -1,8 +1,11 @@
 # ADR-0009 — A IA depende do plano: da plataforma ou da própria conta
 
-- **Status:** **aceito na direção; nada construído.** O André decidiu os dois planos e a forma de
-  guardar a chave em 06/11/2026. O desenho de banco (§2.1) e a lista de modelos validados são
-  recomendação e **esperam o OK explícito dele antes de qualquer migration**.
+- **Status:** **aceito e construído** (atualizado em 10/11/2026). O André decidiu os dois planos e a
+  forma de guardar a chave em 06/11/2026. As migrations `20261107184907 ia_por_plano` e
+  `20261108140544 ia_propria_teto_e_franquia` estão no ledger de produção, e as rotas
+  `/api/configuracoes/ia/*` existem. O texto abaixo foi escrito antes da construção e fica como
+  registro da decisão; onde disser "nada construído" ou "espera OK antes da migration", leia como
+  histórico.
 - **Data:** conversa de 06/11/2026, depois da primeira entrevista de mercado (Happy House)
 - **Decidido por:** André (direção); detalhes técnicos propostos por Claude
 - **Altera:** ADR-0008 (a IA é da plataforma). O 0008 continua valendo para o plano com IA; deixa de
