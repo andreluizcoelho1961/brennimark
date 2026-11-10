@@ -48,8 +48,13 @@ export function compraDePacoteDoAviso(aviso: { type: string; data: { object: unk
   if (typeof s.currency === "string" && s.currency.toLowerCase() !== "brl") {
     throw new Error("pacote: moeda inesperada");
   }
-  const valor = typeof s.amount_total === "number" ? s.amount_total : pacote.valorCentavos;
-  return { workspaceId, pacote, sessao, valorCentavos: valor, moeda: "BRL" };
+  // O valor que vale é o do catálogo: o checkout leva o preço na própria sessão, e uma sessão paga por
+  // outro valor (catálogo mudado entre a abertura e o pagamento, ou sessão criada fora do nosso código)
+  // não pode creditar o pacote cheio. Divergência falha o aviso, que aparece no Console para decisão humana.
+  if (s.amount_total !== pacote.valorCentavos) {
+    throw new Error(`pacote: valor pago diverge do catálogo (pago ${String(s.amount_total)}, catálogo ${pacote.valorCentavos})`);
+  }
+  return { workspaceId, pacote, sessao, valorCentavos: s.amount_total, moeda: "BRL" };
 }
 
 /** Os parâmetros da sessão de pagamento avulso. */

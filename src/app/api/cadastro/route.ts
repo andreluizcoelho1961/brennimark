@@ -4,6 +4,8 @@ import { ACEITES, COOKIE_DO_CADASTRO, comMarcaDoConvite, idiomaDoCadastro, lerRe
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { mensagemDeConfirmacaoDaLista } from "@/lib/email/mensagens";
 import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
+import { dentroDoLimite, ipDoPedido } from "@/lib/seguranca/limite-de-taxa";
+import { conferirTurnstile } from "@/lib/demonstracao/turnstile";
 
 /**
  * O cadastro gratuito (17/10/2026): quem baixa ou exporta de uma ferramenta do
@@ -17,6 +19,13 @@ import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
  *
  * Quem marca a caixa de marketing recebe um e-mail de confirmação (ver o fim da
  * função): só quem clicar entra na lista de marketing.
+ *
+ * ─── Contra abuso (auditoria de 09/11/2026, A1) ─────────────────────────
+ *
+ * Teto por IP no banco (20 pedidos por hora; `@/lib/seguranca/limite-de-taxa`) e, quando o Turnstile está
+ * configurado (`BRENNIMARK_TURNSTILE_SECRET` e `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, as duas), captcha. O
+ * bombardeio de um endereço só já é contido pelo banco (um e-mail de confirmação por endereço a cada 24 h).
+ * Sem as duas variáveis o captcha fica desligado e o teto continua: as ferramentas do site não param.
  *
  * `website` é a isca para robô: um campo escondido que pessoa nenhuma preenche.
  * Veio preenchido, a resposta é a de sucesso e nada é gravado.
@@ -59,6 +68,18 @@ export async function POST(request: Request) {
   try { servico = createServiceClient(); } catch {
     console.error(JSON.stringify({ level: "error", msg: "cadastro_sem_chave" }));
     return NextResponse.json({ message: isEnglish ? "Sign-up isn't available right now. Try again in a moment." : "O cadastro não está disponível agora. Tente de novo em instantes." }, { status: 503 });
+  }
+
+  const ip = ipDoPedido(request.headers);
+  if (!(await dentroDoLimite(servico, { rota: "cadastro", ip, limite: 20, janelaSegundos: 3600 }))) {
+    return NextResponse.json({ message: isEnglish ? "Too many attempts. Try again in a while." : "Muitas tentativas. Tente de novo daqui a pouco." }, { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "3600" } });
+  }
+  const segredoDoCaptcha = process.env.BRENNIMARK_TURNSTILE_SECRET;
+  if (segredoDoCaptcha && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+    const captcha = await conferirTurnstile({ token: (corpo as { token?: unknown } | null)?.token, ip, segredo: segredoDoCaptcha, producao: true });
+    if (captcha !== "ok") {
+      return NextResponse.json({ message: isEnglish ? "Confirm you're not a robot and try again." : "Confirme que você não é um robô e tente de novo." }, { status: captcha === "recusado" ? 400 : 503 });
+    }
   }
 
   const { data, error } = await servico.rpc("registrar_cadastro", {

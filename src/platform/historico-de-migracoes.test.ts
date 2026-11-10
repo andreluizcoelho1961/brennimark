@@ -57,6 +57,7 @@ function historicoRemoto(): Map<string, string> {
  * contra o ledger de produção, não presumido — ver `supabase/RECONCILIACAO.md`.
  */
 const PENDENTES_ESPERADAS: string[] = [
+  "limites_de_taxa", // A1 da auditoria de 09/11/2026: aguardando o OK nominal do André para aplicar
   // `ia_propria_teto_e_franquia` saiu daqui em 08/11/2026: aplicada ao banco hospedado com
   // autorização nominal do André, carimbada `20261108140544`. Conferido depois: coluna da franquia,
   // restrição antiga removida, `anon` sem execute nas funções novas, a reserva só para service_role.

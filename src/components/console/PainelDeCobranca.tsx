@@ -196,6 +196,54 @@ function LinkDePiloto({ planos }: { planos: Plano[] }) {
   );
 }
 
+type AvisoComFalha = { id_externo: string; tipo: string; detalhe: string | null; tentativas: number; recebido_em: string };
+
+/** Pagamentos de pacote cobrados e não creditados (auditoria 09/11, M1): vazio é o estado esperado. */
+function PagamentosSemCredito() {
+  const [avisos, setAvisos] = useState<AvisoComFalha[] | null>(null);
+  useEffect(() => {
+    let cancelado = false;
+    (async () => {
+      const r = await fetch("/api/console/cobranca/sem-credito", { cache: "no-store" }).catch(() => null);
+      const d = r ? await r.json().catch(() => ({})) : {};
+      if (!cancelado) setAvisos(r?.ok && Array.isArray(d.avisos) ? d.avisos : null);
+    })();
+    return () => { cancelado = true; };
+  }, []);
+  if (avisos === null) return null;
+  return (
+    <section aria-label="Pagamentos sem crédito" data-pagamentos-sem-credito>
+      <h2 className={TITULO}>Pagamentos sem crédito</h2>
+      {avisos.length === 0 ? (
+        <p className="mt-3 text-sm text-platform-text-muted">Nenhum pagamento de pacote ficou sem crédito.</p>
+      ) : (
+        <>
+          <p role="alert" className="mt-3 text-sm text-platform-text">
+            {avisos.length} aviso(s) de pagamento com falha. A pessoa pagou e o crédito não entrou: o Stripe tenta de novo por dias; se não se resolver, credite à mão ou estorne (passo a passo em docs/plan/pacote-pago-sem-credito.md).
+          </p>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-left text-sm text-platform-text">
+              <thead className="text-[11px] uppercase tracking-wide text-platform-text-muted">
+                <tr><th className={TH}>Recebido</th><th className={TH}>Aviso</th><th className={TH}>Tentativas</th><th className={TH}>Detalhe</th></tr>
+              </thead>
+              <tbody>
+                {avisos.map((a) => (
+                  <tr key={a.id_externo} className="border-t border-platform-border">
+                    <td className="py-2 pr-4 font-mono">{data(a.recebido_em)}</td>
+                    <td className="py-2 pr-4 font-mono">{a.id_externo}</td>
+                    <td className="py-2 pr-4">{a.tentativas}</td>
+                    <td className="py-2 pr-4 break-all">{a.detalhe ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 export function PainelDeCobranca() {
   const [painel, setPainel] = useState<Painel | null>(null);
   const [erro, setErro] = useState("");
@@ -254,6 +302,8 @@ export function PainelDeCobranca() {
           </div>
         )}
       </section>
+
+      <PagamentosSemCredito />
 
       <PedidosDeExportacao />
 

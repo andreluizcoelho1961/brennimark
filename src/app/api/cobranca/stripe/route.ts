@@ -5,6 +5,8 @@ import { buscarAssinaturaNoStripe, chavesDoStripe, estornarArrependimento, lerAv
 import { processarAviso, type EstadoDoCancelamento, type Recebimento, type Situacao } from "@/lib/cobranca/webhook";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { mensagemDeBoasVindas, mensagemDeCancelamento } from "@/lib/email/mensagens";
+import { mensagemDePacoteNaoCreditado } from "@/lib/email/alerta-da-equipe";
+import { EMPRESA } from "@/lib/site/empresa";
 
 /**
  * O webhook do Stripe — por onde a conta paga NASCE (fatia 1 da cobrança,
@@ -97,6 +99,15 @@ export async function POST(request: Request) {
         if (error) throw new Error(`pacote: ${error.code} ${error.hint ?? ""}`.trim());
         if (data === true) console.info(JSON.stringify({ level: "info", msg: "cobranca_pacote_creditado", pacote: c.pacote.codigo }));
         return data === true;
+      },
+      async alertarPacoteNaoCreditado(a) {
+        // O log é o alerta que não depende de e-mail; o e-mail à equipe é o que chega a quem não olha o log.
+        console.error(JSON.stringify({ level: "error", msg: "cobranca_pacote_nao_creditado", aviso: a.idDoAviso, pacote: a.pacote }));
+        if (!emailConfigurado()) return;
+        const origem = new URL(request.url).origin;
+        await enviarEmail(EMPRESA.email, mensagemDePacoteNaoCreditado({
+          sessao: a.sessao, workspaceId: a.workspaceId, pacote: a.pacote, motivo: a.detalhe.slice(0, 300), linkDoConsole: `${origem}/console/cobranca`,
+        }));
       },
       async sincronizar(a) {
         const { data, error } = await servico.rpc("cobranca_sincronizar_assinatura", {
