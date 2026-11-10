@@ -3,6 +3,7 @@ import { inEnglish } from "@/platform/locale";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { BUCKETS, pertenceAMarca } from "@/lib/storage/caminhos";
 import { createServiceClient } from "@/lib/supabase/service";
+import { dentroDoLimite, ipDoPedido } from "@/lib/seguranca/limite-de-taxa";
 import { codigoValido, identificacaoValida, MAXIMO_DE_ARQUIVOS, resumoDoCodigo } from "@/lib/links/links";
 import { liberarEntrega, type LinkAberto } from "@/lib/links/entrega";
 
@@ -46,6 +47,10 @@ export async function POST(request: Request, ctx: { params: Promise<{ codigo: st
 
   const hash = resumoDoCodigo(codigo);
   const servico = createServiceClient();
+  // Teto por IP (auditoria de 09/11/2026, A1): 60 pedidos de download em 10 minutos.
+  if (!(await dentroDoLimite(servico, { rota: "receber", ip: ipDoPedido(request.headers), limite: 60, janelaSegundos: 600 }))) {
+    return NextResponse.json({ message: t("Muitas tentativas. Tente de novo daqui a pouco.", "Too many attempts. Try again in a while.") }, { status: 429, headers: { ...SEM_CACHE, "Retry-After": "600" } });
+  }
 
   const resultado = await liberarEntrega({
     pedidos,

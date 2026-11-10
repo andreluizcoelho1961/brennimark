@@ -2,6 +2,7 @@ import { tradutorDoEmail } from "@/lib/email/tradutor-do-email";
 import { idiomaDaSessao } from "@/lib/idioma-da-sessao";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { dentroDoLimite, ipDoPedido } from "@/lib/seguranca/limite-de-taxa";
 import { emailConfigurado, enviarEmail } from "@/lib/email/enviar";
 import { mensagemDeRecuperacao } from "@/lib/email/mensagens";
 import {
@@ -36,6 +37,12 @@ export async function POST(request: Request) {
   let servico;
   try { servico = createServiceClient(); } catch {
     return NextResponse.json({ message: "A recuperação de senha ainda não está disponível." }, { status: 503 });
+  }
+
+  // Teto por IP (auditoria de 09/11/2026, A1): 10 pedidos por hora. O limite é de quem pede, não do e-mail
+  // pedido, então a recusa não revela se o login existe.
+  if (!(await dentroDoLimite(servico, { rota: "esqueci-senha", ip: ipDoPedido(request.headers), limite: 10, janelaSegundos: 3600 }))) {
+    return NextResponse.json({ message: "Muitos pedidos. Tente de novo daqui a pouco." }, { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": "3600" } });
   }
 
   const segredo = gerarSegredo();

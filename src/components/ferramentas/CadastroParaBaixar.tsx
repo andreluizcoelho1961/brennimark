@@ -1,5 +1,6 @@
 "use client";
 
+import { CHAVE_DO_CAPTCHA, CaptchaDoCadastro } from "./CaptchaDoCadastro";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -104,6 +105,7 @@ export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, 
   const [biblioteca, setBiblioteca] = useState("");
   const [aceite, setAceite] = useState(false);
   const [website, setWebsite] = useState("");
+  const [captcha, setCaptcha] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -121,7 +123,7 @@ export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email, nome, agencia, cargo, origem, aceiteMarketing: aceite, website, idioma,
+          email, nome, agencia, cargo, origem, aceiteMarketing: aceite, website, idioma, token: captcha,
           respostas: { equipe, marcas, comoConheceu, ...(variante === "convite" ? { sistema, biblioteca } : {}) },
         }),
       });
@@ -208,11 +210,13 @@ export function FormularioDeCadastro({ origem, variante = "baixar", aoConcluir, 
           <span>{ACEITES[idioma].texto}</span>
         </label>
 
+        <CaptchaDoCadastro aoMudar={setCaptcha} />
+
         {erro && <p role="alert" data-cadastro-erro className="text-sm text-platform-danger">{erro}</p>}
 
         <div className="flex flex-wrap items-center justify-end gap-3">
           <button type="button" data-cadastro-fechar onClick={aoFechar} className="rounded-[var(--radius-control)] border border-platform-border px-4 py-2 text-sm text-platform-text">{t("agoraNao")}</button>
-          <button type="submit" data-cadastro-enviar disabled={enviando} className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
+          <button type="submit" data-cadastro-enviar disabled={enviando || (CHAVE_DO_CAPTCHA !== "" && !captcha)} className="rounded-[var(--radius-control)] bg-platform-signal px-4 py-2.5 text-sm font-semibold text-platform-bg disabled:opacity-40">
             {enviando ? t("enviando") : variante === "convite" ? t("convite.enviar") : t("baixar.enviar")}
           </button>
         </div>
