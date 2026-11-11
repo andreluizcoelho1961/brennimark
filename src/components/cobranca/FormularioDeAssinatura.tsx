@@ -3,6 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { caminhoDoSite, idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
+import { FAIXAS_DA_VITRINE, type FaixaDaVitrine } from "@/lib/site/vitrine-de-planos";
 
 export type PlanoAVenda = { codigo: string; nome: string; maximoDeMarcas: number | null };
 
@@ -23,6 +24,31 @@ const MOEDAS_ABERTAS: Moeda[] = ["BRL"];
 const CAMPO = "w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal";
 const ROTULO = "mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-platform-text-muted";
 
+/** Os dois blocos da escolha: o plano com o Vini da plataforma e o de chave própria. */
+const GRUPOS = [
+  { chave: "comIa", titulo: "grupoComIa" },
+  { chave: "propria", titulo: "grupoPropria" },
+] as const;
+
+/**
+ * Um plano como cartão. Os da escada levam o nome da faixa e o preço (o mesmo
+ * que a vitrine mostra); um plano fora da escada cai no nome que o banco dá.
+ */
+function CartaoDoPlano({ p, faixa, reais, marcado, onEscolher }: { p: PlanoAVenda; faixa?: FaixaDaVitrine; reais?: number; marcado: boolean; onEscolher: () => void }) {
+  const t = useTranslations("cobranca.formulario");
+  const tSite = useTranslations("site.home");
+  return (
+    <label data-plano={p.codigo} className={`cursor-pointer border px-4 py-4 ${marcado ? "border-platform-signal" : "border-platform-border"}`}>
+      <input type="radio" name="plano" value={p.codigo} checked={marcado} onChange={onEscolher} className="sr-only" />
+      <span className="block font-display text-sm font-black uppercase text-platform-text">{faixa ? tSite(`faixa_${faixa.id}`) : p.nome}</span>
+      {reais !== undefined && <span data-preco-do-plano className="mt-1 block text-sm font-bold text-platform-text">{t("precoPorMes", { reais })}</span>}
+      <span className="mt-1 block text-xs text-platform-text-muted">
+        {p.maximoDeMarcas === null ? t("marcasSemLimite") : t("ateMarcas", { n: p.maximoDeMarcas })}{t("pessoas")}
+      </span>
+    </label>
+  );
+}
+
 /**
  * O pedido de assinatura: plano, moeda e quem assina. Enviar abre a página de
  * pagamento do Stripe — nada é cobrado aqui, e nenhum dado de cartão passa
@@ -37,6 +63,9 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
   const [moeda, setMoeda] = useState<Moeda>(idioma === "en" && MOEDAS_ABERTAS.includes("USD") ? "USD" : "BRL");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+
+  const codigosDaVitrine = new Set(FAIXAS_DA_VITRINE.flatMap((f) => [f.comIa.codigo, f.propria.codigo]));
+  const soltos = planos.filter((p) => !codigosDaVitrine.has(p.codigo));
 
   if (planos.length === 0) {
     return (
@@ -67,20 +96,24 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
 
   return (
     <form onSubmit={enviar} noValidate data-formulario-de-assinatura className="mt-10 flex flex-col gap-8">
-      <fieldset>
+      <fieldset className="flex flex-col gap-6">
         <legend className={ROTULO}>{t("plano")}</legend>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {planos.map((p) => (
-            <label key={p.codigo} data-plano={p.codigo}
-              className={`cursor-pointer border px-4 py-4 ${plano === p.codigo ? "border-platform-signal" : "border-platform-border"}`}>
-              <input type="radio" name="plano" value={p.codigo} checked={plano === p.codigo} onChange={() => setPlano(p.codigo)} className="sr-only" />
-              <span className="block font-display text-sm font-black uppercase text-platform-text">{p.nome}</span>
-              <span className="mt-1 block text-xs text-platform-text-muted">
-                {p.maximoDeMarcas === null ? t("marcasSemLimite") : t("ateMarcas", { n: p.maximoDeMarcas })}{t("pessoas")}
-              </span>
-            </label>
-          ))}
-        </div>
+        {GRUPOS.map((g) => (
+          <div key={g.chave} data-grupo-de-planos={g.chave}>
+            <p className="mb-2 text-sm font-bold text-platform-text">{t(g.titulo)}</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {FAIXAS_DA_VITRINE.map((faixa) => {
+                const p = planos.find((x) => x.codigo === faixa[g.chave].codigo);
+                return p ? <CartaoDoPlano key={p.codigo} p={p} faixa={faixa} reais={faixa[g.chave].reais} marcado={plano === p.codigo} onEscolher={() => setPlano(p.codigo)} /> : null;
+              })}
+            </div>
+          </div>
+        ))}
+        {soltos.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {soltos.map((p) => <CartaoDoPlano key={p.codigo} p={p} marcado={plano === p.codigo} onEscolher={() => setPlano(p.codigo)} />)}
+          </div>
+        )}
       </fieldset>
 
       {MOEDAS_ABERTAS.length > 1 && (

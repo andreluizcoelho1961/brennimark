@@ -2414,7 +2414,7 @@
       "erro": "Não foi possível abrir o pagamento. Tente de novo.",
       "plano": "Plano",
       "marcasSemLimite": "Marcas sem limite",
-      "ateMarcas": "Até {n} marcas",
+      "ateMarcas": "{n, plural, one {1 marca} other {Até # marcas}}",
       "pessoas": " · pessoas ilimitadas",
       "ondeFica": "Onde fica a empresa",
       "brasil": "Brasil · R$",
@@ -2427,7 +2427,10 @@
       "renovacao": "Assinatura mensal com renovação automática. Cancele quando quiser em Configurações → Plano. Se cancelar em até 7 dias, devolvemos o valor pago.",
       "aceite": "Ao ir para o pagamento, você aceita os <t>Termos de uso</t> e a <p>Política de privacidade</p>.",
       "ir": "Ir para o pagamento",
-      "abrindo": "Abrindo o pagamento…"
+      "abrindo": "Abrindo o pagamento…",
+      "grupoComIa": "Com o Vini incluído",
+      "grupoPropria": "Traga a sua IA",
+      "precoPorMes": "R$ {reais} por mês"
     },
     "volta": {
       "titulos": {
