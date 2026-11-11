@@ -12,6 +12,13 @@ const MOEDAS: { valor: Moeda; chave: "brasil" | "outros" }[] = [
   { valor: "BRL", chave: "brasil" },
   { valor: "USD", chave: "outros" },
 ];
+/**
+ * Moedas que a tela oferece. A 1ª etapa vende só para agências brasileiras e os
+ * 8 planos da escada nova existem só em reais no Stripe: oferecer dólar levaria
+ * a recusa. Para reabrir, registre os preços em US$ no Console › Cobrança e
+ * acrescente "USD" aqui — com uma só moeda a escolha some da tela.
+ */
+const MOEDAS_ABERTAS: Moeda[] = ["BRL"];
 
 const CAMPO = "w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal";
 const ROTULO = "mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-platform-text-muted";
@@ -27,7 +34,7 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
   const idioma = idiomaDoSiteValido(lang) ? lang : IDIOMA_PADRAO_DO_SITE;
   const [plano, setPlano] = useState(planos.some((p) => p.codigo === planoInicial) ? planoInicial! : planos[0]?.codigo ?? "");
   // Quem lê em inglês começa na moeda em dólar (a mudança é um clique).
-  const [moeda, setMoeda] = useState<Moeda>(idioma === "en" ? "USD" : "BRL");
+  const [moeda, setMoeda] = useState<Moeda>(idioma === "en" && MOEDAS_ABERTAS.includes("USD") ? "USD" : "BRL");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
 
@@ -76,19 +83,21 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
         </div>
       </fieldset>
 
-      <fieldset>
-        <legend className={ROTULO}>{t("ondeFica")}</legend>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {MOEDAS.map((m) => (
-            <label key={m.valor} data-moeda={m.valor}
-              className={`cursor-pointer border px-4 py-3 ${moeda === m.valor ? "border-platform-signal" : "border-platform-border"}`}>
-              <input type="radio" name="moeda" value={m.valor} checked={moeda === m.valor} onChange={() => setMoeda(m.valor)} className="sr-only" />
-              <span className="block text-sm font-bold text-platform-text">{t(m.chave)}</span>
-              <span className="block text-xs text-platform-text-muted">{t("cartao")}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {MOEDAS_ABERTAS.length > 1 && (
+        <fieldset>
+          <legend className={ROTULO}>{t("ondeFica")}</legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {MOEDAS.filter((m) => MOEDAS_ABERTAS.includes(m.valor)).map((m) => (
+              <label key={m.valor} data-moeda={m.valor}
+                className={`cursor-pointer border px-4 py-3 ${moeda === m.valor ? "border-platform-signal" : "border-platform-border"}`}>
+                <input type="radio" name="moeda" value={m.valor} checked={moeda === m.valor} onChange={() => setMoeda(m.valor)} className="sr-only" />
+                <span className="block text-sm font-bold text-platform-text">{t(m.chave)}</span>
+                <span className="block text-xs text-platform-text-muted">{t("cartao")}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
