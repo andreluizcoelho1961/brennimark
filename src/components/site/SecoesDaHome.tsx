@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { FAIXAS_DA_VITRINE } from "@/lib/site/vitrine-de-planos";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA } from "@/lib/site/empresa";
 import { caminhoDoSite } from "@/lib/site/idiomas";
@@ -257,32 +258,22 @@ export async function SecoesDaHome() {
               </div>
             </div>
             <div className="plans">
-              <article className="plan">
-                <h3>{t("basico")}</h3><p className="plan-for">{t("para_quem_cuida_de_poucas")}</p>
-                <div className="price">{t("a_definir")}<span>{t("valor_da_assinatura")}</span></div>
-                <dl><div><dt>{t("marcas")}</dt><dd className="hi">{t("ate_5")}</dd></div><div><dt>{t("pessoas")}</dt><dd>{t("ilimitadas")}</dd></div><div><dt>{t("armazenamento")}</dt><dd>{t("a_definir_2")}</dd></div><div><dt>{t("uso_do_vini")}</dt><dd>{t("limite_do_plano")}</dd></div><div><dt>{t("implantacao_assistida")}</dt><dd>—</dd></div></dl>
-                <Link className="btn" href="/assinar?plano=basico" prefetch={false} data-assinar="basico">{t("assinar")}</Link>
-              </article>
-              <article className="plan">
-                <h3>{t("medio")}</h3><p className="plan-for">{t("para_estudios_com_carteira_em")}</p>
-                <div className="price">{t("a_definir")}<span>{t("valor_da_assinatura")}</span></div>
-                <dl><div><dt>{t("marcas")}</dt><dd className="hi">{t("dez_ou_quinze")}</dd></div><div><dt>{t("pessoas")}</dt><dd>{t("ilimitadas")}</dd></div><div><dt>{t("armazenamento")}</dt><dd>{t("a_definir_2")}</dd></div><div><dt>{t("uso_do_vini")}</dt><dd>{t("limite_do_plano")}</dd></div><div><dt>{t("implantacao_assistida")}</dt><dd>{t("a_definir_2")}</dd></div></dl>
-                <Link className="btn" href="/assinar?plano=medio" prefetch={false} data-assinar="medio">{t("assinar")}</Link>
-              </article>
-              <article className="plan feat">
-                <h3>{t("premium")}</h3><p className="plan-for">{t("para_agencias_com_muitas_marcas")}</p>
-                <div className="price">{t("a_definir")}<span>{t("valor_da_assinatura")}</span></div>
-                <dl><div><dt>{t("marcas")}</dt><dd className="hi">{t("cerca_de_30")}</dd></div><div><dt>{t("pessoas")}</dt><dd>{t("ilimitadas")}</dd></div><div><dt>{t("armazenamento")}</dt><dd>{t("a_definir_2")}</dd></div><div><dt>{t("uso_do_vini")}</dt><dd>{t("limite_do_plano")}</dd></div><div><dt>{t("implantacao_assistida")}</dt><dd>{t("incluida")}</dd></div></dl>
-                <Link className="btn" href="/assinar?plano=premium" prefetch={false} data-assinar="premium">{t("assinar")}</Link>
-              </article>
-              <article className="plan">
-                <h3>{t("corporativo")}</h3><p className="plan-for">{t("para_empresas_e_grupos_com")}</p>
-                <div className="price">{t("sob_consulta")}<span>{t("proposta_sob_medida")}</span></div>
-                <dl><div><dt>{t("marcas")}</dt><dd className="hi">{t("sob_consulta_2")}</dd></div><div><dt>{t("pessoas")}</dt><dd>{t("ilimitadas")}</dd></div><div><dt>{t("armazenamento")}</dt><dd>{t("sob_consulta_2")}</dd></div><div><dt>{t("uso_do_vini")}</dt><dd>{t("sob_consulta_2")}</dd></div><div><dt>{t("implantacao_assistida")}</dt><dd>{t("incluida")}</dd></div></dl>
-                <button className="btn" type="button" data-open="dlg-demo">{t("falar_com_a_equipe")}</button>
-              </article>
+              {FAIXAS_DA_VITRINE.map((f) => (
+                <article key={f.id} className={f.destaque ? "plan feat" : "plan"} data-faixa={f.id}>
+                  <h3>{t(`faixa_${f.id}`)}</h3><p className="plan-for">{t(`faixa_${f.id}_para`)}</p>
+                  <div className="price">R$ {f.comIa.reais}<span>{t("preco_por_mes")} · {t("vini_com_ia_incluida")}</span></div>
+                  <dl>
+                    <div><dt>{t("marcas")}</dt><dd className="hi">{t("marcas_ate", { n: f.marcas })}</dd></div>
+                    <div><dt>{t("pessoas")}</dt><dd>{t("ilimitadas")}</dd></div>
+                    <div><dt>{t("uso_do_vini")}</dt><dd>{t("perguntas_do_mes", { n: f.comIa.perguntasPorMes })}</dd></div>
+                  </dl>
+                  <Link className="btn" href={`/assinar?plano=${f.comIa.codigo}`} prefetch={false} data-assinar={f.comIa.codigo}>{t("assinar_com_ia")}</Link>
+                  <p className="plan-alt">{t("ou_traga_a_sua_ia")} <strong>R$ {f.propria.reais}</strong> {t("preco_por_mes")}</p>
+                  <Link className="btn btn--ghost" href={`/assinar?plano=${f.propria.codigo}`} prefetch={false} data-assinar={f.propria.codigo}>{t("assinar_traga_a_sua_ia")}</Link>
+                </article>
+              ))}
             </div>
-            <p className="plans-note">{t("a_assinatura_e_mensal_no")}{" "}<button className="link" type="button" data-open="dlg-demo">{t("fale_com_a_equipe")}</button>{t("uso_do_vini_acima_do")}</p>
+            <p className="plans-note">{t("planos_nota_cobranca")}{" "}<button className="link" type="button" data-open="dlg-demo">{t("fale_com_a_equipe")}</button>{t("planos_nota_pacote")}</p>
           </div>
         </section>
 

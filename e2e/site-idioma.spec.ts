@@ -255,9 +255,8 @@ test("a ponte do idioma: quem lê o site em inglês chega ao Assinar em inglês,
   await page.goto("/assinar");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Subscribe");
   await page.goto("/dev/assinar");
-  await expect(page.getByText("Where the company is based")).toBeVisible();
+  await expect(page.locator("[data-moeda]")).toHaveCount(0);
   await expect(page.locator("[data-aviso-de-renovacao]")).toContainText("Cancel any time under Settings → Plan");
   await expect(page.locator("[data-aceite-dos-termos] a").first()).toHaveAttribute("href", "/en/terms");
-  await expect(page.locator("[data-moeda=USD] input")).toBeChecked();
   await expect(page.locator("[data-ir-ao-pagamento]")).toHaveText("Go to payment");
 });

@@ -22,17 +22,17 @@ async function preencher(page: Page) {
   await page.getByLabel("Empresa").fill("Agência Exemplo");
 }
 
-test("escolher plano e moeda e ir ao pagamento manda o pedido sem preço nenhum", async ({ page }) => {
+test("escolher o plano e ir ao pagamento manda o pedido em reais e sem preço nenhum; a escolha de moeda não aparece", async ({ page }) => {
   const pedidos: Pedido[] = [];
   await fingir(page, pedidos, { status: 200, json: { url: "https://checkout.stripe.test/c/pay/x" } });
   await page.goto("/dev/assinar?plano=medio");
   await expect(page.locator('[data-plano="medio"]')).toHaveClass(/border-platform-signal/);
   await page.locator('[data-plano="premium"]').click();
-  await page.locator('[data-moeda="USD"]').click();
+  await expect(page.locator("[data-moeda]")).toHaveCount(0);
   await preencher(page);
   await page.locator("[data-ir-ao-pagamento]").click();
   await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/x");
-  expect(pedidos).toEqual([{ plano: "premium", moeda: "USD", nome: "Fulana de Tal", email: "fulana@agencia.com", empresa: "Agência Exemplo", idioma: "pt-BR" }]);
+  expect(pedidos).toEqual([{ plano: "premium", moeda: "BRL", nome: "Fulana de Tal", email: "fulana@agencia.com", empresa: "Agência Exemplo", idioma: "pt-BR" }]);
 });
 
 test("a recusa do servidor aparece com a frase dele, e o botão volta", async ({ page }) => {
