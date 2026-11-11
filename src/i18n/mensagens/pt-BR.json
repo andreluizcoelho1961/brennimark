@@ -2430,7 +2430,7 @@
       "abrindo": "Abrindo o pagamento…",
       "grupoComIa": "Com o Vini incluído",
       "grupoPropria": "Traga a sua IA",
-      "precoPorMes": "R$ {reais} por mês"
+      "precoPorMes": "{preco} por mês"
     },
     "volta": {
       "titulos": {

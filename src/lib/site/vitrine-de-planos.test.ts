@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { FAIXAS_DA_VITRINE } from "./vitrine-de-planos";
+import { FAIXAS_DA_VITRINE, precoDaVitrine } from "./vitrine-de-planos";
 
 const RAIZ = process.cwd();
 const MIGRATION_DA_VENDA = readFileSync(path.join(RAIZ, "supabase/migrations/20261108200726_planos_da_escada_nomes_e_venda.sql"), "utf8");
@@ -31,4 +31,19 @@ test("com IA custa mais que traga a sua IA na mesma faixa, e cada faixa custa ma
       assert.ok(f.comIa.reais > FAIXAS_DA_VITRINE[i - 1].comIa.reais, f.id);
     }
   });
+});
+
+test("a tabela em dólar de 11/11: sem IA 19/35/89/149, com IA 29/45/115/189, sempre acima da conversão simples dos reais", () => {
+  assert.deepEqual(FAIXAS_DA_VITRINE.map((f) => f.propria.dolares), [19, 35, 89, 149]);
+  assert.deepEqual(FAIXAS_DA_VITRINE.map((f) => f.comIa.dolares), [29, 45, 115, 189]);
+  for (const f of FAIXAS_DA_VITRINE) {
+    for (const plano of [f.comIa, f.propria]) assert.ok(plano.dolares * 5.3 > plano.reais, plano.codigo);
+    assert.ok(f.comIa.dolares > f.propria.dolares, f.id);
+  }
+});
+
+test("o preço sai com o símbolo da moeda", () => {
+  const ferro = FAIXAS_DA_VITRINE[1];
+  assert.equal(precoDaVitrine(ferro.comIa, "BRL"), "R$ 199");
+  assert.equal(precoDaVitrine(ferro.comIa, "USD"), "US$ 45");
 });
