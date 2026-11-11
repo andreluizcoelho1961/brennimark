@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { FAIXAS_DA_VITRINE } from "@/lib/site/vitrine-de-planos";
+import { FAIXAS_DA_VITRINE, precoDaVitrine } from "@/lib/site/vitrine-de-planos";
 import { LinksDasFerramentas } from "./LinksDasFerramentas";
 import { EMPRESA } from "@/lib/site/empresa";
 import { caminhoDoSite } from "@/lib/site/idiomas";
@@ -46,6 +46,7 @@ export async function SecoesDaHome() {
   const t = await getTranslations("site.home");
   const rodape = await getTranslations("site.rodape");
   const idioma = await idiomaDoSiteAtual();
+  const moedaDaVitrine = idioma === "en" ? "USD" : "BRL";
   const rota = (caminho: string) => caminhoDoSite(idioma, caminho);
   const recursos = RECURSOS.map(({ id, destino, tela }) => ({
     id,
@@ -261,14 +262,14 @@ export async function SecoesDaHome() {
               {FAIXAS_DA_VITRINE.map((f) => (
                 <article key={f.id} className={f.destaque ? "plan feat" : "plan"} data-faixa={f.id}>
                   <h3>{t(`faixa_${f.id}`)}</h3><p className="plan-for">{t(`faixa_${f.id}_para`)}</p>
-                  <div className="price">R$ {f.comIa.reais}<span>{t("preco_por_mes")} · {t("vini_com_ia_incluida")}</span></div>
+                  <div className="price">{precoDaVitrine(f.comIa, moedaDaVitrine)}<span>{t("preco_por_mes")} · {t("vini_com_ia_incluida")}</span></div>
                   <dl>
                     <div><dt>{t("marcas")}</dt><dd className="hi">{t("marcas_ate", { n: f.marcas })}</dd></div>
                     <div><dt>{t("pessoas")}</dt><dd>{t("ilimitadas")}</dd></div>
                     <div><dt>{t("uso_do_vini")}</dt><dd>{t("perguntas_do_mes", { n: f.comIa.perguntasPorMes })}</dd></div>
                   </dl>
                   <Link className="btn" href={`/assinar?plano=${f.comIa.codigo}`} prefetch={false} data-assinar={f.comIa.codigo}>{t("assinar_com_ia")}</Link>
-                  <p className="plan-alt">{t("ou_traga_a_sua_ia")} <strong>R$ {f.propria.reais}</strong> {t("preco_por_mes")}</p>
+                  <p className="plan-alt">{t("ou_traga_a_sua_ia")} <strong>{precoDaVitrine(f.propria, moedaDaVitrine)}</strong> {t("preco_por_mes")}</p>
                   <Link className="btn btn--ghost" href={`/assinar?plano=${f.propria.codigo}`} prefetch={false} data-assinar={f.propria.codigo}>{t("assinar_traga_a_sua_ia")}</Link>
                 </article>
               ))}

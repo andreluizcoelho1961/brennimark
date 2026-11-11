@@ -22,13 +22,13 @@ async function preencher(page: Page) {
   await page.getByLabel("Empresa").fill("Agência Exemplo");
 }
 
-test("escolher o plano e ir ao pagamento manda o pedido em reais e sem preço nenhum; a escolha de moeda não aparece", async ({ page }) => {
+test("escolher o plano e ir ao pagamento manda o pedido em reais (a moeda de partida em português) e sem preço nenhum", async ({ page }) => {
   const pedidos: Pedido[] = [];
   await fingir(page, pedidos, { status: 200, json: { url: "https://checkout.stripe.test/c/pay/x" } });
   await page.goto("/dev/assinar?plano=medio");
   await expect(page.locator('[data-plano="medio"]')).toHaveClass(/border-platform-signal/);
   await page.locator('[data-plano="premium"]').click();
-  await expect(page.locator("[data-moeda]")).toHaveCount(0);
+  await expect(page.locator('[data-moeda="BRL"] input')).toBeChecked();
   await preencher(page);
   await page.locator("[data-ir-ao-pagamento]").click();
   await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/x");
@@ -49,6 +49,20 @@ test("os 8 planos da escada aparecem em dois grupos, com o preço, e escolher um
   await page.locator("[data-ir-ao-pagamento]").click();
   await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/x");
   expect(pedidos[0]).toMatchObject({ plano: "c-sem-ia", moeda: "BRL" });
+});
+
+test("escolher dólar troca o preço dos cartões para US$ e manda o pedido em USD", async ({ page }) => {
+  const pedidos: Pedido[] = [];
+  await fingir(page, pedidos, { status: 200, json: { url: "https://checkout.stripe.test/c/pay/x" } });
+  await page.goto("/dev/assinar?escada=1&plano=a-com-ia");
+  await expect(page.locator("[data-moeda]")).toHaveCount(2);
+  await page.locator('[data-moeda="USD"]').click();
+  await expect(page.locator('[data-plano="a-com-ia"] [data-preco-do-plano]')).toHaveText("US$ 45 por mês");
+  await expect(page.locator('[data-plano="a-sem-ia"] [data-preco-do-plano]')).toHaveText("US$ 35 por mês");
+  await preencher(page);
+  await page.locator("[data-ir-ao-pagamento]").click();
+  await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/x");
+  expect(pedidos[0]).toMatchObject({ plano: "a-com-ia", moeda: "USD" });
 });
 
 test("a recusa do servidor aparece com a frase dele, e o botão volta", async ({ page }) => {

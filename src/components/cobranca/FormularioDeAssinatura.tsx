@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useState, type FormEvent } from "react";
 import { caminhoDoSite, idiomaDoSiteValido, IDIOMA_PADRAO_DO_SITE } from "@/lib/site/idiomas";
-import { FAIXAS_DA_VITRINE, type FaixaDaVitrine } from "@/lib/site/vitrine-de-planos";
+import { FAIXAS_DA_VITRINE, precoDaVitrine, type FaixaDaVitrine, type PlanoDaVitrine } from "@/lib/site/vitrine-de-planos";
 
 export type PlanoAVenda = { codigo: string; nome: string; maximoDeMarcas: number | null };
 
@@ -14,12 +14,12 @@ const MOEDAS: { valor: Moeda; chave: "brasil" | "outros" }[] = [
   { valor: "USD", chave: "outros" },
 ];
 /**
- * Moedas que a tela oferece. A 1ª etapa vende só para agências brasileiras e os
- * 8 planos da escada nova existem só em reais no Stripe: oferecer dólar levaria
- * a recusa. Para reabrir, registre os preços em US$ no Console › Cobrança e
- * acrescente "USD" aqui — com uma só moeda a escolha some da tela.
+ * Moedas que a tela oferece. Cada plano da escada tem um preço em reais e um em
+ * dólar no Stripe (registrados em Console › Cobrança, 11/11/2026). Um plano sem
+ * preço na moeda escolhida é recusado pelo servidor com uma frase; para fechar
+ * uma moeda de novo, tire-a desta lista — com uma só moeda a escolha some da tela.
  */
-const MOEDAS_ABERTAS: Moeda[] = ["BRL"];
+const MOEDAS_ABERTAS: Moeda[] = ["BRL", "USD"];
 
 const CAMPO = "w-full border border-platform-border bg-transparent px-4 py-3 text-sm text-platform-text placeholder:text-platform-text-muted focus:border-platform-signal";
 const ROTULO = "mb-1.5 block font-display text-xs font-bold uppercase tracking-wide text-platform-text-muted";
@@ -34,14 +34,14 @@ const GRUPOS = [
  * Um plano como cartão. Os da escada levam o nome da faixa e o preço (o mesmo
  * que a vitrine mostra); um plano fora da escada cai no nome que o banco dá.
  */
-function CartaoDoPlano({ p, faixa, reais, marcado, onEscolher }: { p: PlanoAVenda; faixa?: FaixaDaVitrine; reais?: number; marcado: boolean; onEscolher: () => void }) {
+function CartaoDoPlano({ p, faixa, preco, moeda, marcado, onEscolher }: { p: PlanoAVenda; faixa?: FaixaDaVitrine; preco?: PlanoDaVitrine; moeda: Moeda; marcado: boolean; onEscolher: () => void }) {
   const t = useTranslations("cobranca.formulario");
   const tSite = useTranslations("site.home");
   return (
     <label data-plano={p.codigo} className={`cursor-pointer border px-4 py-4 ${marcado ? "border-platform-signal" : "border-platform-border"}`}>
       <input type="radio" name="plano" value={p.codigo} checked={marcado} onChange={onEscolher} className="sr-only" />
       <span className="block font-display text-sm font-black uppercase text-platform-text">{faixa ? tSite(`faixa_${faixa.id}`) : p.nome}</span>
-      {reais !== undefined && <span data-preco-do-plano className="mt-1 block text-sm font-bold text-platform-text">{t("precoPorMes", { reais })}</span>}
+      {preco && <span data-preco-do-plano className="mt-1 block text-sm font-bold text-platform-text">{t("precoPorMes", { preco: precoDaVitrine(preco, moeda) })}</span>}
       <span className="mt-1 block text-xs text-platform-text-muted">
         {p.maximoDeMarcas === null ? t("marcasSemLimite") : t("ateMarcas", { n: p.maximoDeMarcas })}{t("pessoas")}
       </span>
@@ -104,14 +104,14 @@ export function FormularioDeAssinatura({ planos, planoInicial }: { planos: Plano
             <div className="grid gap-3 sm:grid-cols-2">
               {FAIXAS_DA_VITRINE.map((faixa) => {
                 const p = planos.find((x) => x.codigo === faixa[g.chave].codigo);
-                return p ? <CartaoDoPlano key={p.codigo} p={p} faixa={faixa} reais={faixa[g.chave].reais} marcado={plano === p.codigo} onEscolher={() => setPlano(p.codigo)} /> : null;
+                return p ? <CartaoDoPlano key={p.codigo} p={p} faixa={faixa} preco={faixa[g.chave]} moeda={moeda} marcado={plano === p.codigo} onEscolher={() => setPlano(p.codigo)} /> : null;
               })}
             </div>
           </div>
         ))}
         {soltos.length > 0 && (
           <div className="grid gap-3 sm:grid-cols-3">
-            {soltos.map((p) => <CartaoDoPlano key={p.codigo} p={p} marcado={plano === p.codigo} onEscolher={() => setPlano(p.codigo)} />)}
+            {soltos.map((p) => <CartaoDoPlano key={p.codigo} p={p} moeda={moeda} marcado={plano === p.codigo} onEscolher={() => setPlano(p.codigo)} />)}
           </div>
         )}
       </fieldset>

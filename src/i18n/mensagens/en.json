@@ -998,7 +998,7 @@
       "ou_traga_a_sua_ia": "or bring your own AI, for",
       "assinar_com_ia": "Subscribe with Vini included",
       "assinar_traga_a_sua_ia": "Subscribe and bring my own AI",
-      "planos_nota_cobranca": "Prices in Brazilian reais, per month, by card. The account opens as soon as the payment is confirmed. More than 30 brands, or something else?",
+      "planos_nota_cobranca": "Prices in US dollars, per month, by card. The account opens as soon as the payment is confirmed. Question packs are charged in Brazilian reais. More than 30 brands, or something else?",
       "planos_nota_pacote": ". Out of questions for the month? You can buy packs of 100 or 500 questions."
     },
     "homeTelas": {
@@ -2430,7 +2430,7 @@
       "abrindo": "Opening the payment page…",
       "grupoComIa": "With Vini included",
       "grupoPropria": "Bring your own AI",
-      "precoPorMes": "R$ {reais} per month"
+      "precoPorMes": "{preco} per month"
     },
     "volta": {
       "titulos": {
