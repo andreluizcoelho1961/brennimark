@@ -35,6 +35,22 @@ test("escolher o plano e ir ao pagamento manda o pedido em reais e sem preço ne
   expect(pedidos).toEqual([{ plano: "premium", moeda: "BRL", nome: "Fulana de Tal", email: "fulana@agencia.com", empresa: "Agência Exemplo", idioma: "pt-BR" }]);
 });
 
+test("os 8 planos da escada aparecem em dois grupos, com o preço, e escolher um manda o código dele", async ({ page }) => {
+  const pedidos: Pedido[] = [];
+  await fingir(page, pedidos, { status: 200, json: { url: "https://checkout.stripe.test/c/pay/x" } });
+  await page.goto("/dev/assinar?escada=1&plano=a-com-ia");
+  await expect(page.locator('[data-grupo-de-planos="comIa"] [data-plano]')).toHaveCount(4);
+  await expect(page.locator('[data-grupo-de-planos="propria"] [data-plano]')).toHaveCount(4);
+  await expect(page.locator('[data-plano="a-com-ia"]')).toHaveClass(/border-platform-signal/);
+  await expect(page.locator('[data-plano="a-com-ia"] [data-preco-do-plano]')).toHaveText("R$ 199 por mês");
+  await expect(page.locator('[data-plano="a-sem-ia"] [data-preco-do-plano]')).toHaveText("R$ 150 por mês");
+  await page.locator('[data-plano="c-sem-ia"]').click();
+  await preencher(page);
+  await page.locator("[data-ir-ao-pagamento]").click();
+  await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/x");
+  expect(pedidos[0]).toMatchObject({ plano: "c-sem-ia", moeda: "BRL" });
+});
+
 test("a recusa do servidor aparece com a frase dele, e o botão volta", async ({ page }) => {
   await fingir(page, [], { status: 409, json: { message: "Este plano ainda não está à venda nesta moeda." } });
   await page.goto("/dev/assinar");

@@ -10,10 +10,16 @@ export const metadata = { robots: { index: false, follow: false } };
  * preço sai do banco e o Piloto não sai pelo site está provado em
  * `scripts/prova-cobranca.sh`.
  */
-export default async function BancadaDaCompra({ searchParams }: { searchParams: Promise<{ vazio?: string; plano?: string }> }) {
+export default async function BancadaDaCompra({ searchParams }: { searchParams: Promise<{ vazio?: string; plano?: string; escada?: string }> }) {
   if (process.env.NODE_ENV === "production") notFound();
-  const { vazio, plano } = await searchParams;
-  const planos = vazio ? [] : [
+  const { vazio, plano, escada } = await searchParams;
+  const escadaNova = [
+    ["uma-marca-com-ia", "Faísca · com IA", 1], ["uma-marca-sem-ia", "Faísca · traga a sua IA", 1],
+    ["a-com-ia", "Ferro · com IA", 5], ["a-sem-ia", "Ferro · traga a sua IA", 5],
+    ["b-com-ia", "Forja · com IA", 15], ["b-sem-ia", "Forja · traga a sua IA", 15],
+    ["c-com-ia", "Brasa · com IA", 30], ["c-sem-ia", "Brasa · traga a sua IA", 30],
+  ].map(([codigo, nome, maximoDeMarcas]) => ({ codigo: codigo as string, nome: nome as string, maximoDeMarcas: maximoDeMarcas as number }));
+  const planos = vazio ? [] : escada ? escadaNova : [
     { codigo: "basico", nome: "Básico", maximoDeMarcas: 5 },
     { codigo: "medio", nome: "Médio", maximoDeMarcas: 15 },
     { codigo: "premium", nome: "Premium", maximoDeMarcas: 30 },

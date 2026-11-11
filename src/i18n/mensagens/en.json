@@ -2414,7 +2414,7 @@
       "erro": "Couldn't open the payment page. Try again.",
       "plano": "Plan",
       "marcasSemLimite": "Unlimited brands",
-      "ateMarcas": "Up to {n} brands",
+      "ateMarcas": "{n, plural, one {1 brand} other {Up to # brands}}",
       "pessoas": " · unlimited people",
       "ondeFica": "Where the company is based",
       "brasil": "Brazil · R$",
@@ -2427,7 +2427,10 @@
       "renovacao": "Monthly subscription with automatic renewal. Cancel any time under Settings → Plan. If you cancel within 7 days, we refund the amount paid.",
       "aceite": "By going to payment, you accept the <t>Terms of Use</t> and the <p>Privacy Policy</p>.",
       "ir": "Go to payment",
-      "abrindo": "Opening the payment page…"
+      "abrindo": "Opening the payment page…",
+      "grupoComIa": "With Vini included",
+      "grupoPropria": "Bring your own AI",
+      "precoPorMes": "R$ {reais} per month"
     },
     "volta": {
       "titulos": {
