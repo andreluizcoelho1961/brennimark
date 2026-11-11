@@ -244,13 +244,17 @@ test.describe("celular", () => {
   });
 });
 
-test("os planos levam à assinatura com o plano escolhido; o Corporativo e a nota levam à conversa", async ({ page }) => {
+test("a vitrine mostra os 8 planos com preço, cada um leva à assinatura com o plano escolhido; a nota leva à conversa", async ({ page }) => {
   await abrir(page, "/");
-  for (const plano of ["basico", "medio", "premium"]) {
+  const planos = ["uma-marca-com-ia", "uma-marca-sem-ia", "a-com-ia", "a-sem-ia", "b-com-ia", "b-sem-ia", "c-com-ia", "c-sem-ia"];
+  for (const plano of planos) {
     await expect(page.locator(`[data-assinar="${plano}"]`)).toHaveAttribute("href", `/assinar?plano=${plano}`);
-    await expect(page.locator(`[data-assinar="${plano}"]`)).toHaveText("Assinar");
   }
-  await expect(page.locator("#planos").getByRole("button", { name: "Falar com a equipe" }).first()).toHaveAttribute("data-open", "dlg-demo");
+  await expect(page.locator("#planos [data-faixa]")).toHaveCount(4);
+  await expect(page.locator('[data-faixa="faisca"] h3')).toHaveText("Faísca");
+  await expect(page.locator('[data-faixa="ferro"] .price')).toContainText("R$ 199");
+  await expect(page.locator('[data-faixa="ferro"] .plan-alt')).toContainText("R$ 150");
+  await expect(page.locator("#planos")).not.toContainText("A definir");
   await expect(page.locator(".plans-note [data-open='dlg-demo']")).toHaveText("Fale com a equipe");
 });
 
