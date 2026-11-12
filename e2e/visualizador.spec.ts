@@ -192,9 +192,7 @@ test("nenhuma requisição sem Range chega ao transporte", async ({ page }) => {
 
   page.on("request", (r) => {
     if (!r.url().includes("/dev/fixture/")) return;
-    // `HEAD` é o único legítimo sem `Range`: ele traz o tamanho e não tem
-    // corpo, então nenhum byte atravessa a função.
-    if (r.method() !== "HEAD" && !r.headers()["range"]) semIntervalo.push(r.method());
+    if (!r.headers()["range"]) semIntervalo.push(r.method());
   });
   page.on("response", (r) => {
     if (r.url().includes("/dev/fixture/")) status.push(r.status());
@@ -232,7 +230,7 @@ test.describe("manual acima do teto de fatia", () => {
     });
     page.on("request", (r) => {
       if (!r.url().includes("/dev/fixture/")) return;
-      if (r.method() !== "HEAD" && !r.headers()["range"]) semIntervalo.push(r.method());
+      if (!r.headers()["range"]) semIntervalo.push(r.method());
     });
 
     await page.goto(ACIMA);

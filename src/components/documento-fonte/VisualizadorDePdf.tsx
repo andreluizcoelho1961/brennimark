@@ -204,16 +204,32 @@ export function VisualizadorDePdf({
      *
      * ─── O que passa a acontecer ─────────────────────────────────────────
      *
-     * Um `HEAD` traz o tamanho — resposta sem corpo, barata — e o
-     * `PDFDataRangeTransport` pede pedaços. **Nenhuma requisição sem `Range`
-     * chega à rota**, e é isso que o teste `nenhuma requisição sem Range`
-     * tranca: é a invariante que protege produção, e não uma preferência.
+     * Um pedido de UM byte (`Range: bytes=0-0`) traz o tamanho — o total vem
+     * em `Content-Range: bytes 0-0/TOTAL` — e o `PDFDataRangeTransport` pede
+     * pedaços. **Nenhuma requisição sem `Range` chega à rota**, e é isso que
+     * o teste `nenhuma requisição sem Range` tranca: é a invariante que
+     * protege produção, e não uma preferência.
+     *
+     * Por que não `HEAD`: até o Next 16.4.4 o tamanho vinha no `content-length`
+     * de um `HEAD`. O Next 16.4.5 (release de segurança de 03/11/2026) passou
+     * a descartar `content-length`, `content-encoding` e `transfer-encoding`
+     * de toda resposta de rota, e o `HEAD` voltou sem tamanho: "Não foi
+     * possível abrir o manual". `Content-Range` não é apagado.
      */
-    const cabecalhos = await fetch(url, { method: "HEAD", cache: "no-store", signal: parar });
-    if (!cabecalhos.ok) {
-      throw Object.assign(new Error("documento indisponível"), { status: cabecalhos.status });
+    const sonda = await fetch(url, {
+      headers: { Range: "bytes=0-0" },
+      cache: "no-store",
+      signal: parar,
+    });
+    // Corpo de um byte: descartar. Se o servidor ignorou o `Range` e respondeu
+    // 200, o corpo é o arquivo inteiro — cortar antes de ler qualquer coisa.
+    void sonda.body?.cancel();
+    if (sonda.status !== 206) {
+      throw Object.assign(new Error("documento indisponível"), {
+        status: sonda.ok ? 502 : sonda.status,
+      });
     }
-    const tamanho = Number(cabecalhos.headers.get("content-length"));
+    const tamanho = Number(/\/(\d+)\s*$/.exec(sonda.headers.get("content-range") ?? "")?.[1]);
     if (!Number.isFinite(tamanho) || tamanho <= 0) {
       throw Object.assign(new Error("tamanho desconhecido"), { status: 502 });
     }
