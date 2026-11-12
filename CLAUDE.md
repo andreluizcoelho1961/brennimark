@@ -184,10 +184,16 @@ inteira de caçada; cada uma tem teste, e nenhuma é preferência de estilo.
 o intervalo e devolve `206` com `Content-Range` honesto — aparar promete menos e cumpre; recusar
 com 413 quebrou todo manual acima de 4 MiB. `HEAD` é isento: não tem corpo.
 
-**O visualizador nunca pede o arquivo inteiro.** Ele faz `HEAD` para o tamanho e usa
-`PDFDataRangeTransport`. Passar a URL ao PDF.js faz ele sondar **sem `Range`**, a rota começa a
-repassar o arquivo todo, a função estoura a duração e o manual não abre — 60 segundos, medido em
-produção. Há teste de navegador trancando essa invariante.
+**O visualizador nunca pede o arquivo inteiro.** Ele pede `Range: bytes=0-0` e lê o tamanho em
+`Content-Range: bytes 0-0/TOTAL`, e usa `PDFDataRangeTransport`. Passar a URL ao PDF.js faz ele
+sondar **sem `Range`**, a rota começa a repassar o arquivo todo, a função estoura a duração e o
+manual não abre — 60 segundos, medido em produção. Há teste de navegador trancando essa invariante:
+toda requisição ao documento leva `Range`, inclusive a primeira.
+
+**Não depender de `content-length` em resposta de rota.** O Next 16.4.5 (segurança, 03/11/2026)
+descarta `content-length`, `content-encoding` e `transfer-encoding` de toda resposta de route
+handler (`dist/server/send-response.js`), e o `HEAD` deixou de trazer o tamanho — foi o que fez o
+visualizador não abrir. `Content-Range` sobrevive. Qualquer leitura nova de tamanho usa ele.
 
 **A autorização do transporte é enxuta, e por medição.** Uma consulta autorizada pela RLS: se a
 linha vem, o banco provou. Usar a autorização das páginas de interface custava **~350 ms por
