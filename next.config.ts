@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import { PAGINAS_FUNDIDAS } from "./src/lib/site/paginas";
+import { CABECALHOS_DE_SEGURANCA } from "./src/lib/seguranca/cabecalhos";
 
 /**
  * A guarda vigiava o NOME ERRADO, e por isso não guardava nada.
@@ -56,6 +57,10 @@ const supabaseImagem = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  // Cabeçalhos de segurança em todas as respostas (14/11/2026). Ver o módulo.
+  async headers() {
+    return [{ source: "/:path*", headers: [...CABECALHOS_DE_SEGURANCA] }];
+  },
   // Páginas do site que viraram bloco de outra (22/10/2026): 308, antes do proxy.
   async redirects() {
     return [
